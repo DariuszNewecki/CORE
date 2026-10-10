@@ -248,3 +248,58 @@ explicit allowlist of read and verdict operations; nothing it exposes can write 
 
 Grounds: the recon in `var/reports/adr168-d43-design-20261006.md` found that the API requires
 PostgreSQL and Qdrant to start, while the newcomer path is `pip install` only.
+
+## Amendment 2026-10-10: the Proposal capability — one way in for every producer (governor ruling)
+
+**Why.** The governor, 2026-10-10: CORE never writes code; a model does — CORE's internal one or the
+assistant beside the governor. The two routes differ only in **who owns the problem**. CORE's own
+fixes enter as proposals and leave a full chain (problem → code → verdict → approval → consequence);
+the assistant's commits leave only a commit. D2's third capability, **Proposal**, closes that gap and
+was not built. This amendment rules how it is built. Evidence: `var/reports/producer-proposal-recon-20261010.md`
+(recon, plus one external review verified against the code).
+
+**A1 — The allowlist gains exactly one write.** The 2026-10-06 amendment's "explicit allowlist of read
+and verdict operations" becomes: read and verdict operations, **plus submit-a-proposal**. Submit may
+create a pending proposal. It never approves, rejects or executes one, and never sets an approval
+authority or a status other than pending. D3 is unchanged.
+
+**A2 — One way in.** A code change from any producer — CORE's internal worker or an external assistant —
+enters as a proposal carrying: its **anchor** (a finding, or an issue or ADR reference), its **problem
+owner** (the governor, or CORE for a finding CORE raised), its **producer** (which model or agent
+wrote the bytes), the exact patch, CORE's verdict, the approval, and the consequence. The anchor is
+context, never authority. Authority is the approval.
+
+**A3 — CORE chooses the checks.** For a change not born from a finding, CORE does not check "the
+finding cleared"; it runs the full blocking audit on the patched tree (as the commit gate does), ruff
+and the tests for every touched and every new file. Every rule it could not evaluate is named. A
+blocking finding refuses the submission. A patch's added, modified and deleted files are all part of
+what is checked, applied and committed.
+
+**A4 — Two checks, not one.** *Submission* checks the proposal is well-formed (at least one known
+action, declared files within the blast bound, risk computed and failing closed). *Execution* checks it
+is authorized. A proposal awaiting approval is a valid submission.
+
+**A5 — Law keeps its own way in.** A patch touching governed text — `.intent/`, `.specs/`, `CLAUDE.md`,
+`.claude/settings.json`, `.claude/hooks/` — is refused at submission. Governed text enters only under
+ADR-170 (custody, ledger; the D0 chat stand-in belongs to that rehearsal alone).
+
+**A6 — Attribution.** In the commit, the **producer is the git author** and the applying actor (CORE)
+is the **committer**. The approval is recorded on the proposal and its consequence, not in git. This is
+ADR-101 D1 applied: the bytes are the producer's.
+
+**A7 — Approval is a governor act through CORE** (D3), not a chat answer. Low-risk changes may be
+approved automatically only within the existing safe auto-approval envelope; this amendment widens
+nothing there.
+
+**Stated limits (not closed here):**
+- Approval identity is unauthenticated in OSS mode until #942 / ADR-132 D10 closes.
+- Validation runs the producer's code (tests, imports) before approval — ADR-132 R4, parked. A worktree
+  separates files, not execution authority.
+- A proposal applies only to the base it was validated on; an intervening commit requires
+  revalidation and renewed approval (ADR-154 D2).
+- Until the capability is built, the assistant keeps the present route: direct commits under the
+  pre-commit verdict (D4.1) and protected `main` (D4.2).
+
+**Acceptance check 4.** One real assistant change is submitted through the assistant surface,
+checked by CORE, approved through the intended mechanism, committed with the producer as author,
+and linked to its consequence record.
