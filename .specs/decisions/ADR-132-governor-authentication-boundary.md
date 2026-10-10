@@ -592,3 +592,82 @@ The routes are equivalent. While any one of R1–R4 is open, closing the others 
 - Development loop unchanged: the assistant may still restart services to make its changes live.
 - D10.5 (credential isolation) is also parked; it is meaningful only after D10.8.
 - `.intent/` writability by the assistant is tracked separately; same shape, one level up.
+
+## Addendum — D10 unparked (2026-10-10, accepted)
+
+**Status:** Accepted (governor, 2026-10-10: "unpark D10", a human-only governor account, and the test-runner
+option below).
+
+### Why the trigger is met
+
+The parked addendum's trigger 3: "a third principal works on the deployment". Two have now appeared:
+
+- **The governor's own model session.** The governor's requests reach CORE through a Claude session running as
+  `core-darek` (ADR-168 Amendment 2026-10-10, R1). So `core-darek` is no longer one human: it is a model too.
+- **Platform users.** The CORE Platform (private Console) is being introduced locally, with its own user accounts.
+
+Activation plan: `var/reports/adr132-d10-activation-plan-20261010.md`.
+
+### D10.9 — The governor principal is an account no model session runs as
+
+The binding (D10.2) maps `principal.governor` only to an account that **only the human uses**, at their own
+keyboard (proposed: `darek`). No account a model session runs as is ever bound: not `core-claude`, and not
+`core-darek`, which is the account the governor's Claude session runs as.
+
+This makes ADR-168 Amendment 2026-10-10 R2 ("approval is typed by the human; a model session must not be able
+to approve on its own") an enforced fact rather than a speed bump. The typed confirmation in `core proposals
+approve` stays, as a check that the human reads what they approve.
+
+### D10.10 — Repo code runs in a dedicated sandbox service (closes R4)
+
+Code from the governed repository that CORE runs on purpose — tests, `conftest.py`, build and lint scripts —
+runs only in a **sandbox runner service** under a **dedicated account** (proposed: `core-sandbox`), hardened by
+the operating system. Three walls, each sufficient on its own for the credential:
+
+1. **The account.** `core-sandbox` holds no production credential; it cannot read `.env` or `.secrets/`, cannot
+   write the release runtime, its venv or any unit definition, and has no sudo.
+2. **The service.** It owns test execution. It accepts a job only from the services account (`core`),
+   identified by the kernel over a Unix socket (the D10.1 mechanism). A job names a sandbox worktree, the test
+   targets and the marker filter; the service returns the result.
+3. **OS sandboxing.** No network; the system read-only; the repository read-only; writes only to its own
+   scratch directory; `.env` and `.secrets/` made inaccessible; no new privileges.
+
+Every child process gets an allow-listed environment; copying the parent environment is forbidden.
+
+**Fail closed.** If the service is unavailable, the tests are reported **not run** — never run as `core`
+instead, and never reported as passed (lessons register L1).
+
+### D10.11 — Order, as unparked
+
+1. **Git custody (Part B, R3).** `.git/config`, `.git/hooks/`, `.git/info/` owned by `core`, not
+   group-writable; CORE's git runs with hooks and fsmonitor disabled.
+2. **Release runtime (Part A, R1–R2).** The services run a released build from `/opt/core/`, isolated from the
+   working directory; deployment is a governor act (`core-deploy <tag>`, with rollback).
+3. **Sandbox runner (D10.10, R4).**
+4. **Human account, binding and enforcement together** (D10.4, D10.9). `require_governor` live,
+   `_oss_passthrough` removed, governor stamps written by the server.
+5. **Inventory** of DB-direct commands the assistant uses.
+6. **Credential isolation (D10.5).**
+7. **Verification**, below.
+
+Steps 1–3 must be complete before step 4 (the parked addendum's decision 1 still holds: D10.8 is
+all-or-nothing).
+
+### Verification, additions
+
+Beyond "Verification as amended", #942 closes only when also:
+
+- As `core-darek` (the governor's model session), governor routes are refused.
+- As `darek` over the socket, they succeed, and the stored actor is `darek`.
+- A test run through the sandbox service cannot read `.env` or `.secrets/`, cannot open a network connection,
+  and cannot connect to the production database; with the service stopped, CORE reports tests **not run**.
+
+### Consequences
+
+- **The development loop changes, as D10.8 already said.** After step 2 the assistant cannot make its own
+  changes live; they run after the governor deploys. CLAUDE.md's "restarting services is in-scope" line is
+  amended in the law batch that lands step 2.
+- **The platform route stays a separate decision.** D10's amendment withdrew the platform-JWT clause. How a
+  logged-in Console user becomes an approver CORE trusts is decided on its own, before the platform's approval
+  slice is built.
+- #942 is no longer "parked"; it is the closing issue of this order.
