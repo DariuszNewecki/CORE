@@ -532,7 +532,8 @@ async def _validate_general(
 
     # The full audit over the patched tree, in a subprocess so a patched
     # engine judges the patch (ADR-141 D3, extended to every rule).
-    audit, audit_error = _run_full_audit(wt_path, core_context)
+    present_py = [p for p in touched_py if (wt_path / p).is_file()]
+    audit, audit_error = _run_full_audit(wt_path, core_context, present_py)
     blocking: list[dict[str, Any]] = []
     not_evaluated: list[dict[str, Any]] = []
     audit_verdict: str | None = None
@@ -550,6 +551,15 @@ async def _validate_general(
             for r in audit.get("skipped_rules") or []
         ]
         checks["full_audit"] = audit_verdict in _GATE_VERDICTS and not blocking
+
+    # The Class B write-time rules (code.tests.*, code.imports.generated_*)
+    # bind every producer, not only CORE's own test generator (proposal 0011).
+    class_b = (audit or {}).get("class_b")
+    if not isinstance(class_b, dict):
+        checks["class_b_rules"] = False
+        class_b = {"rules": [], "checked": [], "violations": []}
+    else:
+        checks["class_b_rules"] = not class_b.get("violations")
 
     tests_run = _general_test_targets(wt_path, touched_py)
     checks["tests"] = await _run_test_files(aid, wt_path, tests_run)
@@ -571,6 +581,7 @@ async def _validate_general(
             for f in blocking[:20]
         ],
         "blocking_findings_count": len(blocking),
+        "class_b": class_b,
         "not_evaluated": not_evaluated,
         "tests_run": tests_run,
         "tests_not_run_markers": _GENERAL_TEST_MARKERS,
@@ -589,9 +600,10 @@ async def _validate_general(
 
 
 def _run_full_audit(
-    wt_path: Path, core_context: CoreContext
+    wt_path: Path, core_context: CoreContext, check_files: list[str]
 ) -> tuple[dict[str, Any] | None, str | None]:
-    """Run the full stateless audit over *wt_path*; (result, None) or (None, error)."""
+    """Run the full stateless audit over *wt_path*, plus the Class B rules on
+    *check_files*; (result, None) or (None, error)."""
     file_handler = core_context.file_handler
     run_id = uuid.uuid4().hex[:8]
     tmp = PathResolver(file_handler.repo_path).tmp_dir.relative_to(
@@ -600,7 +612,8 @@ def _run_full_audit(
     input_rel = str(tmp / f"core-fullaudit-input-{run_id}.json")
     bootstrap_rel = str(tmp / f"core-fullaudit-runner-{run_id}.py")
     file_handler.write_runtime_text(
-        input_rel, json.dumps({"worktree_path": str(wt_path)})
+        input_rel,
+        json.dumps({"worktree_path": str(wt_path), "check_files": check_files}),
     )
     file_handler.write_runtime_text(bootstrap_rel, FULL_AUDIT_SUBPROCESS_BOOTSTRAP)
     try:

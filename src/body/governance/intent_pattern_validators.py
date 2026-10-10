@@ -433,9 +433,11 @@ class PatternValidators:
 
     @classmethod
     def _load_generated_import_rule_statements(cls) -> dict[str, str]:
-        """Look up the two generated-import rule statements from IntentRepository.
+        """Look up the generated-import and Tier 2 test-quality rule
+        statements from IntentRepository.
 
-        Lazy-loaded and cached on the class. On any lookup failure (missing
+        Lazy-loaded once and cached on the class: one ``find_rules`` pass
+        serves both rule families. On any lookup failure (missing
         rule, repository init failure) returns an empty dict; callers fall
         back to placeholder text so the validator still surfaces violations
         even when ``.intent/`` is degraded — fail-loud on the gate, fail-soft
@@ -451,7 +453,11 @@ class PatternValidators:
 
             repo = get_intent_repository()
             repo.initialize()
-            wanted = {_GENERATED_RESOLVE_RULE_ID, _GENERATED_NO_RELATIVE_RULE_ID}
+            wanted = {
+                _GENERATED_RESOLVE_RULE_ID,
+                _GENERATED_NO_RELATIVE_RULE_ID,
+                *_TIER2_RULE_IDS,
+            }
             cache: dict[str, str] = {}
             for rule in repo.find_rules():
                 rid = rule.get("id") if isinstance(rule, dict) else None
@@ -795,36 +801,13 @@ class PatternValidators:
 
     @classmethod
     def _load_test_quality_rule_statements(cls) -> dict[str, str]:
-        """Like ``_load_generated_import_rule_statements`` but for the
-        Tier 2 test-quality rules. Lazy + cached.
-        """
-        if cls._RULE_STATEMENT_CACHE is None:
-            # populate from #574's loader first, so both #574 + Tier 2
-            # statements share a single cache
-            cls._load_generated_import_rule_statements()
-        assert cls._RULE_STATEMENT_CACHE is not None
-        try:
-            from shared.infrastructure.intent.intent_repository import (
-                get_intent_repository,
-            )
+        """The Tier 2 test-quality rule statements — the shared cache
+        ``_load_generated_import_rule_statements`` fills once.
 
-            repo = get_intent_repository()
-            repo.initialize()
-            for rule in repo.find_rules():
-                rid = rule.get("id") if isinstance(rule, dict) else None
-                if rid in _TIER2_RULE_IDS and rid not in cls._RULE_STATEMENT_CACHE:
-                    statement = (
-                        rule.get("statement", "") if isinstance(rule, dict) else ""
-                    )
-                    if statement:
-                        cls._RULE_STATEMENT_CACHE[rid] = statement
-        except Exception as exc:
-            logger.warning(
-                "PatternValidators: failed to load Tier 2 rule statements — "
-                "falling back to inline messages. Reason: %s",
-                exc,
-            )
-        return cls._RULE_STATEMENT_CACHE
+        Each Tier 2 check calls this; it used to re-scan every rule in
+        ``.intent/`` on each call (five full scans per validated file).
+        """
+        return cls._load_generated_import_rule_statements()
 
     @classmethod
     # ID: 88f6ecff-74fe-469c-aa00-7fea3a8e1831

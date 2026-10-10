@@ -495,3 +495,34 @@ def test_placeholder():
     rule_names = {report.rule_name for report in v}
     assert "code.tests.no_magicmock_on_await" in rule_names
     assert "code.tests.no_placeholder_test_body" in rule_names
+
+
+# ---------------------------------------------------------------------------
+# Rule statements are read once, not per check per file
+# ---------------------------------------------------------------------------
+
+
+# ID: 7f99ae6f-1268-4294-a52c-fe4a62817240
+def test_rule_statements_are_scanned_once_across_files(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The Tier 2 loader re-scanned every rule in .intent/ on each of five
+    checks per file (~4 s per file); one scan must serve every later call."""
+    from unittest.mock import MagicMock
+
+    repo = MagicMock()
+    repo.find_rules.return_value = [
+        {"id": "code.tests.no_placeholder_test_body", "statement": "assert something"}
+    ]
+    monkeypatch.setattr(PatternValidators, "_RULE_STATEMENT_CACHE", None)
+    monkeypatch.setattr(
+        "shared.infrastructure.intent.intent_repository.get_intent_repository",
+        lambda: repo,
+    )
+
+    code = "def test_x():\n    pass\n"
+    first = PatternValidators.validate_test_file_pattern(code, "tests/test_a.py")
+    PatternValidators.validate_test_file_pattern(code, "tests/test_b.py")
+
+    assert repo.find_rules.call_count == 1
+    assert any(v.message.startswith("assert something") for v in first)

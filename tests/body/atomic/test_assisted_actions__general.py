@@ -95,6 +95,11 @@ _CLEAN_AUDIT = (
         "verdict": "DEGRADED",
         "findings": [{"severity": "info", "check_id": "x.info"}],
         "skipped_rules": [{"rule_id": "r.needs_db", "enforcement": "blocking"}],
+        "class_b": {
+            "rules": ["code.tests.no_placeholder_test_body"],
+            "checked": ["tests/test_new.py"],
+            "violations": [],
+        },
     },
     None,
 )
@@ -121,7 +126,7 @@ async def test_general_passes_and_carries_added_modified_and_deleted(
     """A3: every touched file is in the production set — the deletion too —
     ruff skips the deleted file, the touched test file runs under the shared-
     state marker filter, and unevaluated rules are named."""
-    result, run_tests, _ = await _validate(
+    result, run_tests, full_audit = await _validate(
         _repo(tmp_path), _MODIFY_DELETE_ADD_TEST, _CLEAN_AUDIT
     )
 
@@ -139,6 +144,9 @@ async def test_general_passes_and_carries_added_modified_and_deleted(
         {"rule_id": "r.needs_db", "enforcement": "blocking"}
     ]
     assert result.data["validated_base_sha"] == "base-sha"
+    # Class B rules get the files that still exist — not the deleted one.
+    assert sorted(full_audit.call_args.args[2]) == ["old.py", "tests/test_new.py"]
+    assert result.data["validation_results"]["class_b_rules"] is True
 
 
 # ID: f371017f-847f-48a3-b653-7590416c6c2c
@@ -185,3 +193,39 @@ async def test_general_fails_when_a_test_fails(tmp_path: Path) -> None:
 
     assert result.ok is False
     assert result.data["validation_results"]["tests"] is False
+
+
+# ID: b057ba1b-2292-4095-80fa-8930bb27ac58
+async def test_general_refuses_on_a_class_b_violation(tmp_path: Path) -> None:
+    """Proposal 0011: CORE's write-time test rules bind every producer."""
+    audit = (
+        {
+            **_CLEAN_AUDIT[0],
+            "class_b": {
+                "rules": ["code.tests.no_placeholder_test_body"],
+                "checked": ["tests/test_new.py"],
+                "violations": [
+                    {
+                        "rule_id": "code.tests.no_placeholder_test_body",
+                        "file_path": "tests/test_new.py",
+                        "message": "no assertion",
+                    }
+                ],
+            },
+        },
+        None,
+    )
+    result, _, _ = await _validate(_repo(tmp_path), _MODIFY_DELETE_ADD_TEST, audit)
+
+    assert result.ok is False
+    assert result.data["validation_results"]["class_b_rules"] is False
+    assert result.data["class_b"]["violations"][0]["file_path"] == "tests/test_new.py"
+
+
+# ID: 52cf30a4-aee7-47e0-b13d-d04ca02d10d5
+async def test_general_fails_closed_without_a_class_b_result(tmp_path: Path) -> None:
+    audit = ({k: v for k, v in _CLEAN_AUDIT[0].items() if k != "class_b"}, None)
+    result, _, _ = await _validate(_repo(tmp_path), _MODIFY_DELETE_ADD_TEST, audit)
+
+    assert result.ok is False
+    assert result.data["validation_results"]["class_b_rules"] is False

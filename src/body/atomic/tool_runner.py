@@ -79,7 +79,40 @@ async def _main():
     return await run_stateless_audit(intent_repo=repo, repo_path=_wt)
 
 
+def _class_b_violations():
+    # The write-time rules CORE applies to its own generated tests (mappings
+    # with engine passive_gate and attestation_class "B", enforced by
+    # PatternValidators) applied to every producer's files, each rule within
+    # its own declared scope. Runs here so imports resolve against the
+    # patched tree.
+    from body.governance.intent_pattern_validators import PatternValidators
+    from mind.governance.audit_context import _include_matches
+    from mind.governance.enforcement_loader import EnforcementMappingLoader
+
+    mappings = EnforcementMappingLoader(_wt / ".intent").load_all_mappings()
+    scopes = {
+        rule_id: list((entry.get("scope") or {}).get("applies_to") or [])
+        for rule_id, entry in mappings.items()
+        if isinstance(entry, dict)
+        and entry.get("engine") == "passive_gate"
+        and (entry.get("params") or {}).get("attestation_class") == "B"
+    }
+    checked, found = [], []
+    for rel in _data.get("check_files") or []:
+        if not any(_include_matches(rel, g) for g in sum(scopes.values(), [])):
+            continue
+        checked.append(rel)
+        code = (_wt / rel).read_text(encoding="utf-8")
+        for v in PatternValidators.validate_test_file_pattern(code, rel):
+            globs = scopes.get(v.rule_name)
+            if globs is not None and not any(_include_matches(rel, g) for g in globs):
+                continue
+            found.append({"rule_id": v.rule_name, "file_path": rel, "message": v.message})
+    return {"rules": sorted(scopes), "checked": checked, "violations": found}
+
+
 _result = asyncio.run(_main())
+_result["class_b"] = _class_b_violations()
 print(json.dumps({"ok": True, "error": None, "result": _result}, default=str))
 """
 
