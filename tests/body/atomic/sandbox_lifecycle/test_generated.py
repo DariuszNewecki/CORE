@@ -77,9 +77,6 @@ def test_SandboxLifecycle_checkpoint_paths(tmp_path: Path) -> None:
     assert result == {"present.txt": "hello", "missing.txt": None}
 
 
-
-
-
 # ID: 5fb1e344-ffc0-4c00-8aaa-0183488f41bb
 def test_SandboxLifecycle_propagate_changes(tmp_path: Path) -> None:
     core_context = MagicMock()
@@ -100,3 +97,36 @@ def test_SandboxLifecycle_propagate_changes(tmp_path: Path) -> None:
 
     assert result == {"modified.txt"}
     file_handler.write.assert_called_once_with("modified.txt", b"new content")
+
+
+from unittest.mock import patch
+
+
+# ID: b06a6d94-85fb-4365-b3ed-2bb981f43b85
+def test_build_flow_execution_context() -> None:
+    core_context = MagicMock()
+    core_context.git_service = MagicMock()
+
+    lifecycle = SandboxLifecycle(core_context)
+
+    scoped_context = MagicMock()
+    scoped_git = MagicMock()
+
+    with (
+        patch(
+            "body.atomic.sandbox_lifecycle._flow_has_sandboxable_step",
+            return_value=True,
+        ),
+        patch.object(
+            lifecycle,
+            "_make_scoped_context",
+            return_value=(scoped_context, scoped_git),
+        ) as mock_make_scoped,
+    ):
+        result_context, result_git = lifecycle.build_flow_execution_context(
+            "flow-123", write=True, pre_execution_sha="abc123"
+        )
+
+    assert result_context is scoped_context
+    assert result_git is scoped_git
+    mock_make_scoped.assert_called_once_with("abc123", "flow-123")
