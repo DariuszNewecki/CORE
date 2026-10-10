@@ -22,7 +22,12 @@ from typing import TYPE_CHECKING, Any
 from shared.logger import getLogger
 
 from ..llm_judge import judge_contradiction_pair
-from .base import CheckSkipped, CoherenceCandidate
+from .base import (
+    CheckIncomplete,
+    CheckSkipped,
+    CoherenceCandidate,
+    JudgeUnavailable,
+)
 
 
 if TYPE_CHECKING:
@@ -85,17 +90,24 @@ class SameConcernCheck:
         embedder = CognitiveEmbedderAdapter(self._cognitive_service)
         seen: set[frozenset[tuple[str, str]]] = set()
         candidates: list[CoherenceCandidate] = []
+        judged = 0
+        unjudged = 0
+        first_error = ""
 
         # Batch-embed all query claims in a single round-trip (#478).
         try:
             vectors = await embedder.get_embeddings_batch([c.text for c in claims])
         except Exception as exc:
             logger.warning(
-                "SAMECONCERN: batch embed failed for %d claims: %s — skipping run",
+                "SAMECONCERN: batch embed failed for %d claims: %s — check failed",
                 len(claims),
                 exc,
             )
-            return []
+            # Not "0 contradictions": nothing was compared. The orchestrator
+            # records status="error", so the run reads as partial.
+            raise RuntimeError(
+                f"batch embed failed for {len(claims)} claims: {exc}"
+            ) from exc
 
         for claim, vector in zip(claims, vectors):
             hits = await self._claims_service.search(
@@ -125,18 +137,26 @@ class SameConcernCheck:
                     continue
                 seen.add(pair_key)
 
-                verdict = await judge_contradiction_pair(
-                    cognitive_service=self._cognitive_service,
-                    text_a=claim.text,
-                    source_a=claim.source_path,
-                    text_b=hit.text,
-                    source_b=hit.source_path,
-                    tier=tier,
-                    relation=self.relation,
-                    category_a=claim.category,
-                    category_b=hit.category,
-                )
+                try:
+                    verdict = await judge_contradiction_pair(
+                        cognitive_service=self._cognitive_service,
+                        text_a=claim.text,
+                        source_a=claim.source_path,
+                        text_b=hit.text,
+                        source_b=hit.source_path,
+                        tier=tier,
+                        relation=self.relation,
+                        category_a=claim.category,
+                        category_b=hit.category,
+                    )
+                except JudgeUnavailable as exc:
+                    unjudged += 1
+                    first_error = first_error or str(exc)
+                    continue
+                judged += 1
                 if verdict is not None:
                     candidates.append(verdict)
 
+        if unjudged:
+            raise CheckIncomplete(candidates, judged, unjudged, first_error)
         return candidates

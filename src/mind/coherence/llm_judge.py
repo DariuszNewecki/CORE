@@ -16,7 +16,7 @@ from typing import Any
 from shared.ai.response_parser import extract_json_safe
 from shared.logger import getLogger
 
-from .checks.base import CoherenceCandidate
+from .checks.base import CoherenceCandidate, JudgeUnavailable
 
 
 logger = getLogger(__name__)
@@ -139,8 +139,9 @@ async def judge_contradiction_pair(
     """Invoke the LLM to judge a pair of claims as contradiction or not.
 
     Returns a CoherenceCandidate carrying the LLM's claim+rationale if a
-    contradiction is confirmed; None otherwise. All failure modes (timeout,
-    parse error, schema mismatch) yield None and are logged.
+    contradiction is confirmed; None when the judge answered "no
+    contradiction" (or answered unparseably). Raises JudgeUnavailable when
+    the call itself failed or timed out — that pair was never judged.
     """
     from shared.ai.prompt_model import PromptModel
 
@@ -167,12 +168,12 @@ async def judge_contradiction_pair(
             ),
             timeout=_LLM_CALL_TIMEOUT,
         )
-    except TimeoutError:
+    except TimeoutError as exc:
         logger.warning("LLM judge: timed out after %ds", _LLM_CALL_TIMEOUT)
-        return None
+        raise JudgeUnavailable(f"timed out after {_LLM_CALL_TIMEOUT}s") from exc
     except Exception as exc:
         logger.warning("LLM judge: call failed: %s", exc)
-        return None
+        raise JudgeUnavailable(str(exc)[:200]) from exc
 
     parsed = extract_json_safe(raw)
     if isinstance(parsed, dict):

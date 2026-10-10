@@ -3,7 +3,7 @@
 
 These tests verify that:
 - `get_embeddings_batch` is called (not the serial `get_embedding` loop)
-- Batch failures abort the run and return [] without crashing
+- Batch failures fail the check (never an empty, clean-looking result)
 - The (claim, vector) pairing is preserved correctly
 - R1_SCOPED correctly maps claim→partner_path after flattening nested pairs
 """
@@ -78,8 +78,9 @@ async def test_sameconcern_uses_batch_embed_not_serial() -> None:
 
 
 @pytest.mark.asyncio
-async def test_sameconcern_batch_fail_returns_empty() -> None:
-    """If batch embed raises, run() logs a warning and returns []."""
+async def test_sameconcern_batch_fail_is_an_error_not_empty() -> None:
+    """If batch embed raises, run() fails: nothing was compared, so an empty
+    result would falsely read as "0 contradictions"."""
     claims = [_make_claim("x"), _make_claim("y")]
 
     claims_service = AsyncMock()
@@ -104,9 +105,8 @@ async def test_sameconcern_batch_fail_returns_empty() -> None:
         mock_adapter.get_embeddings_batch.side_effect = RuntimeError("embed down")
         ma.return_value = mock_adapter
 
-        result = await check.run()
-
-    assert result == []
+        with pytest.raises(RuntimeError, match="batch embed failed"):
+            await check.run()
 
 
 # ---------------------------------------------------------------------------
@@ -166,8 +166,8 @@ async def test_r1scoped_uses_batch_embed_not_serial() -> None:
 
 
 @pytest.mark.asyncio
-async def test_r1scoped_batch_fail_returns_empty() -> None:
-    """If batch embed raises, run() returns []."""
+async def test_r1scoped_batch_fail_is_an_error_not_empty() -> None:
+    """If batch embed raises, run() fails instead of returning []."""
     claim_a = _make_claim("claim A", path=".specs/decisions/ADR-001.md", sha="a1")
 
     claims_service = AsyncMock()
@@ -198,6 +198,5 @@ async def test_r1scoped_batch_fail_returns_empty() -> None:
         mock_adapter.get_embeddings_batch.side_effect = RuntimeError("timeout")
         ma.return_value = mock_adapter
 
-        result = await check.run()
-
-    assert result == []
+        with pytest.raises(RuntimeError, match="batch embed failed"):
+            await check.run()

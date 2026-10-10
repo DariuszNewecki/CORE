@@ -31,6 +31,39 @@ class CheckSkipped(Exception):
     """
 
 
+# ID: dabe3174-e170-43f1-8da4-39fd68fec3a6
+class JudgeUnavailable(Exception):
+    """The LLM judge could not judge a pair (call failed or timed out).
+
+    Distinct from a "no contradiction" verdict: a pair that was never
+    judged is unchecked, not clear.
+    """
+
+
+# ID: f3f7d3f0-caa2-44cb-b92c-88f2730bee3f
+class CheckIncomplete(Exception):
+    """Raised by a check class when some of its pairs could not be judged.
+
+    Carries the candidates it did produce so they are kept; the orchestrator
+    records ``status="partial"`` with the unjudged count, so a run whose
+    judge was unreachable can never read as "0 contradictions".
+    """
+
+    def __init__(
+        self,
+        candidates: list[CoherenceCandidate],
+        judged: int,
+        unjudged: int,
+        first_error: str,
+    ) -> None:
+        super().__init__(
+            f"{unjudged} of {judged + unjudged} pairs unjudged: {first_error}"
+        )
+        self.candidates = candidates
+        self.judged = judged
+        self.unjudged = unjudged
+
+
 # ID: 5641414f-99ba-42d9-bf53-d0e41d4d4291
 class CheckClass(Protocol):
     """Common shape for every check class in the ADR-073 D3 taxonomy.

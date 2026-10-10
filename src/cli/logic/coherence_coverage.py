@@ -61,6 +61,8 @@ def check_class_coverage(manifest: list[dict[str, Any]]) -> CheckClassCoverage:
             ran.append(name)
         elif status == "skipped":
             skipped.append((name, str(outcome.get("reason") or "")))
+        elif status == "partial":
+            failed.append((name, f"incomplete — {outcome.get('error') or ''}"))
         else:
             failed.append((name, str(outcome.get("error") or status or "unknown")))
     return CheckClassCoverage(ran=ran, skipped=skipped, failed=failed)

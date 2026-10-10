@@ -119,7 +119,7 @@ class CoherenceChecker:
         from shared.governance.coherence_harvester import NormativeMarkerRegister
         from shared.infrastructure.intent.intent_repository import get_intent_repository
 
-        from .checks.base import CheckSkipped
+        from .checks.base import CheckIncomplete, CheckSkipped
         from .checks.cross_ns_direction import CrossNsDirectionCheck
         from .checks.dispatch_parity import DispatchParityCheck
         from .checks.intent_binding import IntentBindingCheck
@@ -181,8 +181,15 @@ class CoherenceChecker:
                 }
 
         for check in checks:
+            incomplete: CheckIncomplete | None = None
             try:
                 candidates = await check.run()
+            except CheckIncomplete as exc:
+                # Some pairs could not be judged (LLM unreachable/timed out).
+                # Keep what was found, but never let the run read as clean.
+                logger.warning("CCC: %s incomplete (%s)", check.relation, exc)
+                incomplete = exc
+                candidates = exc.candidates
             except CheckSkipped as exc:
                 # Known precondition gap (e.g. seed_gap). Record as skipped,
                 # not as an error, so the manifest distinguishes deliberate
@@ -212,6 +219,15 @@ class CoherenceChecker:
                     claim=candidate.claim,
                     rationale=candidate.rationale,
                 )
+            if incomplete is not None:
+                status[check.relation] = {
+                    "status": "partial",
+                    "error": str(incomplete),
+                    "emitted": len(candidates),
+                    "judged": incomplete.judged,
+                    "unjudged": incomplete.unjudged,
+                }
+                continue
             status[check.relation] = {"status": "ok", "emitted": len(candidates)}
             logger.info(
                 "CCC: %s emitted %d candidates", check.relation, len(candidates)
