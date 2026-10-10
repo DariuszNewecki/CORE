@@ -22,7 +22,7 @@ CORE_ADMIN  := $(POETRY) run core-admin
 # ADR-167 D2: the core-cli release CORE's docs correspond to. The single
 # declaration: `make install` and CI install exactly this version. Move it
 # deliberately, with a regenerated docs/reference/core.md.
-CORE_CLI_DOCS_VERSION := 2.0.0
+CORE_CLI_DOCS_VERSION := 2.1.0
 
 # Daemon PID file — lives in var/ (runtime, gitignored)
 DAEMON_PID  := var/run/core-daemon.pid

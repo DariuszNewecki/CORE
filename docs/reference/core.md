@@ -2,7 +2,7 @@
 
 # `core` command reference
 
-The consumer CLI, shipped in `core-cli` (this page: version 2.0.0, the released package). Most commands talk to a running CORE API. See the [CLI overview](../cli-reference.md) for which binary does what.
+The consumer CLI, shipped in `core-cli` (this page: version 2.1.0, the released package). Most commands talk to a running CORE API. See the [CLI overview](../cli-reference.md) for which binary does what.
 
 31 commands.
 
@@ -331,6 +331,9 @@ core proposals approve PROPOSAL_ID [OPTIONS]
 ```
 
 Authorize a pending proposal for execution.
+
+Shows the proposal and its review, then asks the person at the terminal
+to type the proposal's short id. Refused without a terminal.
 
 | Argument / option | Default | Description |
 |---|---|---|
