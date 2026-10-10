@@ -303,8 +303,10 @@ class SandboxLifecycle:
 
         Walks `scoped_git.status_porcelain()` and for each modified or
         untracked entry, copies the worktree-side bytes through the main
-        FileHandler's write_runtime_bytes surface (canonical write path,
-        no re-syntax-check, no auto-newline injection — byte-identical).
+        FileHandler's unified ``write`` entry (ADR-097): bytes content skips
+        every source-shape transform, so the copy is byte-identical — no
+        re-syntax-check, no auto-newline injection. Each declared deletion
+        goes through ``remove_file`` instead.
 
         Before copying anything, checks the main tree for uncommitted
         modifications in the sandbox's target paths. If any overlap, raises
