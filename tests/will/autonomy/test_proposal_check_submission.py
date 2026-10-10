@@ -15,9 +15,22 @@ import body.atomic  # noqa: F401  -- import-order side effect, not a usage
 from will.autonomy.proposal import (
     Proposal,
     ProposalAction,
+    ProposalProvenance,
     ProposalScope,
     RiskAssessment,
 )
+from will.autonomy.proposal_mapper import ProposalMapper
+
+
+def _provenance(**overrides: object) -> ProposalProvenance:
+    fields: dict = {
+        "anchor_kind": "issue",
+        "anchor_refs": ["#1"],
+        "problem_owner": "governor",
+        "producer": "claude-session:core-darek",
+    }
+    fields.update(overrides)
+    return ProposalProvenance(**fields)
 
 
 def _proposal(*actions: ProposalAction, files: list[str] | None = None) -> Proposal:
@@ -25,6 +38,7 @@ def _proposal(*actions: ProposalAction, files: list[str] | None = None) -> Propo
         goal="g",
         actions=list(actions),
         scope=ProposalScope(files=["src/x.py"] if files is None else files),
+        provenance=_provenance(),
     )
 
 
@@ -64,3 +78,65 @@ def test_high_risk_awaiting_approval_is_a_valid_submission() -> None:
     assert proposal.check_submission() == []
     _, errors = proposal.validate()
     assert "High-risk proposals require approval" in errors
+
+
+# ── ADR-168 Amendment 2026-10-10 A2: provenance ─────────────────────────────
+
+
+# ID: a072f7c8-a641-4f18-b8fa-38b4ed9c9bba
+def test_submission_refuses_a_proposal_without_provenance() -> None:
+    proposal = _proposal(ProposalAction(action_id="fix.format", order=0))
+    proposal.provenance = None
+
+    errors = proposal.check_submission()
+
+    assert any("provenance" in e for e in errors)
+
+
+# ID: ae4c874e-c538-40a0-b06c-26e3e55133ae
+def test_provenance_refuses_unknown_kind_owner_and_empty_fields() -> None:
+    problems = _provenance(
+        anchor_kind="vibe", anchor_refs=[" "], problem_owner="nobody", producer=""
+    ).problems()
+
+    assert len(problems) == 4
+
+
+# ID: 956f1f7e-9f09-4deb-b935-e9493cf2a705
+def test_finding_is_cores_problem_and_a_governor_request_is_the_governors() -> None:
+    assert _provenance(anchor_kind="finding", problem_owner="governor").problems()
+    assert _provenance(anchor_kind="finding", problem_owner="core").problems() == []
+    assert _provenance(anchor_kind="governor_request", problem_owner="core").problems()
+    assert (
+        _provenance(
+            anchor_kind="governor_request",
+            anchor_refs=["add a status line to the daily report"],
+        ).problems()
+        == []
+    )
+
+
+# ID: 971533c3-c039-465b-a8c4-08addcad253a
+def test_provenance_survives_storage_beside_existing_constraints() -> None:
+    """Stored under constitutional_constraints; existing keys are kept."""
+    proposal = _proposal(ProposalAction(action_id="fix.format", order=0))
+    proposal.provenance = _provenance(retires=["src/old.py"])
+    proposal.constitutional_constraints = {"finding_ids": ["f1"]}
+
+    stored = ProposalMapper.to_db_model(proposal, dict)
+    assert stored["constitutional_constraints"]["finding_ids"] == ["f1"]
+    assert stored["constitutional_constraints"]["provenance"]["retires"] == [
+        "src/old.py"
+    ]
+
+    restored = Proposal.from_dict(proposal.to_dict())
+    assert restored.provenance == proposal.provenance
+    assert restored.constitutional_constraints["finding_ids"] == ["f1"]
+
+
+# ID: c0ece54a-c103-40eb-a35e-c67a37708284
+def test_a_row_stored_before_provenance_existed_loads_without_it() -> None:
+    proposal = _proposal(ProposalAction(action_id="fix.format", order=0))
+    proposal.provenance = None
+
+    assert Proposal.from_dict(proposal.to_dict()).provenance is None

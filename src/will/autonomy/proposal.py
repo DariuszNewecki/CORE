@@ -73,6 +73,86 @@ class ProposalScope:
         )
 
 
+# ADR-168 Amendment 2026-10-10 A2: what a proposal is anchored to, and who
+# owns the problem. "governor_request" is a prompt the governor decided,
+# recorded verbatim (governor ruling 2026-10-10, option A).
+ANCHOR_KINDS: tuple[str, ...] = ("finding", "issue", "adr", "governor_request")
+PROBLEM_OWNERS: tuple[str, ...] = ("governor", "core")
+
+# Key under constitutional_constraints where provenance is stored — beside
+# the lineage markers and finding_ids already kept there (ADR-154 D3).
+_PROVENANCE_KEY = "provenance"
+
+
+@dataclass
+# ID: a9dbbd56-9d53-4b84-b8af-6e6a714c67ba
+class ProposalProvenance:
+    """Who and why: the anchor, the problem owner, the producer, what it retires.
+
+    ADR-168 Amendment 2026-10-10 A2. The anchor is context, never authority;
+    authority is the approval. ``producer`` names who writes the bytes: for
+    a proposal whose bytes are produced at execution (CORE's own lanes) it
+    names the role, and the commit records the actual model (A6).
+    ``retires`` names what the change removes or supersedes; empty means
+    "nothing".
+    """
+
+    anchor_kind: str
+    anchor_refs: list[str]
+    problem_owner: str
+    producer: str
+    retires: list[str] = field(default_factory=list)
+
+    # ID: 78c5d88c-d024-4202-9fea-3cbaaf02bfce
+    def problems(self) -> list[str]:
+        """Return why this provenance is not well-formed ([] when it is)."""
+        errors: list[str] = []
+        if self.anchor_kind not in ANCHOR_KINDS:
+            errors.append(
+                f"Provenance anchor_kind {self.anchor_kind!r} is not one of {list(ANCHOR_KINDS)}"
+            )
+        if not any(ref.strip() for ref in self.anchor_refs):
+            errors.append("Provenance must name at least one anchor reference")
+        if self.problem_owner not in PROBLEM_OWNERS:
+            errors.append(
+                f"Provenance problem_owner {self.problem_owner!r} is not one of {list(PROBLEM_OWNERS)}"
+            )
+        if not self.producer.strip():
+            errors.append("Provenance must name the producer")
+        # A finding is a problem CORE raised; a governor request is the
+        # governor's. Issues and ADRs may be owned by either.
+        if self.anchor_kind == "finding" and self.problem_owner != "core":
+            errors.append("A finding-anchored proposal's problem owner is core")
+        if self.anchor_kind == "governor_request" and self.problem_owner != "governor":
+            errors.append(
+                "A governor-request-anchored proposal's problem owner is the governor"
+            )
+        return errors
+
+    # ID: df27bd89-ee21-4faa-8a3d-64e0c4335fce
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise for storage under constitutional_constraints."""
+        return {
+            "anchor_kind": self.anchor_kind,
+            "anchor_refs": list(self.anchor_refs),
+            "problem_owner": self.problem_owner,
+            "producer": self.producer,
+            "retires": list(self.retires),
+        }
+
+    @classmethod
+    # ID: 7f2a6820-d3b9-43ae-b176-81a2bef28ad3
+    def from_dict(cls, data: dict[str, Any]) -> ProposalProvenance:
+        """Deserialise from storage."""
+        return cls(
+            anchor_kind=str(data.get("anchor_kind", "")),
+            anchor_refs=[str(r) for r in data.get("anchor_refs") or []],
+            problem_owner=str(data.get("problem_owner", "")),
+            producer=str(data.get("producer", "")),
+            retires=[str(r) for r in data.get("retires") or []],
+        )
+
+
 @dataclass
 # ID: 4da11b16-da1c-4bbb-88f6-5db76b9e2a0a
 class RiskAssessment:
@@ -308,6 +388,12 @@ class Proposal:
     failure_reason: str | None = None
     """Why execution failed (if applicable)"""
 
+    # ADR-168 Amendment 2026-10-10 A2
+    provenance: ProposalProvenance | None = None
+    """Anchor, problem owner, producer, what it retires. Required to submit;
+    stored under constitutional_constraints (see ``constraints_for_storage``).
+    Rows created before 2026-10-10 have none."""
+
     # ID: a0c3985a-5529-4c26-8cab-abe82e734abd
     def validate(self) -> tuple[bool, list[str]]:
         """
@@ -339,8 +425,9 @@ class Proposal:
         A proposal awaiting approval is a valid submission, so this is
         ``validate()`` without its execution-side checks (risk assessed,
         high risk approved). Every submit path calls it before persisting:
-        a proposal with no action, an action no registry knows, or no
-        declared file never enters the queue.
+        a proposal with no action, an action no registry knows, no declared
+        file, or no provenance (ADR-168 Amendment 2026-10-10 A2) never
+        enters the queue.
         """
         errors: list[str] = []
 
@@ -381,6 +468,14 @@ class Proposal:
                 f"{_SCOPE_FILES_MAX_ITEMS} (ProposalScope.json files.maxItems). "
                 f"Larger scopes require an ADR amending the contract."
             )
+
+        # 8. Must say who and why (ADR-168 Amendment 2026-10-10 A2).
+        if self.provenance is None:
+            errors.append(
+                "Proposal must carry provenance (anchor, problem owner, producer)"
+            )
+        else:
+            errors.extend(self.provenance.problems())
 
         return errors
 
@@ -474,6 +569,18 @@ class Proposal:
 
         return self.risk
 
+    # ID: 03e9bc90-bc37-4592-8283-3fb7d3005022
+    def constraints_for_storage(self) -> dict[str, Any]:
+        """``constitutional_constraints`` with the provenance written in.
+
+        Provenance lives beside the lineage markers and finding_ids already
+        stored there (ADR-154 D3); the typed field is its in-memory form.
+        """
+        constraints = dict(self.constitutional_constraints)
+        if self.provenance is not None:
+            constraints[_PROVENANCE_KEY] = self.provenance.to_dict()
+        return constraints
+
     # ID: e9fa7bda-3de4-43fa-ad27-50ddc4ad4aca
     def to_dict(self) -> dict[str, Any]:
         """
@@ -526,7 +633,7 @@ class Proposal:
                 else None
             ),
             "execution_results": self.execution_results,
-            "constitutional_constraints": self.constitutional_constraints,
+            "constitutional_constraints": self.constraints_for_storage(),
             "approval_required": self.approval_required,
             "approved_by": self.approved_by,
             "approved_at": self.approved_at.isoformat() if self.approved_at else None,
@@ -577,6 +684,14 @@ class Proposal:
                 mitigation=risk_data.get("mitigation", []),
             )
 
+        constraints = data.get("constitutional_constraints") or {}
+        stored_provenance = constraints.get(_PROVENANCE_KEY)
+        provenance = (
+            ProposalProvenance.from_dict(stored_provenance)
+            if isinstance(stored_provenance, dict)
+            else None
+        )
+
         return cls(
             proposal_id=data["proposal_id"],
             goal=data.get("goal", ""),
@@ -599,7 +714,7 @@ class Proposal:
                 else None
             ),
             execution_results=data.get("execution_results", {}),
-            constitutional_constraints=data.get("constitutional_constraints", {}),
+            constitutional_constraints=constraints,
             approval_required=data.get("approval_required", False),
             approved_by=data.get("approved_by"),
             approved_at=(
@@ -609,6 +724,7 @@ class Proposal:
             ),
             approval_authority=data.get("approval_authority"),
             failure_reason=data.get("failure_reason"),
+            provenance=provenance,
         )
 
 

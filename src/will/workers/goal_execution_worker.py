@@ -393,7 +393,11 @@ class GoalExecutionWorker(Worker):
             )
             return
 
-        from will.autonomy.proposal import Proposal, ProposalStatus
+        from will.autonomy.proposal import (
+            Proposal,
+            ProposalProvenance,
+            ProposalStatus,
+        )
 
         proposal = Proposal(
             goal=self.goal,
@@ -401,6 +405,14 @@ class GoalExecutionWorker(Worker):
             scope=scope,
             status=ProposalStatus.PENDING,
             created_by="api.develop_goal",
+            # ADR-168 Amendment 2026-10-10 A2: a goal is a governor request,
+            # recorded verbatim; CORE's planner/coder writes the bytes.
+            provenance=ProposalProvenance(
+                anchor_kind="governor_request",
+                anchor_refs=[self.goal],
+                problem_owner="governor",
+                producer="core:goal_execution",
+            ),
         )
         proposal.compute_risk()
 

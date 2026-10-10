@@ -174,6 +174,7 @@ async def run_probe_i6(context: Any, run_id: str) -> dict[str, Any]:
     from will.autonomy.proposal import (
         Proposal,
         ProposalAction,
+        ProposalProvenance,
         ProposalScope,
         ProposalStatus,
     )
@@ -208,6 +209,12 @@ async def run_probe_i6(context: Any, run_id: str) -> dict[str, Any]:
         scope=ProposalScope(files=[_I6_FILENAME]),
         status=ProposalStatus.PENDING,
         created_by=f"probe.{PROBE_I6}",
+        provenance=ProposalProvenance(
+            anchor_kind="adr",
+            anchor_refs=["ADR-159"],
+            problem_owner="governor",
+            producer=f"probe.{PROBE_I6}",
+        ),
     )
     proposal.compute_risk()
     is_valid, errors = proposal.validate()

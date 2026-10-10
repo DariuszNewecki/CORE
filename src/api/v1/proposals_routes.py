@@ -99,6 +99,13 @@ class CreateProposalRequest(BaseModel):
     files: list[str] = []
     created_by: str = "cli_operator"
     write: bool = True
+    # ADR-168 Amendment 2026-10-10 A2 — required to submit: what the change
+    # is anchored to (finding | issue | adr | governor_request), who wrote
+    # it, and what it retires.
+    anchor_kind: str | None = None
+    anchor_refs: list[str] = []
+    producer: str | None = None
+    retires: list[str] = []
 
 
 @router.post(
@@ -112,8 +119,8 @@ class CreateProposalRequest(BaseModel):
         "`write=false` (default) the proposal is constructed and "
         "risk-scored in-memory but NOT written to the database — useful for "
         "dry-run validation. Returns the proposal's `to_dict()` shape either way. "
-        "A malformed proposal (no action, an unknown action, no declared file) "
-        "is refused with 422 and never persisted."
+        "A malformed proposal (no action, an unknown action, no declared file, "
+        "no anchor or producer) is refused with 422 and never persisted."
     ),
 )
 # ID: 9704145a-25f5-460c-81a9-fe1fa0b47d68
@@ -136,6 +143,10 @@ async def create_proposal(
         files=payload.files,
         created_by=payload.created_by,
         write=payload.write,
+        anchor_kind=payload.anchor_kind,
+        anchor_refs=payload.anchor_refs,
+        producer=payload.producer,
+        retires=payload.retires,
     )
     if not result["ok"]:
         raise HTTPException(status_code=422, detail=result["errors"])

@@ -171,6 +171,7 @@ class LaneService:
         finding_id: str,
         patch: str,
         validation_run_id: str,
+        producer: str = "external-agent (unnamed)",
     ) -> tuple[str, list[str]]:
         """Turn a validated agent diff into a human-gated proposal (ADR-109 D3/D4).
 
@@ -249,6 +250,7 @@ class LaneService:
                 f"({len(candidate.production_set)} file(s)) via agent-authored diff"
             ),
             created_by="assisted-lane",
+            producer=producer,
             extra_constraints={
                 # Marks the proposal as assisted-lane so reject revives the
                 # finding to indeterminate+human (ADR-109 D4), not the

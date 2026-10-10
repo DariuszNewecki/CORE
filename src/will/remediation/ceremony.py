@@ -552,6 +552,7 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 f"{file_path} via ceremony-authored diff"
             ),
             created_by="remediation-ceremony",
+            producer="core:remediation-ceremony",
             extra_constraints={"proposal_origin": "ceremony"},
         )
         proposal_model = ProposalMapper.to_db_model(proposal, AutonomousProposal)

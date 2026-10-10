@@ -26,6 +26,7 @@ from shared.models.validated_remediation_candidate import (
 from will.autonomy.proposal import (
     Proposal,
     ProposalAction,
+    ProposalProvenance,
     ProposalScope,
     ProposalStatus,
 )
@@ -37,6 +38,7 @@ def build_assisted_lane_proposal(
     *,
     goal: str,
     created_by: str,
+    producer: str,
     extra_constraints: dict[str, Any] | None = None,
 ) -> Proposal:
     """Build the ADR-109 human-gated proposal for a validated candidate.
@@ -59,6 +61,19 @@ def build_assisted_lane_proposal(
         "candidate_created_at": candidate.created_at.isoformat(),
     }
     constraints.update(extra_constraints or {})
+
+    # ADR-168 Amendment 2026-10-10 A2: both lanes this factory serves work a
+    # finding CORE raised, so CORE owns the problem; the producer is whoever
+    # wrote the patch.
+    provenance = ProposalProvenance(
+        anchor_kind="finding",
+        anchor_refs=list(candidate.finding_ids),
+        problem_owner="core",
+        producer=producer,
+    )
+    problems = provenance.problems()
+    if problems:
+        raise ValueError("; ".join(problems))
 
     return Proposal(
         goal=goal,
@@ -83,4 +98,5 @@ def build_assisted_lane_proposal(
         # lane qualifies for Lane 1's deterministic-mapping safe_auto_approval.
         approval_required=True,
         constitutional_constraints=constraints,
+        provenance=provenance,
     )

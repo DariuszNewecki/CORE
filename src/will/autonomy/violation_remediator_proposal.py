@@ -59,6 +59,7 @@ from will.autonomy.circuit_breaker import recent_consecutive_identical_count
 from will.autonomy.proposal import (
     Proposal,
     ProposalAction,
+    ProposalProvenance,
     ProposalScope,
     ProposalStatus,
 )
@@ -207,6 +208,14 @@ async def create_proposal(
             "affected_files_count": len(affected_files),
             "finding_ids": finding_ids,
         },
+        # ADR-168 Amendment 2026-10-10 A2: a mapped fixer is deterministic —
+        # the producer is the fixer itself, no model.
+        provenance=ProposalProvenance(
+            anchor_kind="finding",
+            anchor_refs=finding_ids,
+            problem_owner="core",
+            producer=f"core:{ref_id}",
+        ),
     )
 
     proposal.compute_risk()

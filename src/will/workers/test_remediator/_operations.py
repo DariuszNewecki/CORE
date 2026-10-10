@@ -16,6 +16,7 @@ from shared.logger import getLogger
 from will.autonomy.proposal import (
     Proposal,
     ProposalAction,
+    ProposalProvenance,
     ProposalScope,
     ProposalStatus,
 )
@@ -371,6 +372,14 @@ async def _create_symbol_proposal(
             # file's other symbol proposals (see consequence_finding_ids).
             "addressed_finding_ids": [str(f["id"]) for f in findings],
         },
+        # ADR-168 Amendment 2026-10-10 A2: the test is written at execution
+        # by CORE's coder; the commit records the actual model (A6).
+        provenance=ProposalProvenance(
+            anchor_kind="finding",
+            anchor_refs=[str(f["id"]) for f in findings],
+            problem_owner="core",
+            producer=f"core:{_TARGET_FLOW_ID_SYMBOL}",
+        ),
     )
 
     proposal.compute_risk()

@@ -78,7 +78,7 @@ class ProposalMapper:
             execution_completed_at=proposal.execution_completed_at,
             execution_results=_sanitize_payload(proposal.execution_results),
             constitutional_constraints=_sanitize_payload(
-                proposal.constitutional_constraints
+                proposal.constraints_for_storage()
             ),
             approval_required=proposal.approval_required,
             approved_by=proposal.approved_by,
@@ -178,7 +178,7 @@ class ProposalMapper:
         db_proposal.execution_completed_at = proposal.execution_completed_at
         db_proposal.execution_results = _sanitize_payload(proposal.execution_results)
         db_proposal.constitutional_constraints = _sanitize_payload(
-            proposal.constitutional_constraints
+            proposal.constraints_for_storage()
         )
         db_proposal.approval_required = proposal.approval_required
         db_proposal.approved_by = proposal.approved_by

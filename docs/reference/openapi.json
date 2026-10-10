@@ -37,7 +37,7 @@
           "Proposals"
         ],
         "summary": "Create a proposal",
-        "description": "Build a proposal from a goal + action sequence, compute its risk, and (when `write=true`) persist it via ProposalService. With `write=false` (default) the proposal is constructed and risk-scored in-memory but NOT written to the database — useful for dry-run validation. Returns the proposal's `to_dict()` shape either way. A malformed proposal (no action, an unknown action, no declared file) is refused with 422 and never persisted.",
+        "description": "Build a proposal from a goal + action sequence, compute its risk, and (when `write=true`) persist it via ProposalService. With `write=false` (default) the proposal is constructed and risk-scored in-memory but NOT written to the database — useful for dry-run validation. Returns the proposal's `to_dict()` shape either way. A malformed proposal (no action, an unknown action, no declared file, no anchor or producer) is refused with 422 and never persisted.",
         "operationId": "create_proposal_v1_proposals_post",
         "requestBody": {
           "required": true,
@@ -4002,6 +4002,44 @@
             "type": "boolean",
             "title": "Write",
             "default": true
+          },
+          "anchor_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Anchor Kind"
+          },
+          "anchor_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Anchor Refs",
+            "default": []
+          },
+          "producer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Producer"
+          },
+          "retires": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Retires",
+            "default": []
           }
         },
         "type": "object",

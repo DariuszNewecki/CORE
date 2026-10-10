@@ -56,6 +56,8 @@ def _stub_proposal(proposal_id: str | None = None) -> MagicMock:
 
 _VALID_ACTIONS = [{"action_id": "fix.imports", "parameters": {}, "order": 0}]
 _FILES = ["src/widget.py"]
+# ADR-168 Amendment 2026-10-10 A2: a submittable proposal says who and why.
+_ANCHOR = {"anchor_kind": "issue", "anchor_refs": ["#1"], "producer": "test-producer"}
 
 
 async def test_create_proposal_malformed_is_refused_with_422():
@@ -76,6 +78,23 @@ async def test_create_proposal_malformed_is_refused_with_422():
     assert exc_info.value.status_code == 422
     assert any("not found in registry" in e for e in exc_info.value.detail)
     mock_svc_cls.assert_not_called()
+
+
+async def test_create_proposal_without_anchor_is_refused_with_422():
+    """ADR-168 Amendment 2026-10-10 A2: no anchor/producer → 422, not persisted."""
+    session = _mock_session()
+    with patch("will.autonomy.proposal_service.ProposalService") as mock_svc_cls:
+        with pytest.raises(HTTPException) as exc_info:
+            await create_proposal(
+                payload=CreateProposalRequest(
+                    goal="fix imports", actions=_VALID_ACTIONS, files=_FILES, write=True
+                ),
+                session=session,
+            )
+
+    assert exc_info.value.status_code == 422
+    assert any("provenance" in e for e in exc_info.value.detail)
+    mock_svc_cls.assert_not_called()
     session.commit.assert_not_awaited()
 
 
@@ -84,7 +103,11 @@ async def test_create_proposal_dry_run_does_not_persist():
     session = _mock_session()
     out = await create_proposal(
         payload=CreateProposalRequest(
-            goal="fix imports", actions=_VALID_ACTIONS, files=_FILES, write=False
+            goal="fix imports",
+            actions=_VALID_ACTIONS,
+            files=_FILES,
+            write=False,
+            **_ANCHOR,
         ),
         session=session,
     )
@@ -109,7 +132,11 @@ async def test_create_proposal_write_true_persists_and_commits():
 
         out = await create_proposal(
             payload=CreateProposalRequest(
-                goal="fix imports", actions=_VALID_ACTIONS, files=_FILES, write=True
+                goal="fix imports",
+                actions=_VALID_ACTIONS,
+                files=_FILES,
+                write=True,
+                **_ANCHOR,
             ),
             session=session,
         )
@@ -134,6 +161,7 @@ async def test_create_proposal_actions_are_mapped():
                 actions=[{"action_id": "build.tests", "parameters": {}, "order": 0}],
                 files=_FILES,
                 write=False,
+                **_ANCHOR,
             ),
             session=session,
         )

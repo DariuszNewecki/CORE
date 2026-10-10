@@ -31,6 +31,9 @@ async def test_create_dry_run_scores_but_does_not_persist() -> None:
             files=["src/widget.py"],
             created_by="cli_operator",
             write=False,
+            anchor_kind="issue",
+            anchor_refs=["#1"],
+            producer="test-producer",
         )
 
     assert result["ok"] is True
@@ -58,6 +61,9 @@ async def test_create_write_persists_and_commits() -> None:
             files=["src/widget.py"],
             created_by="cli_operator",
             write=True,
+            anchor_kind="issue",
+            anchor_refs=["#1"],
+            producer="test-producer",
         )
 
     assert result["ok"] is True

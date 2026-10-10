@@ -54,6 +54,10 @@ async def create_and_score_proposal(
     files: list[str],
     created_by: str,
     write: bool,
+    anchor_kind: str | None = None,
+    anchor_refs: list[str] | None = None,
+    producer: str | None = None,
+    retires: list[str] | None = None,
 ) -> dict[str, Any]:
     """Build, risk-score, and (optionally) persist a proposal.
 
@@ -63,12 +67,20 @@ async def create_and_score_proposal(
     write=True it is persisted via ProposalService and committed.
 
     A proposal that fails ``Proposal.check_submission`` is never persisted:
-    the result is ``ok=False`` with its ``errors``.
+    the result is ``ok=False`` with its ``errors``. That includes a proposal
+    without an anchor or producer (ADR-168 Amendment 2026-10-10 A2); this
+    route is governor-only, so the governor owns the problem, except for a
+    finding, which CORE raised.
 
     Returns the API-shaped dict the route surfaces verbatim:
     {"ok", "persisted", "proposal"} (+ "errors" when refused).
     """
-    from will.autonomy.proposal import Proposal, ProposalAction, ProposalScope
+    from will.autonomy.proposal import (
+        Proposal,
+        ProposalAction,
+        ProposalProvenance,
+        ProposalScope,
+    )
     from will.autonomy.proposal_service import ProposalService
 
     proposal_actions = [
@@ -85,6 +97,17 @@ async def create_and_score_proposal(
         actions=proposal_actions,
         scope=ProposalScope(files=files),
         created_by=created_by,
+        provenance=(
+            ProposalProvenance(
+                anchor_kind=anchor_kind,
+                anchor_refs=list(anchor_refs or []),
+                problem_owner="core" if anchor_kind == "finding" else "governor",
+                producer=producer or "",
+                retires=list(retires or []),
+            )
+            if anchor_kind
+            else None
+        ),
     )
     proposal.compute_risk()
 
