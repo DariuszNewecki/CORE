@@ -59,6 +59,15 @@ def _text(arguments: dict[str, Any], key: str) -> str:
     return value.strip()
 
 
+def _patch(arguments: dict[str, Any]) -> str:
+    """The patch exactly as given — never stripped: git needs its final
+    newline, and the validation run is bound to these exact bytes."""
+    value = arguments.get("patch")
+    if not isinstance(value, str) or not value.strip():
+        raise ToolInputError("'patch' is required and must be a non-empty string.")
+    return value
+
+
 async def _law_rule(repo_root: Path, arguments: dict[str, Any]) -> dict[str, Any]:
     return LawFacts(repo_root).rule(_text(arguments, "rule_id")).as_dict()
 
@@ -112,7 +121,7 @@ _SUBMIT_ROUTES: tuple[tuple[str, str], ...] = (
 async def _validate_change(
     repo_root: Path, arguments: dict[str, Any]
 ) -> dict[str, Any]:
-    patch = _text(arguments, "patch")
+    patch = _patch(arguments)
     dispatched = await CoreApiClient()._request(
         "POST",
         "/v1/fix/run/assisted.validate_diff",
@@ -169,7 +178,7 @@ async def _submit_change(repo_root: Path, arguments: dict[str, Any]) -> dict[str
         "POST",
         "/v1/proposals/submit",
         json={
-            "patch": _text(arguments, "patch"),
+            "patch": _patch(arguments),
             "validation_run_id": run_id,
             "goal": _text(arguments, "goal"),
             "anchor_kind": _text(arguments, "anchor_kind"),

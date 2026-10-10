@@ -294,3 +294,27 @@ def test_the_submit_path_never_writes_governor_authority() -> None:
                     rel,
                     node.name,
                 )
+
+
+# ID: 7b649075-d071-421a-9d4e-879186c5f553
+@pytest.mark.asyncio
+async def test_the_patch_reaches_core_byte_for_byte(repo: Path) -> None:
+    """Stripping the patch dropped its final newline; git apply then called it
+    corrupt (found by the first real submission, U8)."""
+    from unittest.mock import patch
+
+    sent: list[dict] = []
+
+    async def _request(self, method: str, path: str, **kwargs):
+        sent.append(kwargs.get("json") or {})
+        if path.startswith("/v1/fix/runs/"):
+            return {"status": "completed", "result": {"ok": True, "data": {}}}
+        return {"run_id": "r1", "status": "pending"}
+
+    diff = "diff --git a/x b/x\n--- a/x\n+++ b/x\n@@ -1 +1 @@\n-a\n+b\n"
+    with patch("api.cli.client.CoreApiClient._request", _request):
+        await invoke("validate_change", {"patch": diff}, repo)
+        await invoke("submit_change", {**_SUBMIT_ARGS, "patch": diff}, repo)
+
+    assert sent[0]["params"]["patch"] == diff
+    assert sent[-1]["patch"] == diff
