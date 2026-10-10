@@ -30,13 +30,16 @@ from cli.logic.assistant_tools import TOOLS, ToolInputError, invoke
 from shared.infrastructure.assistant_surface.law_facts import LawFacts
 
 
-_ALLOWLIST = {
+_READ_TOOLS = {
     "law_rule",
     "law_can_write",
     "decision_adr",
     "decision_adrs",
     "change_verdict",
 }
+# ADR-168 Amendment 2026-10-10 A1: the one write — submitting a change.
+_SUBMIT_TOOLS = {"validate_change", "submit_change"}
+_ALLOWLIST = _READ_TOOLS | _SUBMIT_TOOLS
 
 # One call per tool, with the arguments each needs.
 _CALLS = {
@@ -92,7 +95,7 @@ def _tree_digest(root: Path) -> dict[str, str]:
 
 def test_the_tool_set_is_exactly_the_allowlist() -> None:
     assert set(TOOLS) == _ALLOWLIST
-    assert set(_CALLS) == _ALLOWLIST
+    assert set(_CALLS) == _READ_TOOLS
     for tool in TOOLS.values():
         assert tool.description
         assert tool.input_schema["type"] == "object"
@@ -176,3 +179,118 @@ def test_core_admin_prints_exactly_the_tool_answer(
 
     assert done.returncode == _EXIT.get(tool, 0), done.stderr[-2000:]
     assert json.loads(done.stdout) == expected
+
+
+# ── ADR-168 D3: the submit tools never reach governor authority ─────────────
+
+
+def _fake_api(run_status: str = "completed", ok: bool = True):
+    calls: list[tuple[str, str]] = []
+
+    async def _request(self, method: str, path: str, **kwargs):
+        calls.append((method, path))
+        if path.startswith("/v1/fix/run/"):
+            return {"run_id": "r1", "status": "pending"}
+        if path.startswith("/v1/fix/runs/"):
+            return {
+                "status": run_status,
+                "result": {
+                    "ok": ok,
+                    "data": {"validation_results": {"full_audit": ok}},
+                },
+            }
+        return {"proposal_id": "p1", "status": "pending", "json": kwargs.get("json")}
+
+    return calls, _request
+
+
+_SUBMIT_ARGS = {
+    "patch": "diff",
+    "validation_run_id": "r1",
+    "goal": "g",
+    "anchor_kind": "governor_request",
+    "anchor_refs": ["the decided prompt"],
+    "producer": "claude-opus",
+}
+
+
+# ID: a998301b-ade8-4223-b978-b89c4a208c28
+@pytest.mark.asyncio
+async def test_submit_tools_call_only_their_listed_routes(repo: Path) -> None:
+    from unittest.mock import patch
+
+    from cli.logic.assistant_tools import _SUBMIT_ROUTES
+
+    calls, fake = _fake_api()
+    with patch("api.cli.client.CoreApiClient._request", fake):
+        validated = await invoke("validate_change", {"patch": "diff"}, repo)
+        submitted = await invoke("submit_change", _SUBMIT_ARGS, repo)
+
+    assert validated["validation_run_id"] == "r1"
+    assert submitted["submitted"] is True
+    for method, path in calls:
+        assert any(
+            method == m and path.startswith(prefix) for m, prefix in _SUBMIT_ROUTES
+        ), (method, path)
+        assert not any(word in path for word in ("approve", "reject", "execute"))
+    # The producer carries the account that actually ran the tool.
+    sent = submitted["json"]
+    assert sent["producer"].startswith("claude-opus (account: ")
+
+
+# ID: b84dc32b-53c5-4fc9-9905-62a286c3bf08
+@pytest.mark.asyncio
+async def test_submit_change_submits_nothing_for_a_failed_or_running_check(
+    repo: Path,
+) -> None:
+    from unittest.mock import patch
+
+    for status, ok in (("failed", False), ("completed", False), ("running", True)):
+        calls, fake = _fake_api(run_status=status, ok=ok)
+        with patch("api.cli.client.CoreApiClient._request", fake):
+            out = await invoke("submit_change", _SUBMIT_ARGS, repo)
+        assert out["submitted"] is False
+        assert ("POST", "/v1/proposals/submit") not in calls
+
+
+# ID: c61aaa7b-0d7e-4b67-a954-4f6e9f5e3b82
+def test_the_submit_path_never_writes_governor_authority() -> None:
+    """D3 enumeration, CORE side: the code behind POST /v1/proposals/submit
+    calls no approve/reject/execute and sets no approver or authority."""
+    import ast
+
+    # The authority writers: the state manager (approve/reject/mark_*), the
+    # executors, and the approver fields. Database reads (session.execute)
+    # are not authority and are not matched.
+    forbidden_names = {"ProposalStateManager", "ProposalExecutor", "ActionExecutor"}
+    forbidden_calls = {
+        "approve",
+        "reject",
+        "mark_executing",
+        "mark_finalizing",
+        "mark_completed",
+        "mark_failed",
+    }
+    forbidden_keywords = {"approved_by", "approval_authority", "approved_at"}
+    modules = [
+        "src/will/autonomy/producer_submission.py",
+        "src/will/autonomy/step_zero.py",
+        "src/will/autonomy/proposal_factory.py",
+        "src/body/services/validated_candidate_service.py",
+        "src/cli/logic/assistant_tools.py",
+    ]
+    root = Path(__file__).resolve().parents[3]
+    for rel in modules:
+        tree = ast.parse((root / rel).read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                assert node.func.attr not in forbidden_calls, (rel, node.func.attr)
+            if isinstance(node, ast.keyword):
+                assert node.arg not in forbidden_keywords, (rel, node.arg)
+            if isinstance(node, ast.Name):
+                assert node.id not in forbidden_names, (rel, node.id)
+            if isinstance(node, ast.alias):
+                assert node.name.rpartition(".")[2] not in forbidden_names, (
+                    rel,
+                    node.name,
+                )

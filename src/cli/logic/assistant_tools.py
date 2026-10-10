@@ -8,18 +8,26 @@ answer from the same code. This is the parity half of the D2 amendment
 (2026-10-06): one shared core, thin faces.
 
 The allowlist is explicit. Nothing here reflects routes, registries or CLI
-commands. Every tool is read-only: no database, no LLM, no writes. None can
-record governor authority (ADR-168 D3: until #942 is resolved, the surface
-exposes no operation whose result is represented as a governor act).
+commands. The read tools are read-only: no database, no LLM, no writes.
+
+ADR-168 Amendment 2026-10-10 A1 adds exactly one write: submitting a change
+as a proposal, in two steps so the full check (minutes) never outlives a tool
+call. ``validate_change`` asks CORE to check a patch in general mode;
+``submit_change`` reads that run and, if it passed, asks CORE to create a
+PENDING proposal. Both reach CORE only over its API (CORE does the writing,
+as itself) and only on the routes in ``_SUBMIT_ROUTES``. None approves,
+rejects or executes; none can record governor authority (D3).
 """
 
 from __future__ import annotations
 
+import getpass
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from api.cli.client import CoreApiClient
 from mind.governance.fast_verdict import run_fast_verdict
 from shared.infrastructure.assistant_surface.law_facts import LawFacts
 from shared.infrastructure.intent.intent_repository import IntentRepository
@@ -90,6 +98,87 @@ def _inside(repo_root: Path, path: str) -> str:
         return absolute.relative_to(root).as_posix()
     except ValueError as exc:
         raise ToolInputError(f"'{path}' is outside this repository.") from exc
+
+
+# Every API call the submit tools make: (method, path prefix). A test holds
+# the tools to this list (ADR-168 D3 authority enumeration).
+_SUBMIT_ROUTES: tuple[tuple[str, str], ...] = (
+    ("POST", "/v1/fix/run/assisted.validate_diff"),
+    ("GET", "/v1/fix/runs/"),
+    ("POST", "/v1/proposals/submit"),
+)
+
+
+async def _validate_change(
+    repo_root: Path, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    patch = _text(arguments, "patch")
+    dispatched = await CoreApiClient()._request(
+        "POST",
+        "/v1/fix/run/assisted.validate_diff",
+        json={
+            "target_files": [],
+            "write": False,
+            "params": {"patch": patch, "general": True},
+        },
+    )
+    return {
+        "validation_run_id": dispatched.get("run_id"),
+        "status": dispatched.get("status", "pending"),
+        "next": "call submit_change with this validation_run_id once it has completed "
+        "(a full check takes a few minutes)",
+    }
+
+
+async def _submit_change(repo_root: Path, arguments: dict[str, Any]) -> dict[str, Any]:
+    run_id = _text(arguments, "validation_run_id")
+    refs = arguments.get("anchor_refs")
+    if (
+        not isinstance(refs, list)
+        or not all(isinstance(r, str) for r in refs)
+        or not refs
+    ):
+        raise ToolInputError("'anchor_refs' must be a non-empty list of strings.")
+    retires = arguments.get("retires") or []
+    if not isinstance(retires, list) or not all(isinstance(r, str) for r in retires):
+        raise ToolInputError("'retires' must be a list of strings when given.")
+    client = CoreApiClient()
+    run = await client._request("GET", f"/v1/fix/runs/{run_id}")
+    status = run.get("status")
+    if status not in ("completed", "failed"):
+        return {
+            "submitted": False,
+            "validation_status": status,
+            "next": "wait and call again",
+        }
+    result = run.get("result") or {}
+    if status != "completed" or not result.get("ok"):
+        data = result.get("data") or {}
+        return {
+            "submitted": False,
+            "validation_status": status,
+            "reason": "the change did not pass CORE's checks; nothing was submitted",
+            "validation_results": data.get("validation_results"),
+            "blocking_findings": data.get("blocking_findings"),
+            "class_b": data.get("class_b"),
+            "error": data.get("error") or result.get("error"),
+        }
+    # The producer as claimed, plus the account that actually ran this tool.
+    producer = f"{_text(arguments, 'producer')} (account: {getpass.getuser()})"
+    proposal = await client._request(
+        "POST",
+        "/v1/proposals/submit",
+        json={
+            "patch": _text(arguments, "patch"),
+            "validation_run_id": run_id,
+            "goal": _text(arguments, "goal"),
+            "anchor_kind": _text(arguments, "anchor_kind"),
+            "anchor_refs": refs,
+            "producer": producer,
+            "retires": retires,
+        },
+    )
+    return {"submitted": True, **proposal}
 
 
 _STRING = {"type": "string"}
@@ -167,6 +256,57 @@ TOOLS: dict[str, AssistantTool] = {
                 "additionalProperties": False,
             },
             handler=_change_verdict,
+        ),
+        AssistantTool(
+            name="validate_change",
+            description=(
+                "Step 1 of submitting a change (ADR-168 Amendment 2026-10-10 A1): ask "
+                "CORE to check a unified diff in full (governed-text refusal, full "
+                "blocking audit, test rules, tests). Returns a validation_run_id at "
+                "once; the check takes a few minutes. Writes nothing to the tree."
+            ),
+            input_schema={
+                "type": "object",
+                "properties": {"patch": _STRING},
+                "required": ["patch"],
+                "additionalProperties": False,
+            },
+            handler=_validate_change,
+        ),
+        AssistantTool(
+            name="submit_change",
+            description=(
+                "Step 2: if the validation run passed, CORE creates a PENDING proposal "
+                "for the same patch, with its anchor (issue | adr | governor_request), "
+                "producer and what it retires, and answers step 0. Approval is always "
+                "the governor's, typed at a terminal; this tool never approves. If "
+                "the run is still going or failed, says so and submits nothing."
+            ),
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "patch": _STRING,
+                    "validation_run_id": _STRING,
+                    "goal": _STRING,
+                    "anchor_kind": {
+                        "type": "string",
+                        "enum": ["issue", "adr", "governor_request"],
+                    },
+                    "anchor_refs": {"type": "array", "items": _STRING},
+                    "producer": _STRING,
+                    "retires": {"type": "array", "items": _STRING},
+                },
+                "required": [
+                    "patch",
+                    "validation_run_id",
+                    "goal",
+                    "anchor_kind",
+                    "anchor_refs",
+                    "producer",
+                ],
+                "additionalProperties": False,
+            },
+            handler=_submit_change,
         ),
     )
 }
