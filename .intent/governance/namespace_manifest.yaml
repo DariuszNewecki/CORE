@@ -1898,3 +1898,7 @@ classifications:
     governance_namespace: project::core
   - path: .specs/planning/archive/external-review-2026-07-todo.md
     governance_namespace: project::core
+  - path: .specs/registers/lessons-register.md
+    governance_namespace: project::core
+  - path: .specs/registers/g4-action-register.md
+    governance_namespace: project::core
