@@ -128,6 +128,39 @@ async def test_roll_forward_records_consequence_resolves_and_completes() -> None
     mark_completed_mock.assert_awaited_once_with("pid-finalizing")
 
 
+async def test_roll_forward_records_deferred_and_addressed_findings() -> None:
+    """The reconstructed consequence names the same findings the executor
+    would: deferred ``finding_ids`` plus evidence-only
+    ``addressed_finding_ids``, de-duplicated, deferred first."""
+    worker = _make_worker_instance()
+    session = AsyncMock()
+
+    _, orig, svc_mod = _patch_service_registry(session)
+    try:
+        with (
+            patch(
+                "will.autonomy.proposal_execution_pipeline.record_consequence",
+                AsyncMock(return_value=True),
+            ) as record_mock,
+            patch(
+                "will.autonomy.proposal_execution_pipeline.resolve_deferred_findings",
+                AsyncMock(return_value=True),
+            ),
+            patch(
+                "will.autonomy.proposal_state_manager.ProposalStateManager.mark_completed",
+                AsyncMock(),
+            ),
+        ):
+            result = await worker._roll_forward_finalizing(  # type: ignore[attr-defined]
+                _row(finding_ids=["f-1"], addressed_finding_ids=["f-1", "a-2"])
+            )
+    finally:
+        svc_mod.service_registry = orig
+
+    assert result is True
+    assert record_mock.await_args.kwargs["finding_ids"] == ["f-1", "a-2"]
+
+
 async def test_roll_forward_skips_consequence_when_already_recorded() -> None:
     """has_consequence=True: record_consequence is NOT called; still
     resolves findings and completes."""

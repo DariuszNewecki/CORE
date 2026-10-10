@@ -149,6 +149,11 @@ class ProposalSupervisionService:
         on the capped path instead of resolving them, as the executor would
         have. Without a consequence record the outcome is unknown and the
         flag is False.
+
+        ``addressed_finding_ids`` is the evidence-only link (the test
+        remediator's; G4 groundwork defect 1): the reaper records it in the
+        reconstructed consequence alongside ``finding_ids``, exactly as the
+        executor does, but never resolves or revives it.
         """
         from body.services.service_registry import ServiceRegistry
 
@@ -169,7 +174,9 @@ class ProposalSupervisionService:
                         (c.proposal_id IS NOT NULL) AS has_consequence,
                         (c.pre_execution_sha IS NOT NULL
                          AND c.pre_execution_sha = c.post_execution_sha)
-                            AS nothing_to_commit
+                            AS nothing_to_commit,
+                        p.constitutional_constraints->'addressed_finding_ids'
+                            AS addressed_finding_ids
                     FROM core.autonomous_proposals p
                     LEFT JOIN core.proposal_consequences c
                         ON c.proposal_id = p.proposal_id
@@ -208,6 +215,7 @@ class ProposalSupervisionService:
                 "policies": row[5] or [],
                 "has_consequence": bool(row[6]),
                 "nothing_to_commit": bool(row[7]),
+                "addressed_finding_ids": row[8] or [],
             }
             for row in rows
         ]

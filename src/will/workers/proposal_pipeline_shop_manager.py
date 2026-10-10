@@ -554,6 +554,7 @@ class ProposalPipelineShopManager(ScheduledWorker):
         from will.autonomy.proposal_consumer_revival import report_revival
         from will.autonomy.proposal_execution_pipeline import (
             compute_production_set,
+            consequence_finding_ids,
             record_consequence,
             resolve_deferred_findings,
             revive_deferred_findings_for_noop,
@@ -572,7 +573,14 @@ class ProposalPipelineShopManager(ScheduledWorker):
                     pre_sha=None,
                     post_sha=None,
                     changed_files=[],
-                    finding_ids=list(row.get("finding_ids") or []),
+                    # Same link the executor records: deferred findings plus
+                    # evidence-only addressed findings (consequence_finding_ids).
+                    finding_ids=consequence_finding_ids(
+                        {
+                            "finding_ids": row.get("finding_ids"),
+                            "addressed_finding_ids": row.get("addressed_finding_ids"),
+                        }
+                    ),
                     policies=list(row.get("policies") or []),
                     declared_production=declared,
                     source="reaper_reconstructed",

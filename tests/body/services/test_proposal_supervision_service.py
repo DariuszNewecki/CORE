@@ -218,9 +218,9 @@ async def test_fetch_stuck_finalizing_maps_nothing_to_commit() -> None:
     completed_at = datetime(2026, 9, 20, 12, 0, 0, tzinfo=UTC)
     session = _mock_session(
         [
-            ("pid-noop", completed_at, 900, {}, ["f-1"], ["p"], True, True),
-            ("pid-real", completed_at, 900, {}, [], [], True, False),
-            ("pid-unknown", completed_at, 900, {}, None, None, False, False),
+            ("pid-noop", completed_at, 900, {}, ["f-1"], ["p"], True, True, None),
+            ("pid-real", completed_at, 900, {}, [], [], True, False, None),
+            ("pid-unknown", completed_at, 900, {}, None, None, False, False, None),
         ]
     )
 
@@ -258,6 +258,31 @@ async def test_fetch_stuck_finalizing_derives_the_flag_from_equal_shas() -> None
     assert "c.pre_execution_sha IS NOT NULL" in sql
     assert "c.pre_execution_sha = c.post_execution_sha" in sql
     assert "AS nothing_to_commit" in sql
+
+
+# ID: 226c2c51-0211-4424-9ee5-42c133d3e7b1
+async def test_fetch_stuck_finalizing_carries_addressed_finding_ids() -> None:
+    """A test-generation proposal links its findings as evidence only
+    (``addressed_finding_ids``). The reaper needs that link too, or a
+    reconstructed consequence names no finding (G4 groundwork defect 1)."""
+    completed_at = datetime(2026, 9, 20, 12, 0, 0, tzinfo=UTC)
+    session = _mock_session(
+        [
+            ("pid-tg", completed_at, 900, {}, None, [], False, False, ["a-1"]),
+            ("pid-none", completed_at, 900, {}, None, [], False, False, None),
+        ]
+    )
+
+    svc = ProposalSupervisionService()
+    with patch(
+        "body.services.service_registry.ServiceRegistry.session",
+        MagicMock(return_value=_session_ctx(session)),
+    ):
+        result = await svc.fetch_stuck_finalizing(sla_sec=600, limit=10)
+
+    assert [r["addressed_finding_ids"] for r in result] == [["a-1"], []]
+    sql = str(session.execute.await_args.args[0])
+    assert "constitutional_constraints->'addressed_finding_ids'" in sql
 
 
 # ---------------------------------------------------------------------------
