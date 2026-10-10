@@ -248,6 +248,45 @@ class LawFacts:
             (Source(_ADR_DIR.as_posix()),),
         )
 
+    # ID: 0d35ad3c-ceaa-497f-aaf1-8c4094a7f7a1
+    def decisions_mentioning(self, paths: list[str]) -> Answer:
+        """For each repository path, the ADRs whose text names it — by path,
+        or for a ``src/`` Python file also by its dotted module name.
+
+        Step 0 "was it already decided?" (ADR-168 Amendment 2026-10-10 R4).
+        A mention is a textual fact, not a ruling that the ADR governs the
+        file; each row carries the ADR's status so a superseded decision is
+        visible as such.
+        """
+        question = "Which decisions mention these files?"
+        adrs = [
+            (meta, path.read_text(encoding="utf-8", errors="replace"))
+            for path, meta in self._adr_files()
+        ]
+        rows: dict[str, list[dict[str, Any]]] = {}
+        for rel in paths:
+            needles = _mention_needles(rel)
+            rows[rel] = [
+                {
+                    "id": meta.get("id"),
+                    "title": meta.get("title"),
+                    "status": meta.get("status"),
+                }
+                for meta, text in adrs
+                if any(needle in text for needle in needles)
+            ]
+        limits = (
+            "Textual mention only: an ADR that governs a file without naming it "
+            "is not found, and a mention is not a ruling.",
+        )
+        return Answer(
+            question,
+            DECISION_HISTORY,
+            {"mentions": rows},
+            (Source(_ADR_DIR.as_posix()),),
+            limits,
+        )
+
     # -- internals ----------------------------------------------------------------
 
     def _mappings(self) -> list[tuple[Path, dict[str, Any]]]:
@@ -376,3 +415,15 @@ def _decision_headings(path: Path) -> list[str]:
 
 def _squash(value: Any) -> str | None:
     return " ".join(str(value).split()) if value else None
+
+
+def _mention_needles(rel: str) -> tuple[str, ...]:
+    """The strings that name *rel* in prose: the path, and for src/**.py the
+    dotted module (``src/will/autonomy/proposal.py`` -> ``will.autonomy.proposal``)."""
+    needles = [rel]
+    if rel.startswith("src/") and rel.endswith(".py"):
+        module = rel[len("src/") : -len(".py")].replace("/", ".")
+        if module.endswith(".__init__"):
+            module = module[: -len(".__init__")]
+        needles.append(module)
+    return tuple(needles)

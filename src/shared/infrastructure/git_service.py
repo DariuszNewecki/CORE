@@ -18,6 +18,7 @@ Will workers in particular must not spawn git subprocesses directly
 from __future__ import annotations
 
 import asyncio
+import re
 import shutil
 import subprocess
 import uuid
@@ -649,6 +650,27 @@ class GitService:
             return date.fromisoformat(oldest[:10])
         except ValueError:
             return None
+
+    # ID: 02292795-6049-437f-87c8-5c9453a298d4
+    def adr_refs_in_history(self, rel_path: str, limit: int = 200) -> list[str] | None:
+        """ADR ids (``ADR-NNN``) cited in the messages of the last *limit*
+        commits that touched *rel_path*, most cited first.
+
+        Step 0 "was it already decided?" (ADR-168 Amendment 2026-10-10 R4).
+        None on git failure, so "could not read history" never reads as
+        "no decision touches this file"; [] for a file with no such commits.
+        """
+        try:
+            output = self._run_command(
+                ["log", "--follow", f"-{limit}", "--format=%B", "--", rel_path]
+            )
+        except RuntimeError:
+            return None
+        counts: dict[str, int] = {}
+        for number in re.findall(r"\bADR-(\d{2,4})\b", output or ""):
+            ref = f"ADR-{int(number):03d}"
+            counts[ref] = counts.get(ref, 0) + 1
+        return sorted(counts, key=lambda ref: (-counts[ref], ref))
 
     # ID: 30b6584a-2282-4d15-b9c3-704363d13c5b
     def introducing_commit_subject(self, rel_path: str) -> str | None:

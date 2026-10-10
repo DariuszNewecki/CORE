@@ -166,3 +166,25 @@ def test_project_without_specs_has_no_decision_history(tmp_path: Path) -> None:
         ignore=shutil.ignore_patterns("__pycache__", "__init__.py"),
     )
     assert LawFacts(tmp_path).adrs().as_dict()["class"] == UNKNOWN
+
+
+# ID: ad325300-013f-4ed6-87e9-4383653e01a4
+def test_decisions_mentioning_by_path_or_module(repo: Path) -> None:
+    (repo / ".specs" / "decisions" / "ADR-009-mentions.md").write_text(
+        "---\nkind: adr\nid: ADR-009\ntitle: 'ADR-009 — Mentions'\nstatus: superseded\n---\n\n"
+        "Touches `will.autonomy.proposal` and docs/guide.md.\n",
+        encoding="utf-8",
+    )
+    answer = (
+        LawFacts(repo)
+        .decisions_mentioning(
+            ["src/will/autonomy/proposal.py", "docs/guide.md", "src/unrelated.py"]
+        )
+        .as_dict()
+    )
+
+    mentions = answer["answer"]["mentions"]
+    assert [m["id"] for m in mentions["src/will/autonomy/proposal.py"]] == ["ADR-009"]
+    assert mentions["docs/guide.md"][0]["status"] == "superseded"
+    assert mentions["src/unrelated.py"] == []
+    assert answer["limits"]
