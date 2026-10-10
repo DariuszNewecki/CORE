@@ -79,6 +79,16 @@ class StagingContaminationError(RuntimeError):
 # and reclaim them without touching unrelated worktrees.
 # /tmp is prohibited per CLAUDE.md; all temp writes use var/tmp/.
 SANDBOX_PREFIX = "core-action-sandbox-"
+# Every git command CORE runs disables repository-supplied hooks and the
+# filesystem monitor: both run commands named in `.git/config`, which is not
+# trusted input (ADR-132 D10.11 step 1, route R3).
+SAFE_GIT_OPTIONS: tuple[str, ...] = (
+    "-c",
+    "core.hooksPath=/dev/null",
+    "-c",
+    "core.fsmonitor=false",
+)
+
 # A sandbox worktree is created locked, its lock reason naming the owning
 # process; the boot sweep removes only sandboxes whose owner is gone.
 _SANDBOX_LOCK_PREFIX = "core-sandbox pid="
@@ -108,7 +118,7 @@ class GitService:
                 "Running git command: {' '.join(command)} in %s", effective_cwd
             )
             result = subprocess.run(
-                ["git", *command],
+                ["git", *SAFE_GIT_OPTIONS, *command],
                 cwd=effective_cwd,
                 capture_output=True,
                 text=True,
@@ -276,7 +286,7 @@ class GitService:
         """
         try:
             result = subprocess.run(
-                ["git", *command],
+                ["git", *SAFE_GIT_OPTIONS, *command],
                 cwd=self.repo_path,
                 capture_output=True,
                 text=True,
@@ -783,6 +793,7 @@ class GitService:
         """Run a git command asynchronously. Returns (returncode, stdout, stderr)."""
         proc = await asyncio.create_subprocess_exec(
             "git",
+            *SAFE_GIT_OPTIONS,
             *command,
             cwd=self.repo_path,
             stdout=asyncio.subprocess.PIPE,

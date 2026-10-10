@@ -16,7 +16,17 @@ def test_run_git_builds_correct_argv(tmp_path: Path) -> None:
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
         ToolRunner.run_git(tmp_path, "apply", "--whitespace=nowarn")
         args = mock_run.call_args[0][0]
-    assert args == ["git", "-C", str(tmp_path), "apply", "--whitespace=nowarn"]
+    assert args == [
+        "git",
+        "-c",
+        "core.hooksPath=/dev/null",
+        "-c",
+        "core.fsmonitor=false",
+        "-C",
+        str(tmp_path),
+        "apply",
+        "--whitespace=nowarn",
+    ]
 
 
 # ID: e2f3a4b5-6c7d-4e8f-9a0b-1c2d3e4f5a6b

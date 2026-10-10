@@ -20,6 +20,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from shared.infrastructure.git_service import SAFE_GIT_OPTIONS
+
 
 # Bootstrap script written to var/tmp/ and run in a subprocess for each
 # graph-independent engine-touching diff (ADR-141 D3/D5). The script:
@@ -140,7 +142,7 @@ class ToolRunner:
         """
         env = {**os.environ, "GIT_CEILING_DIRECTORIES": str(Path(worktree).parent)}
         return subprocess.run(
-            ["git", "-C", str(worktree), *args],
+            ["git", *SAFE_GIT_OPTIONS, "-C", str(worktree), *args],
             input=stdin,
             text=True,
             capture_output=True,
