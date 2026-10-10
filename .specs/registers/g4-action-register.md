@@ -214,3 +214,63 @@ Times are UTC unless marked. Lessons drawn from these rows: `lessons-register.md
 
 **Session total (by hand)** — fixes and law: 9 entries, all by the assistant; catches: 10 — governor 1, assistant 4,
 **CORE 5** (C-22, C-23, C-24, C-29, C-30); assistant misses: 7 (4 caught by CORE).
+
+### 2026-10-10, session 2 — acceptance and close
+
+**Fixes and law (assistant as producer, unless noted)**
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-25 | 6c422e40 | MCP submit tools pass the patch byte for byte (stripping dropped its final newline) | U8 run 06bb1632 (C-31) | git; verdict |
+| A-26 | ad337e5d | A live sandbox is never swept; a vanished one never falls through to the main repo; apply proves its effect | U8 attempt 1, da93593b (C-32) | git; verdict |
+| A-27 | 32b98a3d | **U8: the first change through the one flow** — submitted via MCP, validated (169 s), approved by the governor at a terminal, committed with the producer as author and CORE as committer, consequence recorded | plan U8 | proposal 40264fc6; consequence ad337e5d → 32b98a3d |
+| A-28 | 72dcd4a9 | Assisted-lane factory test passes a producer | CORE CI (C-34) | git; CI 38061834699 green |
+| A-29 | 3a6b1b53 | Law 0016: ADR-132 D10 unparked (human-only governor account; sandbox runner service; order) | governor rulings | law ledger; git |
+| A-30 | ac489af3 + root act | D1: CORE's git never runs repo hooks or fsmonitor; `.git/config`, `hooks/`, `info/` owned by `core` | plan D1 | git; verdict; root act **none** |
+| A-31 | 79b9cbb2 … 8b40d525 (6) | **CORE's own loop**: tests generated for `sandbox_lifecycle.py` after U8 touched it — author `core:flow.build_test_for_symbol`, committer CORE daemon (U5 shown for CORE's own producer) | CORE (test coverage sensor) | git; proposals |
+
+**Catches**
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-31 | **CORE** — validation run | "corrupt patch at line 17": the submit tool stripped the patch | A-25 | fix run 06bb1632 (DB) |
+| C-32 | assistant | Approved proposal da93593b marked **completed** with an empty production set — nothing applied | Root cause via the governor's journal read; A-26 | proposal da93593b + consequence (0 files) (DB) |
+| C-33 | **CORE** — ADR-030 stale-code guard | The consumer suspended itself rather than run code older than HEAD after 6c422e40 | Restart; then executed | blackboard `suspended.stale_code` (DB) |
+| C-34 | **CORE** — CI hermetic tests | 1 of 6067 failed: a unit test I had not run (missing producer) | A-28 | CI 38060894074 |
+| C-35 | assistant (step 0 on my own plan) | Platform plan P1 designed a password before reading ADR-132 D10, which had already decided identity (kernel peer uid; parked) | P1 dropped; D10 unparked (A-29) | **none** |
+| C-36 | governor | "B seems cleanest … enrich it with a dedicated user" — the sandbox runner gets its own account | D10.10 | law 0016 |
+| C-37 | assistant | After D1, `.git/` stays group-writable: `.git/config` can still be replaced wholesale | Full R3 moved to D2 (services' own git) | **none** |
+| C-38 | **CORE** — pre-commit gate | 6 commits checked since law 0015, 6 allowed | — | `verdicts.jsonl` |
+
+**Health**
+
+| ID | Problem | Since | Status |
+|---|---|---|---|
+| H-17 | Worker boot sweeps removed live action sandboxes | ADR-071 D2.2 | fixed (A-26) |
+| H-18 | `git apply` in a vanished sandbox reported success; proposals completed with nothing applied | same | fixed (A-26) |
+| H-19 | R3: `.git/` group-writable → config replaceable | — | open → D2 |
+| H-20 | Production DB credential (`.env` `DATABASE_URL`) readable by the assistant | — | open → D6 |
+
+**Events**
+
+| ID | Time | Event | By |
+|---|---|---|---|
+| E-16 | 14:00 | Proposal da93593b approved (typed); false-completed at 14:13 | governor; CORE |
+| E-17 | 14:39 | **U8 passed**: 40264fc6 → 32b98a3d | governor + CORE |
+| E-18 | 14:4x / 15:0x | develop pushed (15 commits); CI red (C-34), fix pushed, CI green | assistant |
+| E-19 | 15:15:36 | Law 0016 approved | governor |
+| E-20 | ~15:3x | D1 root act (git custody) | governor |
+| E-21 | ~15:45 | core-platform: invitation accepted (write access); governor's 2 docs commits pushed; Node.js 22 installed | governor; assistant (operator) |
+
+**Assistant's misses**
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-21 | Read the patch through a stripping helper | CORE (C-31) | one failed validation |
+| M-22 | Excluded a whole test file instead of relying on the marker filter | CORE CI (C-34) | CI red once |
+| M-23 | Did not restart services after 6c422e40 | CORE (C-33) | ~12 min delay |
+| M-24 | Told the governor to run a sudo command with `!` (no terminal in my shell) | governor (failed) | one wasted step |
+| M-25 | Designed P1 before checking ADR-132 | assistant (C-35) | plan corrected before any build |
+
+**Session-2 total (by hand)** — fixes and law: 16 entries (15 by the assistant, 1 by CORE's own loop);
+catches: 18 — governor 2, assistant 8, **CORE 8**; assistant misses: 12 (7 caught by CORE).

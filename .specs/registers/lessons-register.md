@@ -33,3 +33,8 @@ Status: `open` (learned, not yet applied) · `applied` (names where) · `superse
 | L20 | 2026-10-10 | **A rule enforced only at one producer's boundary hides debt everywhere else.** | 41 test files break Class B rules unseen (C-26) | open |
 | L21 | 2026-10-10 | **What CORE documents and tests against is the released version of a sibling package, not the local build.** | core-cli installed unreleased (C-24, M-17) | applied: release before declare (ADR-167 D2) |
 | L22 | 2026-10-10 | **A docstring that says "cached" is a claim; measure it.** Performance defects hide behind it. | PatternValidators (C-25) | applied (A-19) |
+| L23 | 2026-10-10 | **One real end-to-end run finds what unit tests cannot.** U8 found two defects that every test had passed. | C-31, C-32 | applied: acceptance is a real run |
+| L24 | 2026-10-10 | **"Orphan" needs an owner check.** A cleanup that removes everything matching a name removes live work too. | H-17 | applied (A-26) |
+| L25 | 2026-10-10 | **"Done" is proven by the effect, not by an exit code.** `git apply` exited 0 and changed nothing. | H-18 | applied (A-26) |
+| L26 | 2026-10-10 | **Step 0 applies to my own plans.** Read the decisions on a subject before designing it. | C-35, M-25 | open — habit |
+| L27 | 2026-10-10 | **Restart after every commit while the services run the dev tree** — until D2, when deployment becomes the governor's act. | C-33, M-23 | open → superseded by D2 |
