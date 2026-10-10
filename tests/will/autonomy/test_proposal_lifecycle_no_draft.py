@@ -123,10 +123,14 @@ def test_assisted_lane_factory_creates_pending() -> None:
         _construction_token=_CONSTRUCTOR_TOKEN,
     )
     proposal = build_assisted_lane_proposal(
-        candidate, goal="factory status", created_by="test"
+        candidate, goal="factory status", created_by="test", producer="test-agent"
     )
     assert proposal.status is ProposalStatus.PENDING
     assert proposal.approval_required is True
+    # ADR-168 Amendment 2026-10-10 A2: the finding lane records who and why.
+    assert proposal.provenance is not None
+    assert proposal.provenance.anchor_refs == ["f-885"]
+    assert proposal.provenance.problem_owner == "core"
 
 
 def test_no_production_source_references_proposal_status_draft() -> None:
