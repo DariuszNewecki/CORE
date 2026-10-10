@@ -28,4 +28,8 @@ Status: `open` (learned, not yet applied) · `applied` (names where) · `superse
 | L15 | 2026-10-10 | **Evaluation needs memory.** Findings that return every run unchanged turn review into ceremony. | CCC re-raised dismissed candidates every run (C-15) | applied (law 0012, 376f9580) |
 | L16 | 2026-10-10 | **"Accepted" and "built" are different facts; so are "applied" and "accepted".** Check both directions. | ADR-094 accepted, never built; ADR-117/120/158 applied while "Proposed" (C-16) | open — a check for ADR deliverables (SPECGAP sees none) |
 | L17 | 2026-10-10 | **A boundary held by attention fails; hold it by mechanism.** | `core_test` reached twice by scoped runs (M-01, M-08) | applied: `-m "not integration"` (memory) |
-
+| L18 | 2026-10-10 | **Before saying a capability does not exist, search every surface that could hold it** — both CLIs, the API, other repositories. | "No approve command" — it was in core-cli (M-14) | open |
+| L19 | 2026-10-10 | **A change to a governed shape carries its contract in the same batch.** The audit sees the gap only as `info`. | U1 provenance fields (C-22, M-15) | applied in law 0014; **open** as habit |
+| L20 | 2026-10-10 | **A rule enforced only at one producer's boundary hides debt everywhere else.** | 41 test files break Class B rules unseen (C-26) | open |
+| L21 | 2026-10-10 | **What CORE documents and tests against is the released version of a sibling package, not the local build.** | core-cli installed unreleased (C-24, M-17) | applied: release before declare (ADR-167 D2) |
+| L22 | 2026-10-10 | **A docstring that says "cached" is a claim; measure it.** Performance defects hide behind it. | PatternValidators (C-25) | applied (A-19) |

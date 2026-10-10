@@ -1,0 +1,47 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.submit_change_response",
+        "title": "SubmitChangeResponse -- POST /v1/proposals/submit response",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Response body (201 Created) for POST /v1/proposals/submit: the PENDING proposal (approval always required, never approved by this route) and the step-0 report shown to the approver (ADR-168 Amendment 2026-10-10 R3/R4). Crosses the API boundary (ADR-056 D7 criterion 6). Source: src/api/v1/schemas.py, class SubmitChangeResponse.",
+    "governed_classes": [
+        "SubmitChangeResponse"
+    ],
+    "required": [
+        "proposal_id",
+        "status",
+        "approval_required",
+        "scope_files",
+        "step_zero"
+    ],
+    "properties": {
+        "proposal_id": {
+            "type": "string",
+            "description": "The new proposal's id."
+        },
+        "status": {
+            "type": "string",
+            "description": "Always pending."
+        },
+        "approval_required": {
+            "type": "boolean",
+            "description": "Always true."
+        },
+        "scope_files": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "The validated production set: added, modified and deleted paths."
+        },
+        "step_zero": {
+            "type": "object",
+            "description": "What it retires (verified), decisions mentioning or cited for the touched files, and similar existing code (status ran | nothing_new | unavailable)."
+        }
+    }
+}

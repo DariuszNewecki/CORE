@@ -148,3 +148,69 @@ Times are UTC unless marked. Lessons drawn from these rows: `lessons-register.md
 **Day total (by hand)** — fixes and law: 15 entries, all by the assistant; catches: 20 — governor 5, reviewer 1, assistant 9,
 **CORE 5** (C-11, C-12 once repaired, C-13, C-18, C-19); assistant misses: 13.
 
+
+### 2026-10-10, session 2 (producer build)
+
+**Fixes and law (assistant as producer; none by CORE's loop)**
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-16 | af77b677 | Every proposal carries provenance (anchor, owner, producer, retires); submission refuses without it | plan U1 | git; verdict |
+| A-17 | ef9e88f7 | Law 0014: ADR-168 R1–R5; governed text as data; proposal contracts caught up | governor rulings; C-22 | law ledger; git |
+| A-18 | c117711c | General validation: governed-text refusal, full blocking audit over the patched tree, tests (shared-state markers excluded) | plan U2 | git; verdict |
+| A-19 | 78db86df | Class B test rules bind every producer; PatternValidators statement cache fixed (~4 s → ms per file) | plan U2b; C-25 | git; verdict |
+| A-20 | ecfb9694 / fedca645 | Step 0: patch facts, retirement verified, ADR mentions + history, look-alikes ("unavailable" ≠ "none") | plan U3; C-27 | git; verdict |
+| A-21 | 17bf4007 | An approved patch's declared deletions reach the main tree and the commit | plan U4; H-15 | git; verdict |
+| A-22 | 89685c53 | Producer is the git author, CORE the committer | plan U5 | git (`%an`/`%cn`) |
+| A-23 | ea6eefb6 / 3d4c0fef | POST /v1/proposals/submit; MCP `validate_change` / `submit_change`; D3 authority test | plan U7 | git; verdict |
+| A-24 | core-cli 04ac037, 6035ed6; tag v2.1.0; CORE 028c9960 | `core proposals approve` needs a person at a terminal typing the short id; `show` explains who, why, checks (operator role, governor grant) | plan U6; C-28 | core-cli git + PyPI 2.1.0; **none** in CORE's records |
+
+**Catches**
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-21 | governor | "It will not be me but my Claude session as core-darek" — approval by a model under the governor's account | R2: approval typed by the human at a terminal | law 0014 |
+| C-22 | **CORE** — audit in the law-batch check | U1 added proposal fields without their data contracts (`data.contracts.*_conforms`, info) | Law 0014 | law-check run (var/, not DB) |
+| C-23 | **CORE** — pre-commit gate | Public-named nested helper without an ID (`linkage.assign_ids`) | Renamed private; recommitted | `var/experiments/adr168/verdicts.jsonl` |
+| C-24 | **CORE** — pre-commit gate | `docs/reference/core.md` out of date after installing unreleased core-cli (`cli.reference_current`) | ADR-167 D2 path: released core-cli 2.1.0 | `verdicts.jsonl` |
+| C-25 | assistant | PatternValidators re-scanned all `.intent/` rules 5× per validated file | A-19 | git |
+| C-26 | assistant | 41 of 1044 existing test files break the Class B rules (3 are CORE-generated) — never seen, the rules bind only at write time | Whole-file judgement for any producer touching them | **none** |
+| C-27 | assistant | Vector search helpers return `[]` on error — a failed search would read "nothing similar" | Step 0 uses the raising search | **none** |
+| C-28 | assistant | `core proposals approve` had no confirmation and was not marked dangerous | A-24 | **none** |
+| C-29 | **CORE** — pre-commit gate | 14 commits checked, 12 allowed, 2 refused (C-23, C-24) | — | `verdicts.jsonl` |
+| C-30 | **CORE** — audit in the law-batch check | This batch's two new contracts were not classified in the namespace manifest (`governance.namespace.classification_complete`, blocking) | Manifest entries added to the batch before asking | law-check run (var/, not DB) |
+
+**Health**
+
+| ID | Problem | Since | Status |
+|---|---|---|---|
+| H-11 | Class B statement loader re-scanned the law on every check | #589 | fixed (A-19) |
+| H-12 | 41 test files violate Class B rules; no audit sees committed tests | ADR-142 | open |
+| H-13 | `QdrantService.search_similar` / `VectorProvider` return `[]` on failure | unknown | open (step 0 avoids it) |
+| H-14 | A model on the governor's account can approve via the API | — | open: #942; R2 is a speed bump |
+| H-15 | Sandbox copy-back dropped every deletion | ADR-071 D2.2 | fixed (A-21) |
+| H-16 | CORE's LLM lanes do not report which model wrote the bytes; commits name the role | — | open |
+
+**Events**
+
+| ID | Time | Event | By |
+|---|---|---|---|
+| E-12 | ~10:35 | `main` promoted f3b48054..18a364bf (17 commits, CI green) | assistant, governor yes |
+| E-13 | 11:13:13 | Law 0014 approved | governor |
+| E-14 | ~13:04 | core-cli `v2.1.0` tagged and pushed (published to PyPI by its CI); the assistant's tag push was refused by the permission system | governor |
+| E-15 | ~13:00 | core-platform read-only study (`var/reports/core-platform-study-20261010.md`) | assistant, at governor request |
+
+**Assistant's misses**
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-14 | Told the governor there was no approve command — searched `core-admin` only; it was in `core` (core-cli) | assistant (U6 recon) | corrected in chat |
+| M-15 | Added fields to a governed class without its data contract | CORE (C-22) | law 0014 |
+| M-16 | Nested public-named helper without an ID | CORE (C-23) | commit refused once |
+| M-17 | Installed an unreleased core-cli into CORE's environment without checking ADR-167 D2 | CORE (C-24) | commit refused once; release done |
+| M-18 | First D3 test matched `session.execute` as "execution" — too broad | assistant (own run) | narrowed; mutation-checked |
+| M-19 | Test helper used a plain mock for an awaited state manager | assistant (own run) | fixed before commit |
+| M-20 | New contract files without namespace-manifest entries — the known "registrations" lesson, missed again | CORE (C-30) | caught before approval |
+
+**Session total (by hand)** — fixes and law: 9 entries, all by the assistant; catches: 10 — governor 1, assistant 4,
+**CORE 5** (C-22, C-23, C-24, C-29, C-30); assistant misses: 7 (4 caught by CORE).

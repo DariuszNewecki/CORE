@@ -1,0 +1,59 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.submit_change_request",
+        "title": "SubmitChangeRequest \u2014 body of POST /v1/proposals/submit",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Request body to submit a producer's change that is not born from a finding (POST /v1/proposals/submit, proposals_routes.py; ADR-168 Amendment 2026-10-10 A1-A7, R1-R5). Crosses the API boundary (ADR-056 D7). CORE re-reads the named general-mode assisted.validate_diff run; the caller's word is never the verdict.",
+    "governed_classes": [
+        "SubmitChangeRequest"
+    ],
+    "required": [
+        "patch",
+        "validation_run_id",
+        "goal",
+        "anchor_kind",
+        "anchor_refs",
+        "producer"
+    ],
+    "properties": {
+        "patch": {
+            "type": "string",
+            "description": "Unified diff of the change."
+        },
+        "validation_run_id": {
+            "type": "string",
+            "description": "Id of the general-mode assisted.validate_diff run (core.fix_runs) that cleared exactly this patch."
+        },
+        "goal": {
+            "type": "string",
+            "description": "What the change does, in the producer's words."
+        },
+        "anchor_kind": {
+            "type": "string",
+            "description": "issue | adr | governor_request (a finding goes through the finding lane)."
+        },
+        "anchor_refs": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "The issue, the ADR, or the governor's decided prompt verbatim."
+        },
+        "producer": {
+            "type": "string",
+            "description": "Who wrote the bytes (the git author on commit, A6)."
+        },
+        "retires": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Files ('path') or symbols ('path::Name') the change removes; verified against the patch at step 0. Empty means nothing."
+        }
+    }
+}

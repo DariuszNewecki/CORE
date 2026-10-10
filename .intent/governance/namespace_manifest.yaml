@@ -1760,6 +1760,10 @@ classifications:
     governance_namespace: project::core
   - path: .intent/enforcement/contracts/ProposeRequest.json
     governance_namespace: project::core
+  - path: .intent/enforcement/contracts/SubmitChangeRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/SubmitChangeResponse.json
+    governance_namespace: project::core
   - path: .intent/enforcement/contracts/QualityAsyncRequest.json
     governance_namespace: project::core
   - path: .intent/enforcement/contracts/QualityLintRequest.json
