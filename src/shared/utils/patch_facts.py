@@ -121,3 +121,35 @@ def verify_retires(retires: list[str], facts: PatchFacts) -> list[dict[str, obje
             )
         rows.append({"entry": entry, "verified": ok, "reason": reason})
     return rows
+
+
+# ID: a81d9be7-47ff-4b6a-bb7d-f5a459e81ddc
+def added_symbol_source(patch: str, path: str, name: str, limit: int = 4000) -> str:
+    """The source of top-level symbol *name* as the patch adds it to *path*.
+
+    Context and added lines from the symbol's ``def``/``class`` line up to the
+    next top-level statement; removed lines are skipped. Empty when the patch
+    does not add *name* to *path*. Truncated to *limit* characters.
+    """
+    collected: list[str] = []
+    in_file = collecting = False
+    for line in patch.splitlines():
+        header = _DIFF_GIT.match(line)
+        if header:
+            if collecting:
+                break
+            in_file = header.group(2) == path
+            continue
+        if not in_file or line.startswith(("+++", "---", "@@", "-")):
+            if collecting and line.startswith("@@"):
+                break
+            continue
+        code = line[1:] if line[:1] in ("+", " ") else line
+        if collecting:
+            if code and not code[0].isspace() and not code.startswith(("#", ")")):
+                break
+            collected.append(code)
+        elif line.startswith("+") and _symbol(code) == name:
+            collecting = True
+            collected.append(code)
+    return "\n".join(collected).rstrip()[:limit]

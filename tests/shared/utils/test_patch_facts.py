@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from shared.utils.patch_facts import read_patch, verify_retires
+from shared.utils.patch_facts import added_symbol_source, read_patch, verify_retires
 
 
 _PATCH = (
@@ -77,3 +77,13 @@ def test_retirement_claims_are_checked_against_the_patch() -> None:
 # ID: 7bfa29e5-5018-4ad2-8707-24299f135c56
 def test_nothing_retired_is_an_empty_claim() -> None:
     assert verify_retires([], read_patch(_PATCH)) == []
+
+
+# ID: 30ba5776-b57e-4383-8413-cab2036e4052
+def test_added_symbol_source_is_the_symbol_block_only() -> None:
+    assert added_symbol_source(_PATCH, "src/a.py", "Fresh") == (
+        "class Fresh:\n    def method(self):\n        pass"
+    )
+    assert added_symbol_source(_PATCH, "src/new.py", "fetch") == "async def fetch():"
+    assert added_symbol_source(_PATCH, "src/a.py", "old_helper") == ""
+    assert added_symbol_source(_PATCH, "src/other.py", "Fresh") == ""
