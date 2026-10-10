@@ -41,6 +41,10 @@ _ROW3_OPERATIONALIZED = date(2026, 5, 26)
 # behavior. ADR-049 D2's citation obligation does not apply — there is no
 # operational rule to cite. Definition sections are deliberately NOT in this
 # set; they carry rule-enforceable claims about the paper's subject.
+# paper_status values (META/enums.json) whose MUSTs are not in-force doctrine:
+# a draft proposes, a superseded or retired paper is history.
+_NOT_DOCTRINE_STATUSES = NOT_IN_FORCE_STATUSES | frozenset({"draft"})
+
 _BOILERPLATE_HEADINGS = frozenset(
     {
         "purpose",
@@ -103,8 +107,7 @@ class Row3CitationCheck:
             # proposals (aspirational by status), a superseded or retired
             # paper is history (paper_status, ADR-105 D5). Run 6558a043 flagged
             # 34 sections of draft papers.
-            status = document_status(content)
-            if status == "draft" or status in NOT_IN_FORCE_STATUSES:
+            if document_status(content) in _NOT_DOCTRINE_STATUSES:
                 continue
             rel = str(path.relative_to(self._repo_root))
             first_seen = git.first_seen_date(rel)
