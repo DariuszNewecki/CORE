@@ -102,6 +102,10 @@
         "failure_reason": {
             "type": "string",
             "description": "Human-readable failure explanation (str | None). Non-null when status is failed. Terminal state."
+        },
+        "provenance": {
+            "type": "object",
+            "description": "Who and why (ProposalProvenance | None; ADR-168 Amendment 2026-10-10 A2, R1). anchor_kind: finding | issue | adr | governor_request; anchor_refs: the finding ids, issue, ADR, or the governor's decided prompt verbatim; problem_owner: governor | core (a finding is core's, a governor request the governor's); producer: who writes the bytes; retires: what the change removes or supersedes (empty = nothing). Required for submission (Proposal.check_submission); stored under constitutional_constraints.provenance. None on rows created before 2026-10-10."
         }
     },
     "allOf": [

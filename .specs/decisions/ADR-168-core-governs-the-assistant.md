@@ -303,3 +303,30 @@ nothing there.
 **Acceptance check 4.** One real assistant change is submitted through the assistant surface,
 checked by CORE, approved through the intended mechanism, committed with the producer as author,
 and linked to its consequence record.
+
+## Amendment 2026-10-10 (later): rulings for building the Proposal capability (governor ruling)
+
+**Why.** Writing the build plan (`var/reports/producer-build-plan-20261010.md`) raised four questions the
+amendment above leaves open. The governor answered them on 2026-10-10. A further fact shapes them: the governor
+does not write code or type commands to CORE. The governor's requests reach CORE through a Claude session running as the
+`core-darek` account, carrying prompts the governor and the assistant decided together.
+
+**R1 — A request the governor decided is an anchor (extends A2).** Besides a finding, an issue or an ADR, a
+proposal may be anchored to a **governor request**: the prompt the governor decided, recorded verbatim. Its
+problem owner is the governor. A finding's problem owner is CORE.
+
+**R2 — Approval is typed by the human (sharpens A7).** Approving a proposal requires a confirmation the human
+types at a real terminal. A model session, including the governor's own `core-darek` session, must not be able
+to approve on its own. This is a speed bump, not proof of identity: approval identity stays unauthenticated
+until #942 / ADR-132 D10 closes (stated limit 1 above).
+
+**R3 — One approval per change.** Each proposal is approved on its own, shown in plain language: what it
+changes, why (its anchor), what it retires, what CORE checked and what it did not.
+
+**R4 — Look-alikes inform, never refuse.** Before approval CORE shows existing code that resembles new code
+in the change, and ADRs that touch the same files. A resemblance score is a judgement, not a fact; it is shown
+to the approver and never refuses a submission on its own.
+
+**R5 — Governed text is declared as data (implements A5).** The paths a proposal may not touch are listed in
+`.intent/enforcement/config/governance_paths.yaml` (`governed_text`), read by CORE at submission, not
+hard-coded in `src/`.

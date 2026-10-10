@@ -45,3 +45,16 @@ vectors:
   # Range: integer >= 1
   # Consumed by: body/atomic/sync_actions/sync_actions.py
   max_embedding_passes: 5
+
+governed_text:
+  # Paths a code proposal may not touch (ADR-168 Amendment 2026-10-10 A5, R5).
+  # Governed text enters only under ADR-170 (law proposal, custody, ledger),
+  # never through a code proposal. An entry ending in "/" covers everything
+  # beneath it; any other entry is one exact file.
+  # Consumed by: assisted.validate_diff (general validation).
+  paths:
+    - ".intent/"
+    - ".specs/"
+    - "CLAUDE.md"
+    - ".claude/settings.json"
+    - ".claude/hooks/"

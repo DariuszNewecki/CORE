@@ -41,6 +41,28 @@
         "write": {
             "type": "boolean",
             "description": "When true (default), persist the proposal. When false, return a dry-run preview."
+        },
+        "anchor_kind": {
+            "type": "string",
+            "description": "What the proposal is anchored to: finding | issue | adr | governor_request (ADR-168 Amendment 2026-10-10 A2, R1). Without it the proposal is refused (422)."
+        },
+        "anchor_refs": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "The anchor references: finding ids, an issue, an ADR, or the governor's decided prompt verbatim."
+        },
+        "producer": {
+            "type": "string",
+            "description": "Who wrote the bytes (model or agent). Required with anchor_kind."
+        },
+        "retires": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "What the change removes or supersedes; empty means nothing."
         }
     }
 }
