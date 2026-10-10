@@ -55,6 +55,7 @@ from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
+from shared.utils.patch_facts import read_patch
 
 
 if TYPE_CHECKING:
@@ -852,6 +853,10 @@ async def action_assisted_apply_diff(
         data={
             "applied": ok,
             "error": result.stderr.strip()[:400] if not ok else None,
+            # ADR-168 Amendment 2026-10-10 A3: the files this approved patch
+            # deletes; the executor carries exactly these deletions to the
+            # main tree and into the commit.
+            "declared_deletions": read_patch(patch).deleted if ok else [],
         },
         impact=ActionImpact.WRITE_CODE,
         duration_sec=time.perf_counter() - started,

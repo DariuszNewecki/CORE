@@ -429,7 +429,17 @@ class ActionExecutor:
             result = _validate_action_result(action_id, raw_result)
 
             if scoped_git is not None and result.ok:
-                target_paths = self._sandbox.propagate_changes(scoped_git)
+                # A3: an action carries a deletion to the main tree only by
+                # declaring it (e.g. assisted.apply_diff: the patch's deletions).
+                declared = (
+                    result.data.get("declared_deletions")
+                    if isinstance(result.data, dict)
+                    else None
+                )
+                target_paths = self._sandbox.propagate_changes(
+                    scoped_git,
+                    declared_deletions=set(declared or []),
+                )
                 # ADR-101 D2: stamp the sandbox production set onto the
                 # result so commit_proposal_changes can derive the commit
                 # set (and rollback the rollback target) from actual

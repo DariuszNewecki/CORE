@@ -274,7 +274,10 @@ class SandboxLifecycle:
 
     # ID: b1d2c5f9-3a48-4e67-8b91-2c5f8a3d6e90
     def propagate_changes(
-        self, scoped_git: Any, only_paths: set[str] | None = None
+        self,
+        scoped_git: Any,
+        only_paths: set[str] | None = None,
+        declared_deletions: set[str] | None = None,
     ) -> set[str]:
         """Copy files modified inside the sandbox back to the main tree.
 
@@ -312,11 +315,14 @@ class SandboxLifecycle:
         contamination". The b11f4dba race shape is closed: worker either
         propagates cleanly (no overlap) or refuses (overlap detected).
 
-        Deletions are not propagated: the no_direct_writes rule (#451)
-        forbids @atomic_action functions from invoking unlink/rmdir, so
-        a `D`-status entry here would itself be a constitutional
-        violation. We log and skip rather than silently deleting from
-        the main tree.
+        Deletions propagate only when the action declared them
+        (``declared_deletions``, from the action's result) AND the sandbox
+        shows them: the path is removed from the main tree through
+        ``FileHandler.remove_file`` (the governed delete surface) and is part
+        of the returned production set, so the commit carries the removal.
+        ADR-168 Amendment 2026-10-10 A3: a patch's deleted files are applied
+        and committed. An undeclared sandbox deletion is still logged and
+        skipped — an action never deletes from the main tree by accident.
         """
         sandbox_root = scoped_git.repo_path
         file_handler = self.core_context.file_handler
@@ -343,17 +349,23 @@ class SandboxLifecycle:
         # unmodified — so " M foo" arrives as "M foo". Split on first
         # whitespace to recover {status_token, path} regardless.
         target_paths: set[str] = set()
+        deletions: set[str] = set()
+        allowed_deletions = declared_deletions or set()
         for line in porcelain.splitlines():
             parts = line.split(None, 1)
             if len(parts) != 2:
                 continue
             status_token, rel = parts[0], parts[1].strip().strip('"')
             if "D" in status_token:
-                logger.warning(
-                    "SandboxLifecycle: sandbox reports deletion of %s — "
-                    "atomic actions cannot delete files (#451); skipping",
-                    rel,
-                )
+                if rel in allowed_deletions:
+                    deletions.add(rel)
+                    target_paths.add(rel)
+                else:
+                    logger.warning(
+                        "SandboxLifecycle: sandbox reports undeclared deletion "
+                        "of %s; skipping",
+                        rel,
+                    )
                 continue
             target_paths.add(rel)
 
@@ -406,6 +418,9 @@ class SandboxLifecycle:
 
         copied = 0
         for rel in sorted(target_paths):
+            if rel in deletions:
+                file_handler.remove_file(rel)
+                continue
             src = sandbox_root / rel
             if not src.exists():
                 logger.warning(
@@ -417,8 +432,10 @@ class SandboxLifecycle:
             copied += 1
 
         logger.info(
-            "SandboxLifecycle: propagated %d file(s) from sandbox to main tree",
+            "SandboxLifecycle: propagated %d file(s) and %d deletion(s) from "
+            "sandbox to main tree",
             copied,
+            len(deletions & target_paths),
         )
         return target_paths
 
