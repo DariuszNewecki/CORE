@@ -235,3 +235,14 @@ A second follow-up issue covers D6 (authoring the constitutional rule). A third 
 - `src/body/atomic/sandbox_lifecycle.py:144-254` — `propagate_changes` (the target_paths source for D2)
 - `.intent/enforcement/config/autonomy_dirty_tree.yaml` — retired by D4
 - `shared/infrastructure/intent/autonomy_dirty_tree.py` — retired by D4
+
+## Note 2026-10-10 — CCC run 6558a043 triage (proposal 0011)
+
+Three corrections, appended; the text above is unchanged.
+
+1. **D2's clause "and the rollback path (D3 below) still uses it" is wrong.** D3 decides the opposite, and the
+   code follows D3: rollback restores the action's touched set (`rollback_proposal` →
+   `restore_paths(compute_production_set(...))`), never `scope.files`. Read D2 without that clause.
+2. **D4's interim posture has ended.** `autonomy_dirty_tree.yaml`, its loader and `_check_scope_collision` are
+   removed (retirement tests in `tests/will/autonomy/test_proposal_execution_pipeline_adr_101.py`).
+3. **D6 is delivered by ADR-129** (commit authorship integrity enforcement), which cites this ADR as its grounds.

@@ -2327,8 +2327,12 @@ mappings:
     action: fix.modularity
     confidence: 0.40
     description: >
-      A metadata operation inserts a docstring. Docstring content is semantic
-      documentation -- governor must author it. Non-automatable.
+      A permission, not a prohibition: WRITE_METADATA actions MAY insert
+      docstrings (advisory; produces no violations). Missing docstrings are
+      remediated by purity.docstrings.required -> fix.docstrings (ACTIVE).
+      Entry kept so every rule is mapped. (Corrected 2026-10-10, proposal
+      0011: the earlier "governor must author it. Non-automatable" text
+      contradicted the MAY rule and the live fix.docstrings path.)
     status: DELEGATE
 
   metadata.operations.docstring_replace:

@@ -2,14 +2,14 @@
 kind: adr
 id: ADR-120
 title: 'ADR-120 — T5a: Repository adapter interface — the concrete F-41/F-42/F-43 binding'
-status: proposed
+status: accepted
 ---
 
 <!-- path: .specs/decisions/ADR-120-t5a-repository-adapter-interface.md -->
 
 # ADR-120 — T5a: Repository adapter interface — the concrete F-41/F-42/F-43 binding
 
-**Status:** Proposed
+**Status:** Accepted 2026-10-10 by the governor (content applied earlier through ADR-121; see the 2026-10-10 note)
 **Date:** 2026-06-21
 **Grounding papers:** `CORE-BYOR.md` §3 (Repository as the single parametrization seam),
   §7 (GRC as first non-code Repository type), §9 (T5a as "the concrete F-41/F-42/F-43 binding").
@@ -314,3 +314,13 @@ Six touch-points, all within one change-set:
 - `src/shared/infrastructure/intent/intent_repository.py` — `initialize()`, cross-validation (D3)
 - `.intent/META/artifact_type.schema.json` — published contract (D5: empty discovery list is
   already valid; no schema amendment required)
+
+## Note 2026-10-10 — CCC run 6558a043 triage (proposal 0011)
+
+**D4's trigger has fired.** ADR-121 D5 ("ADR-092-A execution, obligated by ADR-120 D4 forward marker") authored
+the `action_supported_by_declaration` rule; it is active (`.intent/rules/governance/action_taxonomy.json`), and
+`supported_actions` is populated (`artifact_types/document_corpus.yaml`, `python.yaml`). The Context's "parked"
+wording describes the state at writing.
+
+**Status:** accepted by the governor 2026-10-10. Its content had already been applied through ADR-121 (2026-08-24)
+while this ADR still read *Proposed*; acceptance records the decision the law already carried.

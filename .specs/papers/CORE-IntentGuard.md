@@ -154,3 +154,11 @@ This paper does not define:
 - the specific rules IntentGuard enforces
 - how rules are declared in `.intent/rules/`
 - the FileHandler implementation
+
+## Note 2026-10-10 — CCC run 6558a043 triage (proposal 0011)
+
+> The 2026-05-30 note's development-mode allowance — "governor-approved capabilities … may write `.intent/`
+> through the chokepoint" — is **superseded by ADR-130 D1**: IntentGuard's tier-1 block on `.intent/` writes is
+> unconditional and permanent in every mode (`src/body/governance/intent_guard.py`: "Unconditional block. No
+> configuration can disable this"). Governed text reaches `.intent/` only through the law-custody procedure
+> (ADR-170).

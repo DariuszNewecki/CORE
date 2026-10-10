@@ -246,3 +246,10 @@ This ADR is verified when:
 - `src/body/services/cim/models.py:283` — CIM Pydantic Finding (pre-ADR state: uppercase BLOCK/HIGH/MEDIUM/LOW/INFO)
 - ISO 31000 — Risk management vocabulary (low/medium/high/critical ordinal)
 - ICH Q9 — Quality risk management (pharma GxP; severity/probability/detectability matrix)
+
+## Note 2026-10-10 — CCC run 6558a043 triage (proposal 0011)
+
+D1's closing sentence "'Dangerous' MUST NOT be reintroduced" is **scoped to proposal-level risk**
+(`RiskAssessment.overall_risk`, the `proposal_risk` enum), which is what D1 decides. The action-level impact
+vocabulary (`safe | moderate | dangerous`, `.intent/enforcement/config/action_risk.yaml`, ADR-008) is a separate
+vocabulary; ADR-160 maps `dangerous` to `high` where the two meet (`compute_risk`).

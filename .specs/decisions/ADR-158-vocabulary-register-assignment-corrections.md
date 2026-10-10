@@ -2,14 +2,14 @@
 kind: adr
 id: ADR-158
 title: 'ADR-158 — Vocabulary register-assignment corrections: severity moves to Operational, two field-list errors in the register-assignment table corrected'
-status: proposed
+status: accepted
 ---
 
 <!-- path: .specs/decisions/ADR-158-vocabulary-register-assignment-corrections.md -->
 
 # ADR-158 — Vocabulary register-assignment corrections: severity moves to Operational, two field-list errors in the register-assignment table corrected
 
-**Status:** Proposed
+**Status:** Accepted 2026-10-10 by the governor (decisions applied in `.intent/` since 2026-08-31; see the 2026-10-10 note)
 **Date:** 2026-08-31
 **Prompted by:** #854 (G2 fixture-coverage gap-closure for `governance.vocabulary_registers.*`) — depth-verifying
 the two rules' mappings surfaced that `CORE-Vocabulary-Registers.md` §5's register-assignment table
@@ -108,3 +108,9 @@ practice.
 - `.intent/rules/architecture/async_logic.json` (`logic.di.no_global_session` — retirement precedent)
 - `.intent/META/enums.json` (`audit_severity`, `strength`, `workflow_ordering_mode` definitions)
 - Issue #854
+
+## Note 2026-10-10 — CCC run 6558a043 triage (proposal 0011)
+
+**Status:** accepted by the governor 2026-10-10. Its decisions had been applied in `.intent/` since 2026-08-31
+(`vocabulary_registers.json`, `META/enums.json` `audit_severity`) while this ADR still read *Proposed*;
+acceptance records the decision the law already carried.

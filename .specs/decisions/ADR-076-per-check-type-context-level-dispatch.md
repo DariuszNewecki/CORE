@@ -245,3 +245,10 @@ Closing #480 requires, after implementation:
   (`rule_extractor.py:178-179`), dispatch (`rule_executor.py:118-141`),
   `CONTEXT_LEVEL_ENGINES` membership (`rule_extractor.py:30-31`), and
   `artifact_gate`'s per-file-only surface (`artifact_gate.py:650`).
+
+## Note 2026-10-10 — CCC run 6558a043 triage (proposal 0011)
+
+D6's "every context-level rule must produce a finding" **excludes passive engines** (`passive_gate` and its
+aliases), which by construction never fire at audit time — their enforcement lives elsewhere (ADR-138, ADR-142).
+The code always applied this exclusion (`_check_per_file_scope_coverage` in
+`src/mind/governance/constitutional_auditor_dynamic.py`; `test_passive_engine_skipped`); the text now states it.

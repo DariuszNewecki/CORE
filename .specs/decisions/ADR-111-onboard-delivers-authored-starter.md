@@ -176,3 +176,10 @@ authoring) completes the second. Together they produce a `.intent/` the F-10 aud
 against productively. The `docs/cold-reviewer.md` newcomer docs (T2) must describe both
 steps. ADR-111 D6's invariant that docs MUST NOT promise the self-serve path until delivery
 is complete is preserved — the bar is now Phase A + Phase B shipped, not Phase A alone.
+
+## Note 2026-10-10 — CCC run 6558a043 triage (proposal 0011)
+
+D4's statements that `examples/starter-intent/` is the single source of truth and that wheel-based onboard is
+gated, and the 2026-06-20 amendment's "copies … from `examples/starter-intent/.intent/`", are superseded by
+ADR-119 D9: onboard delivers the machinery floor only, always from the bundled `shared._machinery_floor`
+(`_resolve_machinery_floor` in `src/cli/logic/byor.py`). The gate is lifted.

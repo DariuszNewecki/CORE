@@ -109,3 +109,11 @@ This paper does not define:
 
 This paper may be amended only by explicit constitutional replacement, in
 accordance with the CORE amendment mechanism.
+
+## Note 2026-10-10 — CCC run 6558a043 triage (proposal 0011)
+
+> §3's Stage 2 actor is out of date. The `DocWriter` worker and `.intent/workers/doc_writer.yaml` (and `DocWorker`)
+> were retired by ADR-048 D3. Docstring insertion is live through the `fix.docstrings` action, routed from
+> `purity.docstrings.required` (ACTIVE, `auto_remediation.yaml`); the rule `metadata.operations.docstring_insert`
+> permits it ("WRITE_METADATA actions MAY insert docstrings"). The constraint that this stage mutates docstrings
+> only, never executable code, stands.

@@ -162,3 +162,15 @@ so the check fires no violations in the current corpus.
 | `.intent/enforcement/mappings/ai/prompt_artifact_structure.yaml` | Added D5 entry |
 | `src/mind/logic/engines/artifact_gate.py` | Added `_check_governed_prompt_has_anchor` method + dispatch (D5/D6) |
 | `tests/mind/logic/engines/test_artifact_gate__governed_prompt_has_anchor.py` | New — 5 tests |
+
+## Note 2026-10-10 — CCC run 6558a043 triage (proposal 0011)
+
+**The constraint "A `passive_gate` mapping on a BLOCKING rule is constitutionally invalid" is narrowed** (governor
+decision 2026-10-10). It holds for ADR-142's Class C (sensor-driven) and Class D (placeholder/retired) mappings.
+Class A (a named runtime symbol performs the guard, attested by `enforced_by`) and Class B (PatternValidators at
+the code-generation boundary) are legitimate on blocking rules, as ADR-142 defined. 18 blocking rules use
+passive_gate on 2026-10-10 (11 Class A, 7 Class B).
+
+**Open, by the same decision:** a Class B rule is enforced only when CORE's own model generates code — it does not
+stop a change from any other producer. Under ADR-168 A3 (CORE chooses the checks for every producer) those 7 rules
+must be enforced on every producer's change; that work belongs to the producer-proposal build.
