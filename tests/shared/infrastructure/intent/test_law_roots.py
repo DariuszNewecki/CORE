@@ -13,7 +13,12 @@ from pathlib import Path
 import pytest
 
 from shared.config import Settings
-from shared.infrastructure.intent.law_roots import intent_root_for, specs_root_for
+from shared.infrastructure.intent.law_roots import (
+    configured_repo_root,
+    intent_root_for,
+    law_path,
+    specs_root_for,
+)
 from shared.path_resolver import PathResolver
 
 
@@ -67,3 +72,40 @@ def test_path_resolver_default_follows_the_law_root(d2: tuple[Path, Path]) -> No
     assert PathResolver(repo).workers_dir == law / ".intent" / "workers"
     explicit = PathResolver.from_repo(repo, intent_root=Path("/elsewhere"))
     assert explicit.intent_root == Path("/elsewhere")
+
+
+# ID: 08fd6a14-5a8c-4351-af59-06491ce5899d
+def test_law_path_maps_law_constants_onto_the_law_root(d2: tuple[Path, Path]) -> None:
+    repo, law = d2
+    assert law_path(repo, ".intent/META/enums.json") == law / ".intent/META/enums.json"
+    assert law_path(repo, ".specs/papers/X.md") == law / ".specs/papers/X.md"
+    assert law_path(repo, "src/a.py") == repo / "src/a.py"
+
+
+# ID: 49d5735c-25c2-42ee-acde-e5550cd99c3f
+def test_configured_repo_root_prefers_an_explicit_repo_path(
+    d2: tuple[Path, Path],
+) -> None:
+    repo, _ = d2
+    assert configured_repo_root() == repo
+
+
+# ID: 0bcdeaa2-3e14-40c1-9656-8c3306ab851b
+def test_configured_repo_root_without_repo_path_discovers_from_cwd(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / ".intent").mkdir()
+    monkeypatch.setattr("shared.config.settings", Settings())
+    monkeypatch.delenv("REPO_PATH", raising=False)
+    monkeypatch.chdir(tmp_path)
+    assert configured_repo_root() == tmp_path
+
+
+# ID: b3229530-3116-4329-8940-da417511a579
+def test_artifact_gate_finds_the_law_less_clone(d2: tuple[Path, Path]) -> None:
+    from mind.logic.engines.artifact_gate import _find_repo_root
+
+    repo, _ = d2
+    target = repo / "var" / "prompts" / "x.md"
+    assert _find_repo_root(target) == repo.resolve()
+    assert _find_repo_root(Path("/nowhere/else/x.md")) is None

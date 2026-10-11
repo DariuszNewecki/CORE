@@ -198,7 +198,8 @@ def get_coverage_targets(context: CoreContext) -> dict:
     try:
         repo = get_intent_repository()
         repo.initialize()
-        data = repo.load_document(rel_path) or {}
+        # Through the repository's own root (MIND), not the working directory.
+        data = repo.load_document(repo.root / rel_path.relative_to(".intent")) or {}
     except Exception as exc:
         logger.warning("coverage_runner: could not load test_coverage.yaml: %s", exc)
         data = {}

@@ -23,7 +23,7 @@ from typing import Any
 
 import yaml
 
-from shared.config import resolve_default_repo_path
+from shared.infrastructure.intent.law_roots import configured_repo_root
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 
@@ -51,7 +51,7 @@ def load_remediation_guidance(
     if not rule_id:
         return None
 
-    root = repo_root or resolve_default_repo_path()
+    root = repo_root or configured_repo_root()
     map_path = PathResolver(root).remediation_map_path
     if not map_path.exists():
         logger.debug("Remediation map not found at %s", map_path)

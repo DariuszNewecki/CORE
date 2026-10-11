@@ -26,8 +26,8 @@ from typing import Any
 
 import yaml
 
-from shared.config import resolve_default_repo_path
 from shared.infrastructure.intent.errors import GovernanceError
+from shared.infrastructure.intent.law_roots import configured_repo_root, law_path
 
 
 TARGET_CLASS_BOUNDARIES_REL = ".intent/taxonomies/target_class_boundaries.yaml"
@@ -73,7 +73,7 @@ def load_target_class_boundaries(
     ``.intent/META/enums.json`` (ADR-097 D2). Raises
     ``TargetClassBoundariesError`` on any structural deviation.
     """
-    root = (repo_root or resolve_default_repo_path()).resolve()
+    root = (repo_root or configured_repo_root()).resolve()
 
     valid_classes = _load_target_class_enum(root)
     document = _load_document(root)
@@ -174,7 +174,7 @@ def reset_target_class_cache() -> None:
 
 def _load_document(root: Path) -> dict[str, Any]:
     """Load and minimally validate the top-level boundaries YAML document."""
-    path = root / TARGET_CLASS_BOUNDARIES_REL
+    path = law_path(root, TARGET_CLASS_BOUNDARIES_REL)
     if not path.is_file():
         raise TargetClassBoundariesError(
             f"target-class boundaries missing: {TARGET_CLASS_BOUNDARIES_REL}"
@@ -200,7 +200,7 @@ def _load_document(root: Path) -> dict[str, Any]:
 
 def _load_target_class_enum(root: Path) -> frozenset[str]:
     """Resolve target_class.enum from .intent/META/enums.json (ADR-097 D2)."""
-    path = root / ENUMS_REL
+    path = law_path(root, ENUMS_REL)
     if not path.is_file():
         raise TargetClassBoundariesError(f"required enum file missing: {ENUMS_REL}")
     try:

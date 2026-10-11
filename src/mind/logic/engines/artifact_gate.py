@@ -41,7 +41,11 @@ from shared.infrastructure.intent.filesystem_operations import (
     load_filesystem_operations,
 )
 from shared.infrastructure.intent.intent_repository import get_intent_repository
-from shared.infrastructure.intent.law_roots import intent_root_for
+from shared.infrastructure.intent.law_roots import (
+    configured_repo_root,
+    intent_root_for,
+    law_path,
+)
 from shared.infrastructure.intent.vocabulary_projection import (
     VOCABULARY_JSON_REL,
     VOCABULARY_PAPER_REL,
@@ -266,7 +270,7 @@ def _check_projection_consistency(repo_root: Path, check: str) -> EngineResult:
             check, [f"Unexpected projection type: {type(proj).__name__}"]
         )
 
-    paper = repo_root / VOCABULARY_PAPER_REL
+    paper = law_path(repo_root, VOCABULARY_PAPER_REL)
     canonical_terms, parse_err = _parse_canonical_terms(paper)
     if parse_err:
         return _vocab_result(check, [parse_err])
@@ -301,7 +305,7 @@ def _check_canonical_format(repo_root: Path, check: str) -> EngineResult:
     """Validate the structural shape of the canonical-section Markdown table."""
     from shared.infrastructure.intent.vocabulary_projection import CANONICAL_HEADING
 
-    paper = repo_root / VOCABULARY_PAPER_REL
+    paper = law_path(repo_root, VOCABULARY_PAPER_REL)
     if not paper.is_file():
         return _vocab_result(
             check, [f"Canonical paper missing: {VOCABULARY_PAPER_REL}"]
@@ -387,7 +391,7 @@ def _check_canonical_format(repo_root: Path, check: str) -> EngineResult:
 
 def _check_authoritative_paths(repo_root: Path, check: str) -> EngineResult:
     """Verify each term's authoritative_paper resolves under a governed root."""
-    paper = repo_root / VOCABULARY_PAPER_REL
+    paper = law_path(repo_root, VOCABULARY_PAPER_REL)
     canonical_terms, parse_err = _parse_canonical_terms(paper)
     if parse_err:
         return _vocab_result(check, [parse_err])
@@ -458,8 +462,8 @@ def _check_all_rules_mapped(repo_root: Path, check: str) -> EngineResult:
     consumer forks could not exercise the check against their own .intent/
     tree. Direct filesystem walk via `repo_root` honours the parameter.
     """
-    map_file = repo_root / _AUTO_REMEDIATION_REL
-    rules_dir = repo_root / _RULES_DIR_REL
+    map_file = law_path(repo_root, _AUTO_REMEDIATION_REL)
+    rules_dir = law_path(repo_root, _RULES_DIR_REL)
 
     if not map_file.exists():
         return EngineResult(
@@ -581,7 +585,7 @@ def _check_active_routing_claimed_by_action(
     ensures every reporting rule has SOME entry; this rule ensures every
     ACTIVE entry is honored by its action (issue #580, ADR-095 D5).
     """
-    map_file = repo_root / _AUTO_REMEDIATION_REL
+    map_file = law_path(repo_root, _AUTO_REMEDIATION_REL)
     atomic_dir = repo_root / _BODY_ATOMIC_REL
 
     if not map_file.exists():
@@ -663,8 +667,8 @@ def _check_remediation_confidence_floor(repo_root: Path, check: str) -> EngineRe
     decision is written, so a low-confidence ACTIVE entry cannot be
     committed; ``_load_remediation_map`` drops one at runtime as a backstop.
     """
-    map_file = repo_root / _AUTO_REMEDIATION_REL
-    gov_file = repo_root / _GOVERNANCE_PATHS_REL
+    map_file = law_path(repo_root, _AUTO_REMEDIATION_REL)
+    gov_file = law_path(repo_root, _GOVERNANCE_PATHS_REL)
     try:
         doc = yaml.safe_load(map_file.read_text(encoding="utf-8"))
         gov = yaml.safe_load(gov_file.read_text(encoding="utf-8"))
@@ -743,7 +747,7 @@ async def _check_namespace_has_drainer(
     """
     from sqlalchemy import text
 
-    registry_file = repo_root / _DRAINER_REGISTRY_REL
+    registry_file = law_path(repo_root, _DRAINER_REGISTRY_REL)
     if not registry_file.exists():
         return EngineResult(
             ok=False,
@@ -854,7 +858,7 @@ def _check_namespace_manifest_completeness(repo_root: Path, check: str) -> Engin
     ``classifications`` list. A file present on disk with no manifest
     entry is unclassified and surfaces as a violation under this rule.
     """
-    manifest_file = repo_root / _NAMESPACE_MANIFEST_REL
+    manifest_file = law_path(repo_root, _NAMESPACE_MANIFEST_REL)
     if not manifest_file.exists():
         return EngineResult(
             ok=False,
@@ -1027,10 +1031,19 @@ def _resolve_watched_call(qualified: str) -> tuple[bool, str]:
 
 # ID: e33eae0c-d9a4-4e02-9eef-1ba1f8c5c637
 def _find_repo_root(file_path: Path) -> Path | None:
-    """Walk parent dirs to find the repo root (both .intent/ and .specs/ present)."""
-    for parent in file_path.resolve().parents:
+    """Walk parent dirs to find the repo root (both .intent/ and .specs/ present).
+
+    CORE's own clone under ADR-132 D10 · D2 carries no law (it lives beside
+    the clone): a file inside the configured repository resolves to it, and
+    its law is then found through law_roots.
+    """
+    resolved = file_path.resolve()
+    for parent in resolved.parents:
         if (parent / ".intent").is_dir() and (parent / ".specs").is_dir():
             return parent
+    configured = configured_repo_root().resolve()
+    if configured in resolved.parents:
+        return configured
     return None
 
 

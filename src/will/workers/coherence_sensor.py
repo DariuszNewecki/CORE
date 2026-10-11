@@ -28,11 +28,11 @@ from __future__ import annotations
 
 import hashlib
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 
 from sqlalchemy import text
 
+from shared.infrastructure.intent.law_roots import configured_repo_root, law_path
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.processors.yaml_processor import strict_yaml_processor
@@ -41,7 +41,7 @@ from shared.workers.base import Worker
 
 logger = getLogger(__name__)
 
-_THRESHOLDS_PATH = Path(".intent/cim/thresholds.yaml")
+_THRESHOLDS_REL = ".intent/cim/thresholds.yaml"
 _LOOKBACK_KEY = "coherence_lookback_seconds"
 _CFG = load_operational_config().workers.coherence_sensor
 
@@ -206,8 +206,9 @@ class CoherenceSensorWorker(Worker):
         so a malformed threshold file does not prevent the cycle from
         running with a sensible default.
         """
+        thresholds_path = law_path(configured_repo_root(), _THRESHOLDS_REL)
         try:
-            data = strict_yaml_processor.load_strict(_THRESHOLDS_PATH)
+            data = strict_yaml_processor.load_strict(thresholds_path)
             value = data.get(_LOOKBACK_KEY, _CFG.lookback_seconds)
             return int(value)
         except Exception as exc:
@@ -215,7 +216,7 @@ class CoherenceSensorWorker(Worker):
                 "CoherenceSensorWorker: could not read %s from %s (%s); "
                 "using default %ds",
                 _LOOKBACK_KEY,
-                _THRESHOLDS_PATH,
+                thresholds_path,
                 exc,
                 _CFG.lookback_seconds,
             )

@@ -31,9 +31,9 @@ from pathlib import Path
 
 import yaml
 
-from shared.config import resolve_default_repo_path
 from shared.infrastructure.intent._floor import resolve_floor_path
 from shared.infrastructure.intent.errors import GovernanceError
+from shared.infrastructure.intent.law_roots import configured_repo_root, law_path
 
 
 CAPABILITY_TAXONOMY_REL = ".intent/taxonomies/capability_taxonomy.yaml"
@@ -57,8 +57,8 @@ def load_capability_taxonomy(repo_root: Path | None = None) -> frozenset[str]:
     result, which is treated as a structural defect rather than a
     permissive state.
     """
-    root = (repo_root or resolve_default_repo_path()).resolve()
-    path = root / CAPABILITY_TAXONOMY_REL
+    root = (repo_root or configured_repo_root()).resolve()
+    path = law_path(root, CAPABILITY_TAXONOMY_REL)
 
     if not path.is_file():
         fallback = resolve_floor_path(CAPABILITY_TAXONOMY_REL)

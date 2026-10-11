@@ -26,8 +26,8 @@ from referencing import Registry, Resource
 from referencing.exceptions import NoSuchResource
 from referencing.jsonschema import DRAFT7
 
-from shared.config import resolve_default_repo_path
 from shared.infrastructure.intent._floor import resolve_floor_path
+from shared.infrastructure.intent.law_roots import configured_repo_root, law_path
 from shared.logger import getLogger
 
 
@@ -128,7 +128,7 @@ def compute_canonical_section_hash(repo_root: Path) -> str | None:
     located. Bytes hashed are exactly text.splitlines()[start:end] joined
     by '\\n', matching the regen command (core-admin intent sync vocabulary --stage).
     """
-    paper = repo_root / VOCABULARY_PAPER_REL
+    paper = law_path(repo_root, VOCABULARY_PAPER_REL)
     if not paper.is_file():
         return None
     try:
@@ -184,9 +184,9 @@ def load_vocabulary_projection(
     on broken (missing file, malformed JSON, schema validation failure, or
     canonical source paper not parseable).
     """
-    root = (repo_root or resolve_default_repo_path()).resolve()
-    json_path = root / VOCABULARY_JSON_REL
-    schema_path = root / VOCABULARY_SCHEMA_REL
+    root = (repo_root or configured_repo_root()).resolve()
+    json_path = law_path(root, VOCABULARY_JSON_REL)
+    schema_path = law_path(root, VOCABULARY_SCHEMA_REL)
 
     if not json_path.is_file():
         fallback = resolve_floor_path(VOCABULARY_JSON_REL)

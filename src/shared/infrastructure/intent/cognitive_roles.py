@@ -33,9 +33,9 @@ from typing import Any
 
 import yaml
 
-from shared.config import resolve_default_repo_path
 from shared.infrastructure.intent._floor import resolve_floor_path
 from shared.infrastructure.intent.errors import GovernanceError
+from shared.infrastructure.intent.law_roots import configured_repo_root, law_path
 
 
 COGNITIVE_ROLES_REL = ".intent/taxonomies/cognitive_roles.yaml"
@@ -55,8 +55,8 @@ def _load_roles_block(repo_root: Path | None) -> dict[str, Any]:
     `load_cognitive_role_capabilities` (names + required_capabilities)
     project their own shape from.
     """
-    root = (repo_root or resolve_default_repo_path()).resolve()
-    path = root / COGNITIVE_ROLES_REL
+    root = (repo_root or configured_repo_root()).resolve()
+    path = law_path(root, COGNITIVE_ROLES_REL)
 
     if not path.is_file():
         fallback = resolve_floor_path(COGNITIVE_ROLES_REL)

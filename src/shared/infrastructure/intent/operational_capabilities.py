@@ -42,9 +42,9 @@ from typing import Any
 
 import yaml
 
-from shared.config import resolve_default_repo_path
 from shared.infrastructure.intent._floor import resolve_floor_path
 from shared.infrastructure.intent.errors import GovernanceError
+from shared.infrastructure.intent.law_roots import configured_repo_root, law_path
 
 
 OPERATIONAL_CAPABILITIES_REL = ".intent/taxonomies/operational_capabilities.yaml"
@@ -137,7 +137,7 @@ def load_operational_capabilities(
     risk classification agreement. Raises
     ``OperationalCapabilityTaxonomyError`` on any structural deviation.
     """
-    root = (repo_root or resolve_default_repo_path()).resolve()
+    root = (repo_root or configured_repo_root()).resolve()
 
     fs_op_classes, valid_modes = _load_enums(root)
     action_risk_map = _load_action_risk(root)
@@ -170,7 +170,7 @@ def load_operational_capabilities(
 
 def _load_document(root: Path) -> dict[str, Any]:
     """Load and minimally validate the top-level taxonomy YAML document."""
-    path = root / OPERATIONAL_CAPABILITIES_REL
+    path = law_path(root, OPERATIONAL_CAPABILITIES_REL)
     if not path.is_file():
         fallback = resolve_floor_path(OPERATIONAL_CAPABILITIES_REL)
         if fallback is not None:
@@ -206,7 +206,7 @@ def _load_enums(root: Path) -> tuple[tuple[str, ...], frozenset[str]]:
     of fs_op_classes is preserved as declared in enums.json — it determines
     the canonical ordering of fs_profile pairs in OperationalCapability.
     """
-    path = root / ENUMS_REL
+    path = law_path(root, ENUMS_REL)
     if not path.is_file():
         fallback = resolve_floor_path(ENUMS_REL)
         if fallback is not None:
@@ -270,7 +270,7 @@ def _load_action_risk(root: Path) -> Mapping[str, str]:
     value for that capability_id. Both checks are enforced in
     _build_capability.
     """
-    path = root / ACTION_RISK_REL
+    path = law_path(root, ACTION_RISK_REL)
     if not path.is_file():
         fallback = resolve_floor_path(ACTION_RISK_REL)
         if fallback is not None:

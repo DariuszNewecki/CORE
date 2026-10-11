@@ -44,7 +44,7 @@ from shared.infrastructure.intent.intent_repository import (
     IntentRepository,
     get_intent_repository,
 )
-from shared.infrastructure.intent.law_roots import intent_root_for
+from shared.infrastructure.intent.law_roots import intent_root_for, law_path
 from shared.infrastructure.intent.operational_capabilities import (
     OperationalCapabilityTaxonomyError,
     load_operational_capabilities,
@@ -285,7 +285,9 @@ class TaxonomyGateEngine(BaseEngine):
                 if isinstance(sensor_id, str) and sensor_id.strip():
                     authored.add((ref.id, sensor_id))
 
-        introspected = _collect_sensor_artifact_pairs(repo_root / _WORKERS_REL_DIR)
+        introspected = _collect_sensor_artifact_pairs(
+            law_path(repo_root, _WORKERS_REL_DIR)
+        )
 
         findings: list[AuditFinding] = []
         for artifact_type_id, sensor_id in sorted(introspected - authored):
@@ -1117,7 +1119,7 @@ def _closure_adr_is_accepted(repo_root: Path, closure_adr: str) -> bool:
     """
     if not closure_adr:
         return False
-    decisions_dir = repo_root / _DECISIONS_REL_DIR
+    decisions_dir = law_path(repo_root, _DECISIONS_REL_DIR)
     if not decisions_dir.is_dir():
         return False
     matches = sorted(decisions_dir.glob(f"{closure_adr}-*.md"))

@@ -52,3 +52,26 @@ def specs_root_for(repo_root: Path) -> Path:
     if "SPECS" in settings.model_fields_set and _inside_configured_repo(repo_root):
         return Path(settings.SPECS)
     return Path(repo_root) / ".specs"
+
+
+# ID: 595b7eb3-d8b7-4838-a03b-03bc0640e19d
+def law_path(repo_root: Path, rel: str | Path) -> Path:
+    """Resolve a repository-relative law path (``.intent/...``, ``.specs/...``)
+    against the law that governs ``repo_root``; any other path joins the root."""
+    parts = Path(rel).parts
+    if parts and parts[0] == ".intent":
+        return intent_root_for(repo_root).joinpath(*parts[1:])
+    if parts and parts[0] == ".specs":
+        return specs_root_for(repo_root).joinpath(*parts[1:])
+    return Path(repo_root) / rel
+
+
+# ID: c3851f8b-991d-4d27-9e86-65b7c02967b2
+def configured_repo_root() -> Path:
+    """CORE's repository when none is passed: an explicit REPO_PATH, else
+    discovery from the working directory (resolve_default_repo_path, #544)."""
+    from shared.config import resolve_default_repo_path, settings
+
+    if "REPO_PATH" in settings.model_fields_set:
+        return Path(settings.REPO_PATH)
+    return resolve_default_repo_path()
