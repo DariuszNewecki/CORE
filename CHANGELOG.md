@@ -8,8 +8,15 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.14.2] — 2026-10-11
+
+Patch release. No database migrations.
+
 ### Fixed
 
+- **`core-admin law apply` writes only `.intent/` and `.specs/` to the release law.** `/opt/core/law` holds the law
+  the services read (ADR-132 D10.13), never `CLAUDE.md` or `.claude/`; a proposal changing `CLAUDE.md` failed there
+  (root-owned directory) and wrote no ledger line.
 - **`core-admin` no longer crashes when started in a directory it cannot read.** `sudo -u core-law core-admin
   law apply` run from the governor's home raised `PermissionError` at import; law discovery now passes over an
   unreadable directory.
@@ -1158,7 +1165,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.14.1...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.14.2...HEAD
+[2.14.2]: https://github.com/DariuszNewecki/CORE/compare/v2.14.1...v2.14.2
 [2.14.1]: https://github.com/DariuszNewecki/CORE/compare/v2.14.0...v2.14.1
 [2.14.0]: https://github.com/DariuszNewecki/CORE/compare/v2.13.0...v2.14.0
 [2.13.0]: https://github.com/DariuszNewecki/CORE/compare/v2.12.1...v2.13.0
