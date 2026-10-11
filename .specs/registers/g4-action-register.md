@@ -463,3 +463,33 @@ test they asked for), assistant 4; assistant misses: 8 (M-32–M-39), 2 caught b
 | M-40 | Built the venv elsewhere and renamed it; tested with a fake host whose `core-admin` was an empty file | governor (C-59) | Stage 1 setup would have left core-law without a working command; never run |
 | M-41 | Wrote a sudo rule that asks for a password but honours sudo's cache, against D6's intent | governor (C-60) | never installed |
 | M-42 | Left `/opt/dev` owned by `core` out of the name-protection design | assistant, when asked (C-61) | never installed |
+
+### Session 3, end — Stage 1 live
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-52 | 131381b5 | setup hands `.env.example`/`.env.test` over; other `.env*` and `.secrets` excluded | governor (plan review) | git |
+| A-53 | 628f2363 | setup installs runtime dependencies only (dev `.pth` files refused the first apply) | CORE's setup venv check (C-62) | git |
+| A-54 | 6fbc781a | setup commands get no terminal; probes use `mv -f` (the apply hung on a prompt) | governor (C-63) | git |
+| A-55 | 8cc514c0 | law 0024 by real `law apply`: custody key and ledger; first signed ledger line verified; ledger excepted from `*.jsonl` ignore | design (Stage 1) | ledger; git |
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-62 | **CORE** (core-law-setup venv check) | dev-group `.pth` files in core-law's venv | A-53 | setup output |
+| C-63 | governor | `--apply` hung silently at a probe | A-54 | **none** |
+
+**Events**
+
+| ID | Time | Event | By |
+|---|---|---|---|
+| E-34 | ~14:16Z | v2.14.0 tagged on 27abad6e and published (PyPI wheel sha256 1bb549fc…7e72a60) | governor yes; assistant |
+| E-35 | ~16:0xZ | human governor account `darek` created; `core-law-setup --apply` done, 16/16 probes denied as expected | governor |
+| E-36 | 16:34:35Z | first `law apply` (0024) by `darek`; warm-cache check 3b passed | governor |
+
+**Assistant's misses**
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-43 | Tests pinned all dependency groups and never ran the setup's venv check | CORE (C-62) | first apply refused; no harm |
+| M-44 | Probes inherited the terminal; `mv` waited on a hidden prompt | governor (C-63) | apply hung; interrupted; rerun clean |
+| M-45 | Too much text, too little result in chat | governor | standing rule: result first, ≤5 lines |

@@ -51,3 +51,4 @@ Status: `open` (learned, not yet applied) · `applied` (names where) · `superse
 | L38 | 2026-10-11 | **An audit that imports code audits the code it imports, not the code it was pointed at.** | C-58, M-37 | open — #965 |
 | L39 | 2026-10-11 | **A security rule written in law must be tested against the mechanism's defaults.** "sudo asks for a password" was true and still let a cached login approve. | C-60, M-41 | applied: `timestamp_timeout=0`, acceptance check 3b (0022) |
 | L40 | 2026-10-11 | **Protection by ownership must cover every parent, and every account that can bypass ownership.** | C-61, M-42 | applied: setup step 5a/5b, rename probe |
+| L41 | 2026-10-11 | **A root script must never inherit a terminal.** Any command can stop to ask. | M-44 | applied (A-54) |
