@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from .conftest import DisposablePostgres, FreshDatabase
 
 
-pytestmark = [pytest.mark.integration]
+pytestmark = [pytest.mark.integration, pytest.mark.upgrade]
 
 assert REPO_ROOT is not None
 INSTALLER = REPO_ROOT / "install-core.sh"

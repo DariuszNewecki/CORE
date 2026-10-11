@@ -84,9 +84,14 @@ Before tagging a release that changes the database schema:
   testable from a shallow checkout.
 - **CHANGELOG** lists the release's schema migrations and whether writers must be quiesced.
 
+Before tagging, start the **full** CI run on the commit you will tag:
+`gh workflow run "CORE CI" --ref develop` (with `develop` at that commit). Push and PR runs
+skip the release-upgrade tests (pytest marker `upgrade`); the full run, like the nightly
+one, includes them.
+
 The `publish-pypi.yml` workflow fires on the tag push. It first refuses
 unless the latest CORE CI run for the exact tagged SHA concluded success
-(#954), then verifies the tag version matches `pyproject.toml`, builds the
+(#954) and a full (`workflow_dispatch`) run on that SHA succeeded, then verifies the tag version matches `pyproject.toml`, builds the
 wheel + sdist, installs the wheel into a clean venv and walks the adopter
 path (`project new` → `adopt-pack` → `code audit --offline`, asserting
 PASS / DEGRADED / FAIL where each is due), and publishes via OIDC. The release appears at
@@ -104,8 +109,8 @@ a re-tagged release.
 ## Notes
 
 - The workflow does **not** run pytest itself; it requires that CORE CI
-  (`core-ci.yml`, which runs on pushes to `develop` and on PRs) passed on
-  the tagged SHA. Tag a commit whose CI is green: a failed, cancelled,
+  (`core-ci.yml`, which runs on pushes to `develop`, on PRs, nightly and on
+  `workflow_dispatch`) passed on the tagged SHA, including a full run. Tag a commit whose CI is green: a failed, cancelled,
   in-progress or missing run refuses the release. Re-run CI, then re-run
   the publish workflow.
 - Each tag also publishes `core-engine:X.Y.Z` and `core-audit-gate:X.Y.Z` to GHCR,

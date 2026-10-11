@@ -69,7 +69,7 @@ if TYPE_CHECKING:
     from .conftest import FreshDatabase
 
 
-pytestmark = [pytest.mark.integration]
+pytestmark = [pytest.mark.integration, pytest.mark.upgrade]
 
 assert REPO_ROOT is not None
 SCHEMA_SQL = REPO_ROOT / "schema.sql"
