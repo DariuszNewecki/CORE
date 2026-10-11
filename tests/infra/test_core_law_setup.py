@@ -150,6 +150,12 @@ def world(tmp_path: Path) -> tuple[FakeHost, object]:
     (repo / "CLAUDE.md").write_text("contract\n")
     (repo / "README.md").write_text("readme\n")
     (repo / ".env").write_text("SECRET=1\n")
+    (repo / ".env.local").write_text("SECRET=2\n")
+    (repo / ".env.production").write_text("SECRET=3\n")
+    (repo / ".env.example").write_text("DATABASE_URL=\n")
+    (repo / ".env.test").write_text("DATABASE_URL=postgresql://test\n")
+    (repo / ".secrets").mkdir()
+    (repo / ".secrets" / "core.env").write_text("CORE_MASTER_KEY=x\n")
     (repo / "src").mkdir()
     for path in (repo, repo / ".intent", repo / ".specs"):
         path.chmod(0o2775)
@@ -225,7 +231,18 @@ def test_apply_creates_the_custodian(world) -> None:
     assert _mode(layout.repo / ".claude") == 0o3775
     assert (layout.repo / ".claude" / "settings.local.json") not in host.owners
     assert host.owners[layout.repo / "README.md"] == ("core-claude", "core-dev")
-    assert (layout.repo / ".env") not in host.owners
+    # Committed, non-secret templates are handed over by name ...
+    for name in (".env.example", ".env.test"):
+        assert host.owners[layout.repo / name] == ("core-claude", "core-dev")
+    # ... every other .env* file and .secrets stay with their owner.
+    for name in (
+        ".env",
+        ".env.local",
+        ".env.production",
+        ".secrets",
+        ".secrets/core.env",
+    ):
+        assert (layout.repo / name) not in host.owners
 
     law = layout.law_root
     assert (law / ".intent" / "rules" / "a.json").read_text() == "{}\n"

@@ -96,6 +96,9 @@ GOVERNED = (".intent", ".specs", "CLAUDE.md", ".claude/settings.json", ".claude/
 PROTECTED_NAMES = (".intent", ".specs", "CLAUDE.md", ".claude")
 # Root-level files never handed to the assistant: the services' secrets.
 NOT_HANDED_OVER = re.compile(r"^(\.env.*|\.secrets)$")
+# Committed, non-secret files that the exclusion above would otherwise catch.
+# Allowed by name only; every other .env* file stays with its owner.
+HANDED_OVER_ENV_FILES = frozenset({".env.example", ".env.test"})
 GITHUB_RAW = "https://raw.githubusercontent.com/DariuszNewecki/CORE"
 PYPI = "https://pypi.org/pypi/core-runtime"
 NAMESPACE = "core-law-ledger"
@@ -662,7 +665,10 @@ class Setup:
         for entry in sorted(repo.iterdir()):
             if (
                 entry.name in protected
-                or NOT_HANDED_OVER.match(entry.name)
+                or (
+                    NOT_HANDED_OVER.match(entry.name)
+                    and entry.name not in HANDED_OVER_ENV_FILES
+                )
                 or entry.is_symlink()
                 or not entry.is_file()
             ):
