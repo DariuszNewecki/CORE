@@ -8,6 +8,15 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.14.1] — 2026-10-11
+
+Patch release. No database migrations.
+
+### Fixed
+
+- **`core-admin law apply` can change `CLAUDE.md`.** With the repository root protected (root-owned, sticky), the
+  custodian owns `CLAUDE.md` but cannot create a temporary file beside it; such a file is now rewritten in place.
+
 ## [2.14.0] — 2026-10-11
 
 **An assistant can propose a change, and only the governor can let it land.** A producer — Claude
@@ -1140,7 +1149,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.14.0...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.14.1...HEAD
+[2.14.1]: https://github.com/DariuszNewecki/CORE/compare/v2.14.0...v2.14.1
 [2.14.0]: https://github.com/DariuszNewecki/CORE/compare/v2.13.0...v2.14.0
 [2.13.0]: https://github.com/DariuszNewecki/CORE/compare/v2.12.1...v2.13.0
 [2.12.1]: https://github.com/DariuszNewecki/CORE/compare/v2.12.0...v2.12.1
