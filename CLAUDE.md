@@ -103,8 +103,8 @@ Governed text is `.intent/`, `.specs/`, `CLAUDE.md`, `.claude/settings.json` and
 1. Put the session's changes in one proposal: complete files under `var/law-proposals/<id>/files/`, mirroring repo
    paths, plus `proposal.md` with a `## Declared warnings` section and, if needed, a `## Remove` section.
 2. Check it in a scratch worktree with `REPO_PATH` set to the worktree: `core-admin law check-tree`,
-   `core-admin constitution validate`, `core-admin code audit --offline`. The worktree audit judges CLI rules against
-   the installed code (#965); say so.
+   `core-admin constitution validate`, `core-admin code audit --offline`. Run the audit with `PYTHONPATH` set to the
+   worktree's `src/` as well; without it the CLI rules report "not evaluated" (#965).
 3. Ask the governor once. They run, as `darek`, from `/opt/dev/CORE`:
    `sudo -u core-law /opt/core-law/venv/bin/core-admin law apply <id>` (report), then the same with `--write`
    (password, then the typed id). It writes both destinations and one signed line in `.intent/custody/ledger.jsonl`.

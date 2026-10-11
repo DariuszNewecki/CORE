@@ -451,3 +451,11 @@ Each enters the taxonomy and the rules through its own law proposal.
 - How a core-platform user becomes a principal CORE trusts (ADR-132 D10, consequences: its own decision).
 - The implementation order of A6 beyond "the taxonomy and the mode first, the check second, recording the mode on
   governor acts with ADR-132 D10.11 step 4".
+
+### State update 2026-10-11 — proposal 0026
+
+- `principal.producer` (A3) is in the taxonomy (`principal_roles.yaml` 1.1.0). No record or check uses it yet.
+- The three operation modes (A2) and this deployment's declared mode, `solo-separated` (A6.1), are in the taxonomy;
+  `deployment_topologies.single_governor_local` is removed (A1).
+- Still pending: the check (A6.3), recording the mode on governor acts and verdicts (A6.2), and the binding file
+  (ADR-132 D10.11 step 4).

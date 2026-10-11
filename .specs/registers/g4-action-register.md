@@ -493,3 +493,38 @@ test they asked for), assistant 4; assistant misses: 8 (M-32–M-39), 2 caught b
 | M-43 | Tests pinned all dependency groups and never ran the setup's venv check | CORE (C-62) | first apply refused; no harm |
 | M-44 | Probes inherited the terminal; `mv` waited on a hidden prompt | governor (C-63) | apply hung; interrupted; rerun clean |
 | M-45 | Too much text, too little result in chat | governor | standing rule: result first, ≤5 lines |
+
+### Session 4 — 2.14.1, 2.14.2, law 0025, #965
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-56 | f8eb8814, aa32a9f6 | `law apply --release-law`; the wheel test uses its own release law and accepts an existing ledger | CORE CI (C-64) | git |
+| A-57 | b62028af | law discovery passes over a directory it cannot read (`law apply` started in a home directory crashed at import) | governor's run (C-65) | git |
+| A-58 | f2687d58 | release law receives only `.intent/` and `.specs/`; the wheel test takes the wheel of this version, not the last name in `dist/` | CORE (`law apply` refused, no ledger line: C-66) | git |
+| A-59 | 64ee703b | law 0025 by `law apply` under 2.14.2, both destinations; both ledger signatures verified | design (Stage 1) | ledger; git |
+| A-60 | 8e9b5408 | cli_gate reports "not evaluated" when the audited tree's CLI is not the importable one (#965) | assistant (L38 follow-up) | git |
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-64 | **CORE** (CI 38156710627) | installed-wheel test assumed no ledger and could reach the host's `/opt/core/law` | A-56 | CI run |
+| C-65 | governor | `law apply` from a home directory crashed with PermissionError | A-57 | **none** |
+| C-66 | **CORE** (`law apply`) | `/opt/core/law` refused the `CLAUDE.md` write; no ledger line written | A-58 | apply output |
+| C-67 | CI (publish) | the audit-gate image build ran before PyPI listed 2.14.1 | rerun | CI run |
+
+**Events**
+
+| ID | Time | Event | By |
+|---|---|---|---|
+| E-37 | ~17:1xZ | v2.14.1 tagged on aa32a9f6 and published (wheel sha256 b74b764a…a729d07d) | governor yes; assistant |
+| E-38 | ~17:33Z | first `law apply 0025 --write` under 2.14.1, run as **`core-darek`**: dev tree written, `/opt/core/law` failed, no ledger line | governor |
+| E-39 | ~18:0xZ | v2.14.2 tagged on de1a6364 and published (wheel sha256 c0d06e49…7476257f) | governor yes; assistant |
+| E-40 | 18:19:56Z | `law apply 0025 --write` under 2.14.2 by `darek`; ledger line signed | governor |
+
+**Assistant's misses**
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-46 | Opened the session with a recap and a push question for a release already ordered | governor | friction; standing rule kept in memory |
+| M-47 | Commit aa32a9f6's message describes a code fix it does not carry (a peer session had committed the code first) | assistant | message only; history stands |
+| M-48 | First ledger-signature check rebuilt the payload in a different JSON form and reported "incorrect signature" | assistant | rechecked with CORE's canonical form before reporting; no harm |
+
