@@ -133,6 +133,20 @@ def _safe_target(root: Path, rel: str) -> Path:
 
 def _replace_atomically(target: Path, content: bytes) -> None:
     target.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
+    if (
+        target.is_file()
+        and not os.access(target.parent, os.W_OK)
+        and os.access(target, os.W_OK)
+    ):
+        # The repository root is root-owned and sticky (ADR-170 D2): core-law
+        # owns CLAUDE.md but cannot create a temp file beside it, so the file
+        # it owns is rewritten in place.
+        fd = os.open(target, os.O_WRONLY | os.O_TRUNC | os.O_NOFOLLOW)
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        return
     temp = target.parent / f".{target.name}.law-apply.tmp"
     fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o644)
     try:

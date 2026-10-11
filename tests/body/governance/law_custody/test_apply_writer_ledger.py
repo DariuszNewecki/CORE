@@ -260,3 +260,25 @@ def test_symlink_inside_destination_is_refused_too(tmp_path: Path, key: Path) ->
     )
     assert outcome.outcomes[0].failed and "symlink" in outcome.outcomes[0].failed
     assert not list((law / "elsewhere").iterdir())
+
+
+def test_a_file_in_a_read_only_directory_is_written_in_place(
+    tmp_path: Path, key: Path
+) -> None:
+    # The repository root is root-owned and sticky: core-law owns CLAUDE.md but
+    # cannot create files beside it.
+    repo = _repo(tmp_path)
+    proposal = repo / "var" / "law-proposals" / "0007-test" / "files"
+    (proposal / "CLAUDE.md").write_text("new contract\n")
+    (repo / "CLAUDE.md").write_text("old contract\n")
+    prepared = _prepare(repo, tmp_path, [repo])
+    repo.chmod(0o555)
+    try:
+        outcome = service.apply_prepared(
+            prepared, approver="darek", key_path=key, custodian=ME
+        )
+    finally:
+        repo.chmod(0o755)
+    assert outcome.ok(), [o.failed for o in outcome.outcomes]
+    assert (repo / "CLAUDE.md").read_text() == "new contract\n"
+    assert not list(repo.glob(".CLAUDE.md*"))
