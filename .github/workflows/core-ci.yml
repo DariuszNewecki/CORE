@@ -354,7 +354,7 @@ jobs:
         env:
           CORE_UNIT_JOB: "1"
           COVERAGE_FILE: .coverage.hermetic
-        run: poetry run pytest -m "not integration" -n auto
+        run: poetry run pytest -m "not integration" -n auto --durations=30
       - name: Upload hermetic coverage data
         uses: actions/upload-artifact@v7
         with:
@@ -464,7 +464,7 @@ jobs:
         env:
           CORE_REQUIRE_DB_TESTS: "1"
           COVERAGE_FILE: .coverage.integration
-        run: poetry run pytest -m integration
+        run: poetry run pytest -m integration --durations=30
 
       - name: Upload integration coverage data
         uses: actions/upload-artifact@v7
