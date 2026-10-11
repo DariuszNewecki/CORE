@@ -158,6 +158,18 @@ by hand.
 
 ---
 
+### `law apply` and `law check-tree`
+
+Approve a law proposal on a law-custody host. Runs only as `core-law` under sudo. Without `--write` it only shows the checks; with `--write` it asks you to type the proposal id. Not needed unless you set up law custody.
+
+### `mcp run`
+
+Serves CORE to an AI assistant over MCP. See [Connect your AI assistant](connect-an-assistant.md).
+
+### `core proposals approve`
+
+Asks you to type the proposal's short id and refuses without a terminal.
+
 ## Governance note
 
 All CLI operations that modify files are subject to constitutional governance. A command that

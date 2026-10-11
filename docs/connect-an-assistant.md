@@ -1,12 +1,13 @@
 # Connect your AI assistant
 
 Your coding assistant (Claude Code, Cursor, or any other that speaks MCP) can
-ask CORE about your project instead of guessing, and check its own change
-before it commits. CORE answers from your project's law and decision history,
+ask CORE about your project instead of guessing, check its own change
+before it commits, and submit it to CORE as a proposal that only you can approve. CORE answers from your project's law and decision history,
 with sources, and says plainly what it did not check.
 
-The server runs locally, started by the assistant itself. It needs no
+The server runs locally, started by the assistant itself. The read tools need no
 database, no API and no other service: `pip install core-runtime` is enough.
+Submitting a change needs a running CORE (see [Run the full runtime](getting-started.md)).
 
 ## What the assistant gets
 
@@ -17,8 +18,10 @@ database, no API and no other service: `pip install core-runtime` is enough.
 | `decision_adr` | What did this architecture decision record (ADR) decide? |
 | `decision_adrs` | Which ADRs exist (optionally only the accepted ones)? |
 | `change_verdict` | Does my current change break a blocking rule? |
+| `validate_change` | Does my patch pass CORE's full checks? (starts a check run; a few minutes) |
+| `submit_change` | If it passed, record it as a pending proposal for the governor. |
 
-Every tool only reads. None can approve, waive, or act as the governor.
+Five tools only read. Two, `validate_change` and `submit_change`, ask CORE to check a change and to record it as a pending proposal. None can approve, waive, or act as the governor.
 
 The same answers are available from the shell, which is the quickest way to
 see what the assistant will see:
@@ -77,6 +80,8 @@ claude -p "Run change_verdict on my current change before I commit." \
   --allowedTools "mcp__core__law_rule,mcp__core__law_can_write,mcp__core__decision_adr,mcp__core__decision_adrs,mcp__core__change_verdict"
 ```
 
+This list leaves out `validate_change` and `submit_change`, so a non-interactive run cannot submit a change unless you add them.
+
 ## Other assistants
 
 Any MCP client can start the server over stdio. Configure:
@@ -87,6 +92,10 @@ Any MCP client can start the server over stdio. Configure:
 `--repo` names the project to serve. Without it, the server serves the project
 around its working directory, which is enough for assistants that start it in
 the project root.
+
+## Propose a change
+
+With a running CORE, the assistant can submit a change in two steps: `validate_change` runs CORE's full checks on the patch (a few minutes); `submit_change` then records it as a pending proposal, naming who produced it and why (an issue, an ADR or your request). Nothing lands until you run `core proposals approve <id>` and type the short id at a terminal. The commit names the assistant as author and CORE as committer.
 
 ## What the answers mean
 

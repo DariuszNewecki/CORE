@@ -59,7 +59,7 @@ Once the one-time setup is complete:
    links. It lists any pin it cannot rewrite safely
    (the README "Current Release" line, which also describes the release);
    edit those by hand. CI runs `--check` and fails on any drift.
-3. Commit the bump (`chore: bump version to X.Y.Z`).
+3. Commit the bump (`release: X.Y.Z -- <one-line summary>`).
 4. Tag the commit: `git tag vX.Y.Z && git push --tags`.
 
 ### Schema and upgrade-path checklist (ADR-162 D4/D5/D9)
@@ -106,6 +106,6 @@ a re-tagged release.
   the tagged SHA. Tag a commit whose CI is green: a failed, cancelled,
   in-progress or missing run refuses the release. Re-run CI, then re-run
   the publish workflow.
-- The Docker image counterpart (`core-engine:X.Y.Z`) ships via F-48.3
-  (#539). Per ADR-086 D7, PyPI and Docker versions are paired — see
-  that issue for the matched-version invariant once it lands.
+- Each tag also publishes `core-engine:X.Y.Z` and `core-audit-gate:X.Y.Z` to GHCR,
+  built from the PyPI wheel of the same version (ADR-086 D7). If an image build runs
+  before PyPI lists the new version, it fails; re-run it once the version is listed.

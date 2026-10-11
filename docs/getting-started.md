@@ -197,6 +197,8 @@ violation, with its file and line.
 
 ---
 
+Auditing a second checkout or worktree under an editable install: set `PYTHONPATH=<that tree>/src`, or the CLI rules report *could not check*.
+
 ## Sync the Vector Layer
 
 CORE uses Qdrant for semantic search across constitutional documents and architectural papers. This is needed for the full (non-offline) audit and for context builds — skip it if you only ran `code audit --offline`. Populate the vector collections (on a fresh install they are empty; this asks for confirmation — add `--yes` to skip the prompt):

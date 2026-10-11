@@ -12,7 +12,7 @@ Add CORE to the repository's `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/DariuszNewecki/CORE
-    rev: v2.11.0          # a released tag
+    rev: v2.14.2          # a released tag
     hooks:
       - id: core-audit
 ```
