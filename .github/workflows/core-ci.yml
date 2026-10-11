@@ -10,6 +10,10 @@ on:
     branches: [develop]
   pull_request:
     branches: [main, develop]
+  # Nightly full run on develop, including the release-upgrade tests that
+  # push/PR runs skip (governor decision 2026-10-11).
+  schedule:
+    - cron: "0 3 * * *"
   workflow_dispatch:
     inputs:
       sha:
@@ -44,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha }}
+          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
       - name: Re-derive README quantitative claims from source
         run: bash scripts/check_readme_counts.sh
 
@@ -58,7 +62,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha }}
+          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -77,7 +81,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha }}
+          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -99,7 +103,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha }}
+          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -279,7 +283,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha }}
+          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
@@ -315,7 +319,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha }}
+          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
@@ -397,7 +401,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha }}
+          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -464,7 +468,12 @@ jobs:
         env:
           CORE_REQUIRE_DB_TESTS: "1"
           COVERAGE_FILE: .coverage.integration
-        run: poetry run pytest -m integration --durations=30
+        # Release-upgrade tests (marker `upgrade`, ~4.5 min) run only in the
+        # full runs: nightly and workflow_dispatch (required before a tag).
+        run: >-
+          poetry run pytest --durations=30 -m "${{
+          (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+          && 'integration' || 'integration and not upgrade' }}"
 
       - name: Upload integration coverage data
         uses: actions/upload-artifact@v7
@@ -488,7 +497,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha }}
+          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
