@@ -1264,6 +1264,7 @@ after you type the proposal id.
 | `PROPOSAL_ID` | required | Proposal id, e.g. 0020-example. |
 | `--repo` |  | Development tree (default: discovered from cwd). |
 | `--key` |  | core-law's ledger signing key (default ~/.ssh/core_law_ledger). |
+| `--release-law` | `/opt/core/law` | The law beside the release runtime; a second destination when it exists. |
 | `--scratch` |  | Where the scratch tree is built (default ~/scratch). |
 | `--write` | off | Ask for the typed id and write. Without it, show the report only. |
 

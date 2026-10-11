@@ -150,6 +150,11 @@ async def law_apply(
         "--key",
         help="core-law's ledger signing key (default ~/.ssh/core_law_ledger).",
     ),
+    release_law: Path = typer.Option(
+        RELEASE_LAW_ROOT,
+        "--release-law",
+        help="The law beside the release runtime; a second destination when it exists.",
+    ),
     scratch: Path = typer.Option(
         None, "--scratch", help="Where the scratch tree is built (default ~/scratch)."
     ),
@@ -176,8 +181,8 @@ async def law_apply(
         raise typer.Exit(1)
     repo_root = (repo or get_repo_root(Path.cwd())).resolve()
     destinations = [repo_root]
-    if RELEASE_LAW_ROOT.is_dir():
-        destinations.append(RELEASE_LAW_ROOT)
+    if release_law.is_dir():
+        destinations.append(release_law)
     home = Path.home()
     try:
         prepared = prepare(

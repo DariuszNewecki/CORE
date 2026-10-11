@@ -169,7 +169,11 @@ def world(tmp_path: Path, installed: Path) -> dict[str, Path]:
         ["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)], check=True
     )
     (tmp_path / "stub.py").write_text(STUB)
+    law = tmp_path / "release-law"  # stands in for /opt/core/law
+    for name in (".intent", ".specs"):
+        shutil.copytree(repo / name, law / name)
     return {
+        "law": law,
         "tmp": tmp_path,
         "repo": repo,
         "venv": installed,
@@ -197,6 +201,9 @@ def _args(w: dict[str, Path], *extra: str) -> list[str]:
         str(w["key"]),
         "--scratch",
         str(w["tmp"] / "scratch"),
+        # Never the host's live /opt/core/law: a second destination of our own.
+        "--release-law",
+        str(w["law"]),
         *extra,
     ]
 
@@ -212,7 +219,14 @@ def _stubbed(w: dict[str, Path]) -> list[str]:
 
 def _assert_untouched(w: dict[str, Path]) -> None:
     assert (w["repo"] / TARGET).read_bytes() == (REPO_ROOT / TARGET).read_bytes()
-    assert not (w["repo"] / ".intent" / "custody" / "ledger.jsonl").exists()
+    # The repository's own ledger (law 0024 onward) is copied in; untouched means
+    # byte-identical to it, or still absent where the copy has none.
+    ledger = w["repo"] / ".intent" / "custody" / "ledger.jsonl"
+    original = REPO_ROOT / ".intent" / "custody" / "ledger.jsonl"
+    if original.exists():
+        assert ledger.read_bytes() == original.read_bytes()
+    else:
+        assert not ledger.exists()
 
 
 def _assert_clean_run(w: dict[str, Path], stderr: str) -> None:
@@ -315,10 +329,18 @@ def test_write_needs_a_terminal_and_the_typed_id(world: dict[str, Path]) -> None
     _assert_clean_run(world, output)
     assert (world["repo"] / TARGET).read_bytes() == world["new"].read_bytes()
     ledger = (world["repo"] / ".intent" / "custody" / "ledger.jsonl").read_bytes()
-    assert ledger.count(b"\n") == 1
-    line = json.loads(ledger)
+    original = REPO_ROOT / ".intent" / "custody" / "ledger.jsonl"
+    before = original.read_bytes() if original.exists() else b""
+    assert ledger.startswith(before) and ledger[len(before) :].count(b"\n") == 1
+    line = json.loads(ledger[len(before) :])
     assert line["proposal"] == PROPOSAL_ID and line["approver"] == "darek"
-    assert line["destinations"] == [str(world["repo"])]
+    assert line["destinations"] == [str(world["repo"]), str(world["law"])]
+    assert (world["law"] / TARGET).read_bytes() == world["new"].read_bytes()
+    assert (
+        (world["law"] / ".intent" / "custody" / "ledger.jsonl")
+        .read_bytes()
+        .endswith(ledger[len(before) :])
+    )
     signature = line.pop("signature")
     (world["tmp"] / "sig").write_text(signature)
     (world["tmp"] / "allowed").write_text(
