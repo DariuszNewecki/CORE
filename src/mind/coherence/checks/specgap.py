@@ -26,6 +26,8 @@ from typing import TYPE_CHECKING
 
 import yaml
 
+from shared.infrastructure.intent.law_roots import intent_root_for, specs_root_for
+
 from .base import CoherenceCandidate
 
 
@@ -129,7 +131,7 @@ class SpecGapCheck:
         """
         result: dict[str, dict[str, str]] = {}
         for phase in _phases():
-            path = self._repo_root / ".intent" / "phases" / f"{phase}.yaml"
+            path = intent_root_for(self._repo_root) / "phases" / f"{phase}.yaml"
             if not path.exists():
                 result[phase] = {}
                 continue
@@ -143,8 +145,7 @@ class SpecGapCheck:
 
     def _load_phase_responsibility(self) -> dict[str, dict]:
         path = (
-            self._repo_root
-            / ".intent"
+            intent_root_for(self._repo_root)
             / "enforcement"
             / "config"
             / "phase_responsibility.yaml"
@@ -155,7 +156,9 @@ class SpecGapCheck:
         return data.get("phases", {}) or {}
 
     def _extract_ur_paragraphs(self) -> list[tuple[str, str, str]]:
-        path = self._repo_root / ".specs" / "northstar" / "CORE-USER-REQUIREMENTS.md"
+        path = (
+            specs_root_for(self._repo_root) / "northstar" / "CORE-USER-REQUIREMENTS.md"
+        )
         if not path.exists():
             return []
         content = path.read_text(encoding="utf-8")

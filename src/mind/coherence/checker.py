@@ -29,6 +29,7 @@ import hashlib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from shared.infrastructure.intent.law_roots import intent_root_for, specs_root_for
 from shared.logger import getLogger
 
 
@@ -312,7 +313,7 @@ class CoherenceChecker:
             manifest.append(self._manifest_entry(path, "northstar"))
         for path in self._phase_paths():
             manifest.append(self._manifest_entry(path, "phase"))
-        vocab = self._repo_root / ".intent" / "META" / "vocabulary.json"
+        vocab = intent_root_for(self._repo_root) / "META" / "vocabulary.json"
         if vocab.exists():
             manifest.append(self._manifest_entry(vocab, "vocabulary"))
         return manifest
@@ -357,7 +358,7 @@ class CoherenceChecker:
         universe: set[Path] = set()
         for glob in spec_md_globs:
             universe.update(self._repo_root.glob(glob))
-        decisions_dir = self._repo_root / ".specs" / "decisions"
+        decisions_dir = specs_root_for(self._repo_root) / "decisions"
         if not decisions_dir.exists():
             return []
         return sorted(
@@ -382,7 +383,7 @@ class CoherenceChecker:
         universe: set[Path] = set()
         for glob in spec_md_globs:
             universe.update(self._repo_root.glob(glob))
-        papers_dir = self._repo_root / ".specs" / "papers"
+        papers_dir = specs_root_for(self._repo_root) / "papers"
         if not papers_dir.exists():
             return []
         return sorted(p for p in universe if p.is_relative_to(papers_dir))
@@ -400,7 +401,7 @@ class CoherenceChecker:
         universe: set[Path] = set()
         for glob in spec_md_globs:
             universe.update(self._repo_root.glob(glob))
-        northstar_dir = self._repo_root / ".specs" / "northstar"
+        northstar_dir = specs_root_for(self._repo_root) / "northstar"
         if not northstar_dir.exists():
             return []
         return sorted(p for p in universe if p.is_relative_to(northstar_dir))
@@ -418,7 +419,7 @@ class CoherenceChecker:
         universe: set[Path] = set()
         for glob in intent_yaml_globs:
             universe.update(self._repo_root.glob(glob))
-        phases_dir = self._repo_root / ".intent" / "phases"
+        phases_dir = intent_root_for(self._repo_root) / "phases"
         if not phases_dir.exists():
             return []
         return sorted(p for p in universe if p.is_relative_to(phases_dir))

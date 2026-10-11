@@ -16,6 +16,7 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from shared.infrastructure.intent.law_roots import specs_root_for
 from shared.logger import getLogger
 
 from ..llm_judge import judge_contradiction_pair
@@ -213,7 +214,7 @@ class R1ScopedCheck:
         reconciliation when only chunked claims reach the prompt and
         routinely emits false-positive contradictions on reconciled pairs.
         """
-        decisions = self._repo_root / ".specs" / "decisions"
+        decisions = specs_root_for(self._repo_root) / "decisions"
         if not decisions.is_dir():
             return []
         # Map ADR-NNN → relative path, used to resolve cited tokens to files.

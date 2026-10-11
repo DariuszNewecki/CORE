@@ -20,6 +20,8 @@ from pathlib import Path
 
 import yaml
 
+from shared.infrastructure.intent.law_roots import intent_root_for
+
 from .base import CoherenceCandidate
 
 
@@ -70,7 +72,7 @@ class IntentBindingCheck:
 
         results: list[tuple[Path, str, str]] = []
 
-        phases_dir = self._repo_root / ".intent" / "phases"
+        phases_dir = intent_root_for(self._repo_root) / "phases"
         for path in sorted(p for p in universe if p.is_relative_to(phases_dir)):
             try:
                 data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -80,7 +82,7 @@ class IntentBindingCheck:
             if isinstance(val, str) and val.strip():
                 results.append((path, "implementation", val.strip()))
 
-        mappings_dir = self._repo_root / ".intent" / "enforcement" / "mappings"
+        mappings_dir = intent_root_for(self._repo_root) / "enforcement" / "mappings"
         for path in sorted(p for p in universe if p.is_relative_to(mappings_dir)):
             try:
                 data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}

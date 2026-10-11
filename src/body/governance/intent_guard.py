@@ -17,6 +17,7 @@ from mind.governance.rule_extractor import extract_executable_rules
 from mind.governance.violation_report import ViolationReport
 from mind.logic.engines.registry import PASSIVE_ALIASES
 from shared.infrastructure.intent.intent_repository import get_intent_repository
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.infrastructure.intent.operational_capabilities import (
     OperationalCapability,
     OperationalCapabilityTaxonomyError,
@@ -180,7 +181,7 @@ class IntentGuard:
         if path_resolver is not None:
             self.intent_root = path_resolver.intent_root
         else:
-            self.intent_root = self.repo_path / ".intent"
+            self.intent_root = intent_root_for(self.repo_path)
 
         # 1. Initialize Mind Repository
         repo = get_intent_repository()

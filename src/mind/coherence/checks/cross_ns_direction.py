@@ -24,6 +24,8 @@ from pathlib import Path
 
 import yaml
 
+from shared.infrastructure.intent.law_roots import intent_root_for
+
 from .base import CheckSkipped, CoherenceCandidate
 
 
@@ -50,7 +52,7 @@ class CrossNsDirectionCheck:
     # ID: 89ed0655-40e9-434a-a2c7-e34c3ce0c36e
     async def run(self) -> list[CoherenceCandidate]:
         manifest_path = (
-            self._repo_root / ".intent" / "governance" / "namespace_manifest.yaml"
+            intent_root_for(self._repo_root) / "governance" / "namespace_manifest.yaml"
         )
         if not manifest_path.exists():
             raise CheckSkipped("namespace_manifest_absent")

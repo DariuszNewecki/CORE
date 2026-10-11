@@ -32,6 +32,7 @@ from shared.infrastructure.intent.intent_repository import (
     IntentRepository,
     get_intent_repository,
 )
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.logger import getLogger
 from shared.workers.blackboard_publisher import BlackboardPublisher
 from shared.workers.declaration_validator import validate_worker_declaration
@@ -500,7 +501,7 @@ class Worker(ABC):
         # back to the global singleton, which uses settings.MIND / resolve_default_repo_path.
         repo_root = getattr(self, "_repo_root", None)
         if repo_root is not None:
-            _repo = IntentRepository(root=repo_root / ".intent", strict=True)
+            _repo = IntentRepository(root=intent_root_for(repo_root), strict=True)
         else:
             _repo = get_intent_repository()
 

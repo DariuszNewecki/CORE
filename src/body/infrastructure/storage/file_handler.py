@@ -25,6 +25,7 @@ from shared.ast_utility import find_orphan_shadowed_symbols
 from shared.config import settings
 from shared.exceptions import RepositoryBoundaryViolationError
 from shared.governance_token import current_capability
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.infrastructure.intent.operational_mode import current_mode
 from shared.infrastructure.intent.target_class import resolve_target_class
 from shared.logger import getLogger
@@ -54,7 +55,7 @@ class FileHandler:
 
         path_resolver = PathResolver.from_repo(
             repo_root=self.repo_path,
-            intent_root=self.repo_path / ".intent",
+            intent_root=intent_root_for(self.repo_path),
         )
 
         self.log_dir = path_resolver.logs_dir

@@ -30,6 +30,7 @@ from mind.governance.audit_context import AuditorContext
 from mind.governance.auditor import ConstitutionalAuditor
 from shared.action_logger import action_logger
 from shared.context import CoreContext
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 from shared.path_resolver import PathResolver
@@ -59,7 +60,7 @@ class CrateProcessingService:
         self.repo_root = core_context.git_service.repo_path.resolve()
         self._fh = core_context.file_handler or FileHandler(str(self.repo_root))
         self._paths = PathResolver.from_repo(
-            repo_root=self.repo_root, intent_root=self.repo_root / ".intent"
+            repo_root=self.repo_root, intent_root=intent_root_for(self.repo_root)
         )
 
         # Use canonical paths from PathResolver

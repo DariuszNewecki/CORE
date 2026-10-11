@@ -31,6 +31,7 @@ from mind.logic.engines.workflow_gate.base_check import (
     WorkflowCheck,
 )
 from shared.infrastructure.intent.intent_repository import IntentRepository
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 from shared.utils.subprocess_utils import run_vulture
@@ -130,8 +131,8 @@ def _load_baseline(repo_root: Path, rel: str) -> set[str]:
     while the recorded debt stays visible in .intent/ instead of in the
     governor's inbox. Entries are "src/path.py::symbol_name".
     """
-    intent = IntentRepository(root=repo_root / ".intent", strict=False)
-    doc = intent.load_document(repo_root / ".intent" / rel)
+    intent = IntentRepository(root=intent_root_for(repo_root), strict=False)
+    doc = intent.load_document(intent_root_for(repo_root) / rel)
     entries = doc.get("baseline") or []
     if not isinstance(entries, list):
         raise ValueError(f"{rel}: 'baseline' must be a list")
@@ -146,7 +147,7 @@ def _intent_declared_class_names(repo_root: Path) -> set[str]:
     """
     names: set[str] = set()
     try:
-        intent = IntentRepository(root=repo_root / ".intent", strict=False)
+        intent = IntentRepository(root=intent_root_for(repo_root), strict=False)
         for _, doc in intent.iter_documents(under="workers"):
             cls = (doc.get("implementation") or {}).get("class")
             if isinstance(cls, str):

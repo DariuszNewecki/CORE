@@ -22,6 +22,8 @@ import json
 import re
 from pathlib import Path
 
+from shared.infrastructure.intent.law_roots import intent_root_for, specs_root_for
+
 from .base import CoherenceCandidate
 
 
@@ -37,7 +39,7 @@ class VocabularyCheck:
 
     # ID: 3c0a85ca-154f-43ac-bc25-9fc458ced200
     async def run(self) -> list[CoherenceCandidate]:
-        vocab_path = self._repo_root / ".intent" / "META" / "vocabulary.json"
+        vocab_path = intent_root_for(self._repo_root) / "META" / "vocabulary.json"
         if not vocab_path.exists():
             return []
         data = json.loads(vocab_path.read_text(encoding="utf-8"))
@@ -121,7 +123,7 @@ def _iter_governance_markdown(repo_root: Path):
     for glob in spec_md_globs:
         universe.update(repo_root.glob(glob))
     governance_dirs = [
-        repo_root / ".specs" / sub for sub in ("decisions", "papers", "northstar")
+        specs_root_for(repo_root) / sub for sub in ("decisions", "papers", "northstar")
     ]
     for path in sorted(universe):
         if any(path.is_relative_to(d) for d in governance_dirs):

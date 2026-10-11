@@ -42,6 +42,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from shared.infrastructure.intent.intent_repository import IntentRepository
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 from shared.path_resolver import PathResolver
@@ -121,7 +122,7 @@ class ReferenceGateEngine(BaseEngine):
 # ID: 830789ae-4ffc-451f-a55f-3b8e9c349e8c
 def find_dangling_references(repo_root: Path) -> list[AuditFinding]:
     """Sweep every covered field under ``repo_root/.intent`` (public for tests)."""
-    intent = IntentRepository(root=repo_root / ".intent", strict=False)
+    intent = IntentRepository(root=intent_root_for(repo_root), strict=False)
     dangling: list[tuple[Path, str, str, str]] = []
     dangling += _flow_action_refs(intent, repo_root)
     dangling += _test_coverage_files(intent, repo_root)

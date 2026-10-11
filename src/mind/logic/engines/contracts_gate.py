@@ -67,6 +67,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 import yaml
 from sqlalchemy import text
 
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
@@ -219,7 +220,7 @@ def _check_layer_scope_coherence(context: AuditorContext) -> list[AuditFinding]:
     """
     findings: list[AuditFinding] = []
     repo_root: Path = context.paths.repo_root
-    contracts_dir = repo_root / ".intent" / "enforcement" / "contracts"
+    contracts_dir = intent_root_for(repo_root) / "enforcement" / "contracts"
     src_root = repo_root / "src"
 
     if not contracts_dir.is_dir():
@@ -363,9 +364,13 @@ async def _check_asymmetric_contract_findings(
     findings: list[AuditFinding] = []
     repo_root: Path = context.paths.repo_root
     mappings_path = (
-        repo_root / ".intent" / "enforcement" / "mappings" / "data" / "governance.yaml"
+        intent_root_for(repo_root)
+        / "enforcement"
+        / "mappings"
+        / "data"
+        / "governance.yaml"
     )
-    contracts_dir = repo_root / ".intent" / "enforcement" / "contracts"
+    contracts_dir = intent_root_for(repo_root) / "enforcement" / "contracts"
 
     if not mappings_path.exists():
         logger.warning("contracts_gate: mappings not found: %s", mappings_path)
@@ -615,7 +620,7 @@ def _check_persistence_reach_coherence(context: AuditorContext) -> list[AuditFin
     """
     findings: list[AuditFinding] = []
     repo_root: Path = context.paths.repo_root
-    contracts_dir = repo_root / ".intent" / "enforcement" / "contracts"
+    contracts_dir = intent_root_for(repo_root) / "enforcement" / "contracts"
     src_root = repo_root / "src"
 
     if not contracts_dir.is_dir():

@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 
 import yaml
 
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.infrastructure.intent.rule_registry import (
     rule_requires_enforcement_mapping,
 )
@@ -139,7 +140,9 @@ class DispatchParityCheck:
 
     def _load_substrate_taxonomy(self) -> set[str]:
         taxonomy_path = (
-            self._repo_root / ".intent" / "taxonomies" / "substrate_enforcement.yaml"
+            intent_root_for(self._repo_root)
+            / "taxonomies"
+            / "substrate_enforcement.yaml"
         )
         try:
             data = yaml.safe_load(taxonomy_path.read_text(encoding="utf-8")) or {}

@@ -35,6 +35,7 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
+from shared.infrastructure.intent.law_roots import specs_root_for
 from shared.logger import getLogger
 
 
@@ -163,9 +164,9 @@ class GovernanceClaimHarvester:
     def harvest(self) -> Iterator[Claim]:
         """Yield every Claim across the governance corpus."""
         roots = [
-            (self._repo_root / ".specs" / "decisions", "adr", "*.md"),
-            (self._repo_root / ".specs" / "papers", "paper", "*.md"),
-            (self._repo_root / ".specs" / "northstar", "northstar", "*.md"),
+            (specs_root_for(self._repo_root) / "decisions", "adr", "*.md"),
+            (specs_root_for(self._repo_root) / "papers", "paper", "*.md"),
+            (specs_root_for(self._repo_root) / "northstar", "northstar", "*.md"),
         ]
         for root, category, glob in roots:
             if not root.is_dir():

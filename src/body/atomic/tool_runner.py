@@ -73,11 +73,12 @@ _wt = Path(_data["worktree_path"])
 sys.path.insert(0, str(_wt / "src"))
 
 from shared.infrastructure.intent.intent_repository import IntentRepository  # noqa: E402
+from shared.infrastructure.intent.law_roots import intent_root_for  # noqa: E402
 from mind.governance.stateless_audit import run_stateless_audit  # noqa: E402
 
 
 async def _main():
-    repo = IntentRepository(strict=True, root=_wt / ".intent")
+    repo = IntentRepository(strict=True, root=intent_root_for(_wt))
     repo.initialize()
     return await run_stateless_audit(intent_repo=repo, repo_path=_wt)
 
@@ -92,7 +93,7 @@ def _class_b_violations():
     from mind.governance.audit_context import _include_matches
     from mind.governance.enforcement_loader import EnforcementMappingLoader
 
-    mappings = EnforcementMappingLoader(_wt / ".intent").load_all_mappings()
+    mappings = EnforcementMappingLoader(intent_root_for(_wt)).load_all_mappings()
     scopes = {
         rule_id: list((entry.get("scope") or {}).get("applies_to") or [])
         for rule_id, entry in mappings.items()

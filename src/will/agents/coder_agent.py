@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any
 
 from body.governance.intent_guard import get_intent_guard
 from shared.ai.prompt_model import PromptModel
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.logger import getLogger
 from shared.models import ExecutionTask
 from shared.path_resolver import PathResolver
@@ -66,7 +67,7 @@ class CoderAgent:
 
         self.repo_root = Path(repo_root).resolve()
         path_resolver = PathResolver.from_repo(
-            repo_root=self.repo_root, intent_root=self.repo_root / ".intent"
+            repo_root=self.repo_root, intent_root=intent_root_for(self.repo_root)
         )
 
         self.tracer = DecisionTracer(

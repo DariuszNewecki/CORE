@@ -90,7 +90,9 @@ class PathResolver:
         """
         self._repo_root = Path(repo_root).resolve()
         self._meta: dict[str, Any] = meta or {}
-        self._intent_root = self._repo_root / ".intent"
+        # Resolved on first use, not here: Settings builds a PathResolver
+        # while it is itself being constructed (ADR-132 D10 · D2 law roots).
+        self._intent_root: Path | None = None
 
         logger.debug("PathResolver initialized (repo_root=%s)", self._repo_root)
 
@@ -107,7 +109,16 @@ class PathResolver:
     @property
     # ID: f77058bf-c12b-44d6-9020-36e436af3473
     def intent_root(self) -> Path:
-        """Root of .intent/ (path only; do not mutate)."""
+        """Root of .intent/ (path only; do not mutate).
+
+        Unless set explicitly, the law that governs this repository root
+        (shared.infrastructure.intent.law_roots): ``<root>/.intent`` today;
+        the configured MIND for CORE's own clone under ADR-132 D10 · D2.
+        """
+        if self._intent_root is None:
+            from shared.infrastructure.intent.law_roots import intent_root_for
+
+            self._intent_root = intent_root_for(self._repo_root)
         return self._intent_root
 
     @property
@@ -256,7 +267,7 @@ class PathResolver:
         Source of truth for MIN_CONFIDENCE, audit findings paths, etc.
         File: .intent/enforcement/config/governance_paths.yaml
         """
-        return self._intent_root / "enforcement" / "config" / "governance_paths.yaml"
+        return self.intent_root / "enforcement" / "config" / "governance_paths.yaml"
 
     @property
     # ID: 4d987ad9-dcfd-4760-a07e-e3409cf72d92
@@ -267,7 +278,7 @@ class PathResolver:
         in body/autonomy/audit_analyzer.py
         """
         return (
-            self._intent_root / "enforcement" / "remediation" / "auto_remediation.yaml"
+            self.intent_root / "enforcement" / "remediation" / "auto_remediation.yaml"
         )
 
     @property
@@ -306,7 +317,7 @@ class PathResolver:
         Canonical path to .intent/workers/ declarations.
         Replaces: Path(".intent/workers") in WorkerShopManager.
         """
-        return self._intent_root / "workers"
+        return self.intent_root / "workers"
 
     # =========================================================================
     # VALIDATION

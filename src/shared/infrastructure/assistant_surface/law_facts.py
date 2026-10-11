@@ -28,6 +28,7 @@ import yaml
 
 from shared.infrastructure.intent.errors import GovernanceError
 from shared.infrastructure.intent.intent_repository import IntentRepository
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.logger import getLogger
 
 
@@ -88,7 +89,7 @@ class LawFacts:
 
     def __init__(self, repo_root: Path) -> None:
         self._root = Path(repo_root).resolve()
-        self._intent = IntentRepository(strict=False, root=self._root / ".intent")
+        self._intent = IntentRepository(strict=False, root=intent_root_for(self._root))
 
     # -- law ------------------------------------------------------------------
 

@@ -19,6 +19,7 @@ from datetime import date
 from pathlib import Path
 
 from shared.infrastructure.git_service import GitService
+from shared.infrastructure.intent.law_roots import intent_root_for, specs_root_for
 
 from .base import CoherenceCandidate
 
@@ -43,7 +44,7 @@ class Row4NamingCheck:
 
     # ID: 809cc4b0-5fd8-47f0-a29d-930848b6e279
     async def run(self) -> list[CoherenceCandidate]:
-        intent = self._repo_root / ".intent"
+        intent = intent_root_for(self._repo_root)
         if not intent.is_dir():
             return []
         accepted = self._collect_accepted_adr_text()
@@ -101,7 +102,7 @@ class Row4NamingCheck:
 
         repo = get_intent_repository()
         spec_md_globs = repo.get_artifact_type("spec_markdown").content["discovery"]
-        decisions = self._repo_root / ".specs" / "decisions"
+        decisions = specs_root_for(self._repo_root) / "decisions"
         if not decisions.is_dir():
             return {}
         universe: set[Path] = set()

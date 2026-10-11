@@ -18,6 +18,7 @@ from sqlalchemy import text
 from shared.config import settings
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 
@@ -92,7 +93,7 @@ class DiagnosticService:
         errors = []
         required = [
             self.repo_root / "src",
-            self.repo_root / ".intent",
+            intent_root_for(self.repo_root),
             PathResolver(self.repo_root).prompts_dir,
             self.repo_root / "sql",
         ]

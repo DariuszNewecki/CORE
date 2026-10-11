@@ -32,6 +32,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.infrastructure.intent.test_coverage_paths import (
     InstrumentUnavailable,
     load_test_coverage_config,
@@ -173,7 +174,7 @@ class TestRunnerSensor(ScheduledWorker):
                 from will.phases.canary.pytest_runner import PytestRunner
 
                 path_resolver = PathResolver.from_repo(
-                    self._repo_root, self._repo_root / ".intent"
+                    self._repo_root, intent_root_for(self._repo_root)
                 )
                 runner = PytestRunner(path_resolver)
                 result = await runner.run_tests([test_file])
@@ -382,7 +383,7 @@ class TestRunnerSensor(ScheduledWorker):
             from will.phases.canary.pytest_runner import PytestRunner
 
             path_resolver = PathResolver.from_repo(
-                self._repo_root, self._repo_root / ".intent"
+                self._repo_root, intent_root_for(self._repo_root)
             )
             runner = PytestRunner(path_resolver)
         except Exception as exc:

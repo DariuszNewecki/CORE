@@ -43,6 +43,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 import yaml
 from sqlalchemy import text
 
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 from shared.workers.launch import LAUNCH_ON_DEMAND, resolve_launch
@@ -212,7 +213,7 @@ async def _check_worker_process_classification(
     # Build stem → declaration state map from .intent/workers/. Paused,
     # absent or on-demand (#898) workers are skipped: nothing to evaluate
     # for them.
-    workers_dir = context.repo_path / ".intent" / "workers"
+    workers_dir = intent_root_for(context.repo_path) / "workers"
     workers_state: dict[str, dict[str, Any]] = {}
     for yaml_file in sorted(workers_dir.glob("*.yaml")):
         try:
@@ -434,7 +435,7 @@ async def _check_worker_max_interval_within_observed(
     sample count, and a concrete bump suggestion so the operator can
     update the YAML in one read.
     """
-    workers_dir = context.repo_path / ".intent" / "workers"
+    workers_dir = intent_root_for(context.repo_path) / "workers"
     if not workers_dir.is_dir():
         return []
 

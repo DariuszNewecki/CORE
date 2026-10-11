@@ -34,6 +34,7 @@ from sqlalchemy import text
 from mind.governance.enforcement_loader import EnforcementMappingLoader
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from shared.context import CoreContext
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.logger import getLogger
 from will.autonomy.autonomous_developer import develop_from_goal
 
@@ -94,7 +95,7 @@ def get_refactor_threshold(repo_root: Path) -> float:
     cutover; the behaviour the CLI observed pre-cutover is preserved.
     """
     try:
-        loader = EnforcementMappingLoader(repo_root / ".intent")
+        loader = EnforcementMappingLoader(intent_root_for(repo_root))
         strategy = loader.get_enforcement_strategy(
             "modularity.refactor_score_threshold"
         )

@@ -33,6 +33,7 @@ from typing import Any
 import yaml
 
 from shared.ai.prompt_model import PromptModel
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
@@ -434,7 +435,7 @@ class IntentInspector(Worker):
     def _resolve_intent_root(self) -> Path:
         """Resolve .intent/ path from core_context."""
         repo_path = Path(self._core_context.git_service.repo_path)
-        return repo_path / ".intent"
+        return intent_root_for(repo_path)
 
     # ID: b363a4e6-647c-437c-bfad-93daac2888b8
     def _load_all_documents(self, intent_root: Path) -> list[dict[str, Any]]:

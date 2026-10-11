@@ -50,6 +50,7 @@ from body.atomic.registry import action_registry
 from body.flows.executor import FlowExecutor
 from body.flows.registry import flow_registry
 from shared.context import CoreContext
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.logger import getLogger
 
 
@@ -578,7 +579,7 @@ async def run_quality_policy_coverage(context: CoreContext) -> dict:
 
     repo_root = context.git_service.repo_path
     path_resolver = PathResolver.from_repo(
-        repo_root=repo_root, intent_root=repo_root / ".intent"
+        repo_root=repo_root, intent_root=intent_root_for(repo_root)
     )
     report = PolicyCoverageService(path_resolver).run()
     return {

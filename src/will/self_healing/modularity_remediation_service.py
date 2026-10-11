@@ -14,6 +14,7 @@ from body.validators.logic_conservation_validator import LogicConservationValida
 from mind.governance.enforcement_loader import EnforcementMappingLoader
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from shared.context import CoreContext
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.logger import getLogger
 from will.autonomy.autonomous_developer import develop_from_goal
 
@@ -33,7 +34,7 @@ class ModularityRemediationService:
         self.context = context
         self.checker = ModularityChecker()
         repo_root = self.context.git_service.repo_path
-        self.loader = EnforcementMappingLoader(repo_root / ".intent")
+        self.loader = EnforcementMappingLoader(intent_root_for(repo_root))
 
         mappings = self.loader.load_all_mappings()
         self.threshold = self._get_constitutional_threshold(mappings)

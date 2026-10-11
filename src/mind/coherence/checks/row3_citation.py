@@ -22,6 +22,7 @@ from shared.governance.coherence_harvester import (
     document_status,
 )
 from shared.infrastructure.git_service import GitService
+from shared.infrastructure.intent.law_roots import specs_root_for
 
 from .base import CoherenceCandidate
 
@@ -92,7 +93,7 @@ class Row3CitationCheck:
 
         repo = get_intent_repository()
         spec_md_globs = repo.get_artifact_type("spec_markdown").content["discovery"]
-        papers = self._repo_root / ".specs" / "papers"
+        papers = specs_root_for(self._repo_root) / "papers"
         if not papers.is_dir():
             return []
         universe: set[Path] = set()

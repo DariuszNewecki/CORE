@@ -41,6 +41,7 @@ from shared.infrastructure.intent.filesystem_operations import (
     load_filesystem_operations,
 )
 from shared.infrastructure.intent.intent_repository import get_intent_repository
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.infrastructure.intent.vocabulary_projection import (
     VOCABULARY_JSON_REL,
     VOCABULARY_PAPER_REL,
@@ -439,7 +440,7 @@ def _check_register_casing(repo_root: Path, check: str) -> EngineResult:
         check_register_casing,
     )
 
-    report = check_register_casing(repo_root / ".intent")
+    report = check_register_casing(intent_root_for(repo_root))
     return _vocab_result(check, report.violations)
 
 
@@ -1263,7 +1264,10 @@ class ArtifactGateEngine(BaseEngine):
             )
 
         governed_config = (
-            repo_root / ".intent" / "enforcement" / "config" / "governed_prompts.yaml"
+            intent_root_for(repo_root)
+            / "enforcement"
+            / "config"
+            / "governed_prompts.yaml"
         )
         if not governed_config.exists():
             return EngineResult(

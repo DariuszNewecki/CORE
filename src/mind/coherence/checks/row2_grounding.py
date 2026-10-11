@@ -29,6 +29,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from shared.infrastructure.intent.law_roots import specs_root_for
+
 from .base import CoherenceCandidate
 
 
@@ -127,7 +129,7 @@ class Row2GroundingCheck:
 
         repo = get_intent_repository()
         spec_md_globs = repo.get_artifact_type("spec_markdown").content["discovery"]
-        decisions = self._repo_root / ".specs" / "decisions"
+        decisions = specs_root_for(self._repo_root) / "decisions"
         if not decisions.is_dir():
             return []
         universe: set[Path] = set()
@@ -145,7 +147,7 @@ class Row2GroundingCheck:
             and _STATUS_ACCEPTED.search(p.read_text(encoding="utf-8", errors="replace"))
         }
         paper_names = {
-            p.name for p in (self._repo_root / ".specs" / "papers").glob("*.md")
+            p.name for p in (specs_root_for(self._repo_root) / "papers").glob("*.md")
         }
         candidates: list[CoherenceCandidate] = []
         for adr_path in adr_paths:

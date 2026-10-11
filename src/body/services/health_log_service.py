@@ -27,6 +27,7 @@ from sqlalchemy import text
 
 from body.services.worker_registry_service import WorkerRegistryService
 from shared.infrastructure.bootstrap_registry import bootstrap_registry
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
@@ -300,7 +301,7 @@ class HealthLogService:
             repo_root: Path = bootstrap_registry.get_repo_path()
             path_resolver = PathResolver.from_repo(
                 repo_root=repo_root,
-                intent_root=repo_root / ".intent",
+                intent_root=intent_root_for(repo_root),
             )
             artifact_path = path_resolver.reports_dir / "convergence.jsonl"
             rel_path = str(artifact_path.relative_to(repo_root))

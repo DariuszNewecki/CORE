@@ -44,6 +44,7 @@ from shared.infrastructure.intent.intent_repository import (
     IntentRepository,
     get_intent_repository,
 )
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.infrastructure.intent.operational_capabilities import (
     OperationalCapabilityTaxonomyError,
     load_operational_capabilities,
@@ -371,7 +372,7 @@ class TaxonomyGateEngine(BaseEngine):
                     authored.add((ref.id, action_id))
 
         action_risk_path = (
-            repo_root / ".intent" / "enforcement" / "config" / "action_risk.yaml"
+            intent_root_for(repo_root) / "enforcement" / "config" / "action_risk.yaml"
         )
         introspected = _collect_action_artifact_pairs(action_risk_path)
 
@@ -1042,7 +1043,7 @@ def _intent_gateway(repo_root: Path) -> IntentRepository | None:
     if the gateway cannot be bound (the callers then report a load failure).
     """
     try:
-        return IntentRepository(root=repo_root / ".intent", strict=False)
+        return IntentRepository(root=intent_root_for(repo_root), strict=False)
     except Exception as exc:
         logger.debug("taxonomy_gate: cannot bind IntentRepository: %s", exc)
         return None
