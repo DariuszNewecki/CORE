@@ -402,3 +402,35 @@ assistant misses: 3, one caught by CORE.
 |---|---|---|---|
 | M-35 | Wrote and got approved a law item (0019 item 3) that contradicts the same ADR's D2 | assistant, 10 minutes later (C-54) | one corrective batch; nothing was built on it |
 | M-36 | Put `# ID` above `@dataclass` again (same trap as C-43) | CORE (C-55) | none |
+
+### Session 3, continued — Stage 1 prepared
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-47 | c82da3ea | `law apply`'s scratch tree links the whole repository: the law references files outside the copied entries, so every real proposal was refused | assistant's installed-wheel test, asked for by the governor (C-57) | git; verdict |
+| A-48 | c82da3ea | `tests/infra/test_law_apply_installed_wheel.py`: `law apply` from the built wheel — account refusal, report-only default, `--write` + typed id, signature, no git, no dev-tree import | governor (asked before tagging) | git; CI |
+| A-49 | e9d240ae | `infra/core-law-setup` (operator role, governor grant): account, root-owned released venv, key kept on re-run, ownership, sticky root, `/opt/core/law`, sudoers, probes; 15 tests | design (Stage 1) | git |
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-56 | **CORE** (commit gate, `cli.dangerous_explicit`) | `law apply` had no `--write`; a typed id is not a substitute (#824) | `--write` added before the first commit | verdicts.jsonl |
+| C-57 | governor (asked for the wheel test) → assistant's test | Scratch tree too small: `references_resolve` refused every real proposal | A-47 | test run |
+| C-58 | assistant (probe after C-56) | A worktree audit judges CLI rules against the installed code | issue #965 | GitHub #965 |
+
+**Events**
+
+| ID | Time | Event | By |
+|---|---|---|---|
+| E-29 | ~12:0x | develop pushed 34a314ee..1d19a454; CI 38138492511 green | governor yes; assistant |
+| E-30 | ~12:0x | Operator grant: prepare and test the Stage 1 setup script; wheel test before tagging; one law batch | governor |
+
+**Assistant's misses**
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-37 | Trusted the worktree audit for a CLI change | CORE commit gate (C-56) | none; gap filed (#965) |
+| M-38 | Called `check-tree` "proven live" from a full worktree; `law apply` builds a smaller tree | the wheel test (C-57) | would have refused every real proposal; never released |
+| M-39 | Typed symbol UUIDs by hand twice, against my own rule | assistant, before commit | none |
+
+**Session 3 total (by hand)** — fixes and builds: 6 (A-44–A-49); catches: 8 — **CORE 3**, governor 1 (via the
+test they asked for), assistant 4; assistant misses: 8 (M-32–M-39), 2 caught by CORE.
