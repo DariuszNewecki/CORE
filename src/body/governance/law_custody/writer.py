@@ -39,9 +39,34 @@ from body.governance.law_custody.proposal import LawProposal
 
 
 CUSTODIAN_ACCOUNT = "core-law"
-# What the data checks read: the law, the reasoning, the assistant's contract,
-# and src/ as text (references_resolve). Copied, never executed.
-SCRATCH_ENTRIES = (".intent", ".specs", "src", "CLAUDE.md", ".claude", "pyproject.toml")
+# The scratch tree: governed text is copied (the proposal is applied on top of
+# the copy); every other top-level entry is linked read-only, because the law
+# references files anywhere in the repository (references_resolve: src/,
+# infra/, tests/ ...). Nothing in it is executed. Runtime state, secrets and
+# caches are left out.
+SCRATCH_COPIED = (
+    ".intent",
+    ".specs",
+    "CLAUDE.md",
+    ".claude/settings.json",
+    ".claude/hooks",
+)
+SCRATCH_NOT_LINKED = frozenset(
+    {
+        ".git",
+        ".claude",
+        ".venv",
+        "var",
+        ".secrets",
+        "dist",
+        "work",
+        "reports",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".coverage",
+    }
+)
 
 
 # ID: ca378ee5-8863-43a4-8828-b2536a7ca3dc
@@ -130,7 +155,7 @@ def build_scratch_tree(
     *,
     custodian: str = CUSTODIAN_ACCOUNT,
 ) -> Path:
-    """Copy the checked entries of *source* and apply *proposal* on top.
+    """Copy governed text, link the rest of *source*, apply *proposal* on top.
 
     Returns the scratch tree. The caller removes it (``remove_scratch_tree``).
     """
@@ -141,12 +166,24 @@ def build_scratch_tree(
         shutil.rmtree(tree)
     tree.mkdir(mode=0o755, parents=True)
     ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
-    for name in SCRATCH_ENTRIES:
-        origin = source / name
+    for rel in SCRATCH_COPIED:
+        origin = source / rel
+        target = tree / rel
+        target.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
         if origin.is_dir() and not origin.is_symlink():
-            shutil.copytree(origin, tree / name, symlinks=True, ignore=ignore)
+            shutil.copytree(origin, target, symlinks=True, ignore=ignore)
         elif origin.is_file() and not origin.is_symlink():
-            shutil.copy2(origin, tree / name)
+            shutil.copy2(origin, target)
+    governed_roots = {Path(rel).parts[0] for rel in SCRATCH_COPIED}
+    for entry in sorted(source.iterdir()):
+        name = entry.name
+        if (
+            name in governed_roots
+            or name in SCRATCH_NOT_LINKED
+            or name.startswith(".env")
+        ):
+            continue
+        (tree / name).symlink_to(entry)
     for proposed in proposal.files:
         _replace_atomically(_safe_target(tree, proposed.path), proposed.content)
     for rel in proposal.removals:

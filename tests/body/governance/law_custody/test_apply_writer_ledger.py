@@ -49,6 +49,9 @@ def _repo(tmp_path: Path) -> Path:
     (repo / ".specs" / "a.md").write_text("old a\n")
     (repo / ".specs" / "gone.md").write_text("to remove\n")
     (repo / "src").mkdir()
+    (repo / "infra").mkdir()
+    (repo / ".git").mkdir()
+    (repo / ".env").write_text("SECRET=1\n")
     md = (
         "# p\n\n## Declared warnings\n\n- meaning changes\n\n"
         "## Remove\n\n- `.specs/gone.md`\n"
@@ -64,6 +67,10 @@ def _repo(tmp_path: Path) -> Path:
 def _clean_checks(tree: Path) -> dict[str, Any]:
     assert (tree / ".specs" / "a.md").read_text() == "new a\n"  # batch applied
     assert not (tree / ".specs" / "gone.md").exists()
+    assert not (tree / ".specs").is_symlink()  # governed text is copied
+    assert (tree / "infra").is_symlink() and (tree / "src").is_symlink()
+    for absent in (".git", ".env", "var"):
+        assert not (tree / absent).exists()
     return {"refusals": [], "checks": {"law_loads": "ok"}}
 
 
