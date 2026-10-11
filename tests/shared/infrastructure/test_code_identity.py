@@ -176,3 +176,45 @@ def test_no_release_metadata_keeps_the_src_fingerprint(
     ident = capture_loaded_code_identity(repo)
     assert ident is not None and not ident.startswith("release:")
     assert code_drift(use_cache=False).state == "match"
+
+
+def _layout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """/opt/core-like: two releases, `current` -> the first; the process's
+    environment is reached through `current`, as the units start it."""
+    for sha in (_SHA, "c" * 40):
+        venv = tmp_path / "releases" / sha / "venv"
+        venv.mkdir(parents=True)
+        (venv / code_identity.RELEASE_METADATA_NAME).write_text(
+            json.dumps({"sha": sha, "wheel_sha256": _WHEEL})
+        )
+    (tmp_path / "current").symlink_to(Path("releases") / _SHA)
+    meta = tmp_path / "current" / "venv" / code_identity.RELEASE_METADATA_NAME
+    monkeypatch.setattr(code_identity, "release_metadata_path", lambda: meta)
+    return tmp_path / "current"
+
+
+# ID: 8fc4fac1-9f7b-4b0e-9614-b9ebc8e0ead1
+def test_release_goes_stale_when_current_is_switched_without_restart(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    current = _layout(tmp_path, monkeypatch)
+    capture_loaded_code_identity(tmp_path / "clone")
+    assert code_drift(use_cache=False).state == "release"
+    current.unlink()
+    current.symlink_to(Path("releases") / ("c" * 40))  # core-deploy switched it
+    drift = code_drift(use_cache=False)
+    assert drift.state == "stale"
+    assert drift.suspends_autonomy is True
+    assert drift.disk_identity == f"release:{'c' * 40}:{_WHEEL}"
+
+
+# ID: 34505102-65a5-4c43-b4a1-0834c519b812
+def test_release_unreadable_after_boot_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    current = _layout(tmp_path, monkeypatch)
+    capture_loaded_code_identity(tmp_path / "clone")
+    current.unlink()  # current removed: the deployed release cannot be read
+    drift = code_drift(use_cache=False)
+    assert drift.state == "unknown"
+    assert drift.suspends_autonomy is True

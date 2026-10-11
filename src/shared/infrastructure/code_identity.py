@@ -25,8 +25,11 @@ States:
   (governance.no_governance_bypass), so acting workers stay suspended.
 - ``release`` — the process runs an installed release (ADR-132 D10 · D2): its
   environment carries ``core-release.json`` written by ``core-deploy``. The
-  loaded code is that release, immutable and root-owned, so it cannot drift;
-  the analysed clone's ``src/`` differs from it by design and is not compared.
+  loaded code is that release, immutable and root-owned, so its bytes cannot
+  drift; the analysed clone's ``src/`` differs from it by design and is not
+  compared. It is ``stale`` instead when ``current`` has since been switched
+  to another release (the deployed code is no longer the loaded code), and
+  ``unknown`` when the deployed release's metadata cannot be read.
   The identity is ``release:<commit sha>:<wheel sha256>``. A metadata file
   that is present but unreadable or malformed makes the process ``unknown``.
 
@@ -189,11 +192,7 @@ def code_drift(*, use_cache: bool = True) -> CodeDrift:
     loaded = _ProcessIdentity.loaded_identity
     git = _ProcessIdentity.git
     if _ProcessIdentity.release and loaded is not None:
-        drift = CodeDrift(
-            state="release",
-            loaded_identity=loaded,
-            reason="installed release: immutable, not compared with the analysed clone",
-        )
+        drift = _release_drift(loaded)
     elif loaded is None or git is None:
         drift = CodeDrift(
             state="unknown",
@@ -216,6 +215,39 @@ def code_drift(*, use_cache: bool = True) -> CodeDrift:
     _ProcessIdentity.cached = drift
     _ProcessIdentity.cached_at = now
     return drift
+
+
+def _release_drift(loaded: str) -> CodeDrift:
+    """An installed release is stale when ``current`` now names another one.
+
+    The units start Python through ``/opt/core/current/venv``, and
+    ``sys.prefix`` keeps that unresolved path, so re-reading the metadata
+    there reads whatever release ``current`` points at *now*. After
+    core-deploy switches ``current``, a process that was not restarted is
+    running code that is no longer the deployed code (ADR-030). The
+    analysed clone is never compared: it differs from the release by design.
+    """
+    try:
+        deployed = read_release_identity(release_metadata_path())
+    except ValueError as exc:
+        return CodeDrift(
+            state="unknown",
+            loaded_identity=loaded,
+            reason=f"deployed release could not be read: {exc}",
+        )
+    if deployed != loaded:
+        return CodeDrift(
+            state="stale",
+            loaded_identity=loaded,
+            disk_identity=deployed,
+            reason="current names another release; this process was not restarted",
+        )
+    return CodeDrift(
+        state="release",
+        loaded_identity=loaded,
+        disk_identity=deployed,
+        reason="installed release: the deployed one; not compared with the analysed clone",
+    )
 
 
 # ID: 89f6ec6d-17a8-4d94-b36d-35bb604c24bd
