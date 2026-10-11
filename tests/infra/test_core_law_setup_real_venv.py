@@ -100,7 +100,13 @@ class RealVenvHost(cls.Host):
                     ],
                 }
             ).encode()
-        return b""  # an empty lock: the stand-in has no dependencies
+        # The stand-in has no runtime dependencies. A dev-only package is
+        # listed whose wheel exists nowhere: installing it would fail offline,
+        # so a passing install proves dev packages are never attempted.
+        return (
+            b'[[package]]\nname = "dev-only-tool"\nversion = "9.9"\ngroups = ["dev"]\n'
+            b'files = [{file = "dev_only_tool-9.9-py3-none-any.whl", hash = "sha256:0000"}]\n'
+        )
 
     def run(self, cmd, *, user=None, cwd=None, input=None, check=True):  # type: ignore[override]
         self.ran.append(list(cmd))

@@ -17,7 +17,8 @@ What it does:
  1. the account ``core-law``: system account, no login shell, no password;
  2. ``/opt/core-law/venv``: the released ``core-runtime==<version>`` wheel,
     its sha256 taken from PyPI, every dependency hash-pinned from that
-    release's ``poetry.lock`` (fetched over HTTPS, never through git),
+    release's ``poetry.lock`` (fetched over HTTPS, never through git; the
+    runtime ``main`` group only),
     binary wheels only (installing a wheel runs no package code). Owned by
     root, so core-law cannot change the code it runs. Refused when anything
     in it points outside the venv (a ``.pth`` file, an editable install).
@@ -241,10 +242,20 @@ def valid_version(version: str) -> bool:
 
 
 def requirements_from_lock(lock_bytes: bytes) -> str:
-    """Every locked package, pinned with all its file hashes (as core-deploy)."""
+    """The runtime packages of the lock, pinned with all their file hashes.
+
+    Only packages in the ``main`` group: core-law runs ``law apply`` and its
+    data checks, never the audit tools, test runners or doc builders of the
+    ``dev`` group. Unlike core-deploy (the services run mypy and ruff), so
+    fewer packages and fewer start-up hooks: dev packages ship ``.pth``
+    files (coverage's process hook, sphinx namespace shims) that the venv
+    check refuses. A package listed without groups counts as ``main``.
+    """
     lock = tomllib.loads(lock_bytes.decode())
     lines = []
     for package in lock.get("package", []):
+        if "main" not in package.get("groups", ["main"]):
+            continue
         hashes = [f["hash"] for f in package.get("files", []) if f.get("hash")]
         if not hashes:
             raise Refused(f"poetry.lock has no hashes for {package['name']}")

@@ -1,8 +1,9 @@
 """ADR-170 Stage 1 -- ``law apply`` proven from the installed wheel.
 
 ``core-law`` runs only released code (ADR-170 D2), so this installs the
-wheel from ``dist/`` into a fresh venv (dependencies from ``poetry.lock``,
-hash-pinned, binary only, as the Stage 1 setup does) and drives the real
+wheel from ``dist/`` into a fresh venv (the runtime dependencies from
+``poetry.lock``, hash-pinned, binary only, exactly as core-law-setup
+installs them) and drives the real
 console script against a copy of CORE's law:
 
 - the account restriction: as any account but ``core-law`` it refuses,
@@ -77,8 +78,9 @@ def _requirements(tmp: Path) -> Path:
     import importlib.machinery
     import importlib.util
 
+    # core-law-setup's pinning: the runtime group only, as core-law gets it.
     loader = importlib.machinery.SourceFileLoader(
-        "core_deploy_for_test", str(REPO_ROOT / "infra" / "core-deploy")
+        "core_law_setup_for_test", str(REPO_ROOT / "infra" / "core-law-setup")
     )
     spec = importlib.util.spec_from_loader(loader.name, loader)
     assert spec is not None
@@ -112,6 +114,16 @@ def installed(tmp_path_factory: pytest.TempPathFactory) -> Path:
             check=False,
         )
         assert done.returncode == 0, done.stderr[-2000:]
+    # The venv check core-law-setup applies before it accepts a venv: no .pth
+    # file or editable install may point outside it (2026-10-11: the dev group
+    # brought two .pth files and the real setup refused).
+    setup = sys.modules["core_law_setup_for_test"]
+    version = wheel.name.split("-")[1]
+    problems = setup.venv_problems(venv_dir, version)
+    # This test installs the wheel from a local file, so pip records a
+    # direct_url.json and the check rightly calls it "not a release"; the
+    # real setup installs from the index. Everything else must be clean.
+    assert [p for p in problems if "installed from a path or URL" not in p] == []
     return venv_dir
 
 

@@ -14,6 +14,7 @@ from __future__ import annotations
 import importlib.machinery
 import importlib.util
 import json
+import re
 import stat
 import subprocess
 import sys
@@ -349,10 +350,57 @@ def test_release_wheel_needs_exactly_one_wheel_of_that_version() -> None:
         cls.release_wheel(_pypi(wheels=2), VERSION)
 
 
-def test_lock_pinning_matches_core_deploy_on_the_real_lock() -> None:
+def test_lock_pinning_is_core_deploys_for_the_runtime_group_only() -> None:
     deploy = _load("core_deploy_parity", REPO / "infra" / "core-deploy")
-    lock = (REPO / "poetry.lock").read_bytes()
-    assert cls.requirements_from_lock(lock) == deploy.requirements_from_lock(lock)
+    lock_bytes = (REPO / "poetry.lock").read_bytes()
+    lock = __import__("tomllib").loads(lock_bytes.decode())
+
+    def entries(text: str) -> dict[str, str]:
+        found = {}
+        for entry in re.split(r"\n(?=\S)", text.strip()):
+            found[entry.split("==", 1)[0]] = entry
+        return found
+
+    ours, theirs = (
+        entries(cls.requirements_from_lock(lock_bytes)),
+        entries(deploy.requirements_from_lock(lock_bytes)),
+    )
+    runtime = {
+        p["name"] for p in lock["package"] if "main" in p.get("groups", ["main"])
+    }
+    assert set(ours) == runtime
+    assert all(ours[name] == theirs[name] for name in ours)  # same pins, same hashes
+    assert "coverage" not in ours and "sphinxcontrib-jsmath" not in ours
+
+
+def test_dev_only_packages_are_left_out_and_ungrouped_ones_kept() -> None:
+    lock = b"""
+[[package]]
+name = "runtime-only"
+version = "1"
+groups = ["main"]
+files = [{file = "a.whl", hash = "sha256:aaa"}]
+
+[[package]]
+name = "both"
+version = "1"
+groups = ["dev", "main"]
+files = [{file = "b.whl", hash = "sha256:bbb"}]
+
+[[package]]
+name = "dev-only"
+version = "1"
+groups = ["dev"]
+files = [{file = "c.whl", hash = "sha256:ccc"}]
+
+[[package]]
+name = "no-groups"
+version = "1"
+files = [{file = "d.whl", hash = "sha256:ddd"}]
+"""
+    text = cls.requirements_from_lock(lock)
+    assert "runtime-only==1" in text and "both==1" in text and "no-groups==1" in text
+    assert "dev-only" not in text
 
 
 def test_plan_shows_owner_and_mode_now_and_after(world, capsys) -> None:
