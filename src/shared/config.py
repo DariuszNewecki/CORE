@@ -54,6 +54,24 @@ def _read_secrets_file() -> dict[str, str]:
     return {k: v for k, v in raw.items() if v is not None}
 
 
+# ID: 9faf1aed-8aee-4d7f-8797-c4cacba0979a
+def discover_law_root(start: Path | None = None) -> Path | None:
+    """The nearest directory, from ``start`` (default cwd) upward, holding a ``.intent/``.
+
+    A directory the process may not look into (a governor's home when
+    core-law is started there through sudo) is passed over, not fatal:
+    unreadable means it holds no law this process can use.
+    """
+    here = start or Path.cwd()
+    for candidate in [here, *here.parents]:
+        try:
+            if (candidate / ".intent").is_dir():
+                return candidate
+        except OSError as exc:
+            logger.debug("Cannot look into %s for .intent/: %s", candidate, exc)
+    return None
+
+
 # ID: e2f3a5b1-7c4d-4f8a-9d2e-1b6c8a3e4f9d
 def resolve_default_repo_path() -> Path:
     """Discover the repo root by walking up from cwd looking for ``.intent/``.
@@ -68,11 +86,8 @@ def resolve_default_repo_path() -> Path:
     for the F-10.3 incident this resolves; #545 promoted the helper to
     a public API so the engine-side intent loaders can share it.
     """
-    cwd = Path.cwd()
-    for candidate in [cwd, *cwd.parents]:
-        if (candidate / ".intent").is_dir():
-            return candidate
-    return REPO_ROOT
+    found = discover_law_root()
+    return found if found is not None else REPO_ROOT
 
 
 # ID: 67c68ee8-6e04-4eaf-8d41-bc79e3a4d15a
@@ -86,11 +101,9 @@ def resolve_default_mind_path() -> Path:
        before ``project onboard`` has run — allows ``core-admin`` to start and
        deliver the floor without a chicken-and-egg crash).
     """
-    cwd = Path.cwd()
-    for candidate in [cwd, *cwd.parents]:
-        intent = candidate / ".intent"
-        if intent.is_dir():
-            return intent
+    found = discover_law_root()
+    if found is not None:
+        return found / ".intent"
     # Source-tree: REPO_ROOT should have .intent/
     source_intent = REPO_ROOT / ".intent"
     if source_intent.is_dir():

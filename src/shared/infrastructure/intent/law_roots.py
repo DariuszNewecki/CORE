@@ -95,12 +95,11 @@ def configured_repo_root() -> Path:
     REPO_PATH naming an external target therefore does not displace CORE's
     own law for a process started inside CORE's checkout.
     """
-    from shared.config import REPO_ROOT, settings
+    from shared.config import REPO_ROOT, discover_law_root, settings
 
-    cwd = Path.cwd()
-    for candidate in [cwd, *cwd.parents]:
-        if (candidate / ".intent").is_dir():
-            return candidate
+    found = discover_law_root()
+    if found is not None:
+        return found
     if "REPO_PATH" in settings.model_fields_set:
         return Path(settings.REPO_PATH)
     return REPO_ROOT

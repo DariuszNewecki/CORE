@@ -8,6 +8,12 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+### Fixed
+
+- **`core-admin` no longer crashes when started in a directory it cannot read.** `sudo -u core-law core-admin
+  law apply` run from the governor's home raised `PermissionError` at import; law discovery now passes over an
+  unreadable directory.
+
 ## [2.14.1] — 2026-10-11
 
 Patch release. No database migrations.
