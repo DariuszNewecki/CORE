@@ -22,6 +22,7 @@ from body.atomic.sandbox_lifecycle import SandboxLifecycle
 from body.flows.executor import FlowExecutor
 from body.flows.registry import StepKind, flow_registry
 from body.flows.result import declared_production
+from body.infrastructure.repo_sync import RepoBusy, async_repo_lock
 from body.services.service_registry import service_registry
 from mind.governance.violation_report import extract_error_data
 from shared.exceptions import GovernanceInstrumentError
@@ -69,6 +70,34 @@ class ProposalExecutor:
 
     # ID: 5bb8175a-6a30-4548-8597-977a43fcb0b7
     async def execute(
+        self,
+        proposal_id: str,
+        claimed_by: UUID,
+        write: bool = False,
+    ) -> dict[str, Any]:
+        """Execute a proposal; a writing run holds the repository lock.
+
+        ADR-132 D10 · D2: the clone's sync must never fast-forward between a
+        proposal's propagation and its commit, so a writing run holds the
+        sync/commit lock from capture of the pre-execution HEAD to the end.
+        A lock still held after the wait raises GovernanceInstrumentError —
+        the caller treats it as blocked and re-queues, the proposal is not
+        claimed. Dry runs write nothing and take no lock.
+        """
+        if not write:
+            return await self._execute(proposal_id, claimed_by, write)
+        try:
+            async with async_repo_lock(
+                self.core_context.git_service.repo_path,
+                self.core_context.file_handler,
+            ):
+                return await self._execute(proposal_id, claimed_by, write)
+        except RepoBusy as exc:
+            raise GovernanceInstrumentError(
+                instrument="repo_lock", reason=str(exc)
+            ) from exc
+
+    async def _execute(
         self,
         proposal_id: str,
         claimed_by: UUID,

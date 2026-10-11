@@ -220,6 +220,10 @@ class Settings(BaseSettings):
             )
         return self
 
+    # ADR-132 D10 · D2: where CORE's own clone fetches the upstream line
+    # (https, read-only). Unset: no sync, CORE works on its HEAD as today.
+    CORE_UPSTREAM_URL: str | None = Field(None, validation_alias="CORE_UPSTREAM_URL")
+
     REDIS_RATE_LIMIT_URL: str | None = Field(
         None, validation_alias="REDIS_RATE_LIMIT_URL"
     )

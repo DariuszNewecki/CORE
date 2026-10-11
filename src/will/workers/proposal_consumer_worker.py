@@ -33,8 +33,10 @@ accounting.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
+from shared.exceptions import GovernanceInstrumentError
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
@@ -51,6 +53,9 @@ from will.autonomy.proposal_consumer_revival import (
 
 
 logger = getLogger(__name__)
+
+# ADR-132 D10 · D2: one open finding while CORE's clone cannot follow upstream.
+_SYNC_SUBJECT = "repo_sync::clone"
 
 # Conservative — each proposal may touch multiple files
 _CFG = load_operational_config().workers.proposal_consumer
@@ -88,6 +93,8 @@ class ProposalConsumerWorker(Worker):
         3. Post blackboard report with results
         """
         await self.post_heartbeat()
+
+        await self._sync_upstream()
 
         proposals = await self._load_approved_proposals()
 
@@ -248,6 +255,27 @@ class ProposalConsumerWorker(Worker):
                         }
                     )
 
+                except GovernanceInstrumentError as e:
+                    # Blocked, not failed (ADR-023 D4; ADR-132 D10 · D2 repo
+                    # lock): the executor refused before claiming, so the
+                    # proposal stays APPROVED and is retried next cycle.
+                    pending += 1
+                    logger.warning(
+                        "ProposalConsumerWorker: proposal '%s' blocked, left "
+                        "approved for the next cycle: %s",
+                        proposal_id,
+                        e,
+                    )
+                    results.append(
+                        {
+                            "proposal_id": proposal_id,
+                            "goal": goal,
+                            "ok": False,
+                            "lifecycle_status": "blocked",
+                            "error": str(e),
+                        }
+                    )
+
                 except Exception as e:
                     failed += 1
                     logger.error(
@@ -313,6 +341,68 @@ class ProposalConsumerWorker(Worker):
     # -------------------------------------------------------------------------
     # Internal
     # -------------------------------------------------------------------------
+
+    async def _sync_upstream(self) -> None:
+        """ADR-132 D10 · D2: fast-forward CORE's clone before executing.
+
+        Inert while no upstream is configured. A sync that cannot proceed
+        (diverged, failed, an interrupted sync it refuses to guess about)
+        is one open finding for the governor, resolved once a later sync
+        succeeds; CORE keeps working on its current HEAD meanwhile.
+        """
+        from body.infrastructure.repo_sync import (
+            SyncOutcome,
+            SyncRecoveryRefused,
+            repo_sync_for,
+        )
+        from body.services.service_registry import service_registry
+
+        outcome: SyncOutcome | None
+        state: str
+        reason: str | None
+        try:
+            outcome = await asyncio.to_thread(repo_sync_for(self._ctx).sync_if_free)
+            state, reason = outcome.state, outcome.reason
+        except SyncRecoveryRefused as exc:
+            outcome, state, reason = None, "recovery_refused", str(exc)
+
+        if state in ("disabled", "busy"):
+            return
+        blackboard = await service_registry.get_blackboard_service()
+        open_rows = await blackboard.fetch_open_findings(
+            prefix=f"{_SYNC_SUBJECT}%", limit=10
+        )
+        if state in ("diverged", "failed", "recovery_refused"):
+            if not open_rows:
+                await self.post_finding(
+                    subject=_SYNC_SUBJECT,
+                    payload={
+                        "state": state,
+                        "reason": reason,
+                        "from": outcome.from_sha if outcome else None,
+                        "upstream": outcome.to_sha if outcome else None,
+                        "message": (
+                            "CORE's clone could not follow upstream; it keeps "
+                            "working on its current HEAD until this is resolved."
+                        ),
+                    },
+                    resolution_mechanism="human",
+                )
+            return
+        if open_rows:
+            await blackboard.resolve_entries([row["id"] for row in open_rows])
+        if outcome is not None and (
+            state == "fast_forwarded" or outcome.recovered is not None
+        ):
+            await self.post_report(
+                subject="proposal_consumer_worker.repo_sync",
+                payload={
+                    "state": state,
+                    "from": outcome.from_sha,
+                    "to": outcome.to_sha,
+                    "recovered": outcome.recovered,
+                },
+            )
 
     async def _load_approved_proposals(self) -> list[dict[str, Any]]:
         """

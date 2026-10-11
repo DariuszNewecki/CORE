@@ -31,13 +31,15 @@ With no upstream configured, ``sync`` returns ``disabled`` and does nothing.
 
 from __future__ import annotations
 
+import asyncio
 import fcntl
 import json
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+import time
+from collections.abc import AsyncIterator, Callable, Iterator
+from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
@@ -51,7 +53,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 SyncState = Literal[
-    "disabled", "up_to_date", "fast_forwarded", "ahead", "diverged", "failed"
+    "disabled", "busy", "up_to_date", "fast_forwarded", "ahead", "diverged", "failed"
 ]
 
 UPSTREAM_REF = "refs/remotes/upstream/develop"
@@ -80,19 +82,78 @@ def _rel(repo_root: Path, path: Path) -> str:
     return str(path.relative_to(repo_root))
 
 
-@contextmanager
-# ID: beed70a8-ff8f-406a-9f7c-7c94da3c207a
-def repo_lock(repo_root: Path, file_handler: FileHandler) -> Iterator[None]:
-    """Hold the clone's sync/commit lock for the duration of the block."""
+# ID: d840c789-edea-4029-8891-1efe31737cc3
+class RepoBusy(RuntimeError):
+    """The clone's sync/commit lock is held by someone else."""
+
+
+def _lock_path(repo_root: Path, file_handler: FileHandler) -> Path:
     lock_path = PathResolver.from_repo(repo_root).run_dir / _LOCK_NAME
     if not lock_path.exists():
         file_handler.write_runtime_text(_rel(repo_root, lock_path), "")
-    with lock_path.open("r") as handle:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+    return lock_path
+
+
+@contextmanager
+# ID: beed70a8-ff8f-406a-9f7c-7c94da3c207a
+def repo_lock(
+    repo_root: Path, file_handler: FileHandler, *, blocking: bool = True
+) -> Iterator[None]:
+    """Hold the clone's sync/commit lock for the duration of the block.
+
+    ``blocking=False`` raises RepoBusy at once when the lock is held.
+    """
+    with _lock_path(repo_root, file_handler).open("r") as handle:
+        flags = fcntl.LOCK_EX if blocking else fcntl.LOCK_EX | fcntl.LOCK_NB
+        try:
+            fcntl.flock(handle.fileno(), flags)
+        except BlockingIOError as exc:
+            raise RepoBusy("repository sync/commit lock is held") from exc
         try:
             yield
         finally:
             fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+@asynccontextmanager
+# ID: 937112c8-4f56-4553-a65e-b23cfb6e2eb5
+async def async_repo_lock(
+    repo_root: Path,
+    file_handler: FileHandler,
+    *,
+    timeout_sec: float = 600.0,
+    poll_sec: float = 0.25,
+) -> AsyncIterator[None]:
+    """The same lock for async callers: polls without blocking the event
+    loop; raises RepoBusy after ``timeout_sec``."""
+    deadline = time.monotonic() + timeout_sec
+    with _lock_path(repo_root, file_handler).open("r") as handle:
+        while True:
+            try:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError as exc:
+                if time.monotonic() >= deadline:
+                    raise RepoBusy(
+                        f"repository sync/commit lock still held after {timeout_sec}s"
+                    ) from exc
+                await asyncio.sleep(poll_sec)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+# ID: b478d53f-3091-4f43-bfad-558c98b40d8f
+def repo_sync_for(core_context: Any) -> RepoSync:
+    """RepoSync for CORE's own clone, upstream from settings (inert if unset)."""
+    from shared.config import settings
+
+    return RepoSync(
+        core_context.git_service,
+        core_context.file_handler,
+        settings.CORE_UPSTREAM_URL,
+    )
 
 
 # ID: a66cf739-20fd-40be-9155-6579103e1e25
@@ -212,3 +273,15 @@ class RepoSync:
             return SyncOutcome("failed", head, upstream, reason=str(exc))
         self._fh.remove_file(_rel(self._root, self._journal))
         return SyncOutcome("fast_forwarded", head, upstream, recovered=recovered)
+
+    # ID: 15da0087-385f-4451-8a31-835c918a98ea
+    def sync_if_free(self) -> SyncOutcome:
+        """Sync under the lock, or report ``busy`` at once when it is held
+        (a proposal is between propagation and commit)."""
+        if self._url is None:
+            return SyncOutcome(state="disabled")
+        try:
+            with repo_lock(self._root, self._fh, blocking=False):
+                return self.sync()
+        except RepoBusy:
+            return SyncOutcome(state="busy")

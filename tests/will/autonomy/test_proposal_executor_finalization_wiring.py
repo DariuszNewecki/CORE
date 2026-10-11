@@ -18,9 +18,24 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from will.autonomy.proposal_execution_pipeline import CommitOutcome
 from will.autonomy.proposal_executor import ProposalExecutor
 from will.autonomy.proposal_state_manager import ProposalStatus
+
+
+@pytest.fixture(autouse=True)
+def _no_repo_lock(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These tests cover finalization wiring on a mocked context with no real
+    repository; the ADR-132 D10 · D2 repo lock has its own real-file tests
+    (tests/will/autonomy/test_proposal_executor_repo_lock.py)."""
+
+    @asynccontextmanager
+    async def _free(*_a: object, **_k: object):
+        yield
+
+    monkeypatch.setattr("will.autonomy.proposal_executor.async_repo_lock", _free)
 
 
 def _make_proposal(**overrides: object) -> MagicMock:
