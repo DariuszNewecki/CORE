@@ -136,9 +136,9 @@ class TestRemediatorWorker(Worker):
             except Exception:
                 pass
         if repo_root is None:
-            from shared.infrastructure.paths import resolve_default_repo_path
+            from shared.infrastructure.intent.law_roots import configured_repo_root
 
-            repo_root = resolve_default_repo_path()
+            repo_root = configured_repo_root()
 
         await self.post_heartbeat()
 
