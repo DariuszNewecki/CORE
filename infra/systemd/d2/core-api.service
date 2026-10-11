@@ -1,0 +1,28 @@
+# infra/systemd/d2/core-api.service — the API on loopback (ADR-054 D3) under the release runtime
+# (ADR-132 D10 · D2).
+[Unit]
+Description=CORE API Server (loopback only, release runtime)
+After=network.target core-daemon.service
+PartOf=core-daemon.service
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/core/run
+EnvironmentFile=/opt/core/etc/core.env
+Environment=PATH=/opt/core/current/venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/core/current/venv/bin/python -I -m uvicorn api.main:app \
+    --host 127.0.0.1 \
+    --port 8000 \
+    --log-level info
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+UMask=0027
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=core-api
+
+[Install]
+WantedBy=default.target

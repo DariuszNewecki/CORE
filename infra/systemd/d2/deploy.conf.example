@@ -1,0 +1,5 @@
+# infra/systemd/d2/deploy.conf.example -> /opt/core/etc/deploy.conf (root:root 0600).
+# Read by core-deploy only. BACKUP_COMMAND runs as root before --migrate; {out} is replaced by the
+# dump path under /opt/core/backups. Without it, --migrate refuses before stopping anything.
+# Example (fill in the database user and name):
+# BACKUP_COMMAND=docker exec core_postgres_db pg_dump -U <db-user> -Fc <db-name> > {out}

@@ -1,0 +1,889 @@
+#!/usr/bin/python3 -I
+# infra/core-deploy — installed by the governor as /usr/local/sbin/core-deploy (root:root 0755).
+"""
+core-deploy — make a released commit the code CORE runs (ADR-132 D10 · D2).
+
+Usage (run by the governor, as root):
+
+    sudo core-deploy <tag-or-sha> [--migrate]
+    sudo core-deploy --rollback
+
+Deployment is the act that makes code run with production authority
+(ADR-132 D10.8): the assistant may change, build and test source; only this
+script, run by the governor, moves a commit into the runtime.
+
+Who executes what:
+
+    git (fetch, rev-parse, archive, show)  core        CORE's own clone, D1's safe git options
+    wheel build, dependency download       core-build  build backends execute code; never root or core
+    venv install                           root        wheels only, hash-checked; installing runs no package code
+    migrations, readiness, status          core        the services' own account and environment
+                                                       (systemd-run in core's user manager)
+
+Integrity: dependency hashes come from ``poetry.lock`` bytes read through
+core's git, never from the build tree; the CORE wheel core-build produced is
+accepted only if every file in it is byte-identical to ``src/<path>`` in the
+archive, its console scripts equal pyproject's, and it carries no ``.pth``.
+
+Order (design: var/reports/adr132-d10-d2-design-20261011.md, revision 3):
+ 1. resolve the ref to a SHA once; refuse unless it is on upstream develop
+    and its CI check runs are all green;
+ 2. refuse if releases/<sha> exists;
+ 3. build (core-build) and install (root) into releases/<sha>/venv, then
+    write core-release.json {sha, wheel_sha256} (the C4 contract);
+ 4. migration check with the new release (read-only); pending migrations
+    without --migrate refuse;
+ 5. --migrate: stop every unit, back up (BACKUP_COMMAND), migrate as core.
+    Any failure from here on with a migrated schema stops and hands the
+    governor the choice (exit 3) — the old release is never restarted
+    against a schema it does not expect;
+ 6. readiness: the new release's API on a spare loopback port must answer
+    /health, which it does only after its law-root and schema gates pass;
+ 7. switch ``current``, restart every unit, require all active and every
+    worker that was alive before to heartbeat again; without a migration a
+    failure switches back;
+ 8. append a ledger line.
+
+``--rollback`` returns to the release the current one replaced, refusing
+when a migration lies between them (a symlink does not roll back a database).
+
+Exit codes: 0 done; 1 refused (nothing live changed, or switched back);
+3 stopped after a migration — governor decision needed.
+
+Known limit: the heartbeat check reads GET /v1/daemon/status. When
+``require_governor`` goes live (ADR-132 D10.11 step 4) that route needs the
+governor's identity, and this check needs its own read-only channel.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime
+import fcntl
+import hashlib
+import io
+import json
+import os
+import pwd
+import re
+import shutil
+import subprocess
+import sys
+import tarfile
+import time
+import tomllib
+import urllib.request
+import zipfile
+from dataclasses import dataclass, field
+from pathlib import Path
+
+
+SERVICE_USER = "core"
+BUILD_USER = "core-build"
+SAFE_GIT = ("-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false")
+UPSTREAM_REF = "refs/remotes/upstream/develop"
+READINESS_UNIT = "core-deploy-readiness"
+GREEN = {"success", "skipped", "neutral"}
+
+EX_REFUSED = 1
+EX_GOVERNOR = 3
+
+
+class Refused(Exception):
+    """Nothing live changed (or it was switched back); exit 1."""
+
+
+class GovernorDecision(Exception):
+    """Stopped after a migration; the governor chooses restore or fix-forward."""
+
+
+@dataclass(frozen=True)
+class Layout:
+    root: Path = Path("/opt/core")
+
+    @property
+    def repo(self) -> Path:
+        return self.root / "repo"
+
+    @property
+    def releases(self) -> Path:
+        return self.root / "releases"
+
+    @property
+    def current(self) -> Path:
+        return self.root / "current"
+
+    @property
+    def run(self) -> Path:
+        return self.root / "run"
+
+    @property
+    def core_env(self) -> Path:
+        return self.root / "etc" / "core.env"
+
+    @property
+    def deploy_conf(self) -> Path:
+        return self.root / "etc" / "deploy.conf"
+
+    @property
+    def build(self) -> Path:
+        return self.root / "build"
+
+    @property
+    def backups(self) -> Path:
+        return self.root / "backups"
+
+    @property
+    def ledger(self) -> Path:
+        return self.root / "deploy-ledger.jsonl"
+
+    @property
+    def lock(self) -> Path:
+        return self.root / "deploy.lock"
+
+
+@dataclass
+class Options:
+    migrate: bool = False
+    readiness_port: int = 8765
+    api_base: str = "http://127.0.0.1:8000"
+    github_api: str = "https://api.github.com"
+    health_timeout: float = 120.0
+    settle_sec: float = 20.0
+    heartbeat_timeout: float = 600.0
+    poll_sec: float = 2.0
+
+
+# ---------------------------------------------------------------------------
+# Host: every side effect outside the filesystem goes through here, so the
+# tests can replace processes, HTTP and time without touching the logic.
+# ---------------------------------------------------------------------------
+
+
+class Host:
+    def run(
+        self,
+        cmd: list[str],
+        *,
+        user: str | None = None,
+        input: bytes | None = None,
+        check: bool = True,
+    ) -> subprocess.CompletedProcess[bytes]:
+        argv = list(cmd)
+        if user:
+            # A clean environment with the account's own HOME: root's
+            # environment (HOME=/root, sudo's variables) never leaks into
+            # core's git or core-build's build backends.
+            argv = [
+                "runuser",
+                "-u",
+                user,
+                "--",
+                "env",
+                "-i",
+                f"HOME={pwd.getpwnam(user).pw_dir}",
+                "PATH=/usr/local/bin:/usr/bin:/bin",
+                "LANG=C.UTF-8",
+                *cmd,
+            ]
+        result = subprocess.run(argv, input=input, capture_output=True)
+        if check and result.returncode != 0:
+            raise Refused(
+                f"command failed ({result.returncode}): {' '.join(argv)}\n"
+                + result.stderr.decode(errors="replace").strip()
+            )
+        return result
+
+    def http_json(self, url: str, timeout: float = 15.0) -> object:
+        request = urllib.request.Request(
+            url, headers={"Accept": "application/json", "User-Agent": "core-deploy"}
+        )
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return json.loads(response.read().decode())
+
+    def now(self) -> datetime.datetime:
+        return datetime.datetime.now(datetime.UTC)
+
+    def sleep(self, seconds: float) -> None:
+        time.sleep(seconds)
+
+    def chown(self, path: Path, user: str, recursive: bool = False) -> None:
+        targets = [path]
+        if recursive:
+            targets += list(path.rglob("*"))
+        for target in targets:
+            shutil.chown(target, user, user)
+
+
+# ---------------------------------------------------------------------------
+# Pure helpers
+# ---------------------------------------------------------------------------
+
+
+def read_env_file(path: Path) -> dict[str, str]:
+    """KEY=VALUE lines (systemd EnvironmentFile subset); comments ignored."""
+    values: dict[str, str] = {}
+    if not path.is_file():
+        return values
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip().strip('"').strip("'")
+    return values
+
+
+def github_slug(url: str) -> str:
+    match = re.fullmatch(r"https://github\.com/([\w.-]+/[\w.-]+?)(?:\.git)?/?", url)
+    if not match:
+        raise Refused(f"CORE_UPSTREAM_URL is not an https GitHub URL: {url!r}")
+    return match.group(1)
+
+
+def valid_ref(ref: str) -> bool:
+    return bool(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]*", ref)) and ".." not in ref
+
+
+def requirements_from_lock(lock_bytes: bytes) -> str:
+    """Every locked package, pinned with all its file hashes.
+
+    All groups: the services run the audit tools (mypy, ruff) that live in
+    the dev group, exactly as today's venv does. pip evaluates markers.
+    """
+    lock = tomllib.loads(lock_bytes.decode())
+    lines = []
+    for package in lock.get("package", []):
+        hashes = [f["hash"] for f in package.get("files", []) if f.get("hash")]
+        if not hashes:
+            raise Refused(f"poetry.lock has no hashes for {package['name']}")
+        spec = f"{package['name']}=={package['version']}"
+        if package.get("markers") and isinstance(package["markers"], str):
+            spec += f" ; {package['markers']}"
+        lines.append(spec + "".join(f" \\\n    --hash={h}" for h in hashes))
+    return "\n".join(lines) + "\n"
+
+
+def verify_wheel(wheel: Path, archive: bytes, pyproject: bytes) -> None:
+    """The wheel holds exactly bytes from src/, the declared scripts, no .pth."""
+    with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
+        source = {
+            m.name: tar.extractfile(m).read()  # type: ignore[union-attr]
+            for m in tar.getmembers()
+            if m.isfile() and m.name.startswith("src/")
+        }
+    declared = tomllib.loads(pyproject.decode()).get("project", {}).get("scripts", {})
+    problems: list[str] = []
+    with zipfile.ZipFile(wheel) as zf:
+        for name in zf.namelist():
+            if name.endswith("/"):
+                continue
+            if name.endswith(".pth"):
+                problems.append(f"{name}: .pth file")
+                continue
+            top = name.split("/", 1)[0]
+            if top.endswith(".dist-info"):
+                if name.endswith("/entry_points.txt"):
+                    scripts = _console_scripts(zf.read(name).decode())
+                    if scripts != declared:
+                        problems.append(
+                            f"console scripts {scripts} != pyproject {declared}"
+                        )
+                continue
+            expected = source.get(f"src/{name}")
+            if expected is None:
+                problems.append(f"{name}: not in the source archive")
+            elif zf.read(name) != expected:
+                problems.append(f"{name}: differs from src/{name}")
+    if problems:
+        raise Refused(
+            "built wheel does not match the source:\n  " + "\n  ".join(problems[:20])
+        )
+
+
+def _console_scripts(text: str) -> dict[str, str]:
+    scripts: dict[str, str] = {}
+    section = None
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("["):
+            section = line.strip("[]")
+        elif section == "console_scripts" and "=" in line:
+            key, value = line.split("=", 1)
+            scripts[key.strip()] = value.strip()
+    return scripts
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _parse_time(value: str | None) -> datetime.datetime | None:
+    if not value:
+        return None
+    parsed = datetime.datetime.fromisoformat(value)
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=datetime.UTC)
+
+
+# ---------------------------------------------------------------------------
+# The deployment
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class Deployer:
+    host: Host
+    layout: Layout
+    options: Options = field(default_factory=Options)
+
+    # -- small wrappers -----------------------------------------------------
+
+    def say(self, message: str) -> None:
+        print(f"core-deploy: {message}", flush=True)
+
+    def git(self, *args: str, input: bytes | None = None) -> bytes:
+        return self.host.run(
+            ["git", "-C", str(self.layout.repo), *SAFE_GIT, *args],
+            user=SERVICE_USER,
+            input=input,
+        ).stdout
+
+    def systemctl(
+        self, *args: str, check: bool = True
+    ) -> subprocess.CompletedProcess[bytes]:
+        return self.host.run(
+            ["systemctl", "--user", "-M", f"{SERVICE_USER}@", *args], check=check
+        )
+
+    def as_service(
+        self, cmd: list[str], *, unit: str | None = None, wait: bool = True
+    ) -> subprocess.CompletedProcess[bytes]:
+        """Run in core's user manager with the units' own environment."""
+        argv = [
+            "systemd-run",
+            "--user",
+            "-M",
+            f"{SERVICE_USER}@",
+            "--collect",
+            "--quiet",
+            f"--property=EnvironmentFile={self.layout.core_env}",
+            f"--property=WorkingDirectory={self.layout.run}",
+        ]
+        if unit:
+            argv.append(f"--unit={unit}")
+        if wait:
+            argv += ["--wait", "--pipe"]
+        return self.host.run([*argv, "--", *cmd], check=False)
+
+    def units(self) -> list[str]:
+        out = self.systemctl(
+            "list-units", "--all", "--plain", "--no-legend", "--type=service", "core-*"
+        ).stdout.decode()
+        names = sorted({line.split()[0] for line in out.splitlines() if line.strip()})
+        return [n for n in names if not n.startswith(READINESS_UNIT)]
+
+    def current_sha(self) -> str | None:
+        if not self.layout.current.is_symlink():
+            return None
+        return Path(os.readlink(self.layout.current)).name
+
+    def switch_current(self, sha: str) -> None:
+        tmp = self.layout.root / ".current.tmp"
+        if tmp.is_symlink() or tmp.exists():
+            tmp.unlink()
+        tmp.symlink_to(Path("releases") / sha)
+        os.replace(tmp, self.layout.current)
+
+    def ledger(self, entry: dict[str, object]) -> None:
+        with self.layout.ledger.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(entry, sort_keys=True) + "\n")
+
+    def ledger_entries(self) -> list[dict[str, object]]:
+        if not self.layout.ledger.is_file():
+            return []
+        return [
+            json.loads(line)
+            for line in self.layout.ledger.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+    # -- step 1 ---------------------------------------------------------------
+
+    def resolve(self, ref: str, upstream: str) -> str:
+        if not valid_ref(ref):
+            raise Refused(f"not a valid tag or sha: {ref!r}")
+        self.git("fetch", "--no-tags", upstream, f"refs/heads/develop:{UPSTREAM_REF}")
+        if not re.fullmatch(r"[0-9a-f]{40}", ref):
+            self.git("fetch", "--no-tags", upstream, f"refs/tags/{ref}:refs/tags/{ref}")
+        sha = self.git("rev-parse", "--verify", f"{ref}^{{commit}}").decode().strip()
+        on_develop = self.host.run(
+            [
+                "git",
+                "-C",
+                str(self.layout.repo),
+                *SAFE_GIT,
+                "merge-base",
+                "--is-ancestor",
+                sha,
+                UPSTREAM_REF,
+            ],
+            user=SERVICE_USER,
+            check=False,
+        )
+        if on_develop.returncode != 0:
+            raise Refused(f"{sha[:12]} is not on upstream develop")
+        self.require_green_ci(github_slug(upstream), sha)
+        return sha
+
+    def require_green_ci(self, slug: str, sha: str) -> None:
+        url = f"{self.options.github_api}/repos/{slug}/commits/{sha}/check-runs?per_page=100"
+        try:
+            data = self.host.http_json(url)
+        except Exception as exc:  # network, rate limit, parse
+            raise Refused(f"CI state for {sha[:12]} unavailable: {exc}") from exc
+        runs = data.get("check_runs", []) if isinstance(data, dict) else []
+        if not runs:
+            raise Refused(f"no CI check runs for {sha[:12]}")
+        bad = [
+            f"{r.get('name')}: {r.get('status')}/{r.get('conclusion')}"
+            for r in runs
+            if r.get("status") != "completed" or r.get("conclusion") not in GREEN
+        ]
+        if bad:
+            raise Refused(f"CI for {sha[:12]} is not green: " + "; ".join(bad))
+
+    # -- step 3 ---------------------------------------------------------------
+
+    def build_and_install(self, sha: str) -> str:
+        build = self.layout.build / sha
+        if build.exists():
+            shutil.rmtree(build)
+        (build / "src").mkdir(parents=True)
+        (build / "wheel").mkdir()
+        (build / "wheelhouse").mkdir()
+
+        archive = self.git("archive", "--format=tar", sha)
+        lock = self.git("show", f"{sha}:poetry.lock")
+        pyproject = self.git("show", f"{sha}:pyproject.toml")
+        requirements = build / "requirements.txt"
+        requirements.write_text(requirements_from_lock(lock), encoding="utf-8")
+        self.host.chown(build, BUILD_USER, recursive=True)
+
+        self.say("building as core-build")
+        self.host.run(
+            ["tar", "-x", "-C", str(build / "src")], user=BUILD_USER, input=archive
+        )
+        self.host.run(
+            ["/usr/bin/python3", "-I", "-m", "venv", str(build / "tools")],
+            user=BUILD_USER,
+        )
+        pip = str(build / "tools" / "bin" / "pip")
+        self.host.run(
+            [
+                pip,
+                "wheel",
+                "--no-cache-dir",
+                "--no-deps",
+                "--wheel-dir",
+                str(build / "wheel"),
+                str(build / "src"),
+            ],
+            user=BUILD_USER,
+        )
+        self.host.run(
+            [
+                pip,
+                "download",
+                "--no-cache-dir",
+                "--only-binary=:all:",
+                "--require-hashes",
+                "-r",
+                str(requirements),
+                "-d",
+                str(build / "wheelhouse"),
+            ],
+            user=BUILD_USER,
+        )
+        wheels = sorted((build / "wheel").glob("*.whl"))
+        if len(wheels) != 1:
+            raise Refused(f"expected one built wheel, found {[w.name for w in wheels]}")
+        verify_wheel(wheels[0], archive, pyproject)
+        wheel_sha = sha256_file(wheels[0])
+
+        self.say("installing as root (wheels only)")
+        release = self.layout.releases / sha
+        venv = release / "venv"
+        try:
+            self.host.run(["/usr/bin/python3", "-I", "-m", "venv", str(venv)])
+            python = str(venv / "bin" / "python")
+            self.host.run(
+                [
+                    python,
+                    "-I",
+                    "-m",
+                    "pip",
+                    "install",
+                    "--no-cache-dir",
+                    "--no-index",
+                    "--only-binary=:all:",
+                    "--require-hashes",
+                    "--find-links",
+                    str(build / "wheelhouse"),
+                    "-r",
+                    str(requirements),
+                ]
+            )
+            self.host.run(
+                [
+                    python,
+                    "-I",
+                    "-m",
+                    "pip",
+                    "install",
+                    "--no-cache-dir",
+                    "--no-index",
+                    "--no-deps",
+                    str(wheels[0]),
+                ]
+            )
+            (venv / "core-release.json").write_text(
+                json.dumps({"sha": sha, "wheel_sha256": wheel_sha}) + "\n",
+                encoding="utf-8",
+            )
+            self.host.run(["chown", "-R", "root:root", str(release)])
+            self.host.run(["chmod", "-R", "go-w", str(release)])
+        except BaseException:
+            shutil.rmtree(release, ignore_errors=True)
+            raise
+        shutil.rmtree(build, ignore_errors=True)
+        return wheel_sha
+
+    def release_python(self, sha: str) -> str:
+        return str(self.layout.releases / sha / "venv" / "bin" / "python")
+
+    # -- steps 4-5 ------------------------------------------------------------
+
+    def database_status(self, sha: str) -> dict[str, object]:
+        result = self.as_service(
+            [
+                self.release_python(sha),
+                "-I",
+                "-m",
+                "cli.admin_cli",
+                "database",
+                "status",
+                "--format",
+                "json",
+            ]
+        )
+        try:
+            status = json.loads(result.stdout.decode())
+        except ValueError as exc:
+            raise Refused(
+                f"database status unreadable (rc {result.returncode})"
+            ) from exc
+        if not status.get("connected"):
+            raise Refused(f"database not reachable: {status.get('error')}")
+        if status.get("probe_failures"):
+            raise Refused(f"schema probe failures: {status['probe_failures']}")
+        return status
+
+    def migrate(self, sha: str, units: list[str]) -> tuple[list[str], str]:
+        status = self.database_status(sha)
+        raw = status.get("pending_migrations")
+        pending = [str(p) for p in raw] if isinstance(raw, list) else []
+        if not pending:
+            return [], ""
+        if not self.options.migrate:
+            raise Refused(
+                "pending migrations (re-run with --migrate): " + ", ".join(pending)
+            )
+        backup_cmd = read_env_file(self.layout.deploy_conf).get("BACKUP_COMMAND")
+        if not backup_cmd or "{out}" not in backup_cmd:
+            raise Refused(
+                "--migrate needs BACKUP_COMMAND (with {out}) in "
+                + str(self.layout.deploy_conf)
+            )
+
+        self.say("stopping every unit for the migration")
+        self.systemctl("stop", *units)
+        stamp = self.host.now().strftime("%Y%m%dT%H%M%SZ")
+        backup = self.layout.backups / f"{stamp}-pre-{sha[:12]}.dump"
+        self.layout.backups.mkdir(parents=True, exist_ok=True)
+        done = self.host.run(
+            ["/bin/sh", "-c", backup_cmd.replace("{out}", str(backup))], check=False
+        )
+        if done.returncode != 0 or not backup.is_file() or backup.stat().st_size == 0:
+            # Nothing migrated yet: the old release is still right for the schema.
+            self.systemctl("start", *units, check=False)
+            raise Refused(
+                f"backup failed (rc {done.returncode}); units restarted, nothing migrated"
+            )
+
+        self.say(f"migrating as core: {', '.join(pending)}")
+        result = self.as_service(
+            [
+                self.release_python(sha),
+                "-I",
+                "-m",
+                "cli.admin_cli",
+                "database",
+                "migrate",
+                "--write",
+            ]
+        )
+        if result.returncode != 0 or self.database_status(sha).get(
+            "pending_migrations"
+        ):
+            raise GovernorDecision(
+                f"migration failed (rc {result.returncode}). Units are stopped; the old release "
+                f"was not restarted. Backup: {backup}. Choose: restore the backup and redeploy "
+                f"the old release, or fix forward."
+            )
+        return pending, str(backup)
+
+    # -- step 6 ---------------------------------------------------------------
+
+    def readiness(self, sha: str) -> bool:
+        port = self.options.readiness_port
+        self.as_service(
+            [
+                self.release_python(sha),
+                "-I",
+                "-m",
+                "uvicorn",
+                "api.main:app",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                str(port),
+            ],
+            unit=READINESS_UNIT,
+            wait=False,
+        )
+        try:
+            return self.wait_for_health(f"http://127.0.0.1:{port}/health")
+        finally:
+            self.systemctl("stop", f"{READINESS_UNIT}.service", check=False)
+
+    def wait_for_health(self, url: str) -> bool:
+        deadline = self.options.health_timeout
+        waited = 0.0
+        while waited <= deadline:
+            try:
+                if self.host.http_json(url, timeout=5) == {"status": "ok"}:
+                    return True
+            except Exception:
+                pass
+            self.host.sleep(self.options.poll_sec)
+            waited += self.options.poll_sec
+        return False
+
+    # -- step 7 ---------------------------------------------------------------
+
+    def alive_workers(self) -> set[str]:
+        try:
+            data = self.host.http_json(f"{self.options.api_base}/v1/daemon/status")
+        except Exception:
+            return set()
+        workers = data.get("workers", []) if isinstance(data, dict) else []
+        return {w["name"] for w in workers if w.get("alive") and w.get("name")}
+
+    def verify_units(
+        self, units: list[str], expect: set[str], since: datetime.datetime
+    ) -> str | None:
+        """None when every unit stayed active and every expected worker
+        heartbeated after ``since``; otherwise what failed."""
+        self.host.sleep(self.options.settle_sec)
+        inactive = [
+            u
+            for u in units
+            if self.systemctl("is-active", u, check=False).returncode != 0
+        ]
+        if inactive:
+            return "inactive units: " + ", ".join(inactive)
+        if not self.wait_for_health(f"{self.options.api_base}/health"):
+            return "API /health did not answer"
+        waited = 0.0
+        missing = set(expect)
+        while missing and waited <= self.options.heartbeat_timeout:
+            try:
+                data = self.host.http_json(f"{self.options.api_base}/v1/daemon/status")
+                for w in data.get("workers", []) if isinstance(data, dict) else []:
+                    beat = _parse_time(w.get("last_heartbeat"))
+                    if w.get("name") in missing and beat is not None and beat > since:
+                        missing.discard(w["name"])
+            except Exception:
+                pass
+            if missing:
+                self.host.sleep(self.options.poll_sec)
+                waited += self.options.poll_sec
+        if missing:
+            return "no heartbeat since the switch from: " + ", ".join(sorted(missing))
+        return None
+
+    def restart(self, units: list[str]) -> None:
+        self.systemctl("restart", *units, check=False)
+
+    # -- entry points ---------------------------------------------------------
+
+    def deploy(self, ref: str) -> int:
+        env = read_env_file(self.layout.core_env)
+        upstream = env.get("CORE_UPSTREAM_URL")
+        if not upstream:
+            raise Refused(f"CORE_UPSTREAM_URL missing from {self.layout.core_env}")
+
+        sha = self.resolve(ref, upstream)
+        self.say(f"{ref} -> {sha}")
+        if (self.layout.releases / sha).exists():
+            raise Refused(
+                f"release {sha[:12]} already exists; use --rollback or a new commit"
+            )
+        previous = self.current_sha()
+        units = self.units()
+        expect = self.alive_workers()
+
+        wheel_sha = self.build_and_install(sha)
+        try:
+            migrated, backup = self.migrate(sha, units)
+            if not self.readiness(sha):
+                if migrated:
+                    raise GovernorDecision(
+                        f"new release failed readiness after migrating {migrated}. Units are "
+                        f"stopped; the old release was not restarted. Backup: {backup}."
+                    )
+                raise Refused("new release failed readiness; nothing switched")
+        except Refused:
+            # Never switched: drop the release so a corrected re-run can install it.
+            # (A GovernorDecision keeps it: the governor may choose to fix forward.)
+            shutil.rmtree(self.layout.releases / sha, ignore_errors=True)
+            raise
+
+        switched_at = self.host.now()
+        self.switch_current(sha)
+        self.restart(units)
+        failure = self.verify_units(units, expect, switched_at)
+        if failure:
+            if migrated:
+                raise GovernorDecision(
+                    f"after switching to {sha[:12]} (migrated {migrated}): {failure}. Not "
+                    f"switching back automatically. Backup: {backup}."
+                )
+            if previous:
+                self.switch_current(previous)
+                self.restart(units)
+                shutil.rmtree(self.layout.releases / sha, ignore_errors=True)
+                raise Refused(f"{failure}; switched back to {previous[:12]}")
+            raise Refused(f"{failure}; no previous release to switch back to")
+
+        self.ledger(
+            {
+                "action": "deploy",
+                "sha": sha,
+                "ref": ref,
+                "wheel_sha256": wheel_sha,
+                "previous": previous,
+                "migrations_applied": migrated,
+                "backup": backup or None,
+                "units": units,
+                "at": switched_at.isoformat(),
+                "by": os.environ.get("SUDO_USER", "root"),
+            }
+        )
+        self.say(f"live: {sha} ({len(units)} units verified)")
+        return 0
+
+    def rollback(self) -> int:
+        current = self.current_sha()
+        if current is None:
+            raise Refused("no current release")
+        entry = next(
+            (e for e in reversed(self.ledger_entries()) if e.get("sha") == current),
+            None,
+        )
+        if entry is None or not entry.get("previous"):
+            raise Refused(f"no previous release recorded for {current[:12]}")
+        target = str(entry["previous"])
+        if entry.get("migrations_applied"):
+            raise Refused(
+                f"migrations {entry['migrations_applied']} lie between {target[:12]} and "
+                f"{current[:12]}; backup {entry.get('backup')}. A symlink does not roll back a database."
+            )
+        if not (self.layout.releases / target).is_dir():
+            raise Refused(f"release {target[:12]} is no longer installed")
+        units = self.units()
+        expect = self.alive_workers()
+        switched_at = self.host.now()
+        self.switch_current(target)
+        self.restart(units)
+        failure = self.verify_units(units, expect, switched_at)
+        if failure:
+            self.switch_current(current)
+            self.restart(units)
+            raise Refused(f"{failure}; switched back to {current[:12]}")
+        self.ledger(
+            {
+                "action": "rollback",
+                "sha": target,
+                "previous": current,
+                "migrations_applied": [],
+                "units": units,
+                "at": switched_at.isoformat(),
+                "by": os.environ.get("SUDO_USER", "root"),
+            }
+        )
+        self.say(f"rolled back to {target}")
+        return 0
+
+
+def main(argv: list[str] | None = None, host: Host | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="core-deploy", description=__doc__.split("\n\n")[0]
+    )
+    parser.add_argument(
+        "ref", nargs="?", help="tag or full commit sha on upstream develop"
+    )
+    parser.add_argument(
+        "--migrate", action="store_true", help="apply pending migrations"
+    )
+    parser.add_argument(
+        "--rollback", action="store_true", help="return to the previous release"
+    )
+    parser.add_argument(
+        "--root", type=Path, default=Path("/opt/core"), help=argparse.SUPPRESS
+    )
+    args = parser.parse_args(argv)
+    if bool(args.ref) == bool(args.rollback):
+        parser.error("give exactly one of <ref> or --rollback")
+    if host is None and os.geteuid() != 0:
+        print("core-deploy: must run as root (sudo core-deploy ...)", file=sys.stderr)
+        return EX_REFUSED
+
+    layout = Layout(args.root)
+    deployer = Deployer(host or Host(), layout, Options(migrate=args.migrate))
+    layout.root.mkdir(parents=True, exist_ok=True)
+    with layout.lock.open("a") as lock:
+        try:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            print("core-deploy: another deployment is running", file=sys.stderr)
+            return EX_REFUSED
+        try:
+            return deployer.rollback() if args.rollback else deployer.deploy(args.ref)
+        except Refused as exc:
+            print(f"core-deploy: refused: {exc}", file=sys.stderr)
+            return EX_REFUSED
+        except GovernorDecision as exc:
+            print(
+                f"core-deploy: STOPPED, governor decision needed: {exc}",
+                file=sys.stderr,
+            )
+            return EX_GOVERNOR
+
+
+if __name__ == "__main__":
+    sys.exit(main())

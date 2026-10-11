@@ -7,7 +7,7 @@ StartLimitIntervalSec=300
 [Service]
 Type=simple
 WorkingDirectory=/opt/dev/CORE
-Environment="PATH=/opt/dev/CORE/.venv/bin:/home/lira/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PATH=/opt/dev/CORE/.venv/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="VIRTUAL_ENV=/opt/dev/CORE/.venv"
 ExecStart=/opt/dev/CORE/.venv/bin/core-admin daemon start
 Restart=on-failure

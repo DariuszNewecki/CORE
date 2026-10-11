@@ -1,0 +1,31 @@
+# infra/systemd/d2/core-daemon.service — core's user unit under the release runtime (ADR-132 D10 · D2).
+# Installed by the governor's root script into core's user unit directory; the assistant cannot write
+# it (D10.8). The code is the release `current` points at, never the development tree.
+[Unit]
+Description=CORE Background Worker Daemon (release runtime)
+After=network.target
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/core/run
+# Non-secret settings only (REPO_PATH, MIND, SPECS, CORE_UPSTREAM_URL, CORE_SECRETS_FILE, ...).
+# Secrets stay in CORE_SECRETS_FILE, read into Settings and never exported (#962).
+EnvironmentFile=/opt/core/etc/core.env
+Environment=PATH=/opt/core/current/venv/bin:/usr/local/bin:/usr/bin:/bin
+# -I: no working directory, user site or PYTHON* variables on the import path (route R2).
+ExecStart=/opt/core/current/venv/bin/python -I -m cli.admin_cli daemon start
+Restart=on-failure
+RestartSec=10
+# 78 = a startup gate refused (law root, schema, interrupted sync): restarting cannot fix it.
+RestartPreventExitStatus=78
+WatchdogSec=120
+NoNewPrivileges=yes
+UMask=0027
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=core-daemon
+
+[Install]
+WantedBy=default.target

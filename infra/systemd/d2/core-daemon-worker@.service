@@ -1,0 +1,26 @@
+# infra/systemd/d2/core-daemon-worker@.service — one dedicated worker per instance (ADR-081 D3/D5),
+# under the release runtime (ADR-132 D10 · D2). Instance = the worker's declaration stem.
+[Unit]
+Description=CORE dedicated worker %i (release runtime)
+After=network.target core-daemon.service
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/core/run
+EnvironmentFile=/opt/core/etc/core.env
+Environment=PATH=/opt/core/current/venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/core/current/venv/bin/python -I -m cli.admin_cli daemon start --only %i
+Restart=on-failure
+RestartSec=10
+RestartPreventExitStatus=78
+WatchdogSec=120
+NoNewPrivileges=yes
+UMask=0027
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=core-worker-%i
+
+[Install]
+WantedBy=default.target
