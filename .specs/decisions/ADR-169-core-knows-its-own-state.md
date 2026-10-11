@@ -188,3 +188,14 @@ entries that fail to record after writing are kept and the command fails. Bounda
 installation with no CORE database configured (a standalone install scaffolding an adopter
 project) has no CORE state to record; the writes proceed and every unrecorded path is reported.
 Declined: write anyway with a warning; a local queue replayed later.
+
+## Amendment — 2026-10-11 (ADR-132 D10.14): three identities under the release runtime
+
+D1's loaded-code identity is **what code runs**. Under the release runtime it is the release (commit SHA and
+wheel sha256), not a fingerprint of the clone's `src/`. D3's comparison and acceptance check 3 read with ADR-030's
+amendment of the same date:
+- a new commit in the clone does not make the daemon stale;
+- a `current` switched to another release without a restart does.
+
+What proposals are validated against (the clone's HEAD) and which law judged (the law digest) stay separate
+facts, as ADR-132 D10.14 records.

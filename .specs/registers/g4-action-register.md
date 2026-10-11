@@ -274,3 +274,77 @@ Times are UTC unless marked. Lessons drawn from these rows: `lessons-register.md
 
 **Session-2 total (by hand)** — fixes and law: 16 entries (15 by the assistant, 1 by CORE's own loop);
 catches: 18 — governor 2, assistant 8, **CORE 8**; assistant misses: 12 (7 caught by CORE).
+
+---
+
+## 2026-10-11
+
+ADR-132 D10 · D2 (release runtime, CORE's own git) built and left inert. Two sessions: the morning (design, three
+review rounds, C1–C5 and the law routing) and the afternoon (governor's answers, closing the gaps, C6, this batch).
+
+### Fixes and builds (all by the assistant as producer; none by CORE's autonomous loop)
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-32 | d6644393 | Copy-back refuses when the main tree's HEAD moved under a target file (a live bug) | external reviewer (C-39) | git; commit-gate verdict |
+| A-33 | 17d8abf0 | Roots follow an explicit `REPO_PATH`; services refuse a missing/empty/floor law root (exit 78) | design | git; verdict |
+| A-34 | 070e72ba | An installed release is its own code identity (C4) | design (C-39) | git; verdict |
+| A-35 | 1d3ee22d | RepoSync: fast-forward only, journalled, recoverable; repo lock (C2) | design (C-40) | git; verdict |
+| A-36 | d6274aac | Proposals run under the repo lock; a busy lock leaves the proposal approved, not failed (also the ADR-023 D4 refusal); consumer syncs first (C3) | design | git; verdict |
+| A-37 | 4d5e6617, 8459f839 | About 60 service-path law reads routed through `law_roots` (law beside the clone) | assistant recon | git; verdict |
+| A-38 | 76964b52 | Test remediator's fallback root is the configured one | assistant recon | git; verdict |
+| A-39 | c22d24c5 | Import-resolution tools run in the analysed repository, not the working directory | assistant's D2 audit probe (C-45) | git; verdict |
+| A-40 | 6bd70010 | Every service process recovers an interrupted sync before reading; last law-path leftovers; `/fix/ir` writes `var/mind/ir` | governor (C-46); assistant (C-48) | git; verdict |
+| A-41 | 6a64a5c3, 151d100d | D2 units and `core-deploy`, prepared not installed, with 29 tests (operator role: infra/, governor grant) | design (C6) | git; verdict |
+| A-42 | 528526b8 | A release process goes stale when `current` is switched without a restart (ADR-030) | assistant (C-47) | git; verdict |
+| A-43 | 099d8f37 | Law beside the clone decided by value: dev worktrees (sandboxes, the law scratch worktree) keep their own law | CORE (C-50) | git; verdict |
+
+### Catches — who objected, and what changed
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-39 | external reviewer | D2 rev 1, six points: a push runs the receiver's hooks; `code_identity` fingerprints the clone's `src/`; copy-back had no base check; MIND/SPECS ignore `REPO_PATH`; `EnvironmentFile` would undo #962; `core-law` does not exist yet | rev 2; transport B; A-32 | **none** |
+| C-40 | external reviewer | rev 2: a fast-forward deletes law kept in a sparse checkout (reproduced); `.git` 700 contradicts the fetch; migrations before readiness; build accounts; checkout not atomic | rev 3: law out of the clone; journal + recovery | **none** |
+| C-41 | external reviewer | rev 3: committed law is not approved law while `develop` is unprotected | ruling B withdrawn; A stands | **none** |
+| C-42 | governor | "Stop the ping-pong": three review rounds were enough | build, then one bundled ask | **none** |
+| C-43 | CORE (fast verdict) | `# ID` above the decorator on `repo_lock` | fixed before commit | **none** (fast verdicts are not logged) |
+| C-44 | mypy (run by the assistant) | A `Literal` type miss in C3; the fast verdict does not evaluate `quality.type_safety` | fixed before commit | **none** |
+| C-45 | assistant (D2 audit probe) | The only difference between the normal and the D2-layout audit: `mypy src` ran from the working directory | A-39; then identical, 243 rules / 31 findings | probe output in `var/tmp/d2probe` (not durable) |
+| C-46 | governor | "Before declaring D2 ready, close the startup recovery window and the remaining law paths" | A-40 | **none** |
+| C-47 | assistant (re-reading ADR-030 for this batch, as the design required) | C4's "release never goes stale" silently retired ADR-030 for releases | A-42; ADR-030/169 amendments | **none** |
+| C-48 | assistant recon | `POST /fix/ir` wrote into `.intent/`, which IntentGuard refuses: the endpoint could never have worked | A-40 | **none** |
+| C-49 | assistant (writing tests) | `core-deploy` left a refused release installed, so a corrected re-run would refuse "exists" | fixed before commit | **none** |
+| C-50 | **CORE** (offline audit, in this batch's D0 check) | A rule failed on a contract path outside the scratch worktree: since C1, an explicit `REPO_PATH` marks MIND "set", so `law_roots` sent every dev worktree to the main tree's law. D2 was not inert in dev, and D0 checks would have validated the current law, not the batch | A-43; D0 checks now pass `REPO_PATH=<worktree>` | audit JSON of the check (`var/tmp/law0018-audit.json`, not durable) |
+
+**Health**
+
+| ID | Problem | Since | Status |
+|---|---|---|---|
+| H-21 | `POST /fix/ir` always failed (target inside `.intent/`) | unknown | fixed (A-40) |
+| H-22 | Copy-back could overwrite a newer committed change to the same file | ADR-071 | fixed (A-32) |
+| H-19 | R3: `.git/` group-writable → config replaceable | — | built for the services (D10.12), **not live** |
+
+**Events**
+
+| ID | Time | Event | By |
+|---|---|---|---|
+| E-22 | ~06:3x | main promoted 18a364bf..c0675bbb (25 commits, CI green) | governor yes; assistant |
+| E-23 | morning | Rulings: transport B; law A; fix copy-back now | governor |
+| E-24 | ~08:2x | Pause; 9 commits local; questions left | governor |
+| E-25 | afternoon | Answers: infra/ operator grant (local preparation only), law batch now, push at session end | governor |
+
+**Assistant's misses**
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-26 | D2 rev 1/2 made claims the reviewer disproved (push hooks, law in a sparse checkout) | external reviewer (C-39, C-40) | two revisions |
+| M-27 | Shipped C3 with a known recovery window, written down as a "deviation" | governor (C-46) | closed in A-40 before go-live |
+| M-28 | Law routing batches 1–2 missed the daemon's worker discovery and five more reads | assistant (final sweep) | closed in A-40 |
+| M-29 | C4 declared releases never stale, against ADR-030 | assistant (C-47) | closed in A-42 |
+| M-30 | First `core-deploy` draft left refused releases behind | assistant (C-49) | never committed |
+| M-31 | Claimed D2 code "inert today" without testing a worktree inside the dev checkout; `law_roots` trusted `model_fields_set`, which C1's own derivation fills | CORE (C-50) | dev sandboxes read the main tree's law from the 08:01 routing commit (once the services restarted) until the fix; the law was identical in practice; fixed A-43 |
+
+**2026-10-11 total (by hand)** — fixes and builds: 12 entries, all by the assistant; catches: 12 — governor 2,
+external reviewer 3, assistant 4, **CORE 2**, mypy (a tool) 1; assistant misses: 6, one caught by CORE. The
+commit gate ran 12 times for 13 commits and allowed every run, plus one false trigger on a command that only
+wrote a file containing the words `git commit` (`var/experiments/adr168/verdicts.jsonl`, 10:12:33).

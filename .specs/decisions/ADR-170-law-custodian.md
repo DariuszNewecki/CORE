@@ -227,3 +227,29 @@ Stage 3 would be, today, so it waits for a trigger, as #962 (sandboxing) did. St
 
 **Stage 2:**
 10. A commit changing `.intent/` through git plumbing, with no matching ledger line, is flagged by `governance.law.custody_required` in CI.
+
+## Amendment 2026-10-11 — the law has two destinations (ADR-132 D10.13)
+
+**Proposed by:** Claude (core-claude), proposal 0018. **Rests on:** ADR-132 D10.13 (law ruling A, 2026-10-11).
+
+Under the release runtime the services do not read the law from the development tree. They read it from
+`/opt/core/law/`, beside CORE's code-only clone. So an approved proposal must land in both places, as one act:
+
+1. **Two destinations (D3, step 3).** `law apply` writes the same in-memory bytes to the development tree **and**
+   to `/opt/core/law/`, under the same id confirmation. `/opt/core/law/` has a root-owned parent; `core-law` owns
+   `.intent/` and `.specs/` beneath it (`0644`/`0755`), so `core` and `core-claude` can neither write the files
+   nor rename the entries.
+2. **One ledger line (D4).** The line records each path once, with its sha256, and names both destinations. If
+   either write fails, `law apply` reports which destination holds which bytes and writes no ledger line. The
+   governor re-runs the proposal; there is no partial "applied".
+3. **Activation.** After writing, the services reload the law (the existing reload) and record its digest. A
+   proposal whose validation spans the old and new law is not run.
+4. **Consistency check.** The commit that last touched the law in `develop` must match the digest in
+   `/opt/core/law/`. A mismatch is a finding. It also means the law in force and the law in git have parted, which
+   D7's custody rule exists to catch.
+5. **Stage 1 acceptance, additions:**
+   - as `core` and as `core-claude`, writing, renaming or deleting anything under `/opt/core/law` is denied;
+   - after a `law apply`, both destinations hold identical bytes and the ledger line names both.
+
+Until Stage 1 is live the release runtime is not switched on (ADR-132 D10.11 step 2, go-live order), so the
+rehearsal (D0) needs no second destination.

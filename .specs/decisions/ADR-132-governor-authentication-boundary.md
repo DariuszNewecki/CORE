@@ -671,3 +671,109 @@ Beyond "Verification as amended", #942 closes only when also:
   logged-in Console user becomes an approver CORE trusts is decided on its own, before the platform's approval
   slice is built.
 - #942 is no longer "parked"; it is the closing issue of this order.
+
+## Addendum — D10.11 step 2 as built: the release runtime and CORE's own git (2026-10-11)
+
+**Proposed by:** Claude (core-claude), 2026-10-11, proposal 0018. **Rests on:** D10.8, D10.11 steps 1–2, ADR-170
+D2, the governor's rulings of 2026-10-11 (transport B, law ruling A). Design and its three review rounds:
+`var/reports/adr132-d10-d2-design-20261011.md`.
+
+Step 2 is built and inert: nothing changes until the governor installs the runtime and runs the first deploy. This
+addendum records what the code now assumes, so that later work does not quietly undo it.
+
+### D10.12 — CORE runs git only in a repository that CORE alone can write
+
+The services work in their own clone, `/opt/core/repo`, and never run git in the development tree, in either
+direction.
+- **Incoming.** Commits reach the clone from GitHub `develop`, over https, by fast-forward only. If the lines have
+  diverged, CORE refuses and raises one human finding (`repo_sync::clone`). It never merges.
+- **Outgoing.** The assistant fetches CORE's commits as `core/develop`, running git as itself against a
+  repository it can only read. Its own commits must contain `core/develop` (the `.claude/hooks` check in this
+  batch).
+- **Atomicity.** A checkout is not atomic, so every sync writes a journal first and deletes it last. Every service
+  process — the daemon, each dedicated worker, the API — finishes or undoes an interrupted sync **before** it
+  reads the tree. A journal whose HEAD is at neither end stops the start (exit 78).
+- **One lock.** Sync and the propagate-to-commit path share one lock, so a sync never lands between a proposal's
+  propagation and its commit.
+
+This closes R3 for the services, and with it #594 (CORE committing in the tree the assistant edits).
+
+### D10.13 — The law lives beside the clone, written only by `core-law` (ruling A)
+
+- **Where.** The clone holds code only. Its sparse checkout never materialises `.intent/`, `.specs/`, `CLAUDE.md`
+  or `.claude/`. The law is at `/opt/core/law/`, under a root-owned parent, written only by `core-law` (ADR-170).
+  The services read it through `MIND`/`SPECS`.
+- **No silent fallback.** A service whose law root is missing, empty or the bundled floor refuses to start
+  (exit 78).
+- **Routing proven.** Every service-path law read goes through the law-root helper. An offline audit run in this
+  layout (a sparse clone with law supplied only via `MIND`/`SPECS`) produced the same 243 rules and 31 findings
+  as the normal run.
+- **Runtime data never lands in law.** For example, incident-response scaffolds moved from `.intent/mind/ir` to
+  `var/mind/ir`; the old path was refused by IntentGuard and could never have worked.
+
+Ruling B (law committed to git and synced) is withdrawn. `develop` is unprotected, so a committed file does not
+prove an approved one.
+
+### D10.14 — Three identities
+
+| Identity | What it answers | Source |
+|---|---|---|
+| runtime identity | what code runs | the release: commit SHA and wheel sha256, written by `core-deploy` |
+| analysed HEAD | what proposals are validated against | the clone's HEAD (`validated_base_sha`) |
+| law digest | which law judged | the digest of the law the services loaded |
+
+**A new commit in the clone is not stale code.** Under the release runtime, ADR-030's "code on disk" means the
+release that `current` names. A process still running another release after a switch is stale and suspends
+autonomy. If the deployed release cannot be read, the process fails closed. (Recorded as amendments in ADR-030
+and ADR-169 in the same batch.)
+
+### D10.15 — Deployment is one root act, with named accounts
+
+`sudo core-deploy <tag> [--migrate]` and `sudo core-deploy --rollback`, run by the governor.
+
+**Accounts:**
+- git runs as `core` in CORE's clone;
+- build backends and dependency downloads run as `core-build` (a new account with no credential);
+- root installs wheels only, offline, checked against `poetry.lock` hashes read through `core`'s git;
+- migrations and the readiness check run as `core`.
+
+**Integrity:** the CORE wheel is installed only if every file in it is byte-identical to `src/` at that commit,
+with the declared console scripts and no `.pth` file.
+
+**Refusals and failures:**
+- A commit is refused unless it is on `develop` and its CI is green.
+- Before the switch, a failure changes nothing live.
+- After the switch, with no migration, a failure switches back.
+- After a migration, any failure stops and hands the governor the choice. The old release is never restarted
+  against a migrated schema.
+- `--rollback` refuses when a migration lies between the two releases.
+
+**Units:** they remain `core`'s user units (D10.8 allows it), not writable by the assistant. They start the
+release with `python -I` from `/opt/core/run`. Secrets stay in `CORE_SECRETS_FILE`, never in the environment
+(#962).
+
+### Still open, and named
+
+- **R4** (repository tests run as `core`) is D10.10, step 3. Until it closes, D10.8 is not satisfied (the parking
+  addendum's decision 1).
+- **Introspection.** Two places analyse the repository's own code by importing it by name (test-generation
+  introspection, the artifact-gate callable check). Under the release they would see the release, not the clone.
+  They move into the sandbox subprocess with step 3.
+- **Heartbeat check.** `core-deploy` verifies heartbeats through `GET /v1/daemon/status`. When `require_governor`
+  goes live (step 4), that check needs its own read-only channel.
+- **Inbox.** The local inbox importer is deferred; GitHub `develop` is the only incoming source.
+
+### Order to go live
+
+1. ADR-170 Stage 1 (`core-law`, its released venv, name protection, `law apply` writing both destinations:
+   ADR-170 Amendment 2026-10-11).
+2. The root script, following the checklist in `infra/systemd/d2/README.md`.
+3. The first `core-deploy`.
+4. Verification, as `core-claude`:
+   - writing the runtime, its venv, its units or `/opt/core/law` is denied;
+   - no `core` git process has a development-tree working directory;
+   - a CORE commit appears as `core/develop`;
+   - a forced divergence is refused with a finding;
+   - a rollback between two migration-free releases works.
+5. In the same batch as step 3, CLAUDE.md's "restarting services is in-scope" line is replaced. After go-live the
+   assistant no longer makes its own changes live; the governor deploys.

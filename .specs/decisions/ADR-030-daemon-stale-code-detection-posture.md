@@ -99,3 +99,17 @@ the condition; the governor acts.
 - Issue #123 — Cold-registry detection — daemon reload semantics
 - A3 Gate G2 — convergence measurement
 - `core-admin runtime health` — primary surface for DEGRADE condition
+
+## Amendment — 2026-10-11 (ADR-132 D10.14): "code on disk" under the release runtime
+
+The decision stands; its subject changes with the layout. Under ADR-132 D10 · D2 the services run an installed
+release, and CORE's clone differs from it by design. So:
+- **Code on disk** means the release that `/opt/core/current` names, not the clone's `src/`.
+- **Stale** means the process is running another release, for example a unit that was not restarted after
+  `core-deploy` switched `current`. Such a process DEGRADEs and suspends autonomous execution, as decided here.
+- **Unknown** means the deployed release's metadata cannot be read. This fails closed, like a failed capture.
+- A new commit in the clone is analysed code, not stale code.
+
+The development tree keeps today's meaning: there, the loaded code is `src/`.
+
+Implemented: `shared.infrastructure.code_identity` (C4, 070e72ba; stale-on-switch, 528526b8).
