@@ -105,10 +105,10 @@ PYPI = "https://pypi.org/pypi/core-runtime"
 NAMESPACE = "core-law-ledger"
 PROBES = (
     ("write .intent", "touch .intent/.custody-probe"),
-    ("rename .intent", "mv .intent .intent-custody-probe"),
+    ("rename .intent", "mv -f .intent .intent-custody-probe"),
     (
         "replace CLAUDE.md",
-        "cp CLAUDE.md .claude-md-probe && mv .claude-md-probe CLAUDE.md",
+        "cp CLAUDE.md .claude-md-probe && mv -f .claude-md-probe CLAUDE.md",
     ),
     ("write .claude/settings.json", "touch .claude/settings.json"),
 )
@@ -205,7 +205,15 @@ class Host:
                 "LANG=C.UTF-8",
                 *cmd,
             ]
-        result = subprocess.run(argv, cwd=cwd, input=input, capture_output=True)
+        # No terminal: a command must never wait on a prompt (mv asks before
+        # replacing a file it cannot write when stdin is a terminal).
+        result = subprocess.run(
+            argv,
+            cwd=cwd,
+            input=input,
+            stdin=None if input is not None else subprocess.DEVNULL,
+            capture_output=True,
+        )
         if check and result.returncode != 0:
             raise Refused(
                 f"command failed ({result.returncode}): {' '.join(argv)}\n"
@@ -774,7 +782,7 @@ class Setup:
             if self.host.account(account) is None:
                 continue
             done = self.host.run(
-                ["mv", str(repo), str(moved)],
+                ["mv", "-f", str(repo), str(moved)],
                 user=account,
                 cwd=repo.parent,
                 check=False,

@@ -329,7 +329,7 @@ def test_symlink_in_governed_text_is_refused(world) -> None:
 
 def test_a_probe_that_succeeds_fails_the_run_and_is_undone(world) -> None:
     host, _layout = world
-    host.allowed_probes.add(("core-claude", "mv .intent .intent-custody-probe"))
+    host.allowed_probes.add(("core-claude", "mv -f .intent .intent-custody-probe"))
     assert _main(world, "--apply") == 1
     undo = [c for c, u in host.calls if u is None and c[:2] == ["sh", "-c"]]
     assert undo.count(["sh", "-c", cls.PROBE_UNDO]) == 3 * len(cls.PROBES)
