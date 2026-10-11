@@ -14,6 +14,8 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
   sandbox audit under an editable install imported the main tree's CLI, dropped every command as out-of-repo, and
   reported the CLI rules clean. They now report `ENFORCEMENT_UNAVAILABLE` (could not check, not a pass); with
   `PYTHONPATH=<tree>/src` they evaluate the tree's own CLI. `cli.discovery_strict` reads source and still runs.
+- **The MCP server no longer advertises `validate_change` and `submit_change` as read-only.** Both ask CORE's API to act
+  (a check run, a pending proposal); a client could have auto-allowed them.
 
 ## [2.14.2] — 2026-10-11
 
