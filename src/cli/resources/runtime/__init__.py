@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from . import sandbox_check  # registers the command
 from .health import runtime_app
 
 
