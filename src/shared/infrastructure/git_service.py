@@ -378,6 +378,94 @@ class GitService:
             commits.append((sha.strip(), author.strip(), paths))
         return commits
 
+    # ID: cc385744-2593-49a1-ba4c-833ca76a830d
+    def fetch_branch(self, url: str, branch: str, into_ref: str) -> str:
+        """Fetch ``branch`` from ``url`` into ``into_ref``; return its SHA.
+
+        No ``+``: a non-fast-forward update of ``into_ref`` (an upstream
+        rewrite) is refused by git and raises, never silently accepted.
+        Only this side runs git: for an https URL nothing executes on the
+        remote's behalf (ADR-132 D10 · D2).
+        """
+        self._run_raw(
+            [
+                "fetch",
+                "--no-tags",
+                "--no-recurse-submodules",
+                url,
+                f"refs/heads/{branch}:{into_ref}",
+            ]
+        )
+        return self._run_command(["rev-parse", "--verify", f"{into_ref}^{{commit}}"])
+
+    # ID: 9b0ba223-af83-4c59-990d-ca7e995e7bba
+    def is_ancestor(self, ancestor: str, descendant: str) -> bool:
+        """True when ``ancestor`` is reachable from ``descendant``.
+
+        Exit 1 is the "no" answer; any other failure (unknown revision)
+        raises instead of reading as "no".
+        """
+        result = subprocess.run(
+            [
+                "git",
+                *SAFE_GIT_OPTIONS,
+                "merge-base",
+                "--is-ancestor",
+                ancestor,
+                descendant,
+            ],
+            cwd=self.repo_path,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode in (0, 1):
+            return result.returncode == 0
+        raise RuntimeError(f"Git command failed: {result.stderr or result.stdout}")
+
+    # ID: ea1de1a7-3497-481e-a09e-4a95e771a931
+    def added_paths(self, base: str, head: str) -> list[str]:
+        """Paths added between two commits (repo-relative, unquoted)."""
+        out = self._run_raw(
+            ["diff", "--name-only", "-z", "--diff-filter=A", base, head]
+        )
+        return [p for p in out.split("\0") if p]
+
+    # ID: cb0c71da-ecf3-4b3f-9c35-1058a1651e47
+    def read_tree_update(self, from_sha: str, to_sha: str) -> None:
+        """Move working files and the index from ``from_sha`` to ``to_sha``.
+
+        ``read-tree -m -u`` refuses to overwrite local changes. HEAD does not
+        move: call ``move_head`` after. The pair is not atomic, so callers
+        journal around it (body.infrastructure.repo_sync).
+        """
+        self._run_command(["read-tree", "-m", "-u", from_sha, to_sha])
+
+    # ID: ef327679-6a92-4142-872f-fbcf11d50cbb
+    def move_head(self, to_sha: str, expected_from: str) -> None:
+        """Move HEAD (through its branch) to ``to_sha``; refused if HEAD is
+        no longer ``expected_from``."""
+        self._run_command(
+            [
+                "update-ref",
+                "-m",
+                "core: fast-forward sync",
+                "HEAD",
+                to_sha,
+                expected_from,
+            ]
+        )
+
+    # ID: d1eee6ec-b584-49c4-8be2-0a9d7bd8ad47
+    def tracked_changes(self) -> list[str]:
+        """Tracked paths that differ from HEAD (index or working tree)."""
+        out = self._run_raw(["status", "--porcelain", "-z", "--untracked-files=no"])
+        return [e[3:] for e in out.split("\0") if len(e) > 3]
+
+    # ID: 61b57041-9c69-48ea-bb35-7d428201a735
+    def reset_hard_to_head(self) -> None:
+        """Restore tracked files and the index to HEAD (untracked files stay)."""
+        self._run_command(["reset", "--hard", "-q", "HEAD"])
+
     # ID: f7658d8e-47bc-44b7-b83a-301263687d19
     def changed_paths(self, pathspec: str) -> list[str]:
         """Repo-relative paths under pathspec that differ from HEAD in the
