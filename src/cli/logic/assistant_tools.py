@@ -44,12 +44,18 @@ class ToolInputError(ValueError):
 @dataclass(frozen=True)
 # ID: e9ead535-b4fd-4a7a-a4c5-704fbd14f487
 class AssistantTool:
-    """One allowlisted, read-only operation, with the JSON Schema of its input."""
+    """One allowlisted operation, with the JSON Schema of its input.
+
+    ``reads_only`` is False for the two tools that ask CORE's API to act
+    (start a check run, record a pending proposal); clients must not treat
+    them as read-only.
+    """
 
     name: str
     description: str
     input_schema: dict[str, Any]
     handler: Handler
+    reads_only: bool = True
 
 
 def _text(arguments: dict[str, Any], key: str) -> str:
@@ -281,6 +287,7 @@ TOOLS: dict[str, AssistantTool] = {
                 "additionalProperties": False,
             },
             handler=_validate_change,
+            reads_only=False,
         ),
         AssistantTool(
             name="submit_change",
@@ -316,6 +323,7 @@ TOOLS: dict[str, AssistantTool] = {
                 "additionalProperties": False,
             },
             handler=_submit_change,
+            reads_only=False,
         ),
     )
 }
