@@ -33,14 +33,23 @@ What it does:
     ``core-law:core-dev 3775`` so the assistant keeps its own files there.
     Root-level files the assistant commits are handed to ``core-claude`` so
     its git checkout still works (acceptance check 8);
+ 5a. the repository's parents become root-owned and not writable by others:
+    whoever owns a parent (today ``core`` owns ``/opt/dev``) can rename the
+    whole repository away and put another tree in its place;
+ 5b. accounts in a root-equivalent group (``sudo``, ``docker``, ``lxd``,
+    ``disk`` ...) are reported: no file permission holds against them. The
+    script names them and does not change group membership (the governor's
+    act);
  6. ``/opt/core/law/{.intent,.specs}`` (ADR-132 D10.13): seeded once from
     the development tree, owned by core-law, under a root-owned parent;
  7. ``/etc/sudoers.d/core-law``: the governor may run exactly
     ``/opt/core-law/venv/bin/core-admin law apply ...`` as core-law, and sudo
     asks for their password (D6: never NOPASSWD). Checked with visudo before
     it is installed;
+ 0. first, a table of every path it touches: owner and mode now, and after;
  8. the acceptance probes: as core-claude, core and core-darek, writing,
-    renaming or replacing governed text is denied; core-claude can still
+    renaming or replacing governed text, or renaming the repository, is
+    denied; core-claude can still
     replace its own root-level files. A probe that wrongly succeeds is
     undone at once and reported.
 
@@ -94,6 +103,9 @@ PROBES = (
     ),
     ("write .claude/settings.json", "touch .claude/settings.json"),
 )
+# Groups whose members can change any file without file permissions: root
+# with a password (sudo) or without one (docker, lxd, disk, libvirt).
+ROOT_EQUIVALENT_GROUPS = ("sudo", "admin", "wheel", "docker", "lxd", "libvirt", "disk")
 PROBE_UNDO = (
     "rm -f .intent/.custody-probe .claude-md-probe; "
     "if [ -e .intent-custody-probe ] && [ ! -e .intent ]; then "
@@ -111,6 +123,17 @@ class Layout:
     repo: Path = Path("/opt/dev/CORE")
     core_root: Path = Path("/opt/core")
     sudoers: Path = Path("/etc/sudoers.d/core-law")
+    # The repository's parents are checked up to (not including) this one.
+    ancestors_stop: Path = Path("/")
+
+    @property
+    def ancestors(self) -> list[Path]:
+        found = []
+        path = self.repo.parent
+        while path != self.ancestors_stop and path != path.parent:
+            found.append(path)
+            path = path.parent
+        return found
 
     @property
     def venv(self) -> Path:
@@ -189,6 +212,12 @@ class Host:
     def owner(self, path: Path) -> tuple[str, str]:
         info = os.lstat(path)
         return pwd.getpwuid(info.st_uid).pw_name, grp.getgrgid(info.st_gid).gr_name
+
+    def groups_of(self, user: str) -> list[str]:
+        primary = pwd.getpwnam(user).pw_gid
+        return sorted(
+            g.gr_name for g in grp.getgrall() if user in g.gr_mem or g.gr_gid == primary
+        )
 
     def chown(self, path: Path, user: str, group: str) -> None:
         os.lchown(path, pwd.getpwnam(user).pw_uid, grp.getgrnam(group).gr_gid)
@@ -310,6 +339,7 @@ class Setup:
     apply: bool
     log: list[str] = field(default_factory=list)
     failures: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     def say(self, message: str) -> None:
         self.log.append(message)
@@ -341,6 +371,77 @@ class Setup:
             "/bin/false",
         ):
             raise Refused(f"{CUSTODIAN} exists with a login shell; not ours")
+
+    # -- 0. ownership plan ------------------------------------------------------
+
+    def _now(self, path: Path) -> str:
+        try:
+            info = os.lstat(path)
+        except FileNotFoundError:
+            return "absent"
+        except PermissionError:
+            return "unreadable (not root)"
+        user, group = self.host.owner(path)
+        return f"{user}:{group} {stat.S_IMODE(info.st_mode):o}"
+
+    def ownership_plan(self) -> None:
+        self.say("0. ownership and modes: now -> after")
+        repo, law = self.layout.repo, self.layout.law_root
+        rows: list[tuple[Path, str]] = [
+            *[(p, "root:root 755") for p in reversed(self.layout.ancestors)],
+            (repo, f"root:{DEV_GROUP} 3775 (sticky)"),
+            (repo / ".intent", f"{CUSTODIAN}:{CUSTODIAN} 755, files 644"),
+            (repo / ".specs", f"{CUSTODIAN}:{CUSTODIAN} 755, files 644"),
+            (repo / "CLAUDE.md", f"{CUSTODIAN}:{CUSTODIAN} 644"),
+            (repo / ".claude", f"{CUSTODIAN}:{DEV_GROUP} 3775 (sticky)"),
+            (repo / ".claude" / "settings.json", f"{CUSTODIAN}:{CUSTODIAN} 644"),
+            (repo / ".claude" / "hooks", f"{CUSTODIAN}:{CUSTODIAN} 755, files 644"),
+            (self.layout.core_root, "root:root 755"),
+            (law, "root:root 755"),
+            (law / ".intent", f"{CUSTODIAN}:{CUSTODIAN} 755, files 644"),
+            (law / ".specs", f"{CUSTODIAN}:{CUSTODIAN} 755, files 644"),
+            (self.layout.law_home, "root:root 755"),
+            (self.layout.venv, "root:root 755"),
+            (self.layout.home, f"{CUSTODIAN}:{CUSTODIAN} 700"),
+            (self.layout.key, f"{CUSTODIAN}:{CUSTODIAN} 600 (kept if present)"),
+            (self.layout.sudoers, "root:root 440"),
+        ]
+        for path, target in rows:
+            self.say(f"  {path!s:<45} {self._now(path):<26} -> {target}")
+
+    # -- 5a. the repository's parents -----------------------------------------
+
+    def ancestors(self) -> None:
+        self.say("5a. the repository's parents: root-owned, not writable by others")
+        for path in self.layout.ancestors:
+            mode = stat.S_IMODE(path.stat().st_mode)
+            owner = self.host.owner(path)[0]
+            if owner == "root" and not mode & 0o022:
+                continue
+            # Whoever owns a parent can rename the repository away and put
+            # another tree in its place; the sticky bit cannot stop that.
+            if self.act(f"{path}: root:root 755 (was {self._now(path)})"):
+                self.host.chown(path, "root", "root")
+                os.chmod(path, 0o755)
+
+    def bypass_report(self) -> None:
+        self.say("5b. accounts that can bypass file permissions altogether")
+        for account in PROBE_ACCOUNTS:
+            if self.host.account(account) is None:
+                continue
+            groups = [
+                g for g in self.host.groups_of(account) if g in ROOT_EQUIVALENT_GROUPS
+            ]
+            if not groups:
+                self.say(f"  {account}: none")
+                continue
+            line = f"NOT PROTECTED from {account}: member of {', '.join(groups)}"
+            if "sudo" in groups and set(groups) == {"sudo"}:
+                line += " (root, but only with its password)"
+            elif any(g != "sudo" for g in groups):
+                line += " (root without any password)"
+            self.warnings.append(line)
+            self.say(f"  {line}")
 
     # -- 1. account ------------------------------------------------------------
 
@@ -629,6 +730,29 @@ class Setup:
                     self.failures.append(f"{account} could {label}")
                 else:
                     self.say(f"  denied as expected: {account} {label}")
+        moved = repo.with_name(repo.name + "-custody-probe")
+        for account in PROBE_ACCOUNTS:
+            if self.host.account(account) is None:
+                continue
+            done = self.host.run(
+                ["mv", str(repo), str(moved)],
+                user=account,
+                cwd=repo.parent,
+                check=False,
+            )
+            self.host.run(
+                [
+                    "sh",
+                    "-c",
+                    f'if [ -e "{moved}" ] && [ ! -e "{repo}" ]; then mv "{moved}" "{repo}"; fi',
+                ],
+                cwd=repo.parent,
+                check=False,
+            )
+            if done.returncode == 0:
+                self.failures.append(f"{account} could rename the repository")
+            else:
+                self.say(f"  denied as expected: {account} rename the repository")
         own = self.host.run(
             ["sh", "-c", "cp README.md .readme-probe && mv .readme-probe README.md"],
             user=ASSISTANT,
@@ -643,15 +767,23 @@ class Setup:
 
     def run_all(self) -> int:
         self.preflight()
+        self.ownership_plan()
         self.account()
         self.directories()
         self.venv()
         self.key()
         self.governed_text()
         self.names()
+        self.ancestors()
+        self.bypass_report()
         self.release_law()
         self.sudoers()
         self.probes()
+        if self.warnings:
+            self.say(
+                "The sticky bit and ownership do not hold against:\n  "
+                + "\n  ".join(self.warnings)
+            )
         if self.failures:
             self.say("FAILED:\n  " + "\n  ".join(self.failures))
             return 1

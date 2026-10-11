@@ -76,6 +76,10 @@ class FakeHost(cls.Host):
         self.install_version = VERSION
         self.inject_pth = False
         self.allowed_probes: set[tuple[str, str]] = set()
+        self.groups = {"core-darek": ["core-darek", "core-dev", "docker", "sudo"]}
+
+    def groups_of(self, user: str) -> list[str]:
+        return self.groups.get(user, [user, "core-dev"])
 
     def is_root(self) -> bool:
         return self.root
@@ -120,6 +124,8 @@ class FakeHost(cls.Host):
             )
             if self.inject_pth:
                 (sp / "dev.pth").write_text("/opt/dev/CORE/src\n")
+        elif cmd[0] == "mv" and user is not None:
+            code = 0 if (user, "mv-repo") in self.allowed_probes else 1
         elif cmd[:2] == ["sh", "-c"] and user is not None:
             code = (
                 0 if (user, cmd[2]) in self.allowed_probes or "README" in cmd[2] else 1
@@ -152,6 +158,7 @@ def world(tmp_path: Path) -> tuple[FakeHost, object]:
         repo=repo,
         core_root=tmp_path / "opt" / "core",
         sudoers=tmp_path / "etc" / "sudoers.d" / "core-law",
+        ancestors_stop=tmp_path,
     )
     layout.sudoers.parent.mkdir(parents=True)
     return FakeHost(), layout
@@ -307,7 +314,7 @@ def test_a_probe_that_succeeds_fails_the_run_and_is_undone(world) -> None:
     host.allowed_probes.add(("core-claude", "mv .intent .intent-custody-probe"))
     assert _main(world, "--apply") == 1
     undo = [c for c, u in host.calls if u is None and c[:2] == ["sh", "-c"]]
-    assert undo and all(c[2] == cls.PROBE_UNDO for c in undo)
+    assert undo.count(["sh", "-c", cls.PROBE_UNDO]) == 3 * len(cls.PROBES)
 
 
 def test_release_law_that_differs_is_reported(world) -> None:
@@ -329,3 +336,52 @@ def test_lock_pinning_matches_core_deploy_on_the_real_lock() -> None:
     deploy = _load("core_deploy_parity", REPO / "infra" / "core-deploy")
     lock = (REPO / "poetry.lock").read_bytes()
     assert cls.requirements_from_lock(lock) == deploy.requirements_from_lock(lock)
+
+
+def test_plan_shows_owner_and_mode_now_and_after(world, capsys) -> None:
+    _host, layout = world
+    assert _main(world) == 0
+    out = capsys.readouterr().out
+    row = next(
+        line for line in out.splitlines() if line.strip().startswith(f"{layout.repo} ")
+    )
+    assert "core:core-dev 2775" in row and "-> root:core-dev 3775 (sticky)" in row
+    parent = next(
+        line
+        for line in out.splitlines()
+        if line.strip().startswith(f"{layout.repo.parent} ")
+    )
+    assert "-> root:root 755" in parent
+
+
+def test_the_repositorys_parent_is_taken_from_core(world) -> None:
+    host, layout = world
+    assert _main(world, "--apply") == 0
+    assert host.owners[layout.repo.parent] == ("root", "root")
+    assert _mode(layout.repo.parent) == 0o755
+
+
+def test_root_equivalent_groups_are_named_not_hidden(world, capsys) -> None:
+    _host, _layout = world
+    assert _main(world) == 0
+    out = capsys.readouterr().out
+    assert "NOT PROTECTED from core-darek: member of docker, sudo" in out
+    assert "root without any password" in out
+    assert "core-claude: none" in out
+    summary = out.split("The sticky bit and ownership do not hold against:", 1)[1]
+    assert "core-darek" in summary
+
+
+def test_a_repository_rename_that_succeeds_fails_the_run_and_is_undone(world) -> None:
+    host, layout = world
+    host.allowed_probes.add(("core", "mv-repo"))
+    assert _main(world, "--apply") == 1
+    undo = [
+        c
+        for c, u in host.calls
+        if u is None
+        and c[:2] == ["sh", "-c"]
+        and "custody-probe" in c[2]
+        and str(layout.repo) in c[2]
+    ]
+    assert undo
