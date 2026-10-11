@@ -28,7 +28,7 @@ import yaml
 
 from shared.infrastructure.intent.errors import GovernanceError
 from shared.infrastructure.intent.intent_repository import IntentRepository
-from shared.infrastructure.intent.law_roots import intent_root_for
+from shared.infrastructure.intent.law_roots import intent_root_for, specs_root_for
 from shared.logger import getLogger
 
 
@@ -235,7 +235,7 @@ class LawFacts:
             ):
                 continue
             rows.append(meta | {"path": self._rel(path)})
-        if not (self._root / _ADR_DIR).is_dir():
+        if not self._adr_dir().is_dir():
             return Answer(
                 question,
                 UNKNOWN,
@@ -350,8 +350,11 @@ class LawFacts:
             "degraded_on.law_drift",
         )
 
+    def _adr_dir(self) -> Path:
+        return specs_root_for(self._root) / "decisions"
+
     def _adr_files(self) -> list[tuple[Path, dict[str, Any]]]:
-        base = self._root / _ADR_DIR
+        base = self._adr_dir()
         if not base.is_dir():
             return []
         out: list[tuple[Path, dict[str, Any]]] = []

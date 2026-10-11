@@ -13,6 +13,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from shared.infrastructure.git_service import GitService
+from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.logger import getLogger
 
 from .cim_constants import (
@@ -110,7 +111,7 @@ def scan_architectural_signals(repo_root: Path) -> ArchitecturalSignals:
     """Detect presence of architectural markers."""
     signals = ArchitecturalSignals()
     signals.has_src = (repo_root / "src").exists()
-    signals.has_intent = (repo_root / ".intent").exists()
+    signals.has_intent = intent_root_for(repo_root).exists()
     signals.has_sql = (repo_root / "sql").exists()
     signals.has_tests = (repo_root / "tests").exists()
     signals.has_docs = (repo_root / "docs").exists()

@@ -109,3 +109,44 @@ def test_artifact_gate_finds_the_law_less_clone(d2: tuple[Path, Path]) -> None:
     target = repo / "var" / "prompts" / "x.md"
     assert _find_repo_root(target) == repo.resolve()
     assert _find_repo_root(Path("/nowhere/else/x.md")) is None
+
+
+# Callers that used to join ".intent"/".specs" on the root themselves
+# (ADR-132 D10 · D2 leftovers): under D2 they must find the law beside the
+# clone, where the clone itself holds none.
+
+
+# ID: d71bddac-208a-4c7d-93e5-bd4b612f5f31
+def test_cim_signal_sees_the_law_beside_the_clone(d2: tuple[Path, Path]) -> None:
+    from body.services.cim.scanners import scan_architectural_signals
+
+    repo, law = d2
+    assert scan_architectural_signals(repo).has_intent is False
+    (law / ".intent").mkdir(parents=True)
+    assert scan_architectural_signals(repo).has_intent is True
+
+
+# ID: 3feb29eb-9fde-4527-bc10-f43d97b4dc2d
+def test_projection_inventory_is_read_from_the_law_root(
+    d2: tuple[Path, Path],
+) -> None:
+    from body.services.representation_coherence_service import _load_inventory
+
+    _, law = d2
+    inventory = law / ".intent" / "governance" / "projections.yaml"
+    inventory.parent.mkdir(parents=True)
+    inventory.write_text("pairs: []\n")
+    assert _load_inventory() == {"pairs": []}
+
+
+# ID: 5fb70b0a-9ce9-405f-b11e-dd884f529cb8
+def test_law_facts_reads_decisions_from_the_specs_root(
+    d2: tuple[Path, Path],
+) -> None:
+    from shared.infrastructure.assistant_surface.law_facts import LawFacts
+
+    repo, law = d2
+    decisions = law / ".specs" / "decisions"
+    decisions.mkdir(parents=True)
+    (decisions / "ADR-001-example.md").write_text("# ADR-001\n")
+    assert [p.name for p, _ in LawFacts(repo)._adr_files()] == ["ADR-001-example.md"]

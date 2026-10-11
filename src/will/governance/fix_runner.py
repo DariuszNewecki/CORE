@@ -52,6 +52,7 @@ from body.flows.registry import flow_registry
 from shared.context import CoreContext
 from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 __all__ = [
@@ -129,14 +130,17 @@ class QualityGateResult(BaseModel):
         return self.model_dump()
 
 
-_IR_DIR = Path(".intent/mind/ir")
-_IR_FILES: dict[str, tuple[Path, str]] = {
+# Incident-response logs are runtime data, kept in the mind knowledge store
+# (var/mind/ir). They used to sit in .intent/mind/ir, which IntentGuard's
+# hard invariant (governance.constitution.read_only) refuses to write, and
+# which a D2 service cannot write at all (ADR-132 D10 · D2).
+_IR_FILES: dict[str, tuple[str, str]] = {
     "triage": (
-        _IR_DIR / "triage_log.yaml",
+        "triage_log.yaml",
         'version: "0.1.0"\ntype: "incident_triage_log"\nentries: []\n',
     ),
     "log": (
-        _IR_DIR / "incident_log.yaml",
+        "incident_log.yaml",
         'version: "0.1.0"\ntype: "incident_response_log"\nentries: []\n',
     ),
 }
@@ -508,8 +512,8 @@ async def run_and_persist_modularity(
 def bootstrap_ir(context: CoreContext, kind: str) -> str:
     """Write an IR scaffold file via FileHandler and return its path.
 
-    `kind` selects the template ('triage' → .intent/mind/ir/triage_log.yaml,
-    'log' → .intent/mind/ir/incident_log.yaml). Unknown kinds raise
+    `kind` selects the template ('triage' → var/mind/ir/triage_log.yaml,
+    'log' → var/mind/ir/incident_log.yaml). Unknown kinds raise
     ValueError — the route handler translates that to 422.
 
     The write goes through context.file_handler.write_runtime_text so
@@ -520,8 +524,9 @@ def bootstrap_ir(context: CoreContext, kind: str) -> str:
             f"Unknown IR kind: {kind!r}. Allowed: {sorted(_IR_FILES.keys())}"
         )
 
-    path, content = _IR_FILES[kind]
-    rel_path = str(path).replace("\\", "/")
+    name, content = _IR_FILES[kind]
+    root = context.file_handler.repo_path
+    rel_path = (PathResolver(root).mind_dir / "ir" / name).relative_to(root).as_posix()
     context.file_handler.write_runtime_text(rel_path, content)
     return rel_path
 

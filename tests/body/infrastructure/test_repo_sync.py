@@ -18,6 +18,7 @@ import pytest
 from body.infrastructure.repo_sync import (
     RepoSync,
     SyncRecoveryRefused,
+    recover_at_boot,
     repo_lock,
 )
 from body.infrastructure.storage.file_handler import FileHandler
@@ -234,3 +235,48 @@ def test_crash_mid_checkout_removes_only_the_journal_added_files(
     assert _head(clone) == base
     assert not (clone / "src" / "b.py").exists()
     assert (clone / "src" / "scratch.txt").exists()
+
+
+def _boot_handler(clone: Path) -> FileHandler:
+    handler = FileHandler(str(clone))
+    handler._guard_paths = lambda *a, **k: None  # type: ignore[method-assign]
+    return handler
+
+
+# ID: 4d210ae2-fc35-40ba-b89b-2a20695fc5f3
+def test_boot_recovery_without_journal_is_a_no_op(pair: tuple[Path, Path]) -> None:
+    _, clone = pair
+    assert recover_at_boot(GitService(clone), _boot_handler(clone)) is None
+    # Never creates the lock file in a tree that has never synced.
+    assert not (PathResolver.from_repo(clone).run_dir / "repo-sync.lock").exists()
+
+
+# ID: 2f6b35a5-ee44-4126-9bcb-5edb9ea6630e
+def test_boot_recovery_rolls_back_an_interrupted_sync(
+    pair: tuple[Path, Path],
+) -> None:
+    up, clone = pair
+    base = _head(clone)
+    _commit(up, {"src/a.py": "a = 2\n", "src/b.py": "b = 1\n"}, "next")
+    with pytest.raises(_Crash):
+        _sync(clone, str(up)).sync(_after_step=_crash_at("tree"))
+
+    recovered = recover_at_boot(GitService(clone), _boot_handler(clone))
+    assert recovered is not None and recovered["action"] == "rolled_back"
+    assert _head(clone) == base
+    assert (clone / "src/a.py").read_text() == "a = 1\n"
+    assert not (clone / "src/b.py").exists()
+    assert not _journal(clone).exists()
+
+
+# ID: 3e499a67-fda8-4c06-96b2-c9c76b25ed45
+def test_boot_recovery_refuses_a_journal_at_neither_end(
+    pair: tuple[Path, Path],
+) -> None:
+    up, clone = pair
+    _commit(up, {"src/a.py": "a = 2\n"}, "next")
+    with pytest.raises(_Crash):
+        _sync(clone, str(up)).sync(_after_step=_crash_at("journal"))
+    _commit(clone, {"src/c.py": "c = 1\n"}, "someone moved HEAD")
+    with pytest.raises(SyncRecoveryRefused):
+        recover_at_boot(GitService(clone), _boot_handler(clone))

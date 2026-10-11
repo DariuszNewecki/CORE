@@ -10,11 +10,13 @@ the shared layer from importing higher-level Body/Mind components.
 
 from __future__ import annotations
 
+import asyncio
 import os
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
 from body.infrastructure.bootstrap import create_core_context
+from body.infrastructure.repo_sync import recover_at_boot
 from body.services.service_registry import service_registry
 from shared.config import settings
 from shared.infrastructure.config_service import ConfigService
@@ -75,6 +77,17 @@ async def core_lifespan(app: FastAPI):
             # 2c. LAW-ROOT GATE (ADR-132 D10 · D2): refuse to serve verdicts
             # judged against the machinery floor or a missing law root.
             require_service_law_root("CORE API", settings.MIND)
+
+            # 2d. CLONE RECOVERY (ADR-132 D10 · D2): finish or undo an
+            # interrupted clone sync before any route reads the tree; a
+            # journal at neither end raises and startup fails.
+            recovered = await asyncio.to_thread(
+                recover_at_boot, core_context.git_service, core_context.file_handler
+            )
+            if recovered:
+                logger.warning(
+                    "CORE API: interrupted clone sync recovered: %s", recovered
+                )
 
             # 3. WARM UP HEAVY SERVICES
             cognitive = await service_registry.get_cognitive_service()

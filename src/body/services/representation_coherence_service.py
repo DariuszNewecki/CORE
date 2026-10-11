@@ -27,6 +27,7 @@ import yaml
 from sqlalchemy import text
 
 from body.services.session_attached_service import SessionAttachedService
+from shared.infrastructure.intent.law_roots import configured_repo_root, law_path
 from shared.logger import getLogger
 
 
@@ -196,10 +197,11 @@ def _load_inventory() -> dict[str, Any] | None:
     line treats this as "no pairs declared." A failure to load is not
     raised because the advisory line must not block audit completion.
     """
-    if not _INVENTORY_PATH.exists():
+    path = law_path(configured_repo_root(), _INVENTORY_PATH)
+    if not path.exists():
         return None
     try:
-        return yaml.safe_load(_INVENTORY_PATH.read_text(encoding="utf-8"))
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
     except Exception as exc:
         logger.warning(
             "RepresentationCoherenceService: failed to load %s: %s",

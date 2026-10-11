@@ -135,3 +135,30 @@ async def test_run_and_persist_fix_writes_atomic_fix_run_result_shape():
         "data": {"files_changed": 1},
         "duration_sec": 2.5,
     }
+
+
+# ID: 4781bdf4-be49-417f-9ad7-fb19795d9ebc
+@pytest.mark.parametrize(
+    ("kind", "name"), [("triage", "triage_log.yaml"), ("log", "incident_log.yaml")]
+)
+def test_bootstrap_ir_writes_runtime_data_not_law(tmp_path, kind, name):
+    """IR logs are runtime data under var/mind/ir -- never .intent, which
+    IntentGuard refuses and a D2 service cannot write (ADR-132 D10 · D2)."""
+    from will.governance.fix_runner import bootstrap_ir
+
+    context = MagicMock()
+    context.file_handler.repo_path = tmp_path
+    rel = bootstrap_ir(context, kind)
+    assert rel == f"var/mind/ir/{name}"
+    context.file_handler.write_runtime_text.assert_called_once()
+    assert context.file_handler.write_runtime_text.call_args.args[0] == rel
+
+
+# ID: 01bcff80-bd54-4e2f-ad4b-e1986623197a
+def test_bootstrap_ir_rejects_unknown_kind(tmp_path):
+    from will.governance.fix_runner import bootstrap_ir
+
+    context = MagicMock()
+    context.file_handler.repo_path = tmp_path
+    with pytest.raises(ValueError):
+        bootstrap_ir(context, "nope")

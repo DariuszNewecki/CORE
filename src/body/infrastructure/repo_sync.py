@@ -14,8 +14,8 @@ fast-forward:
 
 A checkout is not atomic: ``read-tree -m -u`` writes files and the index,
 ``update-ref`` moves HEAD last. So every sync writes a journal first
-(``{from, to, added}``) and deletes it last. ``recover()`` runs at boot and
-before every sync: with a journal present and HEAD still at ``from`` it
+(``{from, to, added}``) and deletes it last. ``recover()`` runs at every service
+process's start (``recover_at_boot``) and before every sync: with a journal present and HEAD still at ``from`` it
 restores tracked files to HEAD and removes the journal's *added* paths that
 are left untracked — only those, so runtime data under ``var/`` is never
 swept. HEAD already at ``to`` means only the journal deletion was missed.
@@ -142,6 +142,24 @@ async def async_repo_lock(
             yield
         finally:
             fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+# ID: 9bbfd331-2479-40cc-ba84-3ddc7f791edd
+def recover_at_boot(git: GitService, file_handler: FileHandler) -> dict | None:
+    """Finish or undo an interrupted sync before this process reads the tree.
+
+    Every service process (the daemon, each ``--only`` daemon, the API)
+    calls this at start, before any worker or route can read a half-updated
+    tree. It takes the lock blocking: a sync in flight in another process
+    finishes first, and then there is nothing left to recover. With no
+    journal it returns None without touching the lock. Raises
+    SyncRecoveryRefused (fail closed) for a journal at neither end.
+    """
+    root = Path(git.repo_path)
+    if not (PathResolver.from_repo(root).run_dir / _JOURNAL_NAME).exists():
+        return None
+    with repo_lock(root, file_handler):
+        return RepoSync(git, file_handler, None).recover()
 
 
 # ID: b478d53f-3091-4f43-bfad-558c98b40d8f

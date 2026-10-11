@@ -156,8 +156,9 @@ def _heavy_worker_stems() -> list[str]:
     import yaml
 
     from shared.infrastructure.bootstrap_registry import BootstrapRegistry
+    from shared.infrastructure.intent.law_roots import intent_root_for
 
-    workers_dir = BootstrapRegistry.get_repo_path() / ".intent" / "workers"
+    workers_dir = intent_root_for(BootstrapRegistry.get_repo_path()) / "workers"
     stems: list[str] = []
     for f in sorted(workers_dir.glob("*.yaml")):
         try:
@@ -770,6 +771,7 @@ async def _run_daemon_locked(only: str | None = None) -> None:
     from body.services.service_registry import service_registry
     from shared.context import CoreContext
     from shared.infrastructure.bootstrap_registry import BootstrapRegistry
+    from shared.infrastructure.intent.law_roots import intent_root_for
     from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 
     logger.info("CORE daemon starting...")
@@ -854,6 +856,22 @@ async def _run_daemon_locked(only: str | None = None) -> None:
     except Exception as e:
         logger.warning("CORE daemon: CapabilityTaggingService unavailable: %s", e)
 
+    # ADR-132 D10 · D2: finish or undo an interrupted clone sync before any
+    # worker reads the tree -- in every process, main and --only alike, so
+    # none of them can observe a half-updated checkout. A journal at neither
+    # end refuses the start (exit 78), like the gates above.
+    from body.infrastructure.repo_sync import SyncRecoveryRefused, recover_at_boot
+
+    try:
+        recovered = await asyncio.to_thread(
+            recover_at_boot, ctx.git_service, ctx.file_handler
+        )
+    except SyncRecoveryRefused as exc:
+        logger.error("CORE daemon: refusing to start: %s", exc)
+        raise typer.Exit(code=78) from exc
+    if recovered:
+        logger.warning("CORE daemon: interrupted clone sync recovered: %s", recovered)
+
     # ADR-071 D2.2 Phase 1: reclaim sandbox worktrees leaked by crashes.
     try:
         swept = ctx.git_service.sweep_orphan_worktrees()
@@ -912,7 +930,7 @@ async def _run_daemon_locked(only: str | None = None) -> None:
             _CFG.slow_callback_duration_sec,
         )
 
-    workers_dir = BootstrapRegistry.get_repo_path() / ".intent" / "workers"
+    workers_dir = intent_root_for(BootstrapRegistry.get_repo_path()) / "workers"
 
     # ADR-081 D5 — daemon discovery contract.
     # --only <stem>: load exactly that stem, must be active AND heavy.

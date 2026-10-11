@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from body.services.file_service import FileService
+from shared.infrastructure.intent.law_roots import configured_repo_root
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 
@@ -82,8 +83,9 @@ class DecisionTracer:
         self.start_time = datetime.now()
 
         # Safe path resolution: use repo_root from resolver if available,
-        # fall back to cwd for uninitialized bootstrap contexts.
-        resolved_root = Path.cwd()
+        # fall back to the configured repository for uninitialized bootstrap
+        # contexts (never the working directory: a service's is empty, D2).
+        resolved_root = configured_repo_root()
         if self._paths and hasattr(self._paths, "repo_root"):
             resolved_root = self._paths.repo_root
 
