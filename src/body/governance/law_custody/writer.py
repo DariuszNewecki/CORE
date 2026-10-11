@@ -39,6 +39,8 @@ from body.governance.law_custody.proposal import LawProposal
 
 
 CUSTODIAN_ACCOUNT = "core-law"
+# What release law holds (ADR-132 D10.13); every destination after the first.
+RELEASE_LAW_TOPS = frozenset({".intent", ".specs"})
 # The scratch tree: governed text is copied (the proposal is applied on top of
 # the copy); every other top-level entry is linked read-only, because the law
 # references files anywhere in the repository (references_resolve: src/,
@@ -223,22 +225,32 @@ def write_destinations(
 ) -> list[DestinationOutcome]:
     """Write the proposal's in-memory bytes to every destination, in order.
 
+    The first destination is the development tree and receives every path.
+    The others are release law (ADR-132 D10.13): they hold only ``.intent/``
+    and ``.specs/``, so ``CLAUDE.md`` and ``.claude/`` are not theirs.
+
     Stops at the first failure; the outcomes say which destination holds
     which bytes. No ledger line is written here.
     """
     if current_account() != custodian:
         raise CustodyError(f"governed text is written only as {custodian}")
     outcomes: list[DestinationOutcome] = []
-    for root in destinations:
+    for index, root in enumerate(destinations):
         outcome = DestinationOutcome(root=root)
         outcomes.append(outcome)
+        release = index > 0
+
         try:
             if not root.is_dir() or root.is_symlink():
                 raise OSError(f"destination is not a directory: {root}")
             for proposed in proposal.files:
+                if release and Path(proposed.path).parts[0] not in RELEASE_LAW_TOPS:
+                    continue
                 _replace_atomically(_safe_target(root, proposed.path), proposed.content)
                 outcome.written.append(proposed.path)
             for rel in proposal.removals:
+                if release and Path(rel).parts[0] not in RELEASE_LAW_TOPS:
+                    continue
                 target = _safe_target(root, rel)
                 if target.exists():
                     if not stat.S_ISREG(os.lstat(target).st_mode):

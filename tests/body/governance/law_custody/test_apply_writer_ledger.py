@@ -282,3 +282,29 @@ def test_a_file_in_a_read_only_directory_is_written_in_place(
     assert outcome.ok(), [o.failed for o in outcome.outcomes]
     assert (repo / "CLAUDE.md").read_text() == "new contract\n"
     assert not list(repo.glob(".CLAUDE.md*"))
+
+
+def test_release_law_receives_only_intent_and_specs(tmp_path: Path, key: Path) -> None:
+    """CLAUDE.md is the development tree's alone; release law never holds it."""
+    repo = _repo(tmp_path)
+    (repo / "CLAUDE.md").write_text("old contract\n")
+    proposal = repo / "var" / "law-proposals" / "0007-test" / "files"
+    (proposal / "CLAUDE.md").write_text("new contract\n")
+    law = tmp_path / "law"
+    (law / ".specs").mkdir(parents=True)
+    (law / ".intent" / "custody").mkdir(parents=True)
+    law.chmod(0o555)  # like /opt/core/law: root-owned, nothing created beside .specs
+    try:
+        prepared = _prepare(repo, tmp_path, [repo, law])
+        outcome = service.apply_prepared(
+            prepared, approver="darek", key_path=key, custodian=ME
+        )
+    finally:
+        law.chmod(0o755)
+
+    assert outcome.ok(), [o.failed for o in outcome.outcomes]
+    assert (repo / "CLAUDE.md").read_text() == "new contract\n"
+    assert not (law / "CLAUDE.md").exists()
+    assert (law / ".specs" / "b.md").read_text() == "new b\n"
+    assert "CLAUDE.md" in outcome.outcomes[0].written
+    assert "CLAUDE.md" not in outcome.outcomes[1].written

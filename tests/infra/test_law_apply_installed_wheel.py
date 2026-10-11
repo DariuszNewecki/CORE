@@ -36,6 +36,7 @@ import shutil
 import subprocess
 import sys
 import time
+import tomllib
 import venv
 from pathlib import Path
 
@@ -70,8 +71,13 @@ app()
 
 
 def _latest_wheel() -> Path | None:
-    wheels = sorted(DIST_DIR.glob("core_runtime-*.whl")) if DIST_DIR.exists() else []
-    return wheels[-1] if wheels else None
+    # The wheel of this tree's version, never whichever sorts last: "2.11.0"
+    # sorts after "2.10.x" and "2.14.x" alike, and predates `law`.
+    version = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())["project"][
+        "version"
+    ]
+    wheel = DIST_DIR / f"core_runtime-{version}-py3-none-any.whl"
+    return wheel if wheel.is_file() else None
 
 
 def _requirements(tmp: Path) -> Path:
@@ -98,7 +104,7 @@ def _requirements(tmp: Path) -> Path:
 def installed(tmp_path_factory: pytest.TempPathFactory) -> Path:
     wheel = _latest_wheel()
     if wheel is None:
-        pytest.skip("No core_runtime-*.whl in dist/. Run `poetry build` first.")
+        pytest.skip("No wheel for this version in dist/. Run `poetry build` first.")
     tmp = tmp_path_factory.mktemp("law-wheel")
     venv_dir = tmp / "venv"
     venv.create(venv_dir, with_pip=True)
