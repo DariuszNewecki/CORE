@@ -13,12 +13,15 @@ instead of joining ``".intent"`` itself:
 
 * the root is CORE's configured repository (``REPO_PATH``) or lies inside it
   — its sandbox worktrees live under ``var/tmp`` and inherit the clone's
-  sparse checkout — **and** MIND/SPECS was set explicitly → MIND / SPECS;
+  sparse checkout — **and** MIND/SPECS names a law root other than
+  ``<REPO_PATH>/.intent`` / ``<REPO_PATH>/.specs`` → MIND / SPECS;
 * otherwise → ``<root>/.intent`` / ``<root>/.specs`` (today's behaviour,
   and always right for an external target, which carries its own law).
 
-With MIND/SPECS not set explicitly — every development checkout today —
-both functions return exactly what the old joins returned.
+In a development checkout MIND/SPECS are the repository's own — whether
+discovered, or filled in from an explicit REPO_PATH — so both functions
+return exactly what the old joins returned, for the checkout and for every
+worktree inside it.
 """
 
 from __future__ import annotations
@@ -34,12 +37,26 @@ def _inside_configured_repo(root: Path) -> bool:
     return candidate == repo or repo in candidate.parents
 
 
+def _beside(configured: Path, name: str) -> bool:
+    """The law is kept beside the clone: the configured root is not the
+    repository's own ``<REPO_PATH>/<name>``.
+
+    Decided from the values, not from whether the setting was "explicit":
+    an explicit REPO_PATH fills MIND/SPECS in from itself (config), which
+    marks them set although nothing was moved.
+    """
+    from shared.config import settings
+
+    own = Path(settings.REPO_PATH) / name
+    return Path(configured).resolve() != own.resolve()
+
+
 # ID: 94910383-e302-461d-82e4-d0d78ad3056e
 def intent_root_for(repo_root: Path) -> Path:
     """The ``.intent`` root that governs ``repo_root``."""
     from shared.config import settings
 
-    if "MIND" in settings.model_fields_set and _inside_configured_repo(repo_root):
+    if _beside(settings.MIND, ".intent") and _inside_configured_repo(repo_root):
         return Path(settings.MIND)
     return Path(repo_root) / ".intent"
 
@@ -49,7 +66,7 @@ def specs_root_for(repo_root: Path) -> Path:
     """The ``.specs`` root that belongs to ``repo_root``."""
     from shared.config import settings
 
-    if "SPECS" in settings.model_fields_set and _inside_configured_repo(repo_root):
+    if _beside(settings.SPECS, ".specs") and _inside_configured_repo(repo_root):
         return Path(settings.SPECS)
     return Path(repo_root) / ".specs"
 

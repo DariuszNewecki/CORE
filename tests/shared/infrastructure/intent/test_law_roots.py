@@ -65,6 +65,22 @@ def test_without_explicit_law_roots_nothing_changes(
     assert specs_root_for(tmp_path) == tmp_path / ".specs"
 
 
+# ID: 1298ecb4-c911-4a51-b2d1-c97f3b2f5ed4
+def test_dev_worktree_keeps_its_own_law_under_an_explicit_repo_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A development checkout whose .env sets REPO_PATH: config fills MIND in
+    from it (and so marks it set). That is not law beside the clone, so a
+    worktree inside the checkout -- a sandbox, or the law-proposal scratch
+    worktree -- must still read its own law."""
+    s = Settings(REPO_PATH=tmp_path)
+    assert "MIND" in s.model_fields_set  # the trap: filled in, not moved
+    monkeypatch.setattr("shared.config.settings", s)
+    worktree = tmp_path / "var" / "tmp" / "law-0018"
+    assert intent_root_for(worktree) == worktree / ".intent"
+    assert specs_root_for(worktree) == worktree / ".specs"
+
+
 # ID: 027ca055-0e6a-44c6-bb65-b4bfab31cd3e
 def test_path_resolver_default_follows_the_law_root(d2: tuple[Path, Path]) -> None:
     repo, law = d2
