@@ -16,6 +16,9 @@ Patch release. No database migrations.
 
 - **`core-admin law apply` can change `CLAUDE.md`.** With the repository root protected (root-owned, sticky), the
   custodian owns `CLAUDE.md` but cannot create a temporary file beside it; such a file is now rewritten in place.
+- **`core-admin law apply --release-law`** names the second destination (default `/opt/core/law`), so the
+  installed-wheel test no longer reaches the host's live release law, and it accepts a repository that already
+  carries a ledger (law 0024 onward).
 
 ## [2.14.0] — 2026-10-11
 
