@@ -253,3 +253,35 @@ Under the release runtime the services do not read the law from the development 
 
 Until Stage 1 is live the release runtime is not switched on (ADR-132 D10.11 step 2, go-live order), so the
 rehearsal (D0) needs no second destination.
+
+## Amendment 2026-10-11 (later) — the rehearsal evaluation; Stage 1 starts
+
+**Proposed by:** Claude (core-claude), proposal 0019. **Rests on:** D0 "Evaluation"; the evaluation
+`var/reports/adr170-rehearsal-evaluation-20261011.md`, written from the rehearsal ledger (18 proposals,
+2026-10-08 to 2026-10-11); the governor's agreement of 2026-10-11 that waiting for the date is ceremony.
+
+**What the rehearsal showed.** The workflow holds: 18 proposals, none refused or rejected, a median of 3 files, and
+the check found a real defect before approval in 4 of them. The hand-run procedure did not hold: within two days
+the assistant stopped recording the ask time and the lines changed, and one approved batch (0012) never got its
+ledger line although its commit said it had. The bytes were the approved ones; the record was missing.
+
+1. **Stage 1 starts on acceptance of the evaluation.** D0's "two weeks or ten proposals, whichever comes later" is
+   replaced by "ten proposals". The count was passed at 0010; a later date adds no evidence and keeps the decaying
+   hand procedure in force.
+2. **Declared warnings (D3, D5).** `proposal.md` carries a **Declared warnings** section: the meaning-level
+   consequences the proposer sees (an ADR's sense amended, a gate redefined, a scope widened). D5 cannot compute
+   these; 55 of the rehearsal's 59 warnings were of this kind. `law apply` shows them verbatim, after CORE's
+   computed warnings and labelled as declared by the proposer. The ledger records both lists.
+3. **The checks run on the proposal's tree (D3 step 2, D5).** `law apply` builds the would-be tree in a scratch
+   copy and runs every check with that copy as the repository root (C-50: run from the main tree's environment,
+   the check validated the current law instead of the batch). Besides D5's refusals it runs the full offline
+   audit. A blocking finding is shown first, as a warning: the commit would be refused anyway.
+4. **`law apply` writes every ledger field itself (D4).** Besides D4's fields: the time the report was shown, the
+   time of approval, the files and lines changed. Nothing the evaluation needs is kept by hand.
+5. **A proposal carries its final bytes.** If approving a batch is meant to accept an ADR, the proposal already
+   says "accepted"; approving the batch is the acceptance. Approval never edits the bytes.
+6. **Cost (Consequences).** About two approvals per working session, not one: the extra one is usually a
+   decision the code needs before it can be built, which D0 already allows.
+
+The rehearsal (D0) stays in force until Stage 1 is live. The missing 0012 line is appended to the rehearsal ledger,
+marked as reconstructed, with this proposal's approval.

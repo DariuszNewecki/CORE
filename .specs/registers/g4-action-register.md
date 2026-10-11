@@ -348,3 +348,41 @@ review rounds, C1–C5 and the law routing) and the afternoon (governor's answer
 external reviewer 3, assistant 4, **CORE 2**, mypy (a tool) 1; assistant misses: 6, one caught by CORE. The
 commit gate ran 12 times for 13 commits and allowed every run, plus one false trigger on a command that only
 wrote a file containing the words `git commit` (`var/experiments/adr168/verdicts.jsonl`, 10:12:33).
+
+## 2026-10-11 (after law 0018) and 2026-10-11 session 3
+
+After the 0018 push: CI red, two fixes, CI green, main promoted. Session 3: the ADR-170 rehearsal evaluation.
+
+### Fixes and builds (all by the assistant as producer)
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-44 | ffa1cf81 | Law loaders discover the law from the working directory first; an explicit `REPO_PATH` decides only where no law is found (undoes the external-target regression of 8459f839) | **CORE CI** (C-51) | git; verdict; CI run 38133587504 |
+| A-45 | 34a314ee | Test only: a killed worker that is still a zombie counts as dead | CORE CI (C-52) | git; CI |
+
+### Catches — who objected, and what changed
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-51 | **CORE** (CI, hermetic suite, run 38132196522) | 8459f839 made law loaders prefer an explicit `REPO_PATH`; external-target runs set it to the target, so `fix.format` read the target's minimal law and failed | A-44; regression test fails on the old code | CI run |
+| C-52 | CORE CI (same run) | A process test read a zombie as alive (flaky, test defect) | A-45 | CI run |
+| C-53 | assistant (writing the rehearsal evaluation) | Proposal 0012 (7013daed, 20 files) has no rehearsal-ledger line, although its commit says "ledger appended"; bytes match `hashes.txt` | reconstructed line appended with 0019; Stage 2's custody rule is the standing check | ledger; git |
+
+**Events**
+
+| ID | Time | Event | By |
+|---|---|---|---|
+| E-26 | ~10:3x | develop pushed c0675bbb..50cbc9e6; CI red (C-51, C-52); fixes pushed; CI 38133587504 green | governor yes; assistant |
+| E-27 | ~11:0x | main promoted c0675bbb..34a314ee (fast-forward, CI green) | governor yes; assistant |
+| E-28 | session 3 | ADR-170 rehearsal evaluation written (`var/reports/adr170-rehearsal-evaluation-20261011.md`) | assistant |
+
+**Assistant's misses**
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-32 | 8459f839's message claimed "no change while `REPO_PATH` is unset"; external-target runs set it | CORE CI (C-51) | develop red for one push; fixed A-44 |
+| M-33 | Did not append 0012's ledger line, and wrote in the commit that it had | assistant, a day later (C-53) | acceptance check 1 failed for one commit; the custody was intact, the record was not |
+| M-34 | Stopped recording `asked_utc` after 0006 and `lines_changed` after 0004 | assistant (evaluation) | approval latency unmeasured for 12 of 18 batches |
+
+**2026-10-11 after 0018 (by hand)** — fixes: 2, by the assistant; catches: 3 — **CORE 2** (CI), assistant 1;
+assistant misses: 3, one caught by CORE.
