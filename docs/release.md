@@ -61,6 +61,8 @@ Once the one-time setup is complete:
    edit those by hand. CI runs `--check` and fails on any drift.
 3. Commit the bump (`release: X.Y.Z -- <one-line summary>`).
 4. Tag the commit: `git tag vX.Y.Z && git push --tags`.
+5. Create the GitHub release, so the repository page shows it as Latest:
+   `gh release create vX.Y.Z --verify-tag --latest --title "vX.Y.Z — <summary>" --notes-file <the CHANGELOG section>`.
 
 ### Schema and upgrade-path checklist (ADR-162 D4/D5/D9)
 
