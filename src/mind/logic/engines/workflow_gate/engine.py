@@ -65,7 +65,7 @@ class WorkflowGateEngine(BaseEngine):
             DeadCodeCheck(path_resolver),
             AuditHistoryCheck(),
             LinterComplianceCheck(),
-            ImportResolutionCheck(),
+            ImportResolutionCheck(path_resolver.repo_root),
             RuffFormatCheck(),
             QualityGateCheck(
                 path_resolver,

@@ -80,6 +80,13 @@ class ImportResolutionCheck(WorkflowCheck):
 
     check_type = "import_resolution_check"
 
+    def __init__(self, repo_root: Path | None = None) -> None:
+        """``repo_root``: where the tools run, so a relative target ("src")
+        names the analysed repository's code. None keeps the process working
+        directory -- correct only when that *is* the repository (a dev
+        daemon); a D2 service runs from an empty working directory."""
+        self._repo_root = repo_root
+
     # ID: 7820a1df-315a-4acf-818e-90956535bf72
     async def verify(
         self, file_path: Path | None, params: dict[str, Any]
@@ -165,7 +172,8 @@ class ImportResolutionCheck(WorkflowCheck):
 
         try:
             result = await asyncio.wait_for(
-                run_command_async(cmd), timeout=_CFG.import_timeout_sec
+                run_command_async(cmd, cwd=self._repo_root),
+                timeout=_CFG.import_timeout_sec,
             )
         except TimeoutError:
             # run_command_async kills and reaps the child on cancellation.

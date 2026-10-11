@@ -204,3 +204,23 @@ async def test_clean_tool_output_produces_no_violations(tmp_path: Path) -> None:
         result = await check.verify(target, params)
 
     assert result == []
+
+
+async def test_tools_run_in_the_analysed_repository(tmp_path: Path) -> None:
+    """ADR-132 D10 · D2: the default target "src" is relative, so the tools
+    must run in the analysed repository, not the process working directory
+    (a D2 service's is empty). Found by the D2 audit probe: the import rules
+    reported "Cannot read file 'src'" from an empty working directory."""
+    check = ImportResolutionCheck(tmp_path)
+    seen: dict[str, object] = {}
+
+    async def fake_exec(*args, **kwargs):
+        seen["cwd"] = kwargs.get("cwd")
+        seen["target"] = args[-1]
+        return _fake_process(0)
+
+    with patch("asyncio.create_subprocess_exec", side_effect=fake_exec):
+        await check.verify(None, {"tools": [{"tool": "toolA", "args": []}]})
+
+    assert seen["target"] == "src"
+    assert str(seen["cwd"]) == str(tmp_path)
