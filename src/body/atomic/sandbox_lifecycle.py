@@ -317,6 +317,13 @@ class SandboxLifecycle:
         contamination". The b11f4dba race shape is closed: worker either
         propagates cleanly (no overlap) or refuses (overlap detected).
 
+        It also refuses when the main tree's HEAD has moved since the sandbox
+        was created and a commit in between touched a target path. The copy
+        writes whole files built on the sandbox's base, so it would silently
+        undo that commit; a clean tree does not prove nothing changed.
+        Commits that touch none of the target paths leave those files identical
+        in both trees, so they do not block.
+
         Deletions propagate only when the action declared them
         (``declared_deletions``, from the action's result) AND the sandbox
         shows them: the path is removed from the main tree through
@@ -418,6 +425,8 @@ class SandboxLifecycle:
                 "Commit or revert those changes, then re-run."
             )
 
+        self._refuse_if_main_moved_under_targets(scoped_git, target_paths)
+
         copied = 0
         for rel in sorted(target_paths):
             if rel in deletions:
@@ -440,6 +449,38 @@ class SandboxLifecycle:
             len(deletions & target_paths),
         )
         return target_paths
+
+    def _refuse_if_main_moved_under_targets(
+        self, scoped_git: Any, target_paths: set[str]
+    ) -> None:
+        """Raise when a commit landed on the main tree after the sandbox's base
+        and touched a target path. Fails closed when either HEAD or the
+        commit range cannot be read."""
+        try:
+            sandbox_base = scoped_git.get_current_commit()
+            main_head = self.core_context.git_service.get_current_commit()
+            if sandbox_base == main_head:
+                return
+            moved = self.core_context.git_service.commits_between(
+                sandbox_base, main_head
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                "ADR-071 D2.2: cannot compare the main tree's HEAD with the "
+                f"sandbox's base ({exc}); refusing to propagate sandbox changes"
+            ) from exc
+
+        touched = sorted(
+            {path for _, _, paths in moved for path in paths} & target_paths
+        )
+        if touched:
+            raise RuntimeError(
+                "ADR-071 D2.2: refusing to propagate sandbox changes — the main "
+                f"tree moved from {sandbox_base[:8]} to {main_head[:8]} and "
+                f"{len(touched)} sandbox target file(s) changed in between: "
+                f"{touched[:5]}{' ...' if len(touched) > 5 else ''}. Copying "
+                "would undo those commits; re-run against the new HEAD."
+            )
 
     # ID: 85d80659-74d3-47c7-bbd1-d51a6abf4527
     def checkpoint_paths(
