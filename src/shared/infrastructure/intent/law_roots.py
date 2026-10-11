@@ -85,10 +85,22 @@ def law_path(repo_root: Path, rel: str | Path) -> Path:
 
 # ID: c3851f8b-991d-4d27-9e86-65b7c02967b2
 def configured_repo_root() -> Path:
-    """CORE's repository when none is passed: an explicit REPO_PATH, else
-    discovery from the working directory (resolve_default_repo_path, #544)."""
-    from shared.config import resolve_default_repo_path, settings
+    """CORE's repository when none is passed.
 
+    Discovery from the working directory first, exactly as
+    ``resolve_default_repo_path`` (#544): the nearest ancestor holding a
+    ``.intent/``. Only when none holds one -- a D2 service, whose working
+    directory (/opt/core/run) and code-only clone carry no law -- does an
+    explicit REPO_PATH decide, before the source-tree fallback. An explicit
+    REPO_PATH naming an external target therefore does not displace CORE's
+    own law for a process started inside CORE's checkout.
+    """
+    from shared.config import REPO_ROOT, settings
+
+    cwd = Path.cwd()
+    for candidate in [cwd, *cwd.parents]:
+        if (candidate / ".intent").is_dir():
+            return candidate
     if "REPO_PATH" in settings.model_fields_set:
         return Path(settings.REPO_PATH)
-    return resolve_default_repo_path()
+    return REPO_ROOT

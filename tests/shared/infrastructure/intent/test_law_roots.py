@@ -29,6 +29,9 @@ def d2(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path]:
     repo.mkdir()
     s = Settings(REPO_PATH=repo, MIND=law / ".intent", SPECS=law / ".specs")
     monkeypatch.setattr("shared.config.settings", s)
+    run = tmp_path / "run"  # the services' working directory: no law up the chain
+    run.mkdir()
+    monkeypatch.chdir(run)
     return repo, law
 
 
@@ -102,8 +105,23 @@ def test_law_path_maps_law_constants_onto_the_law_root(d2: tuple[Path, Path]) ->
 def test_configured_repo_root_prefers_an_explicit_repo_path(
     d2: tuple[Path, Path],
 ) -> None:
-    repo, _ = d2
+    repo, _ = d2  # the fixture runs from a law-less working directory, as D2 does
     assert configured_repo_root() == repo
+
+
+# ID: ecdae281-0111-437f-82a7-59baf2c11342
+def test_configured_repo_root_keeps_cores_law_for_an_external_repo_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An external-target run sets REPO_PATH to the target but starts inside
+    CORE's checkout: CORE's law (found from the cwd) still governs loaders
+    like the target-class boundaries (regression: 8459f839)."""
+    core, target = tmp_path / "core", tmp_path / "target"
+    (core / ".intent").mkdir(parents=True)
+    target.mkdir()
+    monkeypatch.setattr("shared.config.settings", Settings(REPO_PATH=target))
+    monkeypatch.chdir(core)
+    assert configured_repo_root() == core
 
 
 # ID: 0bcdeaa2-3e14-40c1-9656-8c3306ab851b
