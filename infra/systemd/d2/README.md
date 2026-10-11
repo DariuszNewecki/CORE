@@ -33,7 +33,8 @@ They differ from today's units in three ways:
 3. CORE's clone: clone `/opt/core/repo` as `core` with `--no-hardlinks` and a sparse checkout
    that excludes `.intent/`, `.specs/`, `CLAUDE.md` and `.claude/`. Set `.git` to group
    `core-dev`, readable but not writable by the group, with `core.sharedRepository=0640`.
-4. Law: create `/opt/core/law/{.intent,.specs}`, owned by `core-law` (ADR-170 Stage 1).
+4. Law: done by ADR-170 Stage 1, before this script: `infra/core-law-setup` creates `core-law`,
+   its venv and key, and seeds `/opt/core/law/{.intent,.specs}` owned by `core-law`.
 5. Secrets: `/opt/core/etc/secrets.env` (`core:core 0600`) holds `DATABASE_URL`,
    `CORE_MASTER_KEY` and the API keys. It is named by `CORE_SECRETS_FILE`, never by
    `EnvironmentFile`.
