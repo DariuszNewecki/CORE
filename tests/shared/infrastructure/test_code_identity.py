@@ -6,6 +6,7 @@ exercise the same git calls the daemon makes.
 
 from __future__ import annotations
 
+import json
 import subprocess
 from collections.abc import Iterator
 from pathlib import Path
@@ -106,3 +107,72 @@ def test_comparison_is_cached_within_the_window(
     assert code_drift().state == "match"  # cached
     monkeypatch.setattr(code_identity, "_CACHE_TTL_SEC", 0.0)
     assert code_drift().state == "stale"
+
+
+# --- ADR-132 D10 · D2 (C4): an installed release is its own identity -------
+
+_SHA = "a" * 40
+_WHEEL = "b" * 64
+
+
+def _release(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, body: str) -> Path:
+    meta = tmp_path / "venv" / code_identity.RELEASE_METADATA_NAME
+    meta.parent.mkdir(parents=True)
+    meta.write_text(body)
+    monkeypatch.setattr(code_identity, "release_metadata_path", lambda: meta)
+    return meta
+
+
+# ID: e9b1c90a-0b0c-48ba-9b66-b1b7a1b5b495
+def test_release_runtime_identity_is_the_release(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _release(tmp_path, monkeypatch, json.dumps({"sha": _SHA, "wheel_sha256": _WHEEL}))
+    ident = capture_loaded_code_identity(tmp_path / "not-a-repo")
+    assert ident == f"release:{_SHA}:{_WHEEL}"
+    assert loaded_code_identity() == ident
+
+
+# ID: cec7fc09-4227-427b-a4a6-d9dc5b12ca6f
+def test_release_runtime_never_goes_stale_when_the_clone_changes(
+    repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _release(tmp_path, monkeypatch, json.dumps({"sha": _SHA, "wheel_sha256": _WHEEL}))
+    capture_loaded_code_identity(repo)
+    (repo / "src" / "changed.py").write_text("x = 1\n")
+    drift = code_drift(use_cache=False)
+    assert drift.state == "release"
+    assert drift.suspends_autonomy is False
+
+
+# ID: bd395150-7317-47e4-a06d-73d9c0526517
+@pytest.mark.parametrize(
+    "body",
+    [
+        "not json",
+        json.dumps({"sha": _SHA}),
+        json.dumps({"sha": "HEAD", "wheel_sha256": _WHEEL}),
+        json.dumps(["list"]),
+    ],
+)
+def test_malformed_release_metadata_fails_closed(
+    repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, body: str
+) -> None:
+    _release(tmp_path, monkeypatch, body)
+    # A real repo: without the release branch this would capture "match".
+    assert capture_loaded_code_identity(repo) is None
+    drift = code_drift(use_cache=False)
+    assert drift.state == "unknown"
+    assert drift.suspends_autonomy is True
+
+
+# ID: be821874-053c-40ff-b9ac-743dd8d70723
+def test_no_release_metadata_keeps_the_src_fingerprint(
+    repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        code_identity, "release_metadata_path", lambda: tmp_path / "absent.json"
+    )
+    ident = capture_loaded_code_identity(repo)
+    assert ident is not None and not ident.startswith("release:")
+    assert code_drift(use_cache=False).state == "match"
