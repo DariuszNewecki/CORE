@@ -783,6 +783,19 @@ async def _run_daemon_locked(only: str | None = None) -> None:
 
     capture_loaded_code_identity(BootstrapRegistry.get_repo_path())
 
+    # Law-root gate (ADR-132 D10 · D2): never start workers judging against
+    # the machinery floor or a missing law root. Exit 78, like the schema gate.
+    from shared.config import settings
+    from shared.infrastructure.intent.law_root_gate import (
+        LawRootRefusal,
+        require_service_law_root,
+    )
+
+    try:
+        require_service_law_root("CORE daemon", settings.MIND)
+    except LawRootRefusal as exc:
+        raise typer.Exit(code=exc.exit_code) from exc
+
     # Schema gate (ADR-162 D2): read-only; the daemon must not start workers
     # against a schema the code does not match. Refusal exits 78 (EX_CONFIG)
     # with the remedy named; CORE_STRICT_MODE does not relax it, and an

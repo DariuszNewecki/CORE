@@ -19,6 +19,7 @@ from body.services.service_registry import service_registry
 from shared.config import settings
 from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.diagnostic_service import DiagnosticService
+from shared.infrastructure.intent.law_root_gate import require_service_law_root
 from shared.infrastructure.repositories.db.schema_gate import run_startup_schema_gate
 from shared.logger import apply_log_level, getLogger
 
@@ -70,6 +71,10 @@ async def core_lifespan(app: FastAPI):
             # failed" (its own exit code); the daemon and the core-engine
             # entrypoint exit 78 for the same verdict.
             await run_startup_schema_gate("CORE API")
+
+            # 2c. LAW-ROOT GATE (ADR-132 D10 · D2): refuse to serve verdicts
+            # judged against the machinery floor or a missing law root.
+            require_service_law_root("CORE API", settings.MIND)
 
             # 3. WARM UP HEAVY SERVICES
             cognitive = await service_registry.get_cognitive_service()

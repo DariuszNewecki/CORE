@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import yaml
 from dotenv import dotenv_values, load_dotenv
-from pydantic import Field, PrivateAttr, field_validator
+from pydantic import Field, PrivateAttr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from shared.logger import getLogger
@@ -186,6 +186,39 @@ class Settings(BaseSettings):
         if isinstance(value, str) and value.strip() == "":
             return None
         return value
+
+    @model_validator(mode="after")
+    # ID: 2ea688bc-7a55-4b21-9ba4-3f8a65b50fcf
+    def roots_follow_explicit_repo_path(self) -> Settings:
+        """When REPO_PATH is set explicitly, unset roots follow it.
+
+        Each root's default is discovered from the working directory on its
+        own, so setting REPO_PATH alone left MIND, SPECS, BODY, the key
+        directory and the action log pointing at whatever the cwd walk (or
+        the source tree, or the machinery floor) found. A service running
+        from a release with an empty working directory (ADR-132 D10 · D2)
+        would then judge against the wrong law. A root set explicitly (e.g.
+        MIND=/opt/core/law/.intent, law kept outside the code clone) wins.
+        """
+        if "REPO_PATH" not in self.model_fields_set:
+            return self
+        repo = Path(self.REPO_PATH)
+        explicit = self.model_fields_set
+        if "MIND" not in explicit:
+            self.MIND = repo / ".intent"
+        if "SPECS" not in explicit:
+            self.SPECS = repo / ".specs"
+        if "BODY" not in explicit:
+            self.BODY = repo / "src"
+        if "KEY_STORAGE_DIR" not in explicit:
+            self.KEY_STORAGE_DIR = Path(self.MIND) / "keys"
+        if "CORE_ACTION_LOG_PATH" not in explicit:
+            from shared.path_resolver import PathResolver
+
+            self.CORE_ACTION_LOG_PATH = (
+                PathResolver.from_repo(repo).logs_dir / "actions.jsonl"
+            )
+        return self
 
     REDIS_RATE_LIMIT_URL: str | None = Field(
         None, validation_alias="REDIS_RATE_LIMIT_URL"
