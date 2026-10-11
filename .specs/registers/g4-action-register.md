@@ -434,3 +434,32 @@ assistant misses: 3, one caught by CORE.
 
 **Session 3 total (by hand)** — fixes and builds: 6 (A-44–A-49); catches: 8 — **CORE 3**, governor 1 (via the
 test they asked for), assistant 4; assistant misses: 8 (M-32–M-39), 2 caught by CORE.
+
+### Session 3, continued — release candidate review
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-50 | 2c2d19c6 | core-law-setup: owner/mode table now → after; the repository's parent taken from `core` (`/opt/dev` root:root 755); root-equivalent accounts named; repository-rename probe | governor (asked to confirm no bypass) | git |
+| A-51 | 910b55f8 | core-law-setup: venv installed at its final path, previous one restored on failure; `timestamp_timeout=0`; real-venv tests and visudo | governor (C-59, C-60) | git |
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-59 | **governor** (release review) | The venv built at `venv.new` and renamed: its entry points point at the old path | A-51; tests fail on the old code | **none** |
+| C-60 | **governor** (release review) | sudo's credential cache let `law apply` run without a fresh password | A-51; ADR-170 amendment 0022 | **none** |
+| C-61 | assistant (bypass check the governor asked for) | `/opt/dev` owned by `core`: the parent's owner can rename the repository; `core-darek` in `docker` | A-50; docker membership left to the governor | **none** |
+
+**Events**
+
+| ID | Time | Event | By |
+|---|---|---|---|
+| E-31 | ~12:3x | develop pushed 1d19a454..b1e740ba; CI 38140632656 green | governor yes; assistant |
+| E-32 | ~13:0x | 2.14.0 release candidate fc37cfad pushed; CI 38141384814 green; tag held after review | governor |
+| E-33 | ~13:2x | `.venv` editable reinstall, `--no-deps`: reports 2.14.0, dependency pins unchanged | governor yes; assistant |
+
+**Assistant's misses**
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-40 | Built the venv elsewhere and renamed it; tested with a fake host whose `core-admin` was an empty file | governor (C-59) | Stage 1 setup would have left core-law without a working command; never run |
+| M-41 | Wrote a sudo rule that asks for a password but honours sudo's cache, against D6's intent | governor (C-60) | never installed |
+| M-42 | Left `/opt/dev` owned by `core` out of the name-protection design | assistant, when asked (C-61) | never installed |

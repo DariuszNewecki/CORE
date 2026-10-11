@@ -343,3 +343,18 @@ governor's operator grant of 2026-10-11 for the setup script.
 
 Stage 1 is prepared, not live: it goes live when the governor tags a release containing `law apply`, runs
 `core-law-setup --apply` from their own account, and Stage 1's acceptance checks 3–9 pass.
+
+## Amendment 2026-10-11 (release candidate review) — a fresh password every time; the venv's path
+
+**Proposed by:** Claude (core-claude), proposal 0022. **Rests on:** D6; the governor's review of the 2.14.0 release
+candidate (2026-10-11), which found both points.
+
+1. **A cached sudo login never approves (D6).** sudo remembers a password for some minutes after any sudo command.
+   The `core-law` rule therefore carries `Defaults>core-law timestamp_timeout=0`, and `core-law-setup` refuses a
+   rule without it.
+2. **Stage 1 acceptance, addition:**
+   - **3b. Warm cache:** as the governor, run `sudo -v` (a fresh sudo login), then at once
+     `sudo -u core-law /opt/core-law/venv/bin/core-admin law apply <id>`. sudo must ask for the password again.
+3. **The venv is installed at its final path (D2, amendment 0021 item 2).** A venv records its own path in its
+   entry points, so it is never built elsewhere and renamed. A previous venv is set aside and put back if the new
+   one fails, including when its installed `core-admin` does not run as `core-law`.
