@@ -386,3 +386,19 @@ After the 0018 push: CI red, two fixes, CI green, main promoted. Session 3: the 
 
 **2026-10-11 after 0018 (by hand)** — fixes: 2, by the assistant; catches: 3 — **CORE 2** (CI), assistant 1;
 assistant misses: 3, one caught by CORE.
+
+### Session 3, continued — `law apply` built
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-46 | (this batch's code commit) | `law apply` / `law check-tree`: proposal read once into memory, data checks in a child on the proposal's tree, computed + declared warnings, custodian-only writer, signed ledger line, two destinations; 26 tests (3 mutation-checked) | design (ADR-170 Stage 1) | git; verdict |
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-54 | assistant (recon for `law apply`) | Law 0019 item 3 had `law apply` run the full audit, which executes repository code — against D2 | governor ruled "data checks only"; corrected in ADR-170 (0020) | **none** |
+| C-55 | **CORE** (fast verdict) | `# ID` above `@dataclass` on 6 classes; a `print()` in the CLI | fixed before commit | **none** (fast verdicts are not logged) |
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-35 | Wrote and got approved a law item (0019 item 3) that contradicts the same ADR's D2 | assistant, 10 minutes later (C-54) | one corrective batch; nothing was built on it |
+| M-36 | Put `# ID` above `@dataclass` again (same trap as C-43) | CORE (C-55) | none |

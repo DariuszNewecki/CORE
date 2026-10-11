@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-99 commands.
+101 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -25,7 +25,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`grc`](#grc) | 2 | Compliance gap-analysis: check a document corpus against a requirements catalog. |
 | [`intent`](#intent) | 1 | Constitutional intent operations (.intent/ projections). |
 | [`interactive-test`](#interactive-test) | 2 | Interactive test generation with step-by-step approval |
-| [`law`](#law) | 2 | Grounded answers about this repository's law, with sources (ADR-168). |
+| [`law`](#law) | 4 | Grounded answers about this repository's law, with sources (ADR-168). |
 | [`llm-resources`](#llm-resources) | 2 | core.llm_resources authoring/validation surface (#821 Unit 3). |
 | [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant (ADR-168). |
 | [`project`](#project) | 2 | Operations for project lifecycle: scaffolding. |
@@ -1244,6 +1244,29 @@ Show information about interactive test generation.
 
 Grounded answers about this repository's law, with sources (ADR-168).
 
+### `core-admin law apply` {#law-apply}
+
+```
+core-admin law apply PROPOSAL_ID [OPTIONS]
+```
+
+Approve law proposal PROPOSAL_ID (ADR-170 D3). Run as:
+
+  sudo -u core-law /opt/core-law/venv/bin/core-admin law apply &lt;id> --write
+
+Refusals are shown first and nothing is written. Otherwise the warnings
+follow. Without --write nothing more happens; with --write the proposal
+is written to every destination, with one signed ledger line, only
+after you type the proposal id.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `PROPOSAL_ID` | required | Proposal id, e.g. 0020-example. |
+| `--repo` |  | Development tree (default: discovered from cwd). |
+| `--key` |  | core-law's ledger signing key (default ~/.ssh/core_law_ledger). |
+| `--scratch` |  | Where the scratch tree is built (default ~/scratch). |
+| `--write` | off | Ask for the typed id and write. Without it, show the report only. |
+
 ### `core-admin law check` {#law-check}
 
 ```
@@ -1259,6 +1282,20 @@ Example: core-admin law check .intent/rules/architecture/governance_basics.json
 | Argument / option | Default | Description |
 |---|---|---|
 | `PATH` | required | Path to ask about, repo-relative or absolute. |
+
+### `core-admin law check-tree` {#law-check-tree}
+
+```
+core-admin law check-tree [OPTIONS]
+```
+
+Run the D5 refusal checks (schemas, references, the law loading,
+.claude/settings.json) on the repository in the working directory.
+Data only: no repository code runs. Exit 1 on any refusal.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--json` | off | Print one JSON line. |
 
 ### `core-admin law show` {#law-show}
 

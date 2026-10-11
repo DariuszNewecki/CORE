@@ -285,3 +285,25 @@ ledger line although its commit said it had. The bytes were the approved ones; t
 
 The rehearsal (D0) stays in force until Stage 1 is live. The missing 0012 line is appended to the rehearsal ledger,
 marked as reconstructed, with this proposal's approval.
+
+## Correction 2026-10-11 — `law apply` runs data checks only
+
+**Proposed by:** Claude (core-claude), proposal 0020. **Rests on:** the governor's ruling of 2026-10-11 ("data checks
+only"), D2 ("it never runs git and never executes repository code").
+
+Item 3 of the amendment above (proposal 0019) said `law apply` also runs the full offline audit. That contradicts D2:
+the full audit executes repository code (the type checker, CLI discovery), so anyone able to edit `src/` could run
+code as `core-law`, and the lock would mean nothing. Item 3 is corrected:
+
+- `law apply` runs D5's refusal checks only — schema validation, `architecture.intent.references_resolve`, the law
+  loading, `.claude/settings.json` parsing. All of them read files as data. They run in a child process of the
+  released interpreter, in a scratch tree that is also the repository root, and the child refuses when the law it
+  loaded is not that tree's (C-50).
+- The full offline audit is run by the proposer before asking, and again by the commit hook. The report says which
+  checks `law apply` ran and that the full audit was not one of them.
+
+**Built (proposal 0020's code commit):** `core-admin law apply <id>` and `core-admin law check-tree`
+(`src/body/governance/law_custody/`). The writer is the only code that writes governed text; it refuses unless it
+runs as `core-law` with a `SUDO_USER`, writes each file by atomic replace, refuses any symlink on a destination
+path, signs the ledger line before writing anything, and appends it only when every destination succeeded. It is
+inert until Stage 1's root session creates `core-law`, its key and its venv; nothing runs it before then.
