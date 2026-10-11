@@ -34,12 +34,26 @@ def _py(code: str) -> list[str]:
     return [sys.executable, "-c", code]
 
 
-def _pid_alive(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    return True
+def _pid_alive(pid: int, settle_sec: float = 2.0) -> bool:
+    """True while ``pid`` runs. A killed, re-parented worker stays a zombie
+    until init reaps it, and ``kill(pid, 0)`` still succeeds on a zombie --
+    so a zombie counts as dead, and SIGKILL gets a moment to land (CI saw
+    the race once: run 38132196522)."""
+    deadline = time.monotonic() + settle_sec
+    while True:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        try:
+            state = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0]
+        except (OSError, IndexError):
+            return False
+        if state in ("Z", "X"):
+            return False
+        if time.monotonic() >= deadline:
+            return True
+        time.sleep(0.05)
 
 
 # --- run_command_async -------------------------------------------------------
