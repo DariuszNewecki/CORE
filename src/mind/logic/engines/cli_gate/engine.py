@@ -18,6 +18,7 @@ CONSTITUTIONAL ALIGNMENT:
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
@@ -44,6 +45,17 @@ if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
 
 logger = getLogger(__name__)
+
+# The audited tree's own CLI entry point; when it exists, the imported app
+# must be this file or the registry describes some other tree (#965).
+_ADMIN_CLI_REL = Path("src") / "cli" / "admin_cli.py"
+# Reads the audited tree's source, not the imported app: valid either way.
+_SOURCE_ONLY_CHECKS = frozenset({"discovery_strict"})
+
+
+# ID: aed8de1d-e261-48e2-8d89-43cb90dcee55
+class CliNotAuditedError(Exception):
+    """The importable CLI is not the audited tree's CLI (#965)."""
 
 
 # ID: dc55a68d-d7f9-4645-984a-c9c432c472d8
@@ -129,6 +141,10 @@ class CliGateEngine(BaseEngine):
 
         try:
             commands = self._walk_registry()
+        except CliNotAuditedError as exc:
+            if check_type not in _SOURCE_ONLY_CHECKS:
+                return [self._not_audited(check_type, str(exc))]
+            commands = []
         except Exception as exc:
             logger.error(
                 "cli_gate failed to walk Typer registry: %s", exc, exc_info=True
@@ -182,10 +198,24 @@ class CliGateEngine(BaseEngine):
         from shared.cli.app_introspection import walk_typer_app
         from shared.protocols.typer_protocols import TyperAppLike
 
+        repo_root = self._path_resolver.repo_root
+        own_cli = repo_root / _ADMIN_CLI_REL
+        imported = getattr(sys.modules.get("cli.admin_cli"), "__file__", None)
+        if (
+            own_cli.is_file()
+            and imported
+            and Path(imported).resolve() != own_cli.resolve()
+        ):
+            # A worktree or sandbox audit with an editable install imports
+            # the main tree's CLI; every command would then be dropped as
+            # out-of-repo below and the rules would pass on nothing (#965).
+            raise CliNotAuditedError(
+                f"the importable CLI is {imported}, not the audited tree's {own_cli}"
+            )
+
         commands = walk_typer_app(
             cast(TyperAppLike, main_app), include_missing_handlers=True
         )
-        repo_root = self._path_resolver.repo_root
         filtered: list[dict[str, Any]] = []
         for cmd in commands:
             fp = cmd.get("file_path")
@@ -216,6 +246,24 @@ class CliGateEngine(BaseEngine):
                     repo_root,
                 )
         return filtered
+
+    @staticmethod
+    def _not_audited(check_type: str, reason: str) -> AuditFinding:
+        """Could not check is not clean (#965): one ENFORCEMENT_UNAVAILABLE."""
+        return AuditFinding(
+            check_id=f"cli_gate.{check_type}",
+            severity=AuditSeverity.BLOCK,  # rule_executor maps from rule.enforcement
+            message=(
+                f"cli_gate {check_type} could not run against the audited tree: "
+                f"{reason}. Compliance status UNKNOWN for this rule -- not a pass."
+            ),
+            file_path="none",
+            context={
+                "finding_type": "ENFORCEMENT_UNAVAILABLE",
+                "reason": "cli_not_audited_tree",
+                "check_type": check_type,
+            },
+        )
 
     # ID: 70dce438-c504-4819-8f1b-d4bdf3362cf6
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:

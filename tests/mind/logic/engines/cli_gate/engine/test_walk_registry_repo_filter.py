@@ -11,10 +11,15 @@ rooted in the consumer's ``repo_root`` reach the per-check verifiers.
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from mind.logic.engines.cli_gate.engine import CliGateEngine
+import pytest
+
+from mind.governance.audit_context import AuditorContext
+from mind.logic.engines.cli_gate.engine import CliGateEngine, CliNotAuditedError
+from shared.models.audit_rendering import is_not_evaluated
 
 
 def _make_command(name: str, file_path: str | None) -> dict[str, object]:
@@ -199,3 +204,43 @@ def test_walk_registry_preserves_relative_paths_untouched() -> None:
 
     assert len(result) == 1
     assert result[0]["file_path"] == "src/cli/relative_cmd.py"
+
+
+# #965: an audited tree with its own CLI whose app is not the importable one
+# (a worktree or sandbox audit under an editable install) is not audited.
+
+
+def _foreign_tree(tmp_path: Path) -> MagicMock:
+    (tmp_path / "src" / "cli").mkdir(parents=True)
+    (tmp_path / "src" / "cli" / "admin_cli.py").write_text("# the audited tree's CLI\n")
+    path_resolver = MagicMock()
+    path_resolver.repo_root = tmp_path
+    return path_resolver
+
+
+def test_walk_registry_refuses_a_tree_whose_cli_is_not_imported(
+    tmp_path: Path,
+) -> None:
+    engine = CliGateEngine(path_resolver=_foreign_tree(tmp_path))
+    with pytest.raises(CliNotAuditedError, match="not the audited tree's"):
+        engine._walk_registry()
+
+
+def test_not_audited_is_reported_not_passed(tmp_path: Path) -> None:
+    engine = CliGateEngine(path_resolver=_foreign_tree(tmp_path))
+    context = AuditorContext(repo_path=tmp_path)
+    findings = asyncio.run(
+        engine.verify_context(context, {"check_type": "dangerous_explicit"})
+    )
+    assert len(findings) == 1
+    assert is_not_evaluated(findings[0])
+    assert findings[0].context["reason"] == "cli_not_audited_tree"
+
+
+def test_source_only_check_still_runs_on_the_audited_tree(tmp_path: Path) -> None:
+    engine = CliGateEngine(path_resolver=_foreign_tree(tmp_path))
+    context = AuditorContext(repo_path=tmp_path)
+    findings = asyncio.run(
+        engine.verify_context(context, {"check_type": "discovery_strict"})
+    )
+    assert not any(is_not_evaluated(f) for f in findings)
