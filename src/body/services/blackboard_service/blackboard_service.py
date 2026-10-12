@@ -667,6 +667,7 @@ class BlackboardService:
         *,
         resolved_by: str,
         resolution_authority: str,
+        resolved_by_original: str | None = None,
     ) -> int:
         """
         Close a single indeterminate finding with an operator-provided reason.
@@ -710,6 +711,8 @@ class BlackboardService:
                                 jsonb_build_object(
                                     'reason', cast(:reason as text),
                                     'resolved_by', cast(:resolved_by as text),
+                                    'resolved_by_original',
+                                        cast(:resolved_by_original as text),
                                     'resolution_authority', cast(:authority as text),
                                     'resolved_at', to_char(now() at time zone 'UTC',
                                                            'YYYY-MM-DD"T"HH24:MI:SS"Z"')
@@ -727,6 +730,7 @@ class BlackboardService:
                         "entry_id": entry_id,
                         "reason": reason,
                         "resolved_by": resolved_by,
+                        "resolved_by_original": resolved_by_original,
                         "authority": resolution_authority,
                     },
                 )

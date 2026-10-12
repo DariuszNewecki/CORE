@@ -146,10 +146,21 @@ class ProposalService:
         limit: int = _CFG_PR.pending_limit,
         after_cursor: str | None = None,
     ) -> tuple[list[Proposal], bool, str | None]:
-        """Keyset-paginated pending-approval list. Returns (proposals, has_more, next_cursor)."""
-        return await self._repository.list_by_status_paginated(
+        """Keyset-paginated pending-approval list. Returns (proposals, has_more, next_cursor).
+
+        Only proposals that passed their pre-approval run are listed
+        (will.autonomy.pending_proposal_gate); the others are not yet the
+        governor's to look at. A page can hold fewer than ``limit`` items.
+        """
+        proposals, has_more, cursor = await self._repository.list_by_status_paginated(
             ProposalStatus.PENDING, limit, after_cursor
         )
+        ready = [
+            p
+            for p in proposals
+            if (p.validation_results or {}).get("pre_approval_run") is True
+        ]
+        return ready, has_more, cursor
 
     # -------------------------
     # State Transitions (delegate to state manager)
@@ -176,6 +187,7 @@ class ProposalService:
         proposal_id: str,
         approved_by: str,
         approval_authority: str,
+        approved_by_original: str | None = None,
     ) -> None:
         """Approve proposal.
 
@@ -186,7 +198,12 @@ class ProposalService:
         Commits the session after the state-manager call, since
         ProposalStateManager.approve no longer commits internally.
         """
-        await self._state_manager.approve(proposal_id, approved_by, approval_authority)
+        await self._state_manager.approve(
+            proposal_id,
+            approved_by,
+            approval_authority,
+            approved_by_original=approved_by_original,
+        )
         await self._session.commit()
 
     # ID: ca316432-a09e-4af3-9a63-82a39b08ebb2

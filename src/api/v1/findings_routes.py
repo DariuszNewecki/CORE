@@ -27,6 +27,9 @@ from api.dependencies import (
 from api.v1.schemas import GovernanceChainResponse
 
 
+# The one human approver principal (governor redesign 2026-10-12).
+GOVERNOR_PRINCIPAL = "governor"
+
 ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/findings")
 
@@ -100,7 +103,8 @@ async def resolve_finding(
     updated = await resolve(
         entry_id=entry_id,
         reason=payload.reason,
-        resolved_by=user["sub"],
+        resolved_by=GOVERNOR_PRINCIPAL,
+        resolved_by_original=user["sub"],
         resolution_authority=user["principal"],
     )
     if updated == 0:
@@ -115,6 +119,7 @@ async def resolve_finding(
         "ok": True,
         "entry_id": entry_id,
         "status": "resolved",
-        "resolved_by": user["sub"],
+        "resolved_by": GOVERNOR_PRINCIPAL,
+        "resolved_by_original": user["sub"],
         "resolution_authority": user["principal"],
     }

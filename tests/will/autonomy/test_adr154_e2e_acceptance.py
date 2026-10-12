@@ -153,7 +153,8 @@ async def _fetch_proposal_row(proposal_id: str) -> dict:
             text(
                 "SELECT status, approval_required, approval_authority, "
                 "approved_by, consequence_recorded_at, constitutional_constraints, "
-                "actions FROM core.autonomous_proposals WHERE proposal_id = :pid"
+                "actions, validation_results "
+                "FROM core.autonomous_proposals WHERE proposal_id = :pid"
             ),
             {"pid": proposal_id},
         )
@@ -330,6 +331,17 @@ async def test_adr154_unmapped_finding_reaches_completed_with_durable_consequenc
     # 7. Perform the real governor/human approval transition.
     # ------------------------------------------------------------------
     async with ProposalService.open() as proposal_service:
+        # Governor redesign 2026-10-12: only a proposal that passed its
+        # pre-approval run is approvable; record that run as passed.
+        await proposal_service._repository.update_fields(
+            proposal_id,
+            {
+                "validation_results": {
+                    **(pending_row.get("validation_results") or {}),
+                    "pre_approval_run": True,
+                }
+            },
+        )
         await proposal_service.approve(
             proposal_id,
             approved_by="e2e-governor",

@@ -173,6 +173,7 @@ def _approval_required_proposal(tag: str) -> Proposal:
         created_by="test_885",
     )
     proposal.compute_risk()
+    proposal.validation_results = {"pre_approval_run": True}
     assert proposal.approval_required is True
     return proposal
 

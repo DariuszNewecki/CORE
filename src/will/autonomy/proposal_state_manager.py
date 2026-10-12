@@ -201,6 +201,7 @@ class ProposalStateManager:
         proposal_id: str,
         approved_by: str,
         approval_authority: str,
+        approved_by_original: str | None = None,
     ) -> None:
         """Approve proposal for execution.
 
@@ -212,7 +213,10 @@ class ProposalStateManager:
 
         Args:
             proposal_id: Public proposal id.
-            approved_by: Identity of the approver (worker tag, operator name).
+            approved_by: The approver principal: ``governor`` for the human,
+                or the worker tag for an automatic approval.
+            approved_by_original: The identity behind it, kept verbatim
+                (the governor's OS account), or None.
             approval_authority: Structured reference to the rule or role that
                 authorized approval. Must be one of
                 ALLOWED_APPROVAL_AUTHORITIES; mirrors the
@@ -261,6 +265,14 @@ class ProposalStateManager:
             declared = gate_row.validation_checks or []
             results = gate_row.validation_results or {}
             unmet = [c for c in declared if results.get(c) is not True]
+            # Governor redesign 2026-10-12: the governor is shown, and may
+            # approve, only a proposal that passed its pre-approval run
+            # (will.autonomy.pending_proposal_gate).
+            if (
+                approval_authority == "principal.governor"
+                and results.get("pre_approval_run") is not True
+            ):
+                unmet.append("pre_approval_run")
             if unmet:
                 raise ValueError(
                     f"Proposal {proposal_id!r} cannot be approved: validation "
@@ -288,6 +300,7 @@ class ProposalStateManager:
             .values(
                 status=ProposalStatus.APPROVED.value,
                 approved_by=approved_by,
+                approved_by_original=approved_by_original,
                 approved_at=datetime.now(UTC),
                 approval_authority=approval_authority,
             )

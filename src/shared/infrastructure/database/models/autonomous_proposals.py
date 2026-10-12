@@ -108,6 +108,9 @@ class AutonomousProposal(Base):
     constitutional_constraints = Column(JSONB, nullable=False, server_default="{}")
     approval_required = Column(Boolean, nullable=False, server_default="false")
     approved_by = Column(Text)
+    # The identity originally recorded behind approved_by (governor redesign
+    # 2026-10-12): approved_by is the principal, this is who it was.
+    approved_by_original = Column(Text)
     approved_at = Column(DateTime(timezone=True))
     approval_authority = Column(Text)
 

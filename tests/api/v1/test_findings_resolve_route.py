@@ -26,10 +26,12 @@ async def test_actor_and_authority_come_from_the_verified_caller() -> None:
     resolve.assert_awaited_once_with(
         entry_id="e-1",
         reason="stale",
-        resolved_by="darek",
+        resolved_by="governor",
+        resolved_by_original="darek",
         resolution_authority="principal.governor",
     )
-    assert out["resolved_by"] == "darek"
+    assert out["resolved_by"] == "governor"
+    assert out["resolved_by_original"] == "darek"
     assert out["resolution_authority"] == "principal.governor"
 
 

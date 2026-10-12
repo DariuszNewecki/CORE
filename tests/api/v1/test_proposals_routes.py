@@ -300,10 +300,14 @@ async def test_approve_proposal_stamps_the_verified_governor():
     assert out["ok"] is True
     assert out["proposal_id"] == pid
     assert out["status"] == ProposalStatus.APPROVED.value
-    assert out["approved_by"] == "darek"
+    assert out["approved_by"] == "governor"
+    assert out["approved_by_original"] == "darek"
     assert out["approval_authority"] == "principal.governor"
     mock_svc.approve.assert_awaited_once_with(
-        pid, approved_by="darek", approval_authority="principal.governor"
+        pid,
+        approved_by="governor",
+        approval_authority="principal.governor",
+        approved_by_original="darek",
     )
 
 
@@ -323,7 +327,8 @@ async def test_approve_proposal_ignores_a_body_approved_by():
             proposal_id=pid, payload=payload, user=_GOVERNOR, session=session
         )
 
-    assert out["approved_by"] == "darek"
+    assert out["approved_by"] == "governor"
+    assert out["approved_by_original"] == "darek"
 
 
 async def test_approve_proposal_refuses_a_different_body_authority():

@@ -66,6 +66,9 @@ logger = getLogger(__name__)
 API_CLAIMER_UUID: Final[UUID] = UUID("00000000-0000-0000-0000-000000000002")
 
 
+# The one human approver principal (governor redesign 2026-10-12).
+GOVERNOR_PRINCIPAL = "governor"
+
 ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/proposals")
 
@@ -365,7 +368,9 @@ async def approve_proposal(
     session: AsyncSession = Depends(get_api_session),
 ) -> dict:
     """Approve a pending proposal, stamped from the verified caller (ADR-132 D10.4)."""
-    approved_by = user["sub"]
+    # One approver principal (2026-10-12); the OS account is kept beside it.
+    approved_by = GOVERNOR_PRINCIPAL
+    approved_by_original = user["sub"]
     approval_authority = user["principal"]
     if payload.approval_authority not in (None, approval_authority):
         raise HTTPException(
@@ -381,6 +386,7 @@ async def approve_proposal(
             proposal_id,
             approved_by=approved_by,
             approval_authority=approval_authority,
+            approved_by_original=approved_by_original,
         )
     except ProposalNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -392,6 +398,7 @@ async def approve_proposal(
         "proposal_id": proposal_id,
         "status": ProposalStatus.APPROVED.value,
         "approved_by": approved_by,
+        "approved_by_original": approved_by_original,
         "approval_authority": approval_authority,
     }
 

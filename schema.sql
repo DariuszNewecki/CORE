@@ -840,6 +840,7 @@ CREATE TABLE core.autonomous_proposals (
     approval_authority text,
     claimed_by uuid,
     consequence_recorded_at timestamp with time zone,
+    approved_by_original text,
     CONSTRAINT approval_authority_required_when_approved CHECK (((status <> ALL (ARRAY['approved'::text, 'executing'::text, 'finalizing'::text, 'completed'::text])) OR (approval_authority IS NOT NULL) OR (created_at < '2026-04-27 00:00:00+00'::timestamp with time zone))),
     CONSTRAINT autonomous_proposals_approval_authority_value_check CHECK (((approval_authority IS NULL) OR (approval_authority = ANY (ARRAY['risk_classification.safe_auto_approval'::text, 'principal.governor'::text])))),
     CONSTRAINT autonomous_proposals_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'executing'::text, 'finalizing'::text, 'completed'::text, 'failed'::text, 'rejected'::text])))
@@ -6662,4 +6663,5 @@ INSERT INTO core._migrations (id, reconciled) VALUES ('20260919e_adr052_phase4_d
 INSERT INTO core._migrations (id, reconciled) VALUES ('20261005_adr169_state_observations.sql', false);
 INSERT INTO core._migrations (id, reconciled) VALUES ('20261005b_adr169_cycle_trigger.sql', false);
 INSERT INTO core._migrations (id, reconciled) VALUES ('20261005c_adr169_changes_and_outside_writes.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20261012_approver_original.sql', false);
 -- CORE-LEDGER-SEED-END
