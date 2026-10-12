@@ -31,10 +31,12 @@ UMask=0077
 
 # --- network and sockets --------------------------------------------------
 # No network namespace peers; no new sockets of any family (the accepted
-# connection is inherited, not created); host sockets hidden by path.
+# connection is inherited, not created); the host sockets under /run are
+# also hidden by path (InaccessiblePaths below). /run itself is not replaced
+# with a tmpfs: on systemd 255 that breaks the namespace setup (226/NAMESPACE,
+# "/run/systemd/incoming: No such file or directory").
 PrivateNetwork=yes
 RestrictAddressFamilies=none
-TemporaryFileSystem=/run /var/run
 PrivateTmp=yes
 PrivateIPC=yes
 
@@ -43,7 +45,7 @@ ProtectSystem=strict
 ProtectHome=yes
 PrivateDevices=yes
 ReadOnlyPaths=/opt/core/repo/var/tmp/sandbox-inbox
-InaccessiblePaths=-/opt/core/etc -/opt/core/law -/opt/core/build -/opt/core/backups -/opt/core/run -/opt/dev -/opt/core-law -/etc/core
+InaccessiblePaths=-/opt/core/etc -/opt/core/law -/opt/core/build -/opt/core/backups -/opt/core/run -/opt/dev -/opt/core-law -/etc/core -/run/core -/run/user -/run/dbus -/run/docker.sock -/run/docker -/run/containerd -/run/credentials -/run/snapd.socket -/run/snapd-snap.socket
 TemporaryFileSystem=/work:size=2G,mode=1777
 
 # --- kernel surface and syscalls -----------------------------------------

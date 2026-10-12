@@ -50,7 +50,6 @@ def test_socket_is_one_job_per_connection_and_group_core_only() -> None:
         ("CapabilityBoundingSet", ""),
         ("PrivateNetwork", "yes"),
         ("RestrictAddressFamilies", "none"),
-        ("TemporaryFileSystem", "/run /var/run"),
         ("PrivateTmp", "yes"),
         ("ProtectHome", "yes"),
         ("ProtectSystem", "strict"),
@@ -67,7 +66,7 @@ def test_service_carries_each_wall(key: str, value: str) -> None:
 
 def test_secrets_and_dev_tree_are_inaccessible() -> None:
     (paths,) = _directives("core-sandbox@.service")["Service.InaccessiblePaths"]
-    for required in ("-/opt/core/etc", "-/opt/dev", "-/opt/core-law"):
+    for required in ("-/opt/core/etc", "-/opt/dev", "-/opt/core-law", "-/run/dbus", "-/run/docker.sock", "-/run/core"):
         assert required in paths.split()
 
 
@@ -90,3 +89,12 @@ def test_configparser_reads_both_units() -> None:
         parser.optionxform = str  # type: ignore[assignment,method-assign]
         parser.read(UNITS / name)
         assert parser.sections()
+
+
+def test_run_is_not_replaced_by_a_tmpfs() -> None:
+    # systemd 255 needs /run/systemd/incoming while it builds the namespace;
+    # a tmpfs over /run made every job exit 226/NAMESPACE (2026-10-12).
+    tmpfs = _directives("core-sandbox@.service").get("Service.TemporaryFileSystem", [])
+    for entry in tmpfs:
+        for path in entry.split():
+            assert path.split(":")[0] not in ("/run", "/var/run")
