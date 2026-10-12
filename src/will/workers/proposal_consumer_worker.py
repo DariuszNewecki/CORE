@@ -100,12 +100,17 @@ class ProposalConsumerWorker(Worker):
         # (pre-approval run, 72h expiry) before executing approved work.
         from will.autonomy.pending_proposal_gate import screen_pending_proposals
 
-        screened = await screen_pending_proposals(self._ctx, self.worker_uuid)
-        if screened.passed or screened.failed or screened.expired:
-            await self.post_report(
-                subject="proposal_consumer_worker.pending_gate",
-                payload=screened.as_payload(),
-            )
+        try:
+            screened = await screen_pending_proposals(self._ctx, self.worker_uuid)
+        except Exception as exc:
+            # The gate never blocks executing approved work; it retries next cycle.
+            logger.warning("ProposalConsumerWorker: pending gate failed: %s", exc)
+        else:
+            if screened.passed or screened.failed or screened.expired:
+                await self.post_report(
+                    subject="proposal_consumer_worker.pending_gate",
+                    payload=screened.as_payload(),
+                )
 
         proposals = await self._load_approved_proposals()
 
