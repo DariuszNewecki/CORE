@@ -142,6 +142,7 @@ async def _check_candidate_against_siblings(
     solo_result: ActionResult,
     *,
     scratch_rel_path: str,
+    overlay: tuple[tuple[str, bytes], ...],
     source_file: str,
     repo_root: Path,
 ) -> ActionResult:
@@ -163,6 +164,7 @@ async def _check_candidate_against_siblings(
         extra_targets=siblings,
         action_id="test.candidate_validate",
         repo_root=repo_root,
+        overlay=overlay,
     )
     if combined.ok:
         return combined
@@ -206,7 +208,7 @@ async def _check_candidate_against_siblings(
 )
 @atomic_action(
     action_id="test.candidate_validate",
-    intent="Materialize a candidate test file under var/tmp/ ephemeral scratch and run pytest against it, so the generation acceptance loop never writes to the real target test path",
+    intent="Run pytest on a candidate test added to the sandbox copy of the repository only, so the generation acceptance loop never writes to the real target test path",
     impact=ActionImpact.WRITE_DATA,
     policies=["atomic_actions"],
 )
@@ -226,13 +228,13 @@ async def action_test_candidate_validate(
     `CoreContext.file_service`. When that context wasn't scoped to a sandbox
     worktree, candidates leaked into the main repo tree; even scoped, it collided
     with `build.test_for_symbol`'s own later append of the same accepted snippet
-    (a duplicate-definition bug). Neither problem can occur here: this action
-    writes only to a fresh `var/tmp/candidate_validate/<token>/` directory
-    (`FileHandler.write` classifies `var/tmp/` as ephemeral-scratch — no
-    syntax/schema gates, no ID-anchor injection), runs pytest against that scratch
-    copy, and removes the directory before returning. Nothing under `tests/` or
-    `src/` is ever written by this action; `target_path` is used only to name the
-    scratch file, never as a write destination.
+    (a duplicate-definition bug). Neither problem can occur here: the candidate
+    is added to the sandbox's copy of the repository only (an overlay at
+    `var/tmp/candidate_validate/<token>/<name>`, ADR-132 D10.10) and pytest runs
+    it there. Nothing is written to disk by this action; `target_path` is used
+    only to name the candidate file, never as a write destination. (The copy
+    leaves out the tree's own var/, so a candidate written there would never
+    reach the sandbox.)
 
     `source_file` is not consulted for path derivation — `target_path` is already
     resolved by the caller (mirrors test.sandbox_validate's contract, which is
@@ -251,46 +253,26 @@ async def action_test_candidate_validate(
     _tmp = PathResolver(file_handler.repo_path).tmp_dir.relative_to(
         file_handler.repo_path
     )
-    scratch_dir = str(_tmp / "candidate_validate" / uuid.uuid4().hex)
-    scratch_rel_path = str(Path(scratch_dir) / Path(target_path).name)
-
-    try:
-        core_context.file_handler.write(scratch_rel_path, candidate_content)
-    except Exception as exc:
-        return ActionResult(
-            action_id="test.candidate_validate",
-            ok=False,
-            data={
-                "error": f"candidate scratch write failed: {exc}",
-                "source_file": source_file,
-                "target_path": target_path,
-            },
-            impact=ActionImpact.WRITE_DATA,
-        )
+    scratch_rel_path = (
+        _tmp / "candidate_validate" / uuid.uuid4().hex / Path(target_path).name
+    ).as_posix()
+    overlay = ((scratch_rel_path, candidate_content.encode("utf-8")),)
 
     repo_root = core_context.git_service.repo_path if core_context.git_service else None
-    try:
-        result = await run_tests(
-            target=scratch_rel_path,
-            action_id="test.candidate_validate",
-            repo_root=repo_root,
+    result = await run_tests(
+        target=scratch_rel_path,
+        action_id="test.candidate_validate",
+        repo_root=repo_root,
+        overlay=overlay,
+    )
+    if result.ok:
+        result = await _check_candidate_against_siblings(
+            result,
+            scratch_rel_path=scratch_rel_path,
+            overlay=overlay,
+            source_file=source_file,
+            repo_root=repo_root or Path(file_handler.repo_path),
         )
-        if result.ok:
-            result = await _check_candidate_against_siblings(
-                result,
-                scratch_rel_path=scratch_rel_path,
-                source_file=source_file,
-                repo_root=repo_root or Path(file_handler.repo_path),
-            )
-    finally:
-        try:
-            core_context.file_handler.remove_tree(scratch_dir)
-        except Exception as exc:
-            logger.warning(
-                "test.candidate_validate: scratch cleanup failed for %s: %s",
-                scratch_dir,
-                exc,
-            )
 
     result.data["source_file"] = source_file
     result.data["target_path"] = target_path

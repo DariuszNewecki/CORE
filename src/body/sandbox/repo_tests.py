@@ -72,6 +72,7 @@ async def run_tests(
     extra_targets: Sequence[str] = (),
     markers: str | None = None,
     timeout_sec: int = DEFAULT_TIMEOUT_SEC,
+    overlay: Sequence[tuple[str, bytes]] = (),
 ) -> ActionResult:
     """Run pytest on the repository in the sandbox; one canonical ActionResult.
 
@@ -79,7 +80,8 @@ async def run_tests(
     repo-relative paths or node ids; without ``target`` the whole ``tests/``
     tree runs. ``repo_root`` is the tree to snapshot (a flow's worktree under
     ADR-106); it defaults to CORE's bound repository. ``markers`` is a pytest
-    ``-m`` expression.
+    ``-m`` expression. ``overlay`` files (repo-relative path, bytes) are
+    added to the sandbox copy only; a target may name one of them.
     """
     start = time.perf_counter()
     if not suppress_logging:
@@ -90,6 +92,7 @@ async def run_tests(
         (target, *extra_targets) if target else ("tests",),
         markers=markers,
         timeout_sec=timeout_sec,
+        overlay=overlay,
     )
 
     data = _result_data(result)
