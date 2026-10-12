@@ -126,6 +126,10 @@ class FakeHost(rs.Host):
             self.linger = True
         elif cmd[0] == "cat" and user is not None:
             code = 0 if user in self.readable_etc_by else 1
+        elif cmd[:3] == ["python3", "-m", "venv"]:
+            (Path(cmd[-1]) / "bin").mkdir(parents=True, exist_ok=True)
+        elif cmd[0].endswith("/bin/pip"):
+            (Path(cmd[0]).parent / "core").write_text("#!core\n")
         elif cmd[0] == "groupadd":
             self.group_table[cmd[-1]] = []
         elif cmd[0] == "usermod":
@@ -147,6 +151,7 @@ def world(tmp_path: Path):
         sbin=tmp_path / "usr" / "local" / "sbin",
         etc_core=tmp_path / "etc" / "core",
         tmpfiles=tmp_path / "etc" / "tmpfiles.d",
+        bin=tmp_path / "usr" / "local" / "bin",
     )
     (layout.law / ".intent").mkdir(parents=True)
     layout.dev_secrets.parent.mkdir(parents=True)
@@ -159,6 +164,7 @@ def world(tmp_path: Path):
     layout.system_units.mkdir(parents=True)
     layout.sbin.mkdir(parents=True)
     layout.tmpfiles.mkdir(parents=True)
+    layout.bin.mkdir(parents=True)
     # Today's units: an old daemon unit and the drop-in that loads the dev tree.
     units = tmp_path / "home" / "core" / ".config" / "systemd" / "user"
     (units / "core-daemon.service.d").mkdir(parents=True)
@@ -473,3 +479,29 @@ def test_rerun_keeps_the_governor_step_unchanged(world) -> None:
     assert not _ran(world, "groupadd")
     assert not _ran(world, "usermod")
     assert not _ran(world, "systemd-tmpfiles")
+
+
+def test_the_governors_cli_is_a_wheel_in_a_root_venv(world) -> None:
+    assert _run(world, "--apply") == 0
+    venv = world.layout.core_root / "cli"
+    pip = [c for c in world.host.calls if c[0][0] == str(venv / "bin" / "pip")]
+    assert len(pip) == 1
+    cmd, user = pip[0]
+    assert "--only-binary=:all:" in cmd and rs.CORE_CLI in cmd
+    assert user is None
+    link = world.layout.bin / "core"
+    assert link.is_symlink() and Path(link.readlink()) == venv / "bin" / "core"
+
+
+def test_rerun_does_not_reinstall_the_cli(world) -> None:
+    assert _run(world, "--apply") == 0
+    world.host.calls.clear()
+    assert _run(world, "--apply") == 0
+    assert not [c for c in world.host.calls if c[0][:3] == ["python3", "-m", "venv"]]
+
+
+def test_a_foreign_core_command_is_not_replaced(world) -> None:
+    foreign = world.layout.bin / "core"
+    foreign.write_text("#!/bin/sh\n")
+    assert _run(world, "--apply") == 1
+    assert foreign.read_text() == "#!/bin/sh\n"

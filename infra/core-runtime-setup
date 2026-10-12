@@ -41,7 +41,10 @@ What it does (the D2 checklist, then the sandbox steps, in one run):
     ``core:core-gov 2750``) for the API's Unix socket; and
     ``/etc/core/principals.yaml`` binding that account to
     ``principal.governor`` (root-owned; an existing different file is
-    never replaced);
+    never replaced); and the governor's ``core`` command (core-cli, a
+    published wheel, installed into ``/opt/core/cli`` and linked from
+    ``/usr/local/bin/core``), so the approving CLI is not one the coding
+    assistant can write;
  8. last, ``core``'s three user units (daemon, API, dedicated workers),
     replacing today's; old files and the drop-in that loaded
     ``/opt/dev/CORE/.env`` are kept in ``/opt/core/backups``. The units are
@@ -87,6 +90,8 @@ GOVERNOR_GROUP = "core-gov"
 ASSISTANT = "core-claude"
 GOVERNOR_ROLE = "principal.governor"
 API_SOCKET_DIR = "/run/core/api"
+# The governor's CLI: a published wheel, never built here (no build backend runs).
+CORE_CLI = "core-cli==2.1.0"
 TMPFILES_CONF = (
     "# core-runtime-setup: CORE's Unix sockets (ADR-132 D10.3 as amended).\n"
     "d /run/core 0755 root root -\n"
@@ -132,6 +137,7 @@ class Layout:
     sbin: Path = Path("/usr/local/sbin")
     etc_core: Path = Path("/etc/core")
     tmpfiles: Path = Path("/etc/tmpfiles.d")
+    bin: Path = Path("/usr/local/bin")
 
     @property
     def repo(self) -> Path:
@@ -672,6 +678,34 @@ class Setup:
             )
             return
         self._install_file(binding, data, "root", "root", 0o644)
+        self._governor_cli()
+
+    def _governor_cli(self) -> None:
+        venv = self.layout.core_root / "cli"
+        marker = venv / "installed"
+        link = self.layout.bin / "core"
+        if marker.is_file() and marker.read_text().strip() == CORE_CLI:
+            self.say(f"  ok: {CORE_CLI} in {venv}")
+        elif self.act(f"install {CORE_CLI} (wheel only) into {venv}"):
+            self.host.run(["python3", "-m", "venv", "--clear", str(venv)])
+            self.host.run(
+                [
+                    str(venv / "bin" / "pip"),
+                    "install",
+                    "--only-binary=:all:",
+                    "--no-cache-dir",
+                    CORE_CLI,
+                ]
+            )
+            marker.write_text(CORE_CLI + "\n")
+        target = venv / "bin" / "core"
+        if link.is_symlink() and os.readlink(link) == str(target):
+            self.say(f"  ok: {link} -> {target}")
+        elif link.exists() and not link.is_symlink():
+            self.failures.append(f"{link} exists and is not our link; not replaced")
+        elif self.act(f"link {link} -> {target}"):
+            link.unlink(missing_ok=True)
+            link.symlink_to(target)
 
     # -- 8. core's units ---------------------------------------------------------
 
@@ -796,7 +830,8 @@ class Setup:
             "(expected: every row not_run); then sudo systemctl start core-sandbox.socket\n"
             f"  4. log in again as {self.governor} (the {GOVERNOR_GROUP} group applies to new "
             "logins), then approve with:\n"
-            f"     CORE_API_URL=unix://{API_SOCKET_DIR}/api.sock core proposals approve <id>"
+            f"     CORE_API_URL=unix://{API_SOCKET_DIR}/api.sock core proposals approve <id>\n"
+            "     (add the CORE_API_URL line to your shell profile to skip typing it)"
         )
         return 0
 
