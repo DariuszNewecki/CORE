@@ -179,7 +179,15 @@ async def law_apply(
     except CustodyError as exc:
         console.print(f"[bold red]{exc}[/bold red]")
         raise typer.Exit(1)
-    repo_root = (repo or get_repo_root(Path.cwd())).resolve()
+    try:
+        repo_root = (repo or get_repo_root(Path.cwd())).resolve()
+    except FileNotFoundError:
+        console.print(
+            "[bold red]REFUSED -- nothing written:[/bold red] no repository with "
+            ".intent/ above the working directory; run from the development "
+            "tree (cd /opt/dev/CORE) or pass --repo."
+        )
+        raise typer.Exit(1)
     destinations = [repo_root]
     if release_law.is_dir():
         destinations.append(release_law)

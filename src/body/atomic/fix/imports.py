@@ -7,6 +7,7 @@ Split from body/atomic/fix_actions.py (one action per module, #806).
 
 from __future__ import annotations
 
+import sys
 import time
 from typing import TYPE_CHECKING
 
@@ -46,7 +47,7 @@ async def action_fix_imports(
     real one (#638). A None context falls back to the process cwd.
     """
     start = time.time()
-    from shared.utils.subprocess_utils import run_poetry_command
+    from shared.utils.subprocess_utils import run_direct_command
 
     cwd = (
         core_context.git_service.repo_path
@@ -55,12 +56,15 @@ async def action_fix_imports(
     )
     target_path = "src/"
     try:
-        cmd = ["ruff", "check", target_path, "--select", "I"]
+        args = ["-m", "ruff", "check", target_path, "--select", "I"]
         if write:
-            cmd.append("--fix")
-        cmd.append("--exit-zero")
+            args.append("--fix")
+        args.append("--exit-zero")
 
-        run_poetry_command(f"Sorting imports in {target_path}", cmd, cwd=cwd)
+        # The interpreter's own ruff: the release runtime has no Poetry.
+        run_direct_command(
+            f"Sorting imports in {target_path}", sys.executable, args, cwd=cwd
+        )
 
         return ActionResult(
             action_id="fix.imports",

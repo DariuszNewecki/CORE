@@ -44,7 +44,13 @@ console = Console()
 async def sandbox_check_cmd(
     mode: str = typer.Option("service", "--mode", help="service | local"),
     socket_path: Path = typer.Option(
-        DEFAULT_SOCKET, "--socket", help="The sandbox service's socket."
+        DEFAULT_SOCKET,
+        "--socket",
+        help="The sandbox service's socket.",
+        # Click checks a Path option is readable; the socket belongs to core,
+        # so any other account was refused even for --mode local, which
+        # never opens it. Reaching the socket is the client's to report.
+        readable=False,
     ),
 ) -> None:
     """Run the sandbox closure probes and show which walls held."""

@@ -10,6 +10,7 @@ fallback still parses the (now stripped) stdout.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from unittest.mock import patch
 
@@ -33,7 +34,7 @@ def test_get_module_coverage_reads_coverage_json(tmp_path: Path) -> None:
         result = CoverageAnalyzer(tmp_path).get_module_coverage()
     assert result == {"src/a.py": 50.12}
     args, kwargs = run.call_args
-    assert args[0][:3] == ["poetry", "run", "pytest"]
+    assert args[0][:3] == [sys.executable, "-m", "pytest"]  # no Poetry in a release
     assert kwargs["cwd"] == tmp_path
     assert kwargs["timeout"] == coverage_analyzer._CFG.collect_timeout_sec
 

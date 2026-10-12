@@ -10,6 +10,7 @@ to support intelligent test prioritization.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 # REFACTORED: Removed direct settings import
@@ -42,7 +43,14 @@ class CoverageAnalyzer:
         """
         try:
             run_command(
-                ["poetry", "run", "pytest", "--cov=src", "--cov-report=json", "-q"],
+                [
+                    sys.executable,
+                    "-m",
+                    "pytest",
+                    "--cov=src",
+                    "--cov-report=json",
+                    "-q",
+                ],
                 cwd=self.repo_path,
                 timeout=_CFG.collect_timeout_sec,
             )
