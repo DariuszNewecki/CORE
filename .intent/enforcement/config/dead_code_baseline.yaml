@@ -13,8 +13,8 @@
 #
 #   Most entries are live in ways vulture cannot see (dispatch by name,
 #   protocol methods, ORM classes used through SQL, test oracles, the parked
-#   V2.3 scaffold, core-platform's imports) or are still to be triaged
-#   (var/reports/2026-10-09-dead-code-sweep-plan.md). Removing dead code:
+#   V2.3 scaffold, core-platform's imports) or are still to be triaged.
+#   Removing dead code:
 #   delete the symbol and its entry here in the same change. This list should
 #   only shrink.
 

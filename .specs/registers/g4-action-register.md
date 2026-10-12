@@ -1,5 +1,7 @@
 # G4 action register (Soak NG, hand-kept)
 
+> **Note 2026-10-12 (governor ruling):** links in this record to files under `var/` point to files that were not retained (deleted 2026-10-12). The record is otherwise kept as written. LLM assumed too much while writing this text.
+
 **What this is.** A dated record of what happened while CORE was being developed: fixes, catches, health
 problems, events, and the assistant's own misses — each with **who** did it and the **CORE record** that
 proves it.
