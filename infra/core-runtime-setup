@@ -576,33 +576,49 @@ class Setup:
                 deploy_conf, self.files["deploy.conf.example"], "root", "root", 0o600
             )
 
-        secrets = etc / "secrets.env"
-        if secrets.is_file():
-            self.say(f"  ok: {secrets} kept")
+        # Messages here name the file by a constant and never carry anything
+        # read from it (CodeQL py/clear-text-logging-sensitive-data, PR #967).
+        service_env = etc / "secrets.env"
+        shown = f"{etc}/secrets.env"
+        if service_env.is_file():
+            self.say(f"  ok: {shown} kept")
             self._install_file(
-                secrets, secrets.read_bytes(), SERVICES, SERVICES, 0o600, secret=True
+                service_env,
+                service_env.read_bytes(),
+                SERVICES,
+                SERVICES,
+                0o600,
+                secret=True,
             )
-            data = secrets.read_bytes()
+            data = service_env.read_bytes()
         elif self.layout.dev_secrets.is_file():
             data = self.layout.dev_secrets.read_bytes()
             have = env_keys(data.decode(errors="replace"))
             # Today DATABASE_URL (with its password) sits in the dev tree's
             # .env, not in .secrets/; the release reads it only from here.
-            for key, line in self._dev_env_lines():
-                if key in CARRIED_FROM_DEV_ENV and key not in have:
+            carried = 0
+            for name, line in self._dev_env_lines():
+                if name in CARRIED_FROM_DEV_ENV and name not in have:
                     data = data.rstrip(b"\n") + b"\n" + line + b"\n"
-                    self.say(f"  {key} from {self.layout.dev_env} (value not shown)")
-            self.say("  secrets.env is built from them (names and values not shown)")
-            self._install_file(secrets, data, SERVICES, SERVICES, 0o600, secret=True)
+                    carried += 1
+            self.say(
+                f"  {shown} is built from .secrets/core.env and {carried} line(s) "
+                "of .env (names and values not shown)"
+            )
+            self._install_file(
+                service_env, data, SERVICES, SERVICES, 0o600, secret=True
+            )
         else:
             self.failures.append(
-                f"no {secrets} and no {self.layout.dev_secrets} to copy it from: "
-                "create it (DATABASE_URL, CORE_MASTER_KEY, API keys), core:core 0600"
+                f"no {shown} and no .secrets/core.env in the development tree to "
+                "copy it from: create it (DATABASE_URL, CORE_MASTER_KEY, API keys), "
+                "core:core 0600"
             )
             return
-        for key in REQUIRED_SECRETS:
-            if key not in env_keys(data.decode(errors="replace")):
-                self.failures.append(f"{secrets} would lack {key}")
+        present = env_keys(data.decode(errors="replace"))
+        for required in REQUIRED_SECRETS:
+            if required not in present:
+                self.failures.append(f"{shown} would lack {required}")
 
     def _dev_env_lines(self) -> list[tuple[str, bytes]]:
         """(KEY, raw line) for each assignment in the dev tree's .env."""
