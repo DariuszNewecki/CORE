@@ -119,6 +119,46 @@ def _candidate_error(snapshot: Path) -> str | None:
     return None
 
 
+def _start_coverage(snapshot: Path) -> Any:
+    """Measure src/ with coverage.py directly. pytest-cov stays off: the
+    repository's addopts would write its HTML report into the read-only copy.
+    The data file lives in the job's own scratch (TMPDIR)."""
+    import coverage
+
+    cov = coverage.Coverage(
+        data_file=os.path.join(os.environ.get("TMPDIR", "."), ".coverage"),
+        source=[str(snapshot / "src")],
+    )
+    cov.start()
+    return cov
+
+
+def _finish_coverage(cov: Any, snapshot: Path) -> dict[str, Any]:
+    """Per-file percent (repo-relative paths), the total, and the text table."""
+    import io
+
+    cov.stop()
+    cov.save()
+    out = os.path.join(os.environ.get("TMPDIR", "."), "coverage.json")
+    try:
+        total = cov.json_report(outfile=out)
+        with open(out, encoding="utf-8") as fh:
+            data = json.load(fh)
+        text = io.StringIO()
+        cov.report(file=text, skip_covered=True)
+    except Exception as exc:  # no data measured, or a report failure
+        return {"error": f"{type(exc).__name__}: {exc}"}
+    files: dict[str, float] = {}
+    for name, entry in data.get("files", {}).items():
+        path = Path(name)
+        if path.is_absolute() and path.is_relative_to(snapshot):
+            path = path.relative_to(snapshot)
+        files[path.as_posix()] = round(
+            float(entry.get("summary", {}).get("percent_covered", 0.0)), 2
+        )
+    return {"total": round(float(total), 2), "files": files, "text": text.getvalue()}
+
+
 # ID: 68a00f92-cd3e-4d10-ab25-4d1952fae4d0
 def main(argv: list[str]) -> int:
     spec = json.loads(argv[1])
@@ -152,6 +192,7 @@ def main(argv: list[str]) -> int:
     if spec.get("markers"):
         args += ["-m", spec["markers"]]
     args += list(spec["targets"])
+    cov = _start_coverage(snapshot) if spec.get("coverage") else None
     exit_code = int(pytest.main(args, plugins=[counter]))
     report: dict[str, Any] = {
         "exit_code": exit_code,
@@ -161,6 +202,8 @@ def main(argv: list[str]) -> int:
         "failed_ids": counter.failed_ids,
         "error": _candidate_error(snapshot),
     }
+    if cov is not None:
+        report["coverage"] = _finish_coverage(cov, snapshot)
     payload = json.dumps(report).encode("utf-8")
     while payload:
         payload = payload[os.write(report_fd, payload) :]

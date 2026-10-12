@@ -95,6 +95,7 @@ def run_job(
         "markers": job.effective_markers(),
         "exclude_integration": job.exclude_integration,
         "collect_only": job.kind == COLLECT_KIND,
+        "coverage": job.coverage,
         "report_fd": report_w,
     }
     argv = [sys.executable, "-I", str(BOOTSTRAP), json.dumps(spec)]
@@ -136,6 +137,7 @@ def run_job(
         excluded=list((report or {}).get("excluded", [])),
         passed_ids=list((report or {}).get("passed_ids", [])),
         failed_ids=list((report or {}).get("failed_ids", [])),
+        coverage=dict((report or {}).get("coverage", {})),
         stdout=captured.stdout.decode(errors="replace"),
         stderr=captured.stderr.decode(errors="replace"),
         output_truncated=captured.truncated,

@@ -56,6 +56,8 @@ class SandboxJob:
     timeout_sec: int
     markers: str | None = None
     exclude_integration: bool = False
+    # Measure coverage of src/ (coverage.py); the result carries it.
+    coverage: bool = False
 
     # ID: 01ff4d11-916d-477c-8c06-61ad55280b2e
     def validate(self) -> None:
@@ -94,6 +96,7 @@ class SandboxJob:
                 timeout_sec=data["timeout_sec"],
                 markers=data.get("markers"),
                 exclude_integration=bool(data.get("exclude_integration", False)),
+                coverage=bool(data.get("coverage", False)),
             )
         except (KeyError, TypeError) as exc:
             raise JobRejected(f"malformed job: {exc}") from exc
@@ -138,6 +141,8 @@ class SandboxResult:
     # Node ids of the tests that passed / failed (setup failures included).
     passed_ids: list[str] = field(default_factory=list)
     failed_ids: list[str] = field(default_factory=list)
+    # A coverage job: {"total": %, "files": {path: %}, "text": table} or {"error": ...}.
+    coverage: dict[str, Any] = field(default_factory=dict)
     stdout: str = ""
     stderr: str = ""
     output_truncated: bool = False

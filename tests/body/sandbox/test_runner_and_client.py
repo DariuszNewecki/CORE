@@ -307,3 +307,29 @@ async def test_repo_tests_run_end_to_end_with_the_law_copied_in(
     assert result.ok, result.data
     assert result.data["isolation"] == "local"
     assert result.data["counts"]["passed"] == 1
+
+
+async def test_coverage_is_measured_in_the_job(scratch: Path) -> None:
+    # The repository's addopts write an HTML report; the copy is read-only,
+    # so the bootstrap measures with coverage.py and pytest-cov stays off.
+    tree = make_tree(
+        scratch / "t",
+        {
+            "test_mod.py": "from pkg.mod import f\n\ndef test_f():\n    assert f(1) == 1\n"
+        },
+        {
+            "pkg/__init__.py": "",
+            "pkg/mod.py": "def f(x):\n    if x:\n        return 1\n    return 2\n",
+        },
+    )
+    (tree / "pyproject.toml").write_text(
+        '[tool.pytest.ini_options]\naddopts = ["--cov=src", "--cov-report=html:reports/htmlcov"]\n'
+    )
+    (scratch / "work").mkdir()
+    job = _job(("tests/test_mod.py",), coverage=True)
+    result = run_job(
+        job, snapshot_dir=tree, work_dir=scratch / "work", isolation="local"
+    )
+    assert result.ok, result.stderr
+    assert result.coverage["files"]["src/pkg/mod.py"] == 75.0
+    assert "TOTAL" in result.coverage["text"]

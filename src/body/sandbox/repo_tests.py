@@ -120,6 +120,7 @@ async def run_in_sandbox(
     timeout_sec: int = DEFAULT_TIMEOUT_SEC,
     overlay: Sequence[tuple[str, bytes]] = (),
     collect_only: bool = False,
+    coverage: bool = False,
 ) -> SandboxResult:
     """Run the pytest *targets* of *tree* (default: CORE's bound repository)
     in the sandbox, with *overlay* files added; the raw SandboxResult.
@@ -145,6 +146,7 @@ async def run_in_sandbox(
             law=law,
             overlay=tuple(overlay),
             collect_only=collect_only,
+            coverage=coverage,
         ),
         repo_root=bound,
         mode=sandbox_mode(),

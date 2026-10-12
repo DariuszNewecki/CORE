@@ -78,6 +78,8 @@ class SandboxRequest:
     overlay: tuple[tuple[str, bytes], ...] = ()
     # Collect only (pytest --collect-only), run nothing.
     collect_only: bool = False
+    # Measure coverage of src/; the result's ``coverage`` carries it.
+    coverage: bool = False
 
 
 # ID: 7017d79f-4d5d-4892-8ff6-5f96a37a8e24
@@ -99,6 +101,7 @@ async def run_repo_code(
         timeout_sec=request.timeout_sec,
         markers=request.markers,
         exclude_integration=(mode == "service"),
+        coverage=request.coverage,
     )
     try:
         job.validate()
