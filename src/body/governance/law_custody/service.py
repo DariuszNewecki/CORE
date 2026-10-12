@@ -153,3 +153,33 @@ def apply_prepared(
         append_ledger(prepared.destinations, signed, custodian=custodian)
         result.ledger_line = signed
     return result
+
+
+# The ledger approver for a proposal applied without typed approval.
+AUTO_APPROVER = "auto:record-only"
+_RECORD_ROOT = ".specs/"
+
+
+# ID: e53576aa-692b-49e2-bd72-a267f6a301f6
+def record_only_refusal(prepared: PreparedApply) -> str | None:
+    """Why *prepared* needs the governor's typed approval, or None.
+
+    A record-only proposal (governor redesign 2026-10-12) changes no rule: it
+    only adds or edits text under ``.specs/`` (decisions, papers, records of
+    built code), removes nothing, and CORE computes no warning for it. Any
+    rule, the assistant's own contract, a removal or a weakening needs the
+    typed id.
+    """
+    if prepared.refusals:
+        return "the checks refused it"
+    proposal = prepared.proposal
+    if proposal.removals:
+        return "it removes files"
+    outside = [p for p in proposal.paths() if not p.startswith(_RECORD_ROOT)]
+    if outside:
+        return "it changes more than .specs/: " + ", ".join(outside)
+    if prepared.computed_warnings:
+        return "CORE computed warnings: " + "; ".join(
+            f"{w.category} ({w.path})" for w in prepared.computed_warnings
+        )
+    return None

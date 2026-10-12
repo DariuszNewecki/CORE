@@ -165,9 +165,11 @@ def world(tmp_path: Path) -> tuple[FakeHost, object]:
         repo=repo,
         core_root=tmp_path / "opt" / "core",
         sudoers=tmp_path / "etc" / "sudoers.d" / "core-law",
+        system_units=tmp_path / "etc" / "systemd" / "system",
         ancestors_stop=tmp_path,
     )
     layout.sudoers.parent.mkdir(parents=True)
+    layout.system_units.mkdir(parents=True)
     return FakeHost(), layout
 
 
@@ -450,3 +452,29 @@ def test_a_repository_rename_that_succeeds_fails_the_run_and_is_undone(world) ->
         and str(layout.repo) in c[2]
     ]
     assert undo
+
+
+# -- record-only auto-apply timers (governor redesign 2026-10-12) ---------------
+
+
+def test_auto_apply_timers_run_as_core_law_and_never_approve_rules(world) -> None:
+    host, layout = world
+    assert _main(world, "--apply") == 0
+    service = (layout.system_units / "core-law-auto-apply.service").read_text()
+    assert "User=core-law" in service
+    assert "law auto-apply --write" in service
+    assert "law apply" not in service.replace("law auto-apply", "")
+    timer = (layout.system_units / "core-law-auto-apply.timer").read_text()
+    assert "OnUnitActiveSec=15min" in timer
+    digest = (layout.system_units / "core-law-digest.service").read_text()
+    assert "law digest --hours 24" in digest
+    enabled = [c for c in host.calls if c[0][:3] == ["systemctl", "enable", "--now"]]
+    assert enabled and "core-law-auto-apply.timer" in enabled[-1][0]
+
+
+def test_auto_apply_timers_are_left_alone_on_a_rerun(world) -> None:
+    host, _layout = world
+    assert _main(world, "--apply") == 0
+    host.calls.clear()
+    assert _main(world, "--apply") == 0
+    assert not [c for c in host.calls if c[0][:2] == ["systemctl", "daemon-reload"]]

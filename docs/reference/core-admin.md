@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-102 commands.
+104 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -25,7 +25,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`grc`](#grc) | 2 | Compliance gap-analysis: check a document corpus against a requirements catalog. |
 | [`intent`](#intent) | 1 | Constitutional intent operations (.intent/ projections). |
 | [`interactive-test`](#interactive-test) | 2 | Interactive test generation with step-by-step approval |
-| [`law`](#law) | 4 | Grounded answers about this repository's law, with sources (ADR-168). |
+| [`law`](#law) | 6 | Grounded answers about this repository's law, with sources (ADR-168). |
 | [`llm-resources`](#llm-resources) | 2 | core.llm_resources authoring/validation surface (#821 Unit 3). |
 | [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant (ADR-168). |
 | [`project`](#project) | 2 | Operations for project lifecycle: scaffolding. |
@@ -1268,6 +1268,26 @@ after you type the proposal id.
 | `--scratch` |  | Where the scratch tree is built (default ~/scratch). |
 | `--write` | off | Ask for the typed id and write. Without it, show the report only. |
 
+### `core-admin law auto-apply` {#law-auto-apply}
+
+```
+core-admin law auto-apply [OPTIONS]
+```
+
+Apply pending law proposals that change no rule (governor redesign
+2026-10-12). A proposal is record-only when it only adds or edits text
+under .specs/, removes nothing, and CORE computes no warning for it; it
+is applied with ledger approver "auto:record-only" and shows up in
+`law digest`. Every other proposal is listed and left for `law apply`
+with the typed id. Runs only as core-law (its timer, no sudo needed).
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--repo` |  | Development tree (default: discovered from cwd). |
+| `--key` |  | core-law's ledger signing key (default ~/.ssh/core_law_ledger). |
+| `--release-law` | `/opt/core/law` | The law beside the release runtime. |
+| `--write` | off | Apply. Without it, only classify the proposals. |
+
 ### `core-admin law check` {#law-check}
 
 ```
@@ -1297,6 +1317,19 @@ Data only: no repository code runs. Exit 1 on any refusal.
 | Argument / option | Default | Description |
 |---|---|---|
 | `--json` | off | Print one JSON line. |
+
+### `core-admin law digest` {#law-digest}
+
+```
+core-admin law digest [OPTIONS]
+```
+
+List law applied in the last HOURS from the ledger, record-only first.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--hours` | `24` | How far back to look. |
+| `--repo` |  | Development tree (default: discovered from cwd). |
 
 ### `core-admin law show` {#law-show}
 

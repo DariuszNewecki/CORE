@@ -25,14 +25,21 @@ import typer
 from rich.console import Console
 
 from body.governance.law_custody.checks import CheckRunError, run_data_checks
-from body.governance.law_custody.ledger import LedgerSignError
+from body.governance.law_custody.ledger import LEDGER_REL, LedgerSignError
 from body.governance.law_custody.proposal import ProposalError
 from body.governance.law_custody.service import (
+    AUTO_APPROVER,
     PreparedApply,
     apply_prepared,
     prepare,
+    record_only_refusal,
 )
-from body.governance.law_custody.writer import CustodyError, require_custodian
+from body.governance.law_custody.writer import (
+    CUSTODIAN_ACCOUNT,
+    CustodyError,
+    current_account,
+    require_custodian,
+)
 from cli.utils import core_command
 from shared.cli.command_meta import (
     CommandBehavior,
@@ -243,3 +250,152 @@ async def law_apply(
         f"[green]Applied {proposal_id}; ledger line appended "
         f"({len(outcome.outcomes)} destination(s)).[/green]"
     )
+
+
+def _applied_ids(repo_root: Path) -> set[str]:
+    ledger = repo_root / LEDGER_REL
+    if not ledger.is_file():
+        return set()
+    ids: set[str] = set()
+    for line in ledger.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            ids.add(json.loads(line).get("proposal", ""))
+    return ids
+
+
+@app.command("auto-apply")
+@command_meta(
+    canonical_name="law.auto-apply",
+    behavior=CommandBehavior.MUTATE,
+    layer=CommandLayer.BODY,
+    exposure=CommandExposure.GOVERNOR_ONLY,
+    summary="Apply every pending record-only law proposal; list the rest.",
+    # Mutating: writes governed text (record-only proposals) with --write.
+    dangerous=True,
+)
+@core_command(dangerous=True, requires_context=False, requires_brain_services=False)
+# ID: fe15bd0d-319c-4daa-b0e7-642d8b5bbab2
+async def law_auto_apply(
+    ctx: typer.Context,
+    repo: Path = typer.Option(
+        None, "--repo", help="Development tree (default: discovered from cwd)."
+    ),
+    key: Path = typer.Option(
+        None,
+        "--key",
+        help="core-law's ledger signing key (default ~/.ssh/core_law_ledger).",
+    ),
+    release_law: Path = typer.Option(
+        RELEASE_LAW_ROOT, "--release-law", help="The law beside the release runtime."
+    ),
+    write: bool = typer.Option(
+        False, "--write", help="Apply. Without it, only classify the proposals."
+    ),
+) -> None:
+    """
+    Apply pending law proposals that change no rule (governor redesign
+    2026-10-12). A proposal is record-only when it only adds or edits text
+    under .specs/, removes nothing, and CORE computes no warning for it; it
+    is applied with ledger approver "auto:record-only" and shows up in
+    `law digest`. Every other proposal is listed and left for `law apply`
+    with the typed id. Runs only as core-law (its timer, no sudo needed).
+    """
+    if current_account() != CUSTODIAN_ACCOUNT:
+        console.print(
+            f"[bold red]law auto-apply runs only as {CUSTODIAN_ACCOUNT}.[/bold red]"
+        )
+        raise typer.Exit(1)
+    repo_root = (repo or get_repo_root(Path.cwd())).resolve()
+    proposals_dir = PathResolver(repo_root).var_dir / "law-proposals"
+    destinations = [repo_root] + ([release_law] if release_law.is_dir() else [])
+    applied = _applied_ids(repo_root)
+    pending = sorted(
+        d.name
+        for d in (proposals_dir.iterdir() if proposals_dir.is_dir() else [])
+        if d.is_dir() and d.name not in applied
+    )
+    failed = False
+    for proposal_id in pending:
+        try:
+            prepared = prepare(
+                repo_root=repo_root,
+                proposals_dir=proposals_dir,
+                proposal_id=proposal_id,
+                destinations=destinations,
+                scratch_parent=Path.home() / "scratch",
+            )
+        except (ProposalError, CustodyError, CheckRunError) as exc:
+            console.print(f"{proposal_id}: refused ({exc})")
+            continue
+        reason = record_only_refusal(prepared)
+        if reason:
+            console.print(f"{proposal_id}: needs your typed approval: {reason}")
+            continue
+        if not write:
+            console.print(f"{proposal_id}: record-only; would apply")
+            continue
+        try:
+            outcome = apply_prepared(
+                prepared,
+                approver=AUTO_APPROVER,
+                key_path=key or Path.home() / ".ssh" / "core_law_ledger",
+            )
+        except (CustodyError, LedgerSignError) as exc:
+            console.print(f"{proposal_id}: not applied ({exc})")
+            failed = True
+            continue
+        if outcome.ok():
+            console.print(f"{proposal_id}: applied (record-only); ledger line appended")
+        else:
+            console.print(f"{proposal_id}: not applied; no ledger line written")
+            failed = True
+    if not pending:
+        console.print("No pending law proposals.")
+    if failed:
+        raise typer.Exit(1)
+
+
+@app.command("digest")
+@command_meta(
+    canonical_name="law.digest",
+    behavior=CommandBehavior.READ,
+    layer=CommandLayer.BODY,
+    exposure=CommandExposure.GOVERNOR_ONLY,
+    summary="What law was applied recently, and which of it without typed approval.",
+)
+@core_command(dangerous=False, requires_context=False, requires_brain_services=False)
+# ID: 01380830-9554-425b-82d2-701906e612a7
+async def law_digest(
+    ctx: typer.Context,
+    hours: int = typer.Option(24, "--hours", help="How far back to look."),
+    repo: Path = typer.Option(
+        None, "--repo", help="Development tree (default: discovered from cwd)."
+    ),
+) -> None:
+    """List law applied in the last HOURS from the ledger, record-only first."""
+    from datetime import UTC, datetime, timedelta
+
+    repo_root = (repo or get_repo_root(Path.cwd())).resolve()
+    ledger = repo_root / LEDGER_REL
+    since = datetime.now(UTC) - timedelta(hours=hours)
+    rows = []
+    if ledger.is_file():
+        for line in ledger.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            entry = json.loads(line)
+            when = datetime.fromisoformat(entry["approved_utc"].replace("Z", "+00:00"))
+            if when >= since:
+                rows.append(entry)
+    auto = [r for r in rows if r.get("approver") == AUTO_APPROVER]
+    typed = [r for r in rows if r.get("approver") != AUTO_APPROVER]
+    console.print(f"Law applied in the last {hours}h: {len(rows)}")
+    for title, group in (
+        ("Applied automatically (record-only)", auto),
+        ("Approved by you", typed),
+    ):
+        console.print(f"\n{title}: {len(group)}")
+        for r in group:
+            console.print(
+                f"  {r['approved_utc']}  {r['proposal']}  ({', '.join(sorted(r['paths']))})"
+            )
