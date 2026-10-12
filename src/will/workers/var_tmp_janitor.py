@@ -75,13 +75,15 @@ def find_reap_candidates(
     cutoff_seconds = retention_days * _SECONDS_PER_DAY
     candidates: list[ReapCandidate] = []
     for entry in sorted(tmp_root.iterdir()):
-        if _is_pinned(entry):
-            continue
+        # One entry this account cannot inspect (e.g. a 0700 directory another
+        # account created) must not abort the whole scan: skip it, fail-closed.
         try:
+            if _is_pinned(entry):
+                continue
             mtime = entry.stat().st_mtime
         except OSError:
             logger.warning(
-                "var_tmp_janitor: cannot stat %s — skipping (fail-closed)", entry
+                "var_tmp_janitor: cannot inspect %s — skipping (fail-closed)", entry
             )
             continue
         age_seconds = now_ts - mtime
