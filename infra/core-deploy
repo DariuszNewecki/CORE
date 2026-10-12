@@ -845,8 +845,15 @@ class Deployer:
         for path in [root, *root.rglob("*")]:
             os.chmod(path, 0o755 if path.is_dir() else 0o644)
         core_admin = self.layout.releases / venv_sha / "venv" / "bin" / "core-admin"
+        dev = str(self.options.dev_repo)
         result = self.host.run(
             [
+                # The release finds its repository from the working directory
+                # (or REPO_PATH); without one it looked inside its own venv
+                # (2026-10-12, 048eb9fd: PermissionError on venv/.../var).
+                "env",
+                f"--chdir={dev}",
+                f"REPO_PATH={dev}",
                 str(core_admin),
                 "law",
                 "apply-merge",

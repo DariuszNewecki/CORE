@@ -167,7 +167,13 @@ class FakeHost(cd.Host):
                 self.wheel_files,
                 self.wheel_scripts,
             )
-        elif cmd[0].endswith("/core-admin") and "apply-merge" in cmd:
+        elif "apply-merge" in cmd:
+            assert cmd[:3] == [
+                "env",
+                "--chdir=/opt/dev/CORE",
+                "REPO_PATH=/opt/dev/CORE",
+            ]
+            cmd = cmd[3:]
             pdir = Path(cmd[cmd.index("--proposals-dir") + 1]) / cmd[3]
             self.law_runs.append(
                 {
