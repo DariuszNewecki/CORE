@@ -16,7 +16,7 @@ status: accepted
 **Drafter:** Claude (session 2026-06-13). Surfaced while implementing #629: the autonomous test-gen loop, once unblocked (ADR-008 risk-compute fix, commit `c7acb56f`), reformatted 26 unrelated test files and left failing generated tests in the working tree on every run. Root-cause recon traced all of it to one gap — flow proposals skip the sandbox that single-action proposals get.
 
 **Grounding decisions:**
-- **ADR-071 D2.2** — atomic actions sandbox their production in a hermetic `var/tmp/` git worktree checked out at the pre-execution SHA; mutations land inside the sandbox, propagate to the main tree only on success, and are discarded on failure. This ADR observes that D2.2 was wired **per single action** and never reached the flow-proposal path, and extends the same mechanism to cover it. The flow path is the uncovered case D2.2 always implied.
+- **ADR-071 D2.2** — atomic actions sandbox their production in a hermetic git worktree checked out at the pre-execution SHA; mutations land inside the sandbox, propagate to the main tree only on success, and are discarded on failure. This ADR observes that D2.2 was wired **per single action** and never reached the flow-proposal path, and extends the same mechanism to cover it. The flow path is the uncovered case D2.2 always implied.
 - **ADR-101 D2** — a commit's set derives from the action's *production* (what the sandbox observed modified), not the proposal's permission scope. Flows currently stamp no production set, so this derivation silently degrades to empty for flow proposals. Extending the sandbox restores the ADR-101 D2 guarantee for flows.
 - **ADR-046 D1** — a flow's risk/impact is the max impact of its constituent steps. The flow-level sandbox gate (D5) reuses this resolution.
 
@@ -196,3 +196,7 @@ only on success). The flow failed at `build.tests` (IntentGuard rejected the gen
 the failure-isolation + rollback path is confirmed end-to-end; the `fix.*`/pytest-in-worktree
 *success* path is exercised when a generation passes the gate (gated behind #630 + scope
 re-open).
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

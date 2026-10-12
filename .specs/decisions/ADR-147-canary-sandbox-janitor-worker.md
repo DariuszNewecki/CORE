@@ -26,7 +26,7 @@ ADR-103 (`max_interval` cap — the schedule lives within it).
 (`src/body/services/crate_processing_service.py`) creates a full repo snapshot under
 `work/canary/sandbox_<crate_id>/` for every canary trial and relies solely on its own
 `try/finally: shutil.rmtree(canary_repo_path, ignore_errors=True)` to remove it
-afterward. There is no age-based backstop — identical in shape to the `var/tmp/` gap
+afterward. There is no age-based backstop — identical in shape to the gap
 ADR-117 closed, but for a different surface.
 
 Discovered 2026-07-11: 1,948 orphaned `sandbox_fix_*` directories, ~14G, all dated
@@ -70,9 +70,9 @@ for the next run. The worker never touches `work/canary/` itself, only its
 `sandbox_`-prefixed children.
 
 **D4 — Direct deletion, not routed through a governed `@atomic_action` (a deliberate
-departure from ADR-117 D4).** ADR-117's Phase 2 design routes `var/tmp/` deletion through
+departure from ADR-117 D4).** ADR-117's Phase 2 design routes scratch-directory deletion through
 a new `dangerous`-impact `@atomic_action` (`tmp.reap`) calling `FileHandler.remove_tree`,
-specifically because `var/tmp/` classifies as `ephemeral-scratch` in
+specifically because that directory classifies as `ephemeral-scratch` in
 `.intent/taxonomies/target_class_boundaries.yaml` and FileHandler is the single
 sanctioned mutation chokepoint. `work/` has **no entry** in that taxonomy at all — it
 falls through to the `default: repo-source` classification, the *strictest* validation
@@ -104,7 +104,7 @@ target-class taxonomy, not a blocker for this one.
 > is now the sandbox's absence after removal, since FileHandler's tree removal is best-effort.
 
 **D5 — No report-only ramp; deletes from day one (a deliberate departure from ADR-117
-D5).** ADR-117 shipped `var_tmp_janitor` report-only first because `var/tmp/` can hold
+D5).** ADR-117 shipped `var_tmp_janitor` report-only first because its directory can hold
 arbitrary scratch content from many uncoordinated creators, so the age/boundary predicate
 needed proving against live state before anything could be deleted. `work/canary/
 sandbox_*` has a narrower, fully-known shape: it is created by exactly one call site
@@ -154,3 +154,7 @@ tool/workspace name, not organization-identifying, and is retained unchanged, as
 rest of the incident record (the symlink name, the dereferencing bug, the sandbox sizes,
 and the fix). Only the organization identifier is redacted; the incident semantics are
 unchanged.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

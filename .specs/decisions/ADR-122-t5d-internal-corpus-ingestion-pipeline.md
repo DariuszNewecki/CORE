@@ -233,7 +233,7 @@ New files / changes required:
   licence gate reader; `licence.yaml` writer
 - `src/mind/logic/engines/grc_judge.py` — augmentation hook (query internal corpus,
   inject passages); `_INTERNAL_CORPUS_TOP_K = 3` constant
-- `var/prompts/grc_judge/system.txt` — add AUTHORITATIVE SOURCE CONTEXT section
+- `grc_judge` prompt (`system.txt`) — add AUTHORITATIVE SOURCE CONTEXT section
   (conditional: only injected when passages retrieved)
 - `tests/body/services/grc/test_internal_corpus.py` — licence gate (ungated / gated
   / satisfied), chunk/embed round-trip, absent-collection degradation
@@ -247,3 +247,7 @@ New files / changes required:
 - `grc-catalogs/inventory.yaml` — the licence gate source of truth
 - `shared/utils/embedding_utils.py` — `_chunk_text` utility
 - `shared/infrastructure/intent/operational_config.py` — `ChunkingConfig` defaults
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

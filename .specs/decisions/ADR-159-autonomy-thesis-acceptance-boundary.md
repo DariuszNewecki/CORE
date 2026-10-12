@@ -669,7 +669,6 @@ not "Trial 0".
 Note) independently mapped Document A §A6 and §A7 to the U4 runnable checks and then, for the
 first time, ran the completed runner from its real CLI entry against a disposable target — not the
 Trial 0 subject — with the evaluation workflow, both apparatus probes and egress enforcement on.
-Report: `var/reports/2026-09-17_895_cold_certification_review.md`.
 
 **Finding.** The runner as pushed at `a14e5822` could not execute Document A: `parse_args` imported
 `shared` before the environment bind, so every real invocation since `f7f913d7` refused at
@@ -874,3 +873,7 @@ second copy; it is not published.
 The disposable Trial 0 coldroom and the retained #895 certification apparatus (read-only mounts and
 disposable databases; not the #895 evidence bundle or reports) are torn down after this Note lands
 and CI is green. Pins are unchanged: runner `c0ccd6ce…`, subject `c4d9fdf9…`.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

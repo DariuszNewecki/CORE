@@ -81,7 +81,7 @@ CORE sits between proposer and approver as the **checker**. It advises; it does 
 - **The names are protected too, not only the contents.** No other account may rename, replace or delete `.intent`, `.specs`, `CLAUDE.md` or `.claude` in the repository root. The mechanism (the sticky bit on the root, or an equivalent) is chosen in Stage 1. It must be proven against `mv .intent x && mkdir .intent` as `core-claude`, and against git checkout of root-level files still working.
 - **It runs only code the assistant cannot change.** `core-law` runs `core-admin` from its own venv, installed from a **released** `core-runtime` wheel (proposed: `/opt/core-law/venv`, owned by `core-law`). It never runs the development tree's code, so D10.8 routes R1 and R2 do not reach it.
 - **It never runs git and never executes repository code.** It reads the law as data, writes files and writes the ledger (D4). Routes R3 (`.git/config`, hooks) and R4 (repository tests, `conftest.py`) do not reach it.
-- The services (`core`) never write governed text. For `.intent/` that is IntentGuard's hard invariant. A recon on 2026-10-08 found no runtime writer of `.specs/` (`sync_vocabulary` stages to `var/drafts/`). Stage 1 re-proves this with a day of service journals.
+- The services (`core`) never write governed text. For `.intent/` that is IntentGuard's hard invariant. A recon on 2026-10-08 found no runtime writer of `.specs/` (`sync_vocabulary` only stages a draft). Stage 1 re-proves this with a day of service journals.
 
 ### D3 — The amendment procedure
 
@@ -257,7 +257,7 @@ rehearsal (D0) needs no second destination.
 ## Amendment 2026-10-11 (later) — the rehearsal evaluation; Stage 1 starts
 
 **Proposed by:** Claude (core-claude), proposal 0019. **Rests on:** D0 "Evaluation"; the evaluation
-`var/reports/adr170-rehearsal-evaluation-20261011.md`, written from the rehearsal ledger (18 proposals,
+written from the rehearsal ledger (18 proposals,
 2026-10-08 to 2026-10-11); the governor's agreement of 2026-10-11 that waiting for the date is ceremony.
 
 **What the rehearsal showed.** The workflow holds: 18 proposals, none refused or rejected, a median of 3 files, and
@@ -358,3 +358,7 @@ candidate (2026-10-11), which found both points.
 3. **The venv is installed at its final path (D2, amendment 0021 item 2).** A venv records its own path in its
    entry points, so it is never built elsewhere and renamed. A previous venv is set aside and put back if the new
    one fails, including when its installed `core-admin` does not run as `core-law`.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

@@ -119,7 +119,7 @@ signature:    str   — full signature (from GapReport)
 write:        bool  — governed write flag, default False
 ```
 
-It uses `context_aware_test_gen` (already exists in `var/prompts/`) to generate **one
+It uses `context_aware_test_gen` (already exists) to generate **one
 test function** targeting exactly one symbol. Output is bounded by the single-symbol scope
 — a single test function is well within the token ceiling regardless of source file size.
 
@@ -171,7 +171,7 @@ build.test_for_symbol:
 
 ### D6 — `context_aware_test_gen` prompt is authorised for `build.test_for_symbol`
 
-`context_aware_test_gen` already exists in `var/prompts/` with a `max_tokens` that is
+`context_aware_test_gen` already exists with a `max_tokens` that is
 appropriate for single-function output. `build.test_for_symbol` loads this prompt
 directly via `PromptModel.load("context_aware_test_gen")`.
 
@@ -243,7 +243,7 @@ This ADR is closed when:
 - CLAUDE.md §"The autonomous test-generation loop" — source→test path mapping, governed
   by `shared.infrastructure.intent.test_coverage_paths.source_to_test_path`.
 - `src/body/atomic/build_tests_action.py` — file-level generation (retained, not primary).
-- `var/prompts/context_aware_test_gen/` — per-symbol prompt (authorised for D3/D6).
+- `context_aware_test_gen` prompt — per-symbol prompt (authorised for D3/D6).
 - `src/will/workers/test_remediator/` — worker to be updated per D4.
 - `.intent/enforcement/config/action_risk.yaml` — risk registry (D5).
 - `.intent/enforcement/mappings/code/tests.yaml` — enforcement mapping for the `code.tests.*` quality rules introduced by this ADR (D5).
@@ -264,3 +264,7 @@ it is still missing. It does not release the finding to `open`: no adjudication 
 ~150k `test.coverage.complete` notices a week). The notice itself is a report, not a
 finding. A `test.runner.failure` with no symbol gaps is a separate lifecycle case and is not
 covered by this disposition.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

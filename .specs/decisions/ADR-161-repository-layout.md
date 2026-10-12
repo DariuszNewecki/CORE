@@ -12,7 +12,7 @@ status: proposed
 **Date:** 2026-09-16
 **Status:** Proposed — not binding until the Governor accepts it.
 **Author:** Darek (Dariusz Newecki)
-**Drafter:** Claude (session 2026-09-16 — first draft from read-only reconnaissance at `3750aaa2`; this revision re-verified every claim at `a14e5822`; records: `var/reports/2026-09-16_adr161_draft_review.md`, `…_structure_deep_dive.md`, `…_resources_kind_draft.md`)
+**Drafter:** Claude (session 2026-09-16 — first draft from read-only reconnaissance at `3750aaa2`; this revision re-verified every claim at `a14e5822`)
 **Grounds:** ADR-130 D1 (CORE never writes `.intent/`) together with the `governance.constitution.read_only` rule and the CLAUDE.md confirmation gate (only the Governor edits `.intent/`); ADR-031/032 (runtime paths resolve through PathResolver); ADR-075 D7 (completeness-by-set-difference precedent); ADR-076 D3 (`artifact_gate` is mixed-mode; context-level dispatch); ADR-023 §"The CI gate is upstream prevention" and Alternative E (CI is the authority; pre-commit hooks can be skipped and cannot bear constitutional weight)
 **Relates:** `.intent/META/intent_tree.yaml` (the same pattern, one level down); ADR-115 (corrigendum, D6); ADR-123 and ADR-147 / #772 (`work/`); ADR-086 / #521 (`schema.sql` at root); ADR-116 D2/D8/D9 and ADR-149 (catalog roots — consolidated under `resources/catalogs/` by D1a/D5); ADR-108 D3 / ADR-112 (the shipped machinery floor mirrors the starter law — the precedent for D3a property 3 and for D2b's verified-mirror choice); `.specs/papers/CORE-Repo-Split-Plan.md` Phase 0 (protected-path gate — D2/D3 give it a tripwire, see D2); #908 (`FileHandler.ensure_dir` re-roots absolute paths — the `opt/dev/` cause); #909 (prompts not shipped in the wheel — the defect D1a/D3a-3 make visible)
 
@@ -354,3 +354,7 @@ These items fall outside the check, because the check governs what is committed.
 - **`work/` versus `var/`:** two runtime roots remain. Folding `work/` into PathResolver would touch ADR-123, ADR-147 and #772, so it is not proposed here.
 - **Retention of `var/tmp/`:** convention, not enforced.
 - **`tests/` non-mirror cohorts** (`tests/engines`, `tests/infra`, `tests/proof_index`, `tests/fixtures`, `tests/helpers`, `tests/var`) are deliberate; declaring them is a later ratchet.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

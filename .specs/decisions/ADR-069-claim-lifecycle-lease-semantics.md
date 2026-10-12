@@ -617,11 +617,12 @@ Deferred to implementation. At implementation, verification is:
   worker (no daemon schedule); receives `lease_seconds: 1800` per
   D3, declared inside a `schedule` block that exists solely to
   carry the lease field.
-- `var/audits/repo_artifacts_orphans_2026-05-23.txt` — adjacent
-  orphan-on-removal pile (#441), unrelated lifecycle gap surfaced
-  during the same diagnostic session.
 - Session 2026-05-23 diagnostic trail: commits `70294044`
   (KeyError fix in helpers used on rarer paths), `81df30a0`
   (`ConfigService.get_secret` pass-through; root cause that
   masked the leak for 10 days), `dcb4b74d` (`LLMResourceConfig`
   pass-through closure of #440).
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

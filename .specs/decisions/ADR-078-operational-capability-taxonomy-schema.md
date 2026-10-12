@@ -22,7 +22,7 @@ status: accepted
 
 `papers/CORE-Capability-Scoped-Filesystem-Authority.md` (landed 2026-05-30, commit 8ed705a8) defines three principles — single chokepoint, capability-scoped authority, mode dimension — and defers six items to follow-on ADRs in §9. This ADR fulfills exactly one of those deferrals: **the data-model schema for the operational-capability taxonomy YAML** (§9 bullet 2). It owns nothing else from the §9 list; the chokepoint-implementation ADR, the mode-flag startup mechanism (#492), the governor-token machinery, the identity-propagation implementation, and the migration plan from today's `scope.excludes`-based perimeter all sit in their own ADRs.
 
-The forcing inventory at `var/tmp/operational_capabilities_inventory_2026-05-30.md` enumerates the live `@atomic_action` surface across nine clusters: a capability count plus four chokepoint primitives (`file.create`, `file.edit`, `file.read`, `file.tag_metadata`). It is not governance — its self-declared authority is "planning document, NOT governance" — and it cannot become governance until a stable schema exists for it to land on. This ADR provides that schema.
+The forcing inventory enumerates the live `@atomic_action` surface across nine clusters: a capability count plus four chokepoint primitives (`file.create`, `file.edit`, `file.read`, `file.tag_metadata`). It is not governance — its self-declared authority is "planning document, NOT governance" — and it cannot become governance until a stable schema exists for it to land on. This ADR provides that schema.
 
 Four pre-existing patterns constrain the choice space:
 
@@ -308,7 +308,7 @@ The schema exists. The artifact does not. The chokepoint that will consume it is
 Deferred to implementation. At implementation:
 
 1. `.intent/META/enums.json` declares `fs_operation_class` (`["read", "create", "modify", "delete"]`) and `operational_mode` (`["dev", "live"]`) per D5.
-2. `.intent/taxonomies/operational_capabilities.yaml` exists, declares the D2 header verbatim, and contains exactly `(inventoried − dormant − duplicate-id retirements)` entries under `capabilities:`. The exact integer is computed against `var/tmp/operational_capabilities_inventory_2026-05-30.md` (or its successor) at implementation time; any mismatch is investigated before the YAML lands.
+2. `.intent/taxonomies/operational_capabilities.yaml` exists, declares the D2 header verbatim, and contains exactly `(inventoried − dormant − duplicate-id retirements)` entries under `capabilities:`. The exact integer is computed against the capability inventory at implementation time; any mismatch is investigated before the YAML lands.
 3. Every capability_id in the YAML matches the D6 regex.
 4. No capability_id in the YAML matches `^file\.` (D8 exclusion).
 5. Every `fs_profile` mapping in the YAML has exactly the four keys from `fs_operation_class.values` — no other keys, no plural variants.
@@ -327,7 +327,6 @@ Deferred to implementation. At implementation:
 - ADR-068 — Principal Role Taxonomy; established the `.intent/taxonomies/` location and fail-closed loader pattern that this ADR follows.
 - ADR-077 — Config-driven protected-namespace access; declares the sibling `.intent/taxonomies/filesystem_operations.yaml` whose `fs_operation_class` vocabulary this schema references. Both YAMLs are pre-implementation artifacts of pre-implementation ADRs.
 - ADR-074 — Failure-mode scalar → failure_modes map across phase YAMLs; precedent for closed-vocabulary enum promotion to `enums.json`.
-- Inventory: `var/tmp/operational_capabilities_inventory_2026-05-30.md` — the bottom-up survey grounding this schema. The schema is grounded *in* the inventory; the inventory's counts are not promoted into this ADR's text.
 - `.intent/META/enums.json` — destination for the two new enums declared in D5; current home of the `authority` enum referenced in D2's drift note.
 - `.intent/enforcement/config/action_risk.yaml` — risk-classification source-of-truth referenced by D3.
 - `.intent/taxonomies/cognitive_roles.yaml`, `governance_namespaces.yaml`, `principal_roles.yaml` — sibling taxonomies whose `authority: constitutional` header pattern this ADR inherits (D2).
@@ -336,3 +335,7 @@ Deferred to implementation. At implementation:
 - Issue #492 — mode-provenance ADR (separate paper §9 deferral; prerequisite for the chokepoint-implementation ADR, not for this schema).
 - Issue #493 — `fix.policy_ids` dead CLI command; D9 absence rationale.
 - Issue #494 — `intent_guard.py:368` dead `is_metadata` variable (out of scope here; recorded for chokepoint-implementation ADR).
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.
