@@ -59,6 +59,9 @@ async def sandbox_check_cmd(
             f"[red]Unknown mode {mode!r}; use one of {', '.join(MODES)}.[/red]"
         )
         raise typer.Exit(2)
+    # DEMO 3/3: a deliberate post-deploy probe failure; reverted by the next PR.
+    if mode == "service":
+        raise typer.Exit(1)
     rows = await run_probes(
         Path(settings.REPO_PATH), mode=mode, socket_path=socket_path
     )
