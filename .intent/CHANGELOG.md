@@ -8,6 +8,7 @@ It documents *what changed and why*, not how changes were implemented.
 
 This file is descriptive only.
 It carries no authority.
+Since 2026-10-12 a law change lands by the governor's merge into main; core-law applies it on deploy.
 
 ---
 
