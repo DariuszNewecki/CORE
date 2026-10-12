@@ -78,8 +78,8 @@ class WorkflowGateEngine(BaseEngine):
             QualityGateCheck(
                 path_resolver,
                 "pytest_check",
-                ["pytest", "tests/", "-q", "--co"],
-            ),  # Collection only for speed
+                ["pytest"],  # collection runs in the sandbox (repo_code collector)
+            ),
         ]
 
         self._checks: dict[str, WorkflowCheck] = {
