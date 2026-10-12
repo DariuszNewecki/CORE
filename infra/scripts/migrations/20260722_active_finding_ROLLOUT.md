@@ -82,11 +82,10 @@ during post-gate cleanup, before the rollback window was formally closed. Not a
 rollout failure — the reconcile step's correctness had already been
 independently verified (0 duplicate active identities, index valid) before
 deletion — but it means no pre-rollout restore point exists. A fresh
-post-convergence baseline was captured instead:
-`var/tmp/core_blackboard_entries_POST_ROLLOUT_BASELINE_3d7dd28e_20260723T080324Z.dump`
+post-convergence baseline dump was captured instead
 (SHA-256 `2ebce446f938590b9cd4cde9b6b0143d15cf44454000dcfa29f672ee83a39206`,
-manifest alongside it), verified via `pg_restore --list`. Retained outside
-routine temp cleanup going forward.
+manifest alongside it), verified via `pg_restore --list`. It was kept in the
+repository's scratch area and is no longer retained.
 
 No `.intent/` changes, no migration/reconcile re-run, and the unrelated
 Prompt Drift Sensor error was left untouched, all per scope.

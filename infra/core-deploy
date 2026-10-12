@@ -25,7 +25,7 @@ core's git, never from the build tree; the CORE wheel core-build produced is
 accepted only if every file in it is byte-identical to ``src/<path>`` in the
 archive, its console scripts equal pyproject's, and it carries no ``.pth``.
 
-Order (design: var/reports/adr132-d10-d2-design-20261011.md, revision 3):
+Order (ADR-132 D10 · D2):
  1. resolve the ref to a SHA once; refuse unless it is on upstream develop
     and its CI check runs are all green;
  2. refuse if releases/<sha> exists;

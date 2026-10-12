@@ -1,7 +1,7 @@
 # Sandbox runner — units and root steps (ADR-132 D10.10, closes R4)
 
 Prepared, not installed. Installing is a governor act. Design:
-`var/reports/adr132-d10-10-sandbox-runner-design-20261011.md` (consolidated draft).
+ADR-132 D10.10.
 
 The units run the **release** (`/opt/core/current`), so the D2 release runtime
 (`infra/systemd/d2/README.md`) must be installed first, in the same root session.

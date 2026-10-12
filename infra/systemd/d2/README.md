@@ -5,7 +5,7 @@ Prepared, not installed. Installing these and running the first deploy are gover
 on ADR-170 Stage 1 (`core-law`), because the services read their law from `/opt/core/law`,
 which only `core-law` writes (ruling A).
 
-Design: `var/reports/adr132-d10-d2-design-20261011.md` (revision 3 plus build notes).
+Design: ADR-132 D10 · D2.
 
 ## Files
 
