@@ -500,3 +500,45 @@ async def test_no_resolution_suppression_clean_for_unrelated_ignores(
     assert not result.violations, (
         f"non-resolution ignores should not false-positive; got {result.violations}"
     )
+
+
+# ---------------------------------------------------------------------------
+# architecture.sandbox.tests_run_in_sandbox
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        'subprocess.run(["pytest", "-q", "tests"])\n',
+        'cmd = [sys.executable, "-m", "pytest", target]\n',
+        'exit_code = pytest.main(["-q", target])\n',
+    ],
+)
+async def test_tests_run_in_sandbox_fires_on_direct_pytest(
+    tmp_py: Path, engine: RegexGateEngine, source: str
+) -> None:
+    params = _load_rule_params(
+        "architecture/sandbox_execution.yaml",
+        "architecture.sandbox.tests_run_in_sandbox",
+    )
+    tmp_py.write_text(source, encoding="utf-8")
+    result = await engine.verify(tmp_py, params)
+    assert result.violations
+
+
+async def test_tests_run_in_sandbox_clean_via_sandbox_runner(
+    tmp_py: Path, engine: RegexGateEngine
+) -> None:
+    params = _load_rule_params(
+        "architecture/sandbox_execution.yaml",
+        "architecture.sandbox.tests_run_in_sandbox",
+    )
+    tmp_py.write_text(
+        "from body.sandbox.repo_tests import run_tests\n"
+        'result = await run_tests(target="tests/test_a.py")\n'
+        '# pytest runs in the sandbox; "pytest" alone is not a command\n',
+        encoding="utf-8",
+    )
+    result = await engine.verify(tmp_py, params)
+    assert not result.violations
