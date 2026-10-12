@@ -10,6 +10,7 @@ persist round-trip confirming run_and_persist_fix emits the atomic shape.
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -162,3 +163,41 @@ def test_bootstrap_ir_rejects_unknown_kind(tmp_path):
     context.file_handler.repo_path = tmp_path
     with pytest.raises(ValueError):
         bootstrap_ir(context, "nope")
+
+
+# -- pytest runs only in the sandbox (ADR-132 D10.10, M2) ------------------------
+
+
+async def test_quality_tests_and_gates_run_pytest_in_the_sandbox(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+
+    from body.sandbox import repo_tests
+    from body.sandbox.models import SandboxResult
+    from will.governance import fix_runner
+
+    sandbox = AsyncMock(
+        return_value=SandboxResult(
+            status="not_run", completeness="none", isolation="service", reason="down"
+        )
+    )
+    monkeypatch.setattr(repo_tests, "run_in_sandbox", sandbox)
+    spawned: list[list[str]] = []
+
+    async def fake_subprocess(argv: list[str], cwd: object) -> dict:
+        spawned.append(argv)
+        return {"ok": True, "exit_code": 0}
+
+    monkeypatch.setattr(fix_runner, "_run_subprocess", fake_subprocess)
+    ctx = SimpleNamespace(git_service=SimpleNamespace(repo_path=Path("/repo")))
+
+    tests = await fix_runner._run_quality_tests(ctx, "tests/x.py")  # type: ignore[arg-type]
+    assert tests["ok"] is False and tests["status"] == "not_run"  # never a pass
+    assert sandbox.await_args.args == (Path("/repo"), ["tests/x.py"])
+
+    await fix_runner._run_quality_system(ctx)  # type: ignore[arg-type]
+    await fix_runner._run_quality_gates(ctx)  # type: ignore[arg-type]
+    assert not any(argv[0] == "pytest" for argv in spawned)
+    assert sandbox.await_count == 3
