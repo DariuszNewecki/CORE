@@ -147,6 +147,8 @@ def main(argv: list[str]) -> int:
         args.append("--no-cov")  # the repo's addopts ask for coverage of src
     if not (snapshot / "pyproject.toml").is_file():
         args[args.index("-c") : args.index("-c") + 2] = ["-c", os.devnull]
+    if spec.get("collect_only"):
+        args.append("--collect-only")
     if spec.get("markers"):
         args += ["-m", spec["markers"]]
     args += list(spec["targets"])

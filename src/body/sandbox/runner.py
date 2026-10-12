@@ -36,7 +36,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from body.sandbox.models import SandboxJob, SandboxResult, classify_pytest
+from body.sandbox.models import (
+    COLLECT_KIND,
+    SandboxJob,
+    SandboxResult,
+    classify_pytest,
+)
 from shared.logger import getLogger
 
 
@@ -89,6 +94,7 @@ def run_job(
         "targets": list(job.targets),
         "markers": job.effective_markers(),
         "exclude_integration": job.exclude_integration,
+        "collect_only": job.kind == COLLECT_KIND,
         "report_fd": report_w,
     }
     argv = [sys.executable, "-I", str(BOOTSTRAP), json.dumps(spec)]
@@ -118,6 +124,7 @@ def run_job(
         timed_out=timed_out,
         report=report,
         exclude_integration=job.exclude_integration,
+        collect_only=job.kind == COLLECT_KIND,
     )
     return SandboxResult(
         status=status,

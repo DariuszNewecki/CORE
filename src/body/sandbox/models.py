@@ -30,7 +30,10 @@ Status = Literal["passed", "failed", "error", "timeout", "not_run"]
 Completeness = Literal["full", "partial", "none"]
 Isolation = Literal["service", "local"]
 
-JOB_KINDS: tuple[str, ...] = ("pytest",)
+# "pytest-collect" only collects (pytest --collect-only): collection imports
+# every test module, which is running repository code all the same.
+JOB_KINDS: tuple[str, ...] = ("pytest", "pytest-collect")
+COLLECT_KIND = "pytest-collect"
 MAX_TIMEOUT_SEC = 3600
 INTEGRATION_MARKER = "integration"
 
@@ -173,12 +176,15 @@ def classify_pytest(
     timed_out: bool,
     report: dict[str, Any] | None,
     exclude_integration: bool,
+    collect_only: bool = False,
 ) -> tuple[str, str, str]:
     """(status, completeness, reason) for a pytest job, in the design's order."""
     if timed_out:
         return "timeout", "none", "the job outlived its timeout"
     if report is None:
         return "error", "none", "the bootstrap produced no report"
+    if collect_only:
+        return _classify_collection(exit_code, report)
     if report.get("error"):
         return "error", "none", str(report["error"])
     counts = report.get("counts", {})
@@ -195,3 +201,19 @@ def classify_pytest(
         status = "passed"
     partial = exclude_integration and bool(report.get("excluded"))
     return status, ("partial" if partial else "full"), ""
+
+
+def _classify_collection(
+    exit_code: int | None, report: dict[str, Any]
+) -> tuple[str, str, str]:
+    """A collect-only job: collected cleanly, failed to collect, or nothing."""
+    if report.get("error"):
+        return "error", "none", str(report["error"])
+    collected = int(report.get("counts", {}).get("collected", 0))
+    if exit_code == 0:
+        return "passed", "full", f"{collected} tests collected"
+    if exit_code == 5:
+        return "not_run", "none", "no tests were collected"
+    if exit_code in (1, 2):
+        return "failed", "full", "collection errors"
+    return "error", "none", f"pytest exited {exit_code}"

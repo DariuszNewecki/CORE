@@ -97,7 +97,7 @@ def test_quality_gate_still_emits_other_errors() -> None:
     failures (timeout, permission, OOM, etc.) must still reach the
     operator.
     """
-    check = QualityGateCheck(_path_resolver(), "pytest_check", ["pytest", "-q"])
+    check = QualityGateCheck(_path_resolver(), "mypy_check", ["mypy", "src/"])
 
     with patch(
         "asyncio.create_subprocess_exec",
@@ -106,7 +106,7 @@ def test_quality_gate_still_emits_other_errors() -> None:
         result = asyncio.run(check.verify(None, {}))
 
     assert len(result) == 1
-    assert "pytest_check" in result[0]
+    assert "mypy_check" in result[0]
     assert "subprocess kernel oops" in result[0]
 
 

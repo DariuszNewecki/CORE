@@ -36,6 +36,7 @@ from body.sandbox.snapshot import SKIPPED_NAMES, is_refused_name
 from shared.action_types import ActionImpact, ActionResult
 from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.intent.law_roots import intent_root_for, specs_root_for
+from shared.infrastructure.repo_code import CollectOutcome, register_test_collector
 from shared.logger import getLogger
 
 
@@ -118,6 +119,7 @@ async def run_in_sandbox(
     markers: str | None = None,
     timeout_sec: int = DEFAULT_TIMEOUT_SEC,
     overlay: Sequence[tuple[str, bytes]] = (),
+    collect_only: bool = False,
 ) -> SandboxResult:
     """Run the pytest *targets* of *tree* (default: CORE's bound repository)
     in the sandbox, with *overlay* files added; the raw SandboxResult.
@@ -142,6 +144,7 @@ async def run_in_sandbox(
             include=repo_include(tree),
             law=law,
             overlay=tuple(overlay),
+            collect_only=collect_only,
         ),
         repo_root=bound,
         mode=sandbox_mode(),
@@ -272,3 +275,17 @@ def _store_failure_artifact(
             file_handler.remove_file(rel)
     except Exception as e:
         logger.debug("Test failure artifact update skipped: %s", e)
+
+
+# ID: 914304b6-cd8e-492f-a745-5e56de33f373
+async def collect_tests(tree: Path, timeout_sec: int) -> CollectOutcome:
+    """Collect (do not run) the whole tests/ tree of *tree* in the sandbox."""
+    result = await run_in_sandbox(
+        tree, ["tests"], timeout_sec=timeout_sec, collect_only=True
+    )
+    output = "\n".join(s for s in (result.stdout, result.stderr) if s)
+    return CollectOutcome(status=result.status, output=output, reason=result.reason)
+
+
+# Mind's workflow gate reaches the collector only through this seam.
+register_test_collector(collect_tests)

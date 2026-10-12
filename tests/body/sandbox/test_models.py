@@ -135,3 +135,26 @@ def test_permitted_subset_is_partial_and_never_ok() -> None:
 def test_not_run_is_never_ok() -> None:
     assert not SandboxResult.not_run("service", "socket missing").ok
     assert SandboxResult(status="passed", completeness="full", isolation="local").ok
+
+
+@pytest.mark.parametrize(
+    ("exit_code", "status"),
+    [(0, "passed"), (2, "failed"), (1, "failed"), (5, "not_run"), (3, "error")],
+)
+def test_collect_only_jobs_are_classified_by_collection(
+    exit_code: int, status: str
+) -> None:
+    got, _completeness, _reason = classify_pytest(
+        exit_code=exit_code,
+        timed_out=False,
+        report={"counts": {"collected": 4, "executed": 0}},
+        exclude_integration=True,
+        collect_only=True,
+    )
+    assert got == status
+
+
+def test_collect_only_is_a_known_job_kind() -> None:
+    from body.sandbox.models import COLLECT_KIND, JOB_KINDS
+
+    assert COLLECT_KIND in JOB_KINDS

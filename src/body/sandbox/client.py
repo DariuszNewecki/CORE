@@ -31,7 +31,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from body.infrastructure.storage.file_handler import FileHandler
-from body.sandbox.models import JobRejected, SandboxJob, SandboxResult
+from body.sandbox.models import COLLECT_KIND, JobRejected, SandboxJob, SandboxResult
 from body.sandbox.protocol import (
     MAX_RESULT_BYTES,
     ProtocolError,
@@ -76,6 +76,8 @@ class SandboxRequest:
     # Code that exists only in memory -- a generated test, a workspace's
     # uncommitted files -- runs without being written into the tree.
     overlay: tuple[tuple[str, bytes], ...] = ()
+    # Collect only (pytest --collect-only), run nothing.
+    collect_only: bool = False
 
 
 # ID: 7017d79f-4d5d-4892-8ff6-5f96a37a8e24
@@ -92,7 +94,7 @@ async def run_repo_code(
         return SandboxResult.not_run(mode, f"unknown sandbox mode: {mode!r}")
     job = SandboxJob(
         job_id=uuid.uuid4().hex,
-        kind="pytest",
+        kind=COLLECT_KIND if request.collect_only else "pytest",
         targets=tuple(request.targets),
         timeout_sec=request.timeout_sec,
         markers=request.markers,
