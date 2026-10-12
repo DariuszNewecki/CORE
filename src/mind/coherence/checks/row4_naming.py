@@ -19,7 +19,12 @@ from datetime import date
 from pathlib import Path
 
 from shared.infrastructure.git_service import GitService
-from shared.infrastructure.intent.law_roots import intent_root_for, specs_root_for
+from shared.infrastructure.intent.law_roots import (
+    intent_root_for,
+    law_glob,
+    law_relpath,
+    specs_root_for,
+)
 
 from .base import CoherenceCandidate
 
@@ -51,7 +56,7 @@ class Row4NamingCheck:
         accepted_adr_texts = list(accepted.values())
         candidates: list[CoherenceCandidate] = []
         for path in _iter_intent_artifacts(self._repo_root):
-            rel = str(path.relative_to(self._repo_root))
+            rel = law_relpath(self._repo_root, path)
             if any(rel in text for text in accepted_adr_texts):
                 continue
             first_seen = self._git_first_seen(rel)
@@ -107,7 +112,7 @@ class Row4NamingCheck:
             return {}
         universe: set[Path] = set()
         for glob in spec_md_globs:
-            universe.update(self._repo_root.glob(glob))
+            universe.update(law_glob(self._repo_root, glob))
         adr_paths = sorted(
             p
             for p in universe
@@ -145,7 +150,7 @@ def _iter_intent_artifacts(repo_root: Path):
     json_globs = repo.get_artifact_type("intent_json").content["discovery"]
     universe: set[Path] = set()
     for glob in (*yaml_globs, *json_globs):
-        universe.update(repo_root.glob(glob))
+        universe.update(law_glob(repo_root, glob))
     for path in sorted(universe):
         if not path.is_file():
             continue

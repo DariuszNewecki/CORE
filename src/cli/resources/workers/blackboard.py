@@ -235,7 +235,7 @@ async def workers_blackboard_purge_cmd(
 
 
 @workers_app.command("resolve")
-@core_command(dangerous=False)
+@core_command(dangerous=True)
 # ID: 0dcd5509-ff34-42aa-b866-de1d76c242ae
 async def workers_blackboard_resolve_cmd(
     ctx: typer.Context,
@@ -243,37 +243,25 @@ async def workers_blackboard_resolve_cmd(
     reason: str = typer.Option(
         ..., "--reason", "-r", help="Why this finding is being closed."
     ),
-    by: str = typer.Option("cli_admin", "--by", help="Operator identity."),
-    authority: str = typer.Option(
-        "principal.governor",
-        "--authority",
-        help="Authority under which the resolution is recorded (URS NFR.5).",
-    ),
 ) -> None:
     """
-    Close a finding delegated to the governor, with an operator-provided reason.
+    Close a finding delegated to the governor, with a reason.
 
     Acts on 'indeterminate' findings and on 'open' findings whose
-    resolution_mechanism is 'human'. Symmetric counterpart to 'proposals reject' for findings the audit sensor
-    delegated to the governor. Flips status to 'resolved', stamps the
-    operator attribution into payload, and stops counting against the
-    Governor Inbox.
+    resolution_mechanism is 'human'. A governor act (ADR-132 D10.4): it goes
+    through POST /v1/findings/{id}/resolve, which only the governor may call,
+    on CORE's Unix socket (CORE_API_URL=unix:///run/core/api/api.sock). The
+    server records who resolved it and under which authority; neither is
+    taken from this command.
     """
-    from body.services.blackboard_service.blackboard_service import BlackboardService
+    from api.cli.client import CoreApiClient
 
-    updated = await BlackboardService().resolve_indeterminate_entry(
-        entry_id=entry_id,
-        reason=reason,
-        resolved_by=by,
-        resolution_authority=authority,
-    )
-    if updated == 0:
-        console.print(
-            f"[yellow]No change: entry {entry_id} is not delegated to a human "
-            "('indeterminate', or 'open' with resolution_mechanism 'human') "
-            "or does not exist.[/yellow]"
-        )
-        raise typer.Exit(1)
+    try:
+        result = await CoreApiClient().findings.resolve(entry_id, reason)
+    except RuntimeError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
     console.print(
-        f"[green]✅ Finding {entry_id} RESOLVED by {by} under {authority}.[/green]"
+        f"[green]✅ Finding {entry_id} RESOLVED by {result['resolved_by']} "
+        f"under {result['resolution_authority']}.[/green]"
     )

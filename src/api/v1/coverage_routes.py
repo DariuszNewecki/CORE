@@ -317,21 +317,18 @@ def coverage_targets(request: Request) -> dict:
     ),
 )
 # ID: c0a6f176-43da-4e66-9176-f0e86734afcb
-def coverage_gaps(
+async def coverage_gaps(
     request: Request,
     threshold: float = Query(default=75.0, ge=0.0, le=100.0),
     limit: int = Query(default=20, ge=1, le=200),
 ) -> dict:
     """Return modules ranked by coverage deficit below `threshold`.
 
-    `def` not `async def` (#610 — last `/v1/coverage` async-def-with-sync-body
-    holdout after #608's cascade fix): `get_coverage_gaps` wraps
-    `CoverageAnalyzer.get_module_coverage()` which is synchronous. FastAPI
-    auto-thread-pools `def` handlers, so the event loop stays free during
-    the read instead of blocking under an `async def` shell.
+    `async def`: the coverage run happens in the sandbox runner (ADR-132
+    D10.10) and is awaited, so the event loop stays free while it runs.
     """
     core_context: CoreContext = request.app.state.core_context
-    return get_coverage_gaps(core_context, threshold=threshold, limit=limit)
+    return await get_coverage_gaps(core_context, threshold=threshold, limit=limit)
 
 
 @router.get(

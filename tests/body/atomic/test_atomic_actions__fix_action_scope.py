@@ -33,21 +33,21 @@ def _select_arg(cmd: list[str]) -> str:
 
 
 async def test_fix_imports_select_is_sorting_only_dry_run() -> None:
-    with patch("shared.utils.subprocess_utils.run_poetry_command") as mock_run:
+    with patch("shared.utils.subprocess_utils.run_direct_command") as mock_run:
         with authorize_execution("fix.imports"):
             result = await action_fix_imports(write=False)
     assert result.ok
-    cmd = mock_run.call_args[0][1]
+    cmd = mock_run.call_args[0][2]
     assert _select_arg(cmd) == "I"
     assert "--fix" not in cmd
 
 
 async def test_fix_imports_select_is_sorting_only_write() -> None:
-    with patch("shared.utils.subprocess_utils.run_poetry_command") as mock_run:
+    with patch("shared.utils.subprocess_utils.run_direct_command") as mock_run:
         with authorize_execution("fix.imports"):
             result = await action_fix_imports(write=True)
     assert result.ok
-    cmd = mock_run.call_args[0][1]
+    cmd = mock_run.call_args[0][2]
     assert _select_arg(cmd) == "I"
     assert "--fix" in cmd  # the only thing write=True changes
 
@@ -55,10 +55,10 @@ async def test_fix_imports_select_is_sorting_only_write() -> None:
 async def test_fix_imports_never_selects_resolution_codes() -> None:
     """fix.imports must never gain F821/F401 in --select -- that would
     cross into check.imports' resolution-verification authority."""
-    with patch("shared.utils.subprocess_utils.run_poetry_command") as mock_run:
+    with patch("shared.utils.subprocess_utils.run_direct_command") as mock_run:
         with authorize_execution("fix.imports"):
             await action_fix_imports(write=True)
-    select = _select_arg(mock_run.call_args[0][1])
+    select = _select_arg(mock_run.call_args[0][2])
     assert "F821" not in select
     assert "F401" not in select
 
@@ -98,10 +98,10 @@ async def test_check_imports_never_mutates_regardless_of_write_flag() -> None:
 async def test_fix_imports_and_check_imports_select_sets_are_disjoint() -> None:
     """Structural proof of atomic_actions.fix_action_scope: the two
     actions' ruff --select rule-code sets never overlap."""
-    with patch("shared.utils.subprocess_utils.run_poetry_command") as mock_fix:
+    with patch("shared.utils.subprocess_utils.run_direct_command") as mock_fix:
         with authorize_execution("fix.imports"):
             await action_fix_imports(write=True)
-    fix_select = set(_select_arg(mock_fix.call_args[0][1]).split(","))
+    fix_select = set(_select_arg(mock_fix.call_args[0][2]).split(","))
 
     fake_result = MagicMock(stdout="[]", returncode=0)
     with patch(

@@ -61,8 +61,8 @@ not a replacement for it.
 
 The DB stores **draft state** and **authoring history** only. The filesystem
 holds **applied state** — the constitution that `IntentRepository` reads at
-runtime. This extends ADR-130's staging pattern (vocabulary.json draft in
-`var/drafts/`) to the full governance surface: the application automates and
+runtime. This extends ADR-130's staging pattern (staged vocabulary.json
+draft) to the full governance surface: the application automates and
 web-exposes the same staged-draft pathway.
 
 A DB-native model (DB replaces `.intent/` as ground truth) is explicitly
@@ -170,7 +170,7 @@ composes existing governed surfaces.
 
 This makes the application's "apply" button the web-equivalent of running:
 ```
-cp var/drafts/... .intent/...
+cp <staged draft> .intent/...
 git add .intent/... && git commit -m "..."
 ```
 from the CLI as governor. The hard invariant of ADR-130 D1 is not violated —
@@ -269,3 +269,7 @@ This ADR closes #479 when:
 - Issue #479 — Governance application data model (this ADR's target issue).
 - Issue #457 — Constitutional layer reorganization; ADR-075 close-condition 3
   filed this issue.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

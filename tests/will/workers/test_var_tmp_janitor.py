@@ -80,6 +80,25 @@ def test_absent_root_is_empty_not_error(tmp_path: Path) -> None:
     assert find_reap_candidates(tmp_path / "does_not_exist", now_ts=time.time()) == []
 
 
+def test_unreadable_entry_is_skipped_not_fatal(tmp_path: Path) -> None:
+    # A directory another account created with mode 0700 (e.g. a pytest
+    # basetemp): its .keep cannot be checked. The scan must skip that one
+    # entry (fail-closed) and still select the other stale entries.
+    locked = tmp_path / "locked_dir"
+    locked.mkdir()
+    _age(locked, 30)
+    old = tmp_path / "old_dir"
+    old.mkdir()
+    _age(old, 30)
+    locked.chmod(0o000)
+    try:
+        candidates = find_reap_candidates(tmp_path, now_ts=time.time())
+    finally:
+        locked.chmod(0o700)
+
+    assert {c.path.name for c in candidates} == {"old_dir"}
+
+
 def test_retention_rails_sourced_from_operational_config() -> None:
     """#774 (ADR-040): the retention rails must trace to
     operational_config.yaml, not a src/ literal — guards against a future

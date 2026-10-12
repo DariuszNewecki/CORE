@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import ast
 import json
+import os
 import shutil
+import stat
 import uuid
 from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager
@@ -42,6 +44,20 @@ class FileOpResult:
     status: str
     message: str
     detail: str
+
+
+def _mkdir_keeping_group(path: Path, mode: int) -> None:
+    """mkdir without losing the setgid group a parent passes down.
+
+    The sandbox inbox is setgid group core-sandbox, and core is not in that
+    group: an explicit chmod by core would clear S_ISGID (chmod(2)), so
+    every file below would be group core and unreadable by the sandbox.
+    chmod only when the umask changed the bits, and then keep S_ISGID.
+    """
+    path.mkdir(mode=mode)
+    current = path.stat().st_mode
+    if current & 0o777 != mode & 0o777:
+        os.chmod(path, mode | (current & stat.S_ISGID))
 
 
 # ID: 4684ec9b-095a-428b-95bc-60e5003dc7f7
@@ -385,6 +401,64 @@ class FileHandler:
             ignore_dangling_symlinks=True,
         )
         return FileOpResult("success", "Copied repo snapshot", f". -> {rel_dst_dir}")
+
+    # ID: d4ce9659-243b-41e2-86ac-562ef43ac900
+    def write_snapshot(
+        self,
+        rel_dst_dir: str,
+        entries: Iterable[Any],
+        *,
+        file_mode: int = 0o640,
+        dir_mode: int = 0o750,
+    ) -> FileOpResult:
+        """Materialise a sandbox snapshot under a fresh ``rel_dst_dir`` (ADR-132 D10.10).
+
+        ``entries`` are ``body.sandbox.snapshot.SnapshotEntry`` values
+        (``rel_path``, ``kind`` in dir/file/link, ``data``). One guard check
+        covers the directory, as ``copy_repo_snapshot`` does. The directory
+        must not exist yet, so nothing is written through a pre-existing
+        link; every entry path is checked for containment, and links are
+        recreated as links, never followed.
+        """
+        rel_dst_dir = self._normalize_rel_dir(rel_dst_dir)
+        self._guard_paths([rel_dst_dir + "/"], op_class="create")
+        abs_dst = self._resolve_repo_path(rel_dst_dir)
+        abs_dst.parent.mkdir(parents=True, exist_ok=True)
+        _mkdir_keeping_group(abs_dst, dir_mode)
+        count = 0
+        for entry in entries:
+            rel = str(entry.rel_path)
+            parts = rel.split("/")
+            if (
+                not rel
+                or rel.startswith("/")
+                or any(p in ("", ".", "..") for p in parts)
+            ):
+                raise RepositoryBoundaryViolationError(
+                    attempted_path=rel, bound_root=str(abs_dst)
+                )
+            target = abs_dst.joinpath(*parts)
+            if not target.parent.resolve().is_relative_to(abs_dst.resolve()):
+                raise RepositoryBoundaryViolationError(
+                    attempted_path=rel, bound_root=str(abs_dst)
+                )
+            if entry.kind == "dir":
+                _mkdir_keeping_group(target, dir_mode)
+            elif entry.kind == "link":
+                target.symlink_to(os.fsdecode(entry.data))
+            elif entry.kind == "file":
+                fd = os.open(
+                    target,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                    file_mode,
+                )
+                with os.fdopen(fd, "wb") as handle:
+                    handle.write(entry.data)
+                os.chmod(target, file_mode)
+            else:
+                raise ValueError(f"unknown snapshot entry kind: {entry.kind!r}")
+            count += 1
+        return FileOpResult("success", "Wrote snapshot", f"{rel_dst_dir} ({count})")
 
     # ---------------------------------------------------------------------
     # Path + Guard Helpers

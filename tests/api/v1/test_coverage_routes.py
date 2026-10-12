@@ -328,13 +328,14 @@ def test_coverage_targets_returns_facade_payload():
     assert "targets" in out
 
 
-def test_coverage_gaps_passes_threshold_and_limit():
+async def test_coverage_gaps_passes_threshold_and_limit():
     request = _mock_request_with_context()
     with patch(
         "api.v1.coverage_routes.get_coverage_gaps",
+        new_callable=AsyncMock,
         return_value={"threshold": 80.0, "count": 0, "gaps": []},
     ) as facade:
-        out = coverage_gaps(request=request, threshold=80.0, limit=10)
+        out = await coverage_gaps(request=request, threshold=80.0, limit=10)
     facade.assert_called_once()
     _, kwargs = facade.call_args
     assert kwargs["threshold"] == 80.0

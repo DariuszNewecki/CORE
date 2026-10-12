@@ -56,7 +56,7 @@ All operations follow the same self-correcting pattern.
 
 CORE's daemon runs continuously, finds violations in its own codebase, proposes fixes, executes approved changes, and verifies the result — without the human writing a single line of code.
 
-- Nine audit sensors running continuously, one per rule namespace (architecture, cli, governance, layout, linkage, logic, modularity, purity, style) — the structural subset of the 260 declared rules
+- Nine audit sensors running continuously, one per rule namespace (architecture, cli, governance, layout, linkage, logic, modularity, purity, style) — the structural subset of the declared rules
 - Violations posted to the Blackboard and automatically claimed for remediation
 - Proposals executed via governed atomic actions
 - Unmapped violations delegated to human judgment via the Governor Inbox
@@ -71,12 +71,12 @@ exercises the full finding → proposal → approval → execution → consequen
 in an isolated run. What has not been measured is the loop closing *unattended* over a long
 window, which is production-readiness gate G4.
 
-The last completed attempt, a 72-hour soak of 2026-07-23 → 2026-07-26, held process
-continuity (no restarts, ~35 workers, 68,495 blackboard entries) and completed **zero**
-finding → proposal → consequence chains out of 16,445 findings — the one actionable class
-was abandoned by the remediation circuit breaker before a proposal could be created. It was
-not accepted as G4 evidence. The bar for a qualifying run is a soak that declares its
-throughput condition — at least one completed chain — before it starts.
+Since 2026-10-09 G4 is measured during normal development, not by a frozen soak: over 30
+consecutive days, a daily report CORE generates must show what it caught, what it fixed on
+its own, who produced each commit, and that the loop stayed healthy. That report does not
+exist yet. Two earlier 72-hour soaks (2026-07-23, 2026-09-22) held process continuity and
+completed zero finding → proposal → consequence chains; they count as evidence of
+continuity, not of G4.
 
 A3 becomes ✅ when that evidence exists and is signed, not before.
 

@@ -15,7 +15,7 @@ depends_on: ["ADR-086", "ADR-115", "ADR-159"]
 **Prompted by:** an executable evidence unit (2026-09-19, disposable clones of `v2.9.1` and
 `v2.10.1` against a disposable Postgres) that proved the upgrade path between the two released
 versions does not work, followed by a design/adjudication unit that produced the ruling
-package this ADR records. Both reports live under `var/reports/` (ignored); this ADR is the
+package this ADR records. This ADR is the
 durable record — repository truth must not depend on chat or on an ignored file.
 **Relates:** URS G11 (`.specs/requirements/URS-production-readiness.md#g11`) — the gate this
 defect violates; ADR-159 D7 — which already classified G11 as pilot-blocking for third-party
@@ -244,3 +244,7 @@ the lifespan, bypassing uvicorn's shutdown.
 This clarification changes no runtime behaviour and touches no `.intent/` rule. Operator
 documentation states the two codes explicitly (`docs/cli-reference.md`,
 `docs/getting-started.md`, `CHANGELOG.md`).
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

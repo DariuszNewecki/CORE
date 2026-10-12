@@ -48,6 +48,9 @@ mappings:
         # --- ADDED 2026-09-15 (ADR-159 Note 2026-09-15, #894 Condition 2: materialized execution copy) ---
         # Mirrored in governance_basics.yaml's excludes set.
         - "src/shared/infrastructure/intent/target_intent_assembly.py" # #894: assembles floor+overlay .intent/ and the execution copy under an evidence root (outside any repo root, by construction); FileHandler is repo-bound and hard-blocks the literal .intent/ prefix -- same limitation byor.py records
+        # --- ADDED 2026-10-11 (ADR-170 Stage 1, proposal 0020: the law custodian's writer) ---
+        # Mirrored in governance_basics.yaml's excludes set.
+        - "src/body/governance/law_custody/writer.py" # ADR-170 D2/D3: the only code that writes governed text, and only as core-law; IntentGuard refuses every .intent/ write by design, so it cannot go through FileHandler. Writes the scratch tree, the destinations (atomic replace) and the ledger
         # --- ADDED 2026-10-02 (ADR-119 Amendment 2026-10-02, #892: Generate bootstrap stage) ---
         # Mirrored in governance_basics.yaml's excludes set.
         - "src/cli/logic/project_scaffold.py" # project new: delivers machinery floor + neutral skeleton into a new external target outside CORE's repo root; FileHandler is repo-bound and refuses out-of-repo paths (repository_containment) -- same limitation byor.py records

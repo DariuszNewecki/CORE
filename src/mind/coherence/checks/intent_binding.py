@@ -20,7 +20,11 @@ from pathlib import Path
 
 import yaml
 
-from shared.infrastructure.intent.law_roots import intent_root_for
+from shared.infrastructure.intent.law_roots import (
+    intent_root_for,
+    law_glob,
+    law_relpath,
+)
 
 from .base import CoherenceCandidate
 
@@ -42,7 +46,7 @@ class IntentBindingCheck:
             error = self._check_binding(value)
             if error is None:
                 continue
-            rel_doc = str(doc_path.relative_to(self._repo_root))
+            rel_doc = law_relpath(self._repo_root, doc_path)
             candidates.append(
                 CoherenceCandidate(
                     relation=self.relation,
@@ -68,7 +72,7 @@ class IntentBindingCheck:
         intent_yaml_globs = repo.get_artifact_type("intent_yaml").content["discovery"]
         universe: set[Path] = set()
         for glob in intent_yaml_globs:
-            universe.update(self._repo_root.glob(glob))
+            universe.update(law_glob(self._repo_root, glob))
 
         results: list[tuple[Path, str, str]] = []
 

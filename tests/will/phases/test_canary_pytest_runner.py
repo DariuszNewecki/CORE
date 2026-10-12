@@ -1,96 +1,80 @@
 # tests/will/phases/test_canary_pytest_runner.py
-"""Canary PytestRunner routes pytest through shared.utils.subprocess_utils."""
+"""Canary PytestRunner runs the tests in the sandbox (ADR-132 D10.10, M2).
+
+What the sandbox result becomes for its callers (the canary phase and
+TestRunnerSensor): a full pass is exit 0; failures list each failed test as
+``FAILED <node id>``; a timeout is exit 124; a run that did not happen, or
+ran only in part, raises TestsNotRun -- never a pass.
+"""
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
 
-from shared.utils.subprocess_utils import SubprocessResult
+from body.sandbox.models import SandboxResult
 from will.phases.canary import pytest_runner
-from will.phases.canary.pytest_runner import PytestRunner
+from will.phases.canary.pytest_runner import PytestRunner, TestsNotRun
 
 
-def _runner(**kwargs) -> PytestRunner:
+def _runner() -> PytestRunner:
     paths = SimpleNamespace(repo_root=Path("/repo"))
-    return PytestRunner(path_resolver=paths, **kwargs)  # type: ignore[arg-type]
+    return PytestRunner(path_resolver=paths, execution_timeout=60)  # type: ignore[arg-type]
 
 
-@pytest.mark.asyncio
-async def test_run_tests_collects_then_executes(monkeypatch):
-    fake = AsyncMock(
-        side_effect=[
-            SubprocessResult("collected 2 items", "", 0),
-            SubprocessResult("t::a PASSED\nt::b FAILED", "warn", 1),
-        ]
+def _sandbox(monkeypatch: pytest.MonkeyPatch, **kw: object) -> AsyncMock:
+    base: dict[str, object] = {
+        "status": "passed",
+        "completeness": "full",
+        "isolation": "service",
+    }
+    base.update(kw)
+    fake = AsyncMock(return_value=SandboxResult(**base))  # type: ignore[arg-type]
+    monkeypatch.setattr(pytest_runner, "run_in_sandbox", fake)
+    return fake
+
+
+async def test_targets_and_timeout_reach_the_sandbox(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake = _sandbox(monkeypatch, exit_code=0, counts={"passed": 2})
+    result = await _runner().run_tests(["tests/t.py"])
+    assert result["exit_code"] == 0 and result["passed"] == 2
+    assert fake.await_args.args == (Path("/repo"), ["tests/t.py"])
+    assert fake.await_args.kwargs["timeout_sec"] == 60
+
+
+async def test_failures_are_listed_by_node_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    _sandbox(
+        monkeypatch,
+        status="failed",
+        exit_code=1,
+        counts={"passed": 1, "failed": 1},
+        failed_ids=["tests/t.py::test_b"],
+        stdout="1 failed, 1 passed",
     )
-    monkeypatch.setattr(pytest_runner, "run_command_async", fake)
-
     result = await _runner().run_tests(["tests/t.py"])
-
-    assert result == {
-        "passed": 1,
-        "failed": 1,
-        "exit_code": 1,
-        "output": "t::a PASSED\nt::b FAILED\nwarn",
-    }
-    collect_call, exec_call = fake.await_args_list
-    assert "--co" in collect_call.args[0]
-    assert "-x" in exec_call.args[0]
-    assert collect_call.kwargs["cwd"] == Path("/repo")
-    assert exec_call.args[0][-1] == "tests/t.py"
+    assert (result["passed"], result["failed"], result["exit_code"]) == (1, 1, 1)
+    assert "FAILED tests/t.py::test_b" in result["output"]
 
 
-@pytest.mark.asyncio
-async def test_run_tests_no_tests_collected(monkeypatch):
-    fake = AsyncMock(return_value=SubprocessResult("no tests ran in 0.01s", "", 5))
-    monkeypatch.setattr(pytest_runner, "run_command_async", fake)
-
+async def test_timeout_is_exit_124(monkeypatch: pytest.MonkeyPatch) -> None:
+    _sandbox(monkeypatch, status="timeout", completeness="none")
     result = await _runner().run_tests(["tests/t.py"])
-
-    assert result == {
-        "passed": 0,
-        "failed": 0,
-        "exit_code": 0,
-        "output": "No tests collected",
-    }
-    fake.assert_awaited_once()
-
-
-@pytest.mark.asyncio
-async def test_collection_timeout_returns_false(monkeypatch):
-    async def _hang(*_args, **_kwargs):
-        await asyncio.sleep(10)
-
-    monkeypatch.setattr(pytest_runner, "run_command_async", _hang)
-
-    runner = _runner(collection_timeout=0.05)
-    assert await runner._verify_collection(["tests/t.py"]) is False
-
-
-@pytest.mark.asyncio
-async def test_execution_timeout_returns_124(monkeypatch):
-    async def _hang(*_args, **_kwargs):
-        await asyncio.sleep(10)
-
-    monkeypatch.setattr(pytest_runner, "run_command_async", _hang)
-
-    result = await _runner(execution_timeout=0.05)._execute_tests(["tests/t.py"])
-
     assert result["exit_code"] == 124
-    assert result["failed"] == 1
 
 
-@pytest.mark.asyncio
-async def test_execution_error_returns_exit_1(monkeypatch):
-    fake = AsyncMock(side_effect=FileNotFoundError("pytest"))
-    monkeypatch.setattr(pytest_runner, "run_command_async", fake)
-
-    result = await _runner()._execute_tests(["tests/t.py"])
-
-    assert result["exit_code"] == 1
-    assert "pytest" in result["output"]
+@pytest.mark.parametrize(
+    ("status", "completeness"),
+    [("not_run", "none"), ("error", "none"), ("passed", "partial")],
+)
+async def test_not_run_or_partial_raises(
+    monkeypatch: pytest.MonkeyPatch, status: str, completeness: str
+) -> None:
+    # Before: no tests collected came back as exit 0, a pass.
+    _sandbox(monkeypatch, status=status, completeness=completeness, reason="why")
+    with pytest.raises(TestsNotRun, match="why"):
+        await _runner().run_tests(["tests/t.py"])

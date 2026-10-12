@@ -72,7 +72,9 @@ def _pending_row(
         approval_required=False,
         created_at=datetime.now(UTC),
         validation_checks=validation_checks or [],
-        validation_results=validation_results or {},
+        # Governor redesign 2026-10-12: a governor approval needs a passed
+        # pre-approval run; rows default to having one.
+        validation_results={"pre_approval_run": True, **(validation_results or {})},
     )
 
 
@@ -434,5 +436,31 @@ async def test_approve_governor_authority_crosses_envelope(
         assert row is not None
         assert row.status == "approved"
         assert row.approval_authority == "principal.governor"
+    finally:
+        await _delete(db_session, proposal_id)
+
+
+async def test_governor_cannot_approve_without_a_pre_approval_run(
+    db_session: AsyncSession,
+) -> None:
+    """Governor redesign 2026-10-12: only a proposal that passed its
+    pre-approval run (will.autonomy.pending_proposal_gate) is approvable."""
+    proposal_id = f"test-preapproval-{uuid.uuid4().hex[:8]}"
+    row = _pending_row(proposal_id)
+    row.validation_results = {}
+    db_session.add(row)
+    await db_session.commit()
+
+    try:
+        with pytest.raises(ValueError, match="pre_approval_run"):
+            await ProposalStateManager(db_session).approve(
+                proposal_id,
+                approved_by="governor",
+                approval_authority="principal.governor",
+            )
+        db_session.expire_all()
+        fetched = await _fetch(db_session, proposal_id)
+        assert fetched is not None
+        assert fetched.status == "pending"
     finally:
         await _delete(db_session, proposal_id)

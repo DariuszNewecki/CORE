@@ -267,7 +267,7 @@ async def remediate_batch_by_symbol(
         return {"status": "error", "error": "git_service unavailable"}
 
     repo_root = context.git_service.repo_path
-    candidates = select_batch_candidates(
+    candidates = await select_batch_candidates(
         repo_root, count, max_complexity=max_complexity
     )
     if not candidates:

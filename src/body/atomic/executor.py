@@ -43,6 +43,9 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
+# The only approval that lets a dangerous action write (#633).
+GOVERNOR_AUTHORITY = "principal.governor"
+
 
 # ID: 8988e815-6c7f-4b4e-995b-ada1118a15ee
 def _validate_action_result(action_id: str, result: Any) -> ActionResult:
@@ -535,47 +538,45 @@ class ActionExecutor:
         self, definition: ActionDefinition, write: bool
     ) -> dict[str, Any]:
         """
-        Inline pass-through — authorization of record is the approval layer.
+        Refuse a dangerous write that no governor-approved proposal carries.
 
-        This method intentionally returns ``authorized: True``; it is NOT the
-        authorization gate and never was. For the autonomous path an action's
-        authority to run is decided UPSTREAM, before ActionExecutor is reached:
-        ``.intent/enforcement/config/action_risk.yaml`` classifies every action
-        ``safe | moderate | dangerous``, and ``Proposal.requires_approval``
-        (``src/will/autonomy/proposal.py``) gates execution on it — only
-        ``safe`` auto-executes; ``moderate``/``dangerous`` (and any unmapped
-        action, which fails closed to ``moderate``) require explicit governor
-        approval before a proposal can execute. The audit → consequence loop is
-        the post-hoc net. By the time execute() runs an autonomous action its
-        authorization has already been adjudicated, so re-deciding it here would
-        duplicate the approval layer, not add safety.
-
-        A ``dangerous`` + ``write`` request still logs a warning because the one
-        path NOT covered by approval gating is a direct CLI invocation (no
-        proposal → no ``requires_approval`` check). That is a governor-operated,
-        trusted-operator surface today (see #636 on the CLI/sandbox boundary).
-        Activation criterion for filling this method with a real deny path: a
-        dangerous action becoming reachable by a NON-governor caller — e.g. the
-        action-execution surface exposed over the API, or non-governor CLI
-        users. Until then the inline check is a pass-through by design.
-
-        (A prior docstring cited ADR-015/017/019 as the deferral basis; those
-        are consequence-chain *attribution* decisions and establish no
-        authorization deferral — citation corrected per #633.)
+        ``action_risk.yaml`` rates every action ``safe | moderate | dangerous``
+        and ``Proposal.requires_approval`` holds ``moderate``/``dangerous``
+        proposals for the governor. That gate only covers the proposal path; a
+        direct invocation (a CLI command, a workflow phase) reached this
+        executor with no approval at all (#633). So a ``dangerous`` action in
+        write mode runs only inside the approval scope of a proposal the
+        governor approved (``approval_scope``, set by ProposalExecutor).
+        Everything else keeps running as before: ``safe``/``moderate`` actions,
+        and any action in dry-run mode.
         """
-        if definition.impact_level == "dangerous" and write:
+        authority = current_approval_authority()
+        authorized = (
+            not (definition.impact_level == "dangerous" and write)
+            or authority == GOVERNOR_AUTHORITY
+        )
+        if not authorized:
             logger.warning(
-                "Dangerous action %s requested in write mode via the inline "
-                "path — authorization of record is the approval layer "
-                "(action_risk → Proposal.requires_approval); the inline check "
-                "is a pass-through (see #633).",
+                "Refused dangerous write %s: no governor-approved proposal "
+                "(approval authority %s).",
                 definition.action_id,
+                authority,
             )
-
         return {
-            "authorized": True,
+            "authorized": authorized,
             "impact_level": definition.impact_level,
             "write_mode": write,
+            "approval_authority": authority,
+            **(
+                {}
+                if authorized
+                else {
+                    "reason": (
+                        "a dangerous action in write mode needs a proposal "
+                        "the governor approved"
+                    )
+                }
+            ),
         }
 
     # ID: 738ad11a-5848-49ce-a16d-2dfcbef8b763

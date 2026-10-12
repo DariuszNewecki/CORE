@@ -278,11 +278,13 @@ async def test_get_proposal_not_found_raises_404():
 # ── approve_proposal ──────────────────────────────────────────────────────────
 
 
-async def test_approve_proposal_returns_approved_status():
-    """Happy path returns ok=True, APPROVED status, and approval metadata."""
+_GOVERNOR = {"sub": "darek", "principal": "principal.governor"}
+
+
+async def test_approve_proposal_stamps_the_verified_governor():
+    """The actor and authority come from the verified caller (ADR-132 D10.4)."""
     pid = str(uuid4())
     session = _mock_session()
-    user = {"email": "governor@example.com"}
     with patch("api.v1.proposals_routes.ProposalService") as mock_svc_cls:
         mock_svc = AsyncMock()
         mock_svc.approve = AsyncMock()
@@ -290,35 +292,63 @@ async def test_approve_proposal_returns_approved_status():
 
         out = await approve_proposal(
             proposal_id=pid,
-            payload=ApproveRequest(approval_authority="human_governor"),
-            user=user,
+            payload=ApproveRequest(),
+            user=_GOVERNOR,
             session=session,
         )
 
     assert out["ok"] is True
     assert out["proposal_id"] == pid
     assert out["status"] == ProposalStatus.APPROVED.value
-    assert out["approved_by"] == "governor@example.com"
-    assert out["approval_authority"] == "human_governor"
+    assert out["approved_by"] == "governor"
+    assert out["approved_by_original"] == "darek"
+    assert out["approval_authority"] == "principal.governor"
+    mock_svc.approve.assert_awaited_once_with(
+        pid,
+        approved_by="governor",
+        approval_authority="principal.governor",
+        approved_by_original="darek",
+    )
 
 
-async def test_approve_proposal_falls_back_to_sub_when_no_email():
-    """approved_by falls back to 'sub' when 'email' key is absent."""
+async def test_approve_proposal_ignores_a_body_approved_by():
+    """A body cannot name the approver: extra fields are dropped."""
     pid = str(uuid4())
     session = _mock_session()
+    payload = ApproveRequest.model_validate(
+        {"approved_by": "someone-else", "approval_authority": "principal.governor"}
+    )
     with patch("api.v1.proposals_routes.ProposalService") as mock_svc_cls:
         mock_svc = AsyncMock()
         mock_svc.approve = AsyncMock()
         mock_svc_cls.return_value = mock_svc
 
         out = await approve_proposal(
-            proposal_id=pid,
-            payload=ApproveRequest(approval_authority="human_governor"),
-            user={"sub": "governor-sub-id"},
-            session=session,
+            proposal_id=pid, payload=payload, user=_GOVERNOR, session=session
         )
 
-    assert out["approved_by"] == "governor-sub-id"
+    assert out["approved_by"] == "governor"
+    assert out["approved_by_original"] == "darek"
+
+
+async def test_approve_proposal_refuses_a_different_body_authority():
+    """A body authority other than the caller's verified one is a 400."""
+    session = _mock_session()
+    with patch("api.v1.proposals_routes.ProposalService") as mock_svc_cls:
+        mock_svc = AsyncMock()
+        mock_svc_cls.return_value = mock_svc
+
+        with pytest.raises(HTTPException) as exc:
+            await approve_proposal(
+                proposal_id=str(uuid4()),
+                payload=ApproveRequest(approval_authority="human_governor"),
+                user=_GOVERNOR,
+                session=session,
+            )
+
+    assert exc.value.status_code == 400
+    assert "human_governor" in exc.value.detail
+    mock_svc.approve.assert_not_called()
 
 
 async def test_approve_proposal_not_found_raises_404():
@@ -334,32 +364,32 @@ async def test_approve_proposal_not_found_raises_404():
         with pytest.raises(HTTPException) as exc:
             await approve_proposal(
                 proposal_id="bad-id",
-                payload=ApproveRequest(approval_authority="human_governor"),
-                user={"sub": "governor"},
+                payload=ApproveRequest(approval_authority="principal.governor"),
+                user=_GOVERNOR,
                 session=session,
             )
 
     assert exc.value.status_code == 404
 
 
-async def test_approve_proposal_invalid_authority_raises_400():
-    """ValueError from service (unknown authority) is translated to HTTPException(400)."""
+async def test_approve_proposal_non_approvable_state_raises_400():
+    """ValueError from service is translated to HTTPException(400)."""
     session = _mock_session()
     with patch("api.v1.proposals_routes.ProposalService") as mock_svc_cls:
         mock_svc = AsyncMock()
-        mock_svc.approve = AsyncMock(side_effect=ValueError("unknown authority: bogus"))
+        mock_svc.approve = AsyncMock(side_effect=ValueError("not approvable: draft"))
         mock_svc_cls.return_value = mock_svc
 
         with pytest.raises(HTTPException) as exc:
             await approve_proposal(
                 proposal_id=str(uuid4()),
-                payload=ApproveRequest(approval_authority="bogus"),
-                user={"sub": "governor"},
+                payload=ApproveRequest(),
+                user=_GOVERNOR,
                 session=session,
             )
 
     assert exc.value.status_code == 400
-    assert "bogus" in exc.value.detail
+    assert "draft" in exc.value.detail
 
 
 # ── reject_proposal ───────────────────────────────────────────────────────────

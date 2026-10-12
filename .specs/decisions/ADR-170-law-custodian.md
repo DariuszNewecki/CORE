@@ -81,7 +81,7 @@ CORE sits between proposer and approver as the **checker**. It advises; it does 
 - **The names are protected too, not only the contents.** No other account may rename, replace or delete `.intent`, `.specs`, `CLAUDE.md` or `.claude` in the repository root. The mechanism (the sticky bit on the root, or an equivalent) is chosen in Stage 1. It must be proven against `mv .intent x && mkdir .intent` as `core-claude`, and against git checkout of root-level files still working.
 - **It runs only code the assistant cannot change.** `core-law` runs `core-admin` from its own venv, installed from a **released** `core-runtime` wheel (proposed: `/opt/core-law/venv`, owned by `core-law`). It never runs the development tree's code, so D10.8 routes R1 and R2 do not reach it.
 - **It never runs git and never executes repository code.** It reads the law as data, writes files and writes the ledger (D4). Routes R3 (`.git/config`, hooks) and R4 (repository tests, `conftest.py`) do not reach it.
-- The services (`core`) never write governed text. For `.intent/` that is IntentGuard's hard invariant. A recon on 2026-10-08 found no runtime writer of `.specs/` (`sync_vocabulary` stages to `var/drafts/`). Stage 1 re-proves this with a day of service journals.
+- The services (`core`) never write governed text. For `.intent/` that is IntentGuard's hard invariant. A recon on 2026-10-08 found no runtime writer of `.specs/` (`sync_vocabulary` only stages a draft). Stage 1 re-proves this with a day of service journals.
 
 ### D3 — The amendment procedure
 
@@ -253,3 +253,112 @@ Under the release runtime the services do not read the law from the development 
 
 Until Stage 1 is live the release runtime is not switched on (ADR-132 D10.11 step 2, go-live order), so the
 rehearsal (D0) needs no second destination.
+
+## Amendment 2026-10-11 (later) — the rehearsal evaluation; Stage 1 starts
+
+**Proposed by:** Claude (core-claude), proposal 0019. **Rests on:** D0 "Evaluation"; the evaluation
+written from the rehearsal ledger (18 proposals,
+2026-10-08 to 2026-10-11); the governor's agreement of 2026-10-11 that waiting for the date is ceremony.
+
+**What the rehearsal showed.** The workflow holds: 18 proposals, none refused or rejected, a median of 3 files, and
+the check found a real defect before approval in 4 of them. The hand-run procedure did not hold: within two days
+the assistant stopped recording the ask time and the lines changed, and one approved batch (0012) never got its
+ledger line although its commit said it had. The bytes were the approved ones; the record was missing.
+
+1. **Stage 1 starts on acceptance of the evaluation.** D0's "two weeks or ten proposals, whichever comes later" is
+   replaced by "ten proposals". The count was passed at 0010; a later date adds no evidence and keeps the decaying
+   hand procedure in force.
+2. **Declared warnings (D3, D5).** `proposal.md` carries a **Declared warnings** section: the meaning-level
+   consequences the proposer sees (an ADR's sense amended, a gate redefined, a scope widened). D5 cannot compute
+   these; 55 of the rehearsal's 59 warnings were of this kind. `law apply` shows them verbatim, after CORE's
+   computed warnings and labelled as declared by the proposer. The ledger records both lists.
+3. **The checks run on the proposal's tree (D3 step 2, D5).** `law apply` builds the would-be tree in a scratch
+   copy and runs every check with that copy as the repository root (C-50: run from the main tree's environment,
+   the check validated the current law instead of the batch). Besides D5's refusals it runs the full offline
+   audit. A blocking finding is shown first, as a warning: the commit would be refused anyway.
+4. **`law apply` writes every ledger field itself (D4).** Besides D4's fields: the time the report was shown, the
+   time of approval, the files and lines changed. Nothing the evaluation needs is kept by hand.
+5. **A proposal carries its final bytes.** If approving a batch is meant to accept an ADR, the proposal already
+   says "accepted"; approving the batch is the acceptance. Approval never edits the bytes.
+6. **Cost (Consequences).** About two approvals per working session, not one: the extra one is usually a
+   decision the code needs before it can be built, which D0 already allows.
+
+The rehearsal (D0) stays in force until Stage 1 is live. The missing 0012 line is appended to the rehearsal ledger,
+marked as reconstructed, with this proposal's approval.
+
+## Correction 2026-10-11 — `law apply` runs data checks only
+
+**Proposed by:** Claude (core-claude), proposal 0020. **Rests on:** the governor's ruling of 2026-10-11 ("data checks
+only"), D2 ("it never runs git and never executes repository code").
+
+Item 3 of the amendment above (proposal 0019) said `law apply` also runs the full offline audit. That contradicts D2:
+the full audit executes repository code (the type checker, CLI discovery), so anyone able to edit `src/` could run
+code as `core-law`, and the lock would mean nothing. Item 3 is corrected:
+
+- `law apply` runs D5's refusal checks only — schema validation, `architecture.intent.references_resolve`, the law
+  loading, `.claude/settings.json` parsing. All of them read files as data. They run in a child process of the
+  released interpreter, in a scratch tree that is also the repository root, and the child refuses when the law it
+  loaded is not that tree's (C-50).
+- The full offline audit is run by the proposer before asking, and again by the commit hook. The report says which
+  checks `law apply` ran and that the full audit was not one of them.
+
+**Built (proposal 0020's code commit):** `core-admin law apply <id>` and `core-admin law check-tree`
+(`src/body/governance/law_custody/`). The writer is the only code that writes governed text; it refuses unless it
+runs as `core-law` with a `SUDO_USER`, writes each file by atomic replace, refuses any symlink on a destination
+path, signs the ledger line before writing anything, and appends it only when every destination succeeded. It is
+inert until Stage 1's root session creates `core-law`, its key and its venv; nothing runs it before then.
+
+## Amendment 2026-10-11 (Stage 1 prepared) — `--write`, and the choices Stage 1 had to make
+
+**Proposed by:** Claude (core-claude), proposal 0021. **Rests on:** D2, D3, D6; `cli.dangerous_explicit` (#824); the
+governor's operator grant of 2026-10-11 for the setup script.
+
+1. **The approval command carries `--write` (D3 step 3).** `cli.dangerous_explicit` requires every mutating command
+   to be read-only by default, and a typed confirmation is never a substitute (#824). The line is:
+   ```
+   sudo -u core-law /opt/core-law/venv/bin/core-admin law apply <id> --write
+   ```
+   Without `--write` it shows the same report and writes nothing; that is the way to read a proposal first.
+2. **`core-law`'s code is root-owned (D2).** D2 proposed a venv owned by `core-law`. It is `root:root`, readable by
+   `core-law`, so the account cannot change the code it runs. It is installed by `infra/core-law-setup` from the
+   released wheel by its PyPI sha256, every dependency hash-pinned from the release tag's `poetry.lock`, binary
+   wheels only, fetched over HTTPS; no git, no development-tree code.
+3. **The ledger key** is generated by `core-law` at setup in `/opt/core-law/home/.ssh/core_law_ledger` (0600),
+   outside every repository, and kept on every re-run. Its public line goes into `.intent/custody/allowed_signers`
+   through the first `law apply` (D4).
+4. **Name protection (D2): the sticky bit.** The repository root becomes `root:core-dev 3775`, `.claude` becomes
+   `core-law:core-dev 3775`. With the sticky bit only an entry's owner may rename or delete it, so no other account
+   can rename or replace `.intent`, `.specs`, `CLAUDE.md` or `.claude`. A directory's owner can rename anything in
+   it, which is why the root may not stay owned by `core`. Consequence: root-level files git replaces must be
+   owned by the account that checks out, so non-secret root-level files are handed to `core-claude`
+   (acceptance check 8). `core` and `core-darek` can still edit those files in place, but not replace them.
+5. **sudo (D6).** `/etc/sudoers.d/core-law` lets the named human governor run only `core-admin law apply ...` as
+   `core-law`, with a password; the script refuses a password-less rule. Open, and outside this ADR:
+   `core-darek` is in the `sudo` group, so anyone who knows its password can still approve as root. Removing that
+   is ADR-132 D10.9's step.
+6. **A known limit of the proposer's check (#965).** The full offline audit run in a scratch worktree judges the
+   CLI rules against the *installed* code, not the worktree's. A CLI defect in a batch is therefore caught only by
+   the commit hook in the main tree (as it was for `law apply` itself). Until #965 is closed, a proposal's check
+   report says so.
+
+Stage 1 is prepared, not live: it goes live when the governor tags a release containing `law apply`, runs
+`core-law-setup --apply` from their own account, and Stage 1's acceptance checks 3–9 pass.
+
+## Amendment 2026-10-11 (release candidate review) — a fresh password every time; the venv's path
+
+**Proposed by:** Claude (core-claude), proposal 0022. **Rests on:** D6; the governor's review of the 2.14.0 release
+candidate (2026-10-11), which found both points.
+
+1. **A cached sudo login never approves (D6).** sudo remembers a password for some minutes after any sudo command.
+   The `core-law` rule therefore carries `Defaults>core-law timestamp_timeout=0`, and `core-law-setup` refuses a
+   rule without it.
+2. **Stage 1 acceptance, addition:**
+   - **3b. Warm cache:** as the governor, run `sudo -v` (a fresh sudo login), then at once
+     `sudo -u core-law /opt/core-law/venv/bin/core-admin law apply <id>`. sudo must ask for the password again.
+3. **The venv is installed at its final path (D2, amendment 0021 item 2).** A venv records its own path in its
+   entry points, so it is never built elsewhere and renamed. A previous venv is set aside and put back if the new
+   one fails, including when its installed `core-admin` does not run as `core-law`.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

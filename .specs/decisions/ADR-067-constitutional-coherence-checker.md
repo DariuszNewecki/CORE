@@ -368,5 +368,9 @@ to one the governor dismissed — same check, same documents, same claim — unl
 since the dismissal. Confirmed and deferred candidates re-surface until resolved. Before this, every run re-raised every
 dismissed candidate, so triage repeated without end.
 
-Reference correction (append-only; the text above is unchanged): the cognitive role is declared as `ConstitutionalCoherenceAnalyst` in `.intent/taxonomies/cognitive_roles.yaml`, with
-its prompt at `var/prompts/constitutional_coherence_analyst/`; `.intent/cognitive_roles/` was never created.
+Reference correction (append-only; the text above is unchanged): the cognitive role is declared as `ConstitutionalCoherenceAnalyst` in `.intent/taxonomies/cognitive_roles.yaml`;
+`.intent/cognitive_roles/` was never created.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

@@ -14,6 +14,7 @@ import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from shared.infrastructure.intent.law_roots import law_glob, law_relpath
 from shared.logger import getLogger
 
 from .symbol_processing import (
@@ -102,7 +103,7 @@ def _resolve_file_artifact_types(
     best_spec: dict[Path, int] = {}
     for glob_pattern, artifact_type in crawl_scopes:
         spec = _glob_specificity(glob_pattern)
-        for file_path in repo_root.glob(glob_pattern):
+        for file_path in law_glob(repo_root, glob_pattern):
             if file_path.is_symlink() or not file_path.is_file():
                 continue
             prior = best_spec.get(file_path)
@@ -249,7 +250,7 @@ class CrawlOrchestrator:
 
             for file_path in sorted(resolved_types):
                 artifact_type = resolved_types[file_path]
-                rel_path = str(file_path.relative_to(repo_root))
+                rel_path = law_relpath(repo_root, file_path)
                 seen_paths.add(rel_path)
                 stats["files_scanned"] += 1
                 try:

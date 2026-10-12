@@ -31,6 +31,7 @@ from api.cli.census_client import CensusClient
 from api.cli.cognitive_roles_client import CognitiveRolesClient
 from api.cli.coverage_client import CoverageClient
 from api.cli.daemon_client import DaemonClient
+from api.cli.findings_client import FindingsClient
 from api.cli.fix_client import FixClient
 from api.cli.inspect_client import InspectClient
 from api.cli.integration_client import IntegrationClient
@@ -48,9 +49,31 @@ from api.cli.vectors_client import VectorsClient
 
 
 _DEFAULT_BASE_URL = "http://127.0.0.1:8000"
+UNIX_SCHEME = "unix://"
+# HTTP needs a host for the request line; over a Unix socket it names nothing.
+_UNIX_HTTP_BASE = "http://localhost"
 _DEFAULT_TIMEOUT_SECONDS = 30.0
 _POLL_INTERVAL_SECONDS = 1.0
 _POLL_TERMINAL_STATES = frozenset({"completed", "failed"})
+
+
+# ID: 6c1372f0-e476-4131-ad77-96eea8b1297d
+def parse_base_url(base_url: str) -> tuple[str, str | None]:
+    """Split a ``CORE_API_URL`` value into (HTTP base URL, Unix socket path).
+
+    ``unix:///run/core/api/api.sock`` selects CORE's Unix socket, the only
+    route to governor acts (ADR-132 D10.3 as amended); any other value is an
+    HTTP base URL. The socket path must be absolute.
+    """
+    if not base_url.startswith(UNIX_SCHEME):
+        return base_url, None
+    socket_path = base_url[len(UNIX_SCHEME) :]
+    if not socket_path.startswith("/"):
+        raise ValueError(
+            f"CORE_API_URL {base_url!r}: a Unix socket URL needs an absolute "
+            "path, e.g. unix:///run/core/api/api.sock"
+        )
+    return _UNIX_HTTP_BASE, socket_path
 
 
 # ID: 03d88f8c-1a13-4901-a03c-52db4b5ee5b2
@@ -71,6 +94,7 @@ class CoreApiClient:
 
     def __init__(self, base_url: str | None = None) -> None:
         self.base_url = base_url or os.environ.get("CORE_API_URL") or _DEFAULT_BASE_URL
+        self._http_base, self.socket_path = parse_base_url(self.base_url)
         self.timeout = _DEFAULT_TIMEOUT_SECONDS
         self.audits = AuditClient(self)
         self.fix = FixClient(self)
@@ -84,6 +108,7 @@ class CoreApiClient:
         self.cognitive_roles = CognitiveRolesClient(self)
         self.sync = SyncClient(self)
         self.daemon = DaemonClient(self)
+        self.findings = FindingsClient(self)
         self.integrity = IntegrityClient(self)
         self.lane = LaneClient(self)
         self.llm_resources = LlmResourcesClient(self)
@@ -94,8 +119,11 @@ class CoreApiClient:
 
     # ID: 77466c97-58c5-4ad2-8e5a-814396965f73
     async def _request(self, method: str, path: str, **kwargs: Any) -> dict:
-        url = f"{self.base_url}{path}"
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        url = f"{self._http_base}{path}"
+        client_kwargs: dict[str, Any] = {"timeout": self.timeout}
+        if self.socket_path is not None:
+            client_kwargs["transport"] = httpx.AsyncHTTPTransport(uds=self.socket_path)
+        async with httpx.AsyncClient(**client_kwargs) as client:
             response = await client.request(method, url, **kwargs)
             if response.status_code >= 400:
                 try:

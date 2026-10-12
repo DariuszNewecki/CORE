@@ -16,7 +16,7 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from shared.infrastructure.intent.law_roots import specs_root_for
+from shared.infrastructure.intent.law_roots import law_relpath, specs_root_for
 from shared.logger import getLogger
 
 from ..llm_judge import judge_contradiction_pair
@@ -222,7 +222,7 @@ class R1ScopedCheck:
         for path in sorted(decisions.glob("ADR-*.md")):
             m = _ADR_TOKEN.match(path.stem)
             if m:
-                adr_path_by_id[m.group(0)] = str(path.relative_to(self._repo_root))
+                adr_path_by_id[m.group(0)] = law_relpath(self._repo_root, path)
 
         # Single read per ADR — extract Relates: partners and reconciliation set.
         relates_by_id: dict[str, list[str]] = {}

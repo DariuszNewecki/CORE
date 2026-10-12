@@ -50,7 +50,7 @@ them before CLI extraction is complete.
 **CLI files in scope (Phase 4 migration targets):**
 
 Source: capability map at `.specs/planning/CORE-API-capability-map-2026-05-16.md`.
-Exact import verification via live grep to `var/adr058-phase4-imports.txt`
+Exact import verification via live grep
 before implementation begins (D7).
 
 `/census`:
@@ -209,7 +209,7 @@ binding. Auth promotion trigger unchanged.
 
 Before implementation begins, a live grep enumerates all Phase 4 files
 carrying direct `body.*`, `will.*`, `mind.*`, or `shared.*` imports.
-Result saved to `var/adr058-phase4-imports.txt`. That file is the
+That result is the
 authoritative D7 list; the Context section above is an approximation.
 
 At Phase 4 closure, no suppress entries for `architecture.cli.api_only`
@@ -251,7 +251,7 @@ This ADR is verified when:
    test using a test daemon process.
 6. `GET /daemon/status` returns governed worker health data derived from
    ADR-041 thresholds.
-7. All files in `var/adr058-phase4-imports.txt` import exclusively from
+7. All files in the D7 list import exclusively from
    `api.*` — no `body.*`, `will.*`, `mind.*`, or `shared.*` imports remain.
 8. `core-admin code audit` reports no new findings introduced by Phase 4.
 9. `core.census_runs` and `core.sync_runs` exist in `db_schema_live.sql`
@@ -277,3 +277,7 @@ This ADR is verified when:
 - `src/cli/commands/daemon.py` — daemon lifecycle backend
 - `src/cli/commands/dev_sync.py` — composite dev-sync workflow backend
 - `src/cli/commands/fix/db_tools.py` — db-registry and vector sync backend
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

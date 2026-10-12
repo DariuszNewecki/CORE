@@ -214,10 +214,13 @@ def test_baselines_cover_every_tagged_release_from_v2_9_1() -> None:
         "20261005_adr169_state_observations.sql",  # ADR-169 D1
         "20261005b_adr169_cycle_trigger.sql",  # ADR-169 D1 slice 2
         "20261005c_adr169_changes_and_outside_writes.sql",  # ADR-169 D4/D5
+        "20261012_approver_original.sql",  # one approver principal
     ]
-    # v2.12.0 released ADR-169's state ledger and runs through the last entry;
-    # entries added after it are unreleased until the next release's baseline.
-    assert manifest.baseline("v2.12.0").through == manifest.order[-1]
+    # v2.12.0 released ADR-169's state ledger; entries added after it are
+    # unreleased until the next release's baseline.
+    v2_12 = manifest.order.index(manifest.baseline("v2.12.0").through)
+    assert manifest.baseline("v2.12.0").through.startswith("20261005c_")
+    assert list(manifest.order[v2_12 + 1 :]) == ["20261012_approver_original.sql"]
     # v2.10.1 shipped every entry before the 20260919 ledger column — including
     # the two 20260722 files, which its schema.sql already carried.
     v2_10_1 = [

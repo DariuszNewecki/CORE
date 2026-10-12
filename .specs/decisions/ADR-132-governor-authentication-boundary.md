@@ -777,3 +777,103 @@ release with `python -I` from `/opt/core/run`. Secrets stay in `CORE_SECRETS_FIL
    - a rollback between two migration-free releases works.
 5. In the same batch as step 3, CLAUDE.md's "restarting services is in-scope" line is replaced. After go-live the
    assistant no longer makes its own changes live; the governor deploys.
+
+## Addendum — D10.11 step 3 as built: repository tests run only in the sandbox (2026-10-12)
+
+**Proposed by:** Claude (core-claude), 2026-10-12, proposal 0032. **Rests on:** D10.10, D10.11 step 3, the
+governor's direction of 2026-10-11 (route A: CORE side first).
+
+### D10.16 — Every repository test run goes through the sandbox runner
+
+Code in `src/` does not start pytest. Every run of the repository's tests, including collecting them, goes
+through `body.sandbox` (`run_repo_code`; `run_in_sandbox`; `repo_tests.run_tests` for an ActionResult). This
+covers test execution and validation, candidate and generated-test validation, the canary phase and
+TestRunnerSensor, the auditor's `pytest_check` (`quality.test_integrity`), the API's quality checks and coverage.
+
+- **What the sandbox gets.** A copy of the tree: every top-level entry except runtime and build output, git, the
+  venv, secrets (`.env*`, `.secrets`) and caches; the tracked parts of `var/` (prompts, mind, core); and the law,
+  copied in as `.intent/` and `.specs/` from where it lives (beside the clone, under D2). Uncommitted code, such
+  as a workspace's files or a generated test, is laid over the copy. Nothing is written into the tree.
+- **Fail closed (L1).** Only a full pass is a pass. A job that did not run, a marker filter that deselected
+  everything (the old exit-5-as-pass), and a service run whose integration tests were excluded (`partial`) are
+  not passes. Callers that cannot decide say so: TestRunnerSensor keeps its entries open, and the auditor reports
+  `pytest_check` as ENFORCEMENT_UNAVAILABLE.
+- **Mind reaches the sandbox through a seam.** Mind may neither run code nor import Body. Body registers a test
+  collector in `shared.infrastructure.repo_code` when the service registry loads; the workflow gate asks for it.
+  With no collector registered, the check is unknown, never a pass.
+- **Coverage** is measured in the sandbox with coverage.py and returned as numbers and a table. The HTML report is
+  no longer produced: the sandbox cannot write it into the repository.
+- **Enforced** by `architecture.sandbox.tests_run_in_sandbox` (blocking). It is narrow: it finds a pytest command
+  list, `-m pytest` and `pytest.main()` outside `src/body/sandbox/`.
+
+### What R4 now covers, and what stays open
+
+R4 is closed for repository tests: they do not run as `core`. Three things remain, named:
+
+- **mypy.** `quality.type_safety` and the API's quality gates run mypy as `core`. mypy reads code without running
+  it, except for plugins named in the project's own configuration. CORE's plugin (`pydantic.mypy`) comes from the
+  release venv, so CORE runs none of its own repository code this way. For a governed external project with a
+  repository-local plugin, this remains open.
+- **Introspection** (D10.11 "Still open"). Test-generation introspection and the artifact gate's callable check
+  import modules by name. They import the release, which is the code CORE itself runs, not the clone. This is a
+  correctness gap (they can see an older version), not repository code running as `core`.
+- **Local mode** (`CORE_SANDBOX_MODE=local`, the development default) runs the same jobs without isolation and
+  labels them `isolation: local`. It does not close R4; only `service` does.
+
+## Addendum — D10.11 step 4 as built: the governor gate is live (2026-10-12)
+
+**Proposed by:** Claude (core-claude), 2026-10-12, proposal 0034. **Rests on:** D10.3 as amended, D10.4, D10.9,
+D10.11 step 4; ADR-068 D2 (roles); ADR-168 Amendment 2026-10-10 (the producer path). Code: commit 27265f2c.
+
+### D10.17 — Which routes need the governor
+
+`require_governor` passes only for a caller on CORE's Unix socket (`/run/core/api/api.sock`) whose kernel-reported
+uid `/etc/core/principals.yaml` binds to `principal.governor`. TCP, every other account and a missing or
+untrustworthy binding get 403. `_oss_passthrough` is gone; so is `require_operator`, which nothing used.
+
+The gate stays on every route that had it, except these, each open for a stated reason:
+
+- **Producer submission** (`POST /proposals/submit`) and **proposal reads** (`GET /proposals`, `/{id}`,
+  `/{id}/chain`). The coding assistant submits under ADR-168; a submission is only a PENDING proposal, and
+  nothing lands without the governor's approval.
+- **Fix dry runs** (`POST /fix/run/{fix_id}` with `write=false`) and **run status** (`GET /fix/runs/{id}`). The
+  assistant's `validate_change` runs `assisted.validate_diff` this way. `write=true` is checked in the handler and
+  needs the governor.
+- **Daemon status** (`GET /daemon/status`), the read `core-deploy` uses for its heartbeat check. Daemon start and
+  stop stay gated; the daemon router is now user-facing with per-route gates.
+
+What the assistant can no longer do over the API: approve, reject, execute or create proposals; run a fix with
+`write=true`; resolve a finding; the governor-only routers (refactor, cognitive roles, LLM resources, sync,
+integrity, develop), including their reads. Those are the governor's, on the socket.
+
+### D10.18 — Stamps, as built
+
+- `approve` writes `approved_by` (the governor's OS account) and `approval_authority` (`principal.governor`)
+  itself. A body `approved_by` is ignored; a body `approval_authority` that differs is a 400.
+- `POST /findings/{id}/resolve` (new) closes a finding delegated to a human and writes `resolved_by` and
+  `resolution_authority` the same way. `core-admin workers resolve` calls it and has no `--by` or `--authority`.
+- `BlackboardService.resolve_indeterminate_entry` has no default authority, so an omitted one cannot claim the
+  governor.
+- **The demo** (ADR-155 D6) drives its own disposable deployment through an in-process app that carries no socket
+  identity. That private app overrides the gate with the demo runner; the served app never does.
+
+### D10.19 — Deployment
+
+- `core-api` runs `python -m api.serve`, on TCP (user-facing) and on `/run/core/api/api.sock` (mode 0660).
+- `core-runtime-setup` makes the group `core-gov`, holding only the governor (`--governor`, by default the
+  account that ran sudo; never a `core*` account); a tmpfiles entry for `/run/core/api` (`core:core-gov 2750`);
+  and `/etc/core/principals.yaml` (root, 0644), never replacing a different existing file. Its probes check that
+  `core-claude` cannot enter `/run/core/api` and the governor can.
+- The governor's `core` command is core-cli, a published wheel that setup installs into a root-owned venv
+  (`/opt/core/cli`, linked from `/usr/local/bin/core`). The approving CLI must not be one the coding assistant can
+  write: a CLI in the development venv could approve a different id than the one typed.
+- The governor approves with `CORE_API_URL=unix:///run/core/api/api.sock core proposals approve <id>`.
+
+### Still open, and named
+
+- **Verification** (D10.11 step 7) runs after the governor applies the setup and deploys: as `core-claude` and
+  `core-darek`, governor routes are refused; as `darek` over the socket they succeed and the stored actor is
+  `darek`; with the binding missing, nobody is governor.
+- **D10.11 steps 5–6** (inventory of DB-direct commands, credential isolation) are unchanged and come next.
+- **The platform route** stays its own decision (Consequences of the 2026-10-10 addendum; ADR-068 D1 Layer 2 for
+  Team and Enterprise tiers). The Console reaching CORE over TCP is refused governor acts until then.

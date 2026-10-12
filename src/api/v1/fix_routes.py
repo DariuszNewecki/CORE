@@ -13,6 +13,11 @@ Endpoints in this module fall into three groups:
 * Resource read — GET /fix/runs/{run_id} returns the persisted
   fix_runs row; missing → 404.
 
+GOVERNOR GATE (ADR-132 D10.11 step 4): POST /fix/run/{fix_id} is open for a
+dry run (``write=false``, ADR-014) so the coding assistant can validate a
+patch (``assisted.validate_diff``, ADR-168); ``write=true`` is checked in the
+handler and needs the governor. Run status reads are open.
+
 * Synchronous dispatch — GET /fix/commands and GET /actions read the
   registry inline. POST /fix/ir writes a YAML scaffold via FileHandler
   and returns the path; no resource row.
@@ -44,7 +49,14 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, open_background_session, require_governor
+from api.dependencies import (
+    CallerPrincipal,
+    caller_principal,
+    get_api_session,
+    get_governor,
+    open_background_session,
+    require_governor,
+)
 from api.v1.schemas import (
     AsyncDispatchResponse,
     FixCommandListResponse,
@@ -72,6 +84,16 @@ FIX_CODE_FLOW_ID = "flow.fix_code"
 
 ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/fix")
+
+INTENTIONALLY_UNGATED: dict[str, str] = {
+    "run_fix": (
+        "Dry run open, write gated in the handler: with write=false (the "
+        "ADR-014 default) an action only reports; the coding assistant's "
+        "validate_change runs assisted.validate_diff this way (ADR-168). "
+        "write=true calls get_governor and is refused (403) for anyone but "
+        "the governor on the Unix socket (ADR-132 D10.11 step 4)."
+    ),
+}
 # Top-level router for GET /actions (ADR-055 D2 places it outside the
 # /fix namespace; mounted alongside `router` in api/main.py).
 # Intentionally user-facing (no constructor gate): authenticated OEM
@@ -134,13 +156,13 @@ class RunIRRequest(BaseModel):
     status_code=202,
     response_model=AsyncDispatchResponse,
     summary="Dispatch an atomic fix action",
-    dependencies=[require_governor],
     description=(
         "Run an atomic action from the registry by `fix_id` (e.g. "
         "`fix.format`, `fix.imports`, `fix.docstrings`). Returns 422 if "
         "`fix_id` is unknown — the response body includes a registered "
         "ids count. Valid ids return 202 + a `run_id` to poll. `write=false` "
-        "is the dry-run default (ADR-014). `params` carries action-specific "
+        "is the dry-run default (ADR-014) and is open; `write=true` needs the "
+        "governor on CORE's Unix socket (403 otherwise). `params` carries action-specific "
         "kwargs (e.g. `fix.docstrings`'s `limit`) and is forwarded as "
         "`**kwargs` to ActionExecutor.execute."
     ),
@@ -153,14 +175,17 @@ async def run_fix(
     background_tasks: BackgroundTasks,
     payload: RunFixRequest = Body(default_factory=RunFixRequest),
     session: AsyncSession = Depends(get_api_session),
+    principal: CallerPrincipal = caller_principal,
 ) -> dict:
-    """Dispatch an atomic fix action by id.
+    """Dispatch an atomic fix action by id; a write needs the governor.
 
     Validates `fix_id` against the action registry — unknown ids return
     422 with the list of registered ids in the response body. Valid
     ids land a pending row in core.fix_runs and queue background
     execution via the will.governance.fix_runner facade.
     """
+    if payload.write:
+        await get_governor(principal)
     registered = list_registered_action_ids()
     if fix_id not in registered:
         raise HTTPException(
@@ -439,7 +464,6 @@ async def list_fix_commands() -> dict:
     "/runs/{run_id}",
     response_model=FixRunResponse,
     summary="Fetch a persisted fix run",
-    dependencies=[require_governor],
     description=(
         "Read back a fix run's persisted record by `run_id`. The response "
         "shape matches ADR-055 D2: run_id, status, fix_id, kind, write, "

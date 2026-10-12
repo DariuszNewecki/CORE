@@ -9,6 +9,7 @@ No LLM calls. No Blackboard writes.
 from __future__ import annotations
 
 import asyncio
+import sys
 from pathlib import Path
 
 from body.atomic.tool_runner import ToolRunner
@@ -80,12 +81,14 @@ class CrateCanaryMixin(HostBase):
         staged_str = str(staged)
 
         for label, cmd in (
-            ("black", ["poetry", "run", "black", staged_str]),
+            # The running interpreter's own tools: the release runtime has no
+            # Poetry, and its venv is not necessarily first on PATH.
+            ("black", [sys.executable, "-m", "black", staged_str]),
             (
                 "ruff-isort",
                 [
-                    "poetry",
-                    "run",
+                    sys.executable,
+                    "-m",
                     "ruff",
                     "check",
                     "--select",

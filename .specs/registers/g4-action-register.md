@@ -1,5 +1,7 @@
 # G4 action register (Soak NG, hand-kept)
 
+> **Note 2026-10-12 (governor ruling):** links in this record to files under `var/` point to files that were not retained (deleted 2026-10-12). The record is otherwise kept as written. LLM assumed too much while writing this text.
+
 **What this is.** A dated record of what happened while CORE was being developed: fixes, catches, health
 problems, events, and the assistant's own misses — each with **who** did it and the **CORE record** that
 proves it.
@@ -348,3 +350,183 @@ review rounds, C1–C5 and the law routing) and the afternoon (governor's answer
 external reviewer 3, assistant 4, **CORE 2**, mypy (a tool) 1; assistant misses: 6, one caught by CORE. The
 commit gate ran 12 times for 13 commits and allowed every run, plus one false trigger on a command that only
 wrote a file containing the words `git commit` (`var/experiments/adr168/verdicts.jsonl`, 10:12:33).
+
+## 2026-10-11 (after law 0018) and 2026-10-11 session 3
+
+After the 0018 push: CI red, two fixes, CI green, main promoted. Session 3: the ADR-170 rehearsal evaluation.
+
+### Fixes and builds (all by the assistant as producer)
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-44 | ffa1cf81 | Law loaders discover the law from the working directory first; an explicit `REPO_PATH` decides only where no law is found (undoes the external-target regression of 8459f839) | **CORE CI** (C-51) | git; verdict; CI run 38133587504 |
+| A-45 | 34a314ee | Test only: a killed worker that is still a zombie counts as dead | CORE CI (C-52) | git; CI |
+
+### Catches — who objected, and what changed
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-51 | **CORE** (CI, hermetic suite, run 38132196522) | 8459f839 made law loaders prefer an explicit `REPO_PATH`; external-target runs set it to the target, so `fix.format` read the target's minimal law and failed | A-44; regression test fails on the old code | CI run |
+| C-52 | CORE CI (same run) | A process test read a zombie as alive (flaky, test defect) | A-45 | CI run |
+| C-53 | assistant (writing the rehearsal evaluation) | Proposal 0012 (7013daed, 20 files) has no rehearsal-ledger line, although its commit says "ledger appended"; bytes match `hashes.txt` | reconstructed line appended with 0019; Stage 2's custody rule is the standing check | ledger; git |
+
+**Events**
+
+| ID | Time | Event | By |
+|---|---|---|---|
+| E-26 | ~10:3x | develop pushed c0675bbb..50cbc9e6; CI red (C-51, C-52); fixes pushed; CI 38133587504 green | governor yes; assistant |
+| E-27 | ~11:0x | main promoted c0675bbb..34a314ee (fast-forward, CI green) | governor yes; assistant |
+| E-28 | session 3 | ADR-170 rehearsal evaluation written (`var/reports/adr170-rehearsal-evaluation-20261011.md`) | assistant |
+
+**Assistant's misses**
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-32 | 8459f839's message claimed "no change while `REPO_PATH` is unset"; external-target runs set it | CORE CI (C-51) | develop red for one push; fixed A-44 |
+| M-33 | Did not append 0012's ledger line, and wrote in the commit that it had | assistant, a day later (C-53) | acceptance check 1 failed for one commit; the custody was intact, the record was not |
+| M-34 | Stopped recording `asked_utc` after 0006 and `lines_changed` after 0004 | assistant (evaluation) | approval latency unmeasured for 12 of 18 batches |
+
+**2026-10-11 after 0018 (by hand)** — fixes: 2, by the assistant; catches: 3 — **CORE 2** (CI), assistant 1;
+assistant misses: 3, one caught by CORE.
+
+### Session 3, continued — `law apply` built
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-46 | (this batch's code commit) | `law apply` / `law check-tree`: proposal read once into memory, data checks in a child on the proposal's tree, computed + declared warnings, custodian-only writer, signed ledger line, two destinations; 26 tests (3 mutation-checked) | design (ADR-170 Stage 1) | git; verdict |
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-54 | assistant (recon for `law apply`) | Law 0019 item 3 had `law apply` run the full audit, which executes repository code — against D2 | governor ruled "data checks only"; corrected in ADR-170 (0020) | **none** |
+| C-55 | **CORE** (fast verdict) | `# ID` above `@dataclass` on 6 classes; a `print()` in the CLI | fixed before commit | **none** (fast verdicts are not logged) |
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-35 | Wrote and got approved a law item (0019 item 3) that contradicts the same ADR's D2 | assistant, 10 minutes later (C-54) | one corrective batch; nothing was built on it |
+| M-36 | Put `# ID` above `@dataclass` again (same trap as C-43) | CORE (C-55) | none |
+
+### Session 3, continued — Stage 1 prepared
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-47 | c82da3ea | `law apply`'s scratch tree links the whole repository: the law references files outside the copied entries, so every real proposal was refused | assistant's installed-wheel test, asked for by the governor (C-57) | git; verdict |
+| A-48 | c82da3ea | `tests/infra/test_law_apply_installed_wheel.py`: `law apply` from the built wheel — account refusal, report-only default, `--write` + typed id, signature, no git, no dev-tree import | governor (asked before tagging) | git; CI |
+| A-49 | e9d240ae | `infra/core-law-setup` (operator role, governor grant): account, root-owned released venv, key kept on re-run, ownership, sticky root, `/opt/core/law`, sudoers, probes; 15 tests | design (Stage 1) | git |
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-56 | **CORE** (commit gate, `cli.dangerous_explicit`) | `law apply` had no `--write`; a typed id is not a substitute (#824) | `--write` added before the first commit | verdicts.jsonl |
+| C-57 | governor (asked for the wheel test) → assistant's test | Scratch tree too small: `references_resolve` refused every real proposal | A-47 | test run |
+| C-58 | assistant (probe after C-56) | A worktree audit judges CLI rules against the installed code | issue #965 | GitHub #965 |
+
+**Events**
+
+| ID | Time | Event | By |
+|---|---|---|---|
+| E-29 | ~12:0x | develop pushed 34a314ee..1d19a454; CI 38138492511 green | governor yes; assistant |
+| E-30 | ~12:0x | Operator grant: prepare and test the Stage 1 setup script; wheel test before tagging; one law batch | governor |
+
+**Assistant's misses**
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-37 | Trusted the worktree audit for a CLI change | CORE commit gate (C-56) | none; gap filed (#965) |
+| M-38 | Called `check-tree` "proven live" from a full worktree; `law apply` builds a smaller tree | the wheel test (C-57) | would have refused every real proposal; never released |
+| M-39 | Typed symbol UUIDs by hand twice, against my own rule | assistant, before commit | none |
+
+**Session 3 total (by hand)** — fixes and builds: 6 (A-44–A-49); catches: 8 — **CORE 3**, governor 1 (via the
+test they asked for), assistant 4; assistant misses: 8 (M-32–M-39), 2 caught by CORE.
+
+### Session 3, continued — release candidate review
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-50 | 2c2d19c6 | core-law-setup: owner/mode table now → after; the repository's parent taken from `core` (`/opt/dev` root:root 755); root-equivalent accounts named; repository-rename probe | governor (asked to confirm no bypass) | git |
+| A-51 | 910b55f8 | core-law-setup: venv installed at its final path, previous one restored on failure; `timestamp_timeout=0`; real-venv tests and visudo | governor (C-59, C-60) | git |
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-59 | **governor** (release review) | The venv built at `venv.new` and renamed: its entry points point at the old path | A-51; tests fail on the old code | **none** |
+| C-60 | **governor** (release review) | sudo's credential cache let `law apply` run without a fresh password | A-51; ADR-170 amendment 0022 | **none** |
+| C-61 | assistant (bypass check the governor asked for) | `/opt/dev` owned by `core`: the parent's owner can rename the repository; `core-darek` in `docker` | A-50; docker membership left to the governor | **none** |
+
+**Events**
+
+| ID | Time | Event | By |
+|---|---|---|---|
+| E-31 | ~12:3x | develop pushed 1d19a454..b1e740ba; CI 38140632656 green | governor yes; assistant |
+| E-32 | ~13:0x | 2.14.0 release candidate fc37cfad pushed; CI 38141384814 green; tag held after review | governor |
+| E-33 | ~13:2x | `.venv` editable reinstall, `--no-deps`: reports 2.14.0, dependency pins unchanged | governor yes; assistant |
+
+**Assistant's misses**
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-40 | Built the venv elsewhere and renamed it; tested with a fake host whose `core-admin` was an empty file | governor (C-59) | Stage 1 setup would have left core-law without a working command; never run |
+| M-41 | Wrote a sudo rule that asks for a password but honours sudo's cache, against D6's intent | governor (C-60) | never installed |
+| M-42 | Left `/opt/dev` owned by `core` out of the name-protection design | assistant, when asked (C-61) | never installed |
+
+### Session 3, end — Stage 1 live
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-52 | 131381b5 | setup hands `.env.example`/`.env.test` over; other `.env*` and `.secrets` excluded | governor (plan review) | git |
+| A-53 | 628f2363 | setup installs runtime dependencies only (dev `.pth` files refused the first apply) | CORE's setup venv check (C-62) | git |
+| A-54 | 6fbc781a | setup commands get no terminal; probes use `mv -f` (the apply hung on a prompt) | governor (C-63) | git |
+| A-55 | 8cc514c0 | law 0024 by real `law apply`: custody key and ledger; first signed ledger line verified; ledger excepted from `*.jsonl` ignore | design (Stage 1) | ledger; git |
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-62 | **CORE** (core-law-setup venv check) | dev-group `.pth` files in core-law's venv | A-53 | setup output |
+| C-63 | governor | `--apply` hung silently at a probe | A-54 | **none** |
+
+**Events**
+
+| ID | Time | Event | By |
+|---|---|---|---|
+| E-34 | ~14:16Z | v2.14.0 tagged on 27abad6e and published (PyPI wheel sha256 1bb549fc…7e72a60) | governor yes; assistant |
+| E-35 | ~16:0xZ | human governor account `darek` created; `core-law-setup --apply` done, 16/16 probes denied as expected | governor |
+| E-36 | 16:34:35Z | first `law apply` (0024) by `darek`; warm-cache check 3b passed | governor |
+
+**Assistant's misses**
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-43 | Tests pinned all dependency groups and never ran the setup's venv check | CORE (C-62) | first apply refused; no harm |
+| M-44 | Probes inherited the terminal; `mv` waited on a hidden prompt | governor (C-63) | apply hung; interrupted; rerun clean |
+| M-45 | Too much text, too little result in chat | governor | standing rule: result first, ≤5 lines |
+
+### Session 4 — 2.14.1, 2.14.2, law 0025, #965
+
+| ID | Commit | What | Found by | CORE record |
+|---|---|---|---|---|
+| A-56 | f8eb8814, aa32a9f6 | `law apply --release-law`; the wheel test uses its own release law and accepts an existing ledger | CORE CI (C-64) | git |
+| A-57 | b62028af | law discovery passes over a directory it cannot read (`law apply` started in a home directory crashed at import) | governor's run (C-65) | git |
+| A-58 | f2687d58 | release law receives only `.intent/` and `.specs/`; the wheel test takes the wheel of this version, not the last name in `dist/` | CORE (`law apply` refused, no ledger line: C-66) | git |
+| A-59 | 64ee703b | law 0025 by `law apply` under 2.14.2, both destinations; both ledger signatures verified | design (Stage 1) | ledger; git |
+| A-60 | 8e9b5408 | cli_gate reports "not evaluated" when the audited tree's CLI is not the importable one (#965) | assistant (L38 follow-up) | git |
+
+| ID | Caught by | What | Outcome | CORE record |
+|---|---|---|---|---|
+| C-64 | **CORE** (CI 38156710627) | installed-wheel test assumed no ledger and could reach the host's `/opt/core/law` | A-56 | CI run |
+| C-65 | governor | `law apply` from a home directory crashed with PermissionError | A-57 | **none** |
+| C-66 | **CORE** (`law apply`) | `/opt/core/law` refused the `CLAUDE.md` write; no ledger line written | A-58 | apply output |
+| C-67 | CI (publish) | the audit-gate image build ran before PyPI listed 2.14.1 | rerun | CI run |
+
+**Events**
+
+| ID | Time | Event | By |
+|---|---|---|---|
+| E-37 | ~17:1xZ | v2.14.1 tagged on aa32a9f6 and published (wheel sha256 b74b764a…a729d07d) | governor yes; assistant |
+| E-38 | ~17:33Z | first `law apply 0025 --write` under 2.14.1, run as **`core-darek`**: dev tree written, `/opt/core/law` failed, no ledger line | governor |
+| E-39 | ~18:0xZ | v2.14.2 tagged on de1a6364 and published (wheel sha256 c0d06e49…7476257f) | governor yes; assistant |
+| E-40 | 18:19:56Z | `law apply 0025 --write` under 2.14.2 by `darek`; ledger line signed | governor |
+
+**Assistant's misses**
+
+| ID | Miss | Caught by | Consequence |
+|---|---|---|---|
+| M-46 | Opened the session with a recap and a push question for a release already ordered | governor | friction; standing rule kept in memory |
+| M-47 | Commit aa32a9f6's message describes a code fix it does not carry (a peer session had committed the code first) | assistant | message only; history stands |
+| M-48 | First ledger-signature check rebuilt the payload in a different JSON form and reported "incorrect signature" | assistant | rechecked with CORE's canonical form before reporting; no harm |
+

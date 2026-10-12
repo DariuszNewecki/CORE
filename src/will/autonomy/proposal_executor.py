@@ -139,8 +139,13 @@ class ProposalExecutor:
                 len(proposal.actions),
             )
 
-            # 2. Validate status
-            if proposal.status != ProposalStatus.APPROVED:
+            # 2. Validate status. A dry run of a PENDING proposal is the
+            # pre-approval run (will.autonomy.pending_proposal_gate): it
+            # writes nothing, so it needs no approval.
+            runnable = proposal.status == ProposalStatus.APPROVED or (
+                not write and proposal.status == ProposalStatus.PENDING
+            )
+            if not runnable:
                 error = f"Proposal not approved (status={proposal.status.value})"
                 logger.error(error)
                 return {

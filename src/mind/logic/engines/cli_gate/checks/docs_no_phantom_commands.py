@@ -30,6 +30,7 @@ from mind.logic.engines.cli_gate.checks.reference_current import (
     live_core_admin_tree,
 )
 from shared.cli.reference_markdown import CORE_CLI_PAGE, Command
+from shared.infrastructure.intent.law_roots import law_glob, law_path
 from shared.models import AuditFinding, AuditSeverity
 from shared.path_resolver import PathResolver
 
@@ -176,7 +177,7 @@ class DocsNoPhantomCommandsCheck(CliCheck):
         # ``dir/**`` matches directories, not the files inside them).
         excluded: set[Path] = set()
         for pattern in params.get("exclude") or []:
-            excluded.update(repo_root.glob(pattern))
+            excluded.update(law_glob(repo_root, pattern))
 
         def _is_excluded(path: Path) -> bool:
             return path in excluded or any(
@@ -185,9 +186,9 @@ class DocsNoPhantomCommandsCheck(CliCheck):
 
         paths: set[Path] = set()
         for pattern in params.get("include") or []:
-            paths.update(p for p in repo_root.glob(pattern) if not _is_excluded(p))
+            paths.update(p for p in law_glob(repo_root, pattern) if not _is_excluded(p))
         for rel in params.get("extra_paths") or []:
-            paths.add(repo_root / rel)
+            paths.add(law_path(repo_root, rel))
         return {
             p.relative_to(repo_root).as_posix(): p.read_text(encoding="utf-8")
             for p in sorted(paths)

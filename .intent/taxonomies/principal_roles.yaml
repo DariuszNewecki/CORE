@@ -1,4 +1,4 @@
-version: "1.0.0"
+version: "1.1.0"
 status: active
 authority: constitutional
 title: CORE Principal Role Taxonomy
@@ -7,7 +7,7 @@ description: >
   exist and what authority each carries (Layer 1 of the three-layer role
   model). Principal-to-role binding (Layer 2) is a deployment concern.
   Action-to-role requirements (Layer 3) are expressed in enforcement rules.
-  Authority: ADR-068.
+  Authority: ADR-068 (D2; amendment 2026-10-11 A2, A3, A6.1).
 
 governance:
   flat_forever: true
@@ -64,6 +64,21 @@ roles:
     read_access: operational
     write_access: operational
 
+  principal.producer:
+    display_name: Producer
+    authority: policy
+    description: >
+      Produces changes -- code, tests, drafts of law -- and submits them as
+      proposals (ADR-168). Writes only its own working tree and proposals.
+      Never approves a proposal, never writes governed text, never deploys,
+      never holds a production credential. AI assistants, including the
+      governor's own model session, are producers. Mechanism accounts
+      (core-law, core-build, core-sandbox) are not principals: each acts
+      only on someone else's act. See ADR-068 amendment 2026-10-11 A3.
+    proposal_approval_authority: false
+    read_access: full
+    write_access: own_working_tree_and_proposals
+
 separation_of_duties:
   governor_auditor_constraint:
     description: >
@@ -76,13 +91,38 @@ separation_of_duties:
     status: declared
     enforcement: deferred
 
-deployment_topologies:
-  single_governor_local:
+# ADR-068 amendment 2026-10-11 A1 superseded D4's single_governor_local
+# topology: "local" no longer means "the governor". The role set is the same
+# in every mode; a mode decides how principals are bound (Layer 2) and so
+# what CORE may honestly claim. A mode never changes silently: a deployment
+# whose machine does not match its declared mode is a finding (A6.3).
+operation_modes:
+  solo:
     description: >
-      A deployment in which exactly one principal exists and the system
-      binds exclusively to localhost. Authentication deferred (no credential
-      verification required at the local process boundary). SoD constraint
-      noted but not enforced. All approval_authority records stamped
-      principal.governor. See ADR-068 D4.
-    authentication_required: false
-    sor_constraint_enforced: false
+      An adopter: one OS account, human and assistant indistinguishable to
+      the system. No binding. Governor acts need a human-typed confirmation
+      and leave a record; CORE states plainly that the assistant could have
+      made them.
+    binding: none
+    claim: detects_not_prevents
+  solo-separated:
+    description: >
+      One OS account per role or mechanism (A4); the binding file of
+      ADR-132 D10.2, root-owned, outside the repository. Prevents each act
+      in A5 whose mechanism is live; an act whose mechanism is not live is
+      reported as such.
+    binding: os_accounts
+    claim: prevents_where_mechanism_live
+  platform:
+    description: >
+      Teams, through core-platform: identities and roles from the platform,
+      D3's separation of duties enforced. Built on a solo-separated host,
+      never instead of one.
+    binding: platform_identity
+    claim: prevents_and_separates_duties
+
+# The mode this deployment declares (A6.1). The default for an adopter is
+# solo. CORE's own server is solo-separated (A7); until the check (A6.3) is
+# built, the declaration is not yet compared with the machine.
+deployment:
+  mode: solo-separated

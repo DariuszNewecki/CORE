@@ -5,7 +5,7 @@
 > Designed for environments where AI action traceability is not optional.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-v2.13.0-blue)](https://github.com/DariuszNewecki/CORE/releases)
+[![Release](https://img.shields.io/badge/Release-v2.14.2-blue)](https://github.com/DariuszNewecki/CORE/releases)
 [![Docs](https://img.shields.io/badge/Docs-online-green)](https://dariusznewecki.github.io/CORE/)
 [![Autonomy](https://img.shields.io/badge/Autonomy-A3%20unproven-orange)](https://github.com/DariuszNewecki/CORE/blob/main/.specs/attestations/production-readiness.yaml)
 
@@ -145,7 +145,7 @@ CORE separates responsibility across four repository layers — three enforced a
 
 Where humans define what the system is for and why decisions were made. Contains architectural papers, northstar documents, user requirements, architectural decision records, and planning documents. This is the entry point for anyone trying to understand CORE before reading its implementation.
 
-`.specs/` is read by humans and searchable by CORE's semantic layer. It is never written by CORE itself.
+`.specs/` is read by humans and searchable by CORE's semantic layer. CORE's services never write it; changes land through a governor-approved law proposal, like `.intent/`.
 
 ### 🧠 Mind — Law (`.intent/` + `src/mind/`)
 
@@ -158,7 +158,7 @@ Mind never executes. Mind never mutates. Mind defines law.
 Reads constitutional constraints, orchestrates autonomous reasoning, and records every decision with a traceable audit trail. Every operation follows a structured phase pipeline:
 
 ```
-INTERPRET → PLAN → GENERATE → VALIDATE → STYLE CHECK → EXECUTE
+INTERPRET → PLAN → LOAD CONTEXT → GENERATE → VALIDATE (changes · canary · sandbox · style) → COMMIT
 ```
 
 Will never bypasses Body. Will never rewrites Mind.
@@ -178,7 +178,7 @@ Every autonomous operation is governed by the same constitutional loop:
 ```mermaid
 flowchart TD
     A["🟢 GOAL\nHUMAN INTENT"] --> B["📂 CONTEXT\nRepo state • knowledge • history"]
-    B --> C["🔒 CONSTRAINTS\nImmutable rules\n264 rules • 17 engines"]
+    B --> C["🔒 CONSTRAINTS\nImmutable rules\n265 rules • 17 engines"]
     C --> D["🗺️ PLAN\nStep-by-step reasoning\nRule-aware plan"]
     D --> E["✨ GENERATE\nCode • changes • tool calls"]
     E --> F["✅ VALIDATE\nDeterministic checks\nAST • semantic • intent • style"]
@@ -216,9 +216,11 @@ Within CORE:
 - No structural rule can be bypassed silently
 - No atomic action can execute outside the governed executor (inline authorization is deferred to the audit→consequence loop)
 - Decisions are phase-aware and logged with decision traces (audit persistence is best-effort — see *Current proof status*)
-- No agent can amend constitutional law
+- No CORE component can change constitutional law. Whether an assistant can depends on the operation mode: in solo mode (the default) a direct edit is detected by the audit, not prevented; on a solo-separated host the law belongs to a separate account and changes only through `core-admin law apply` with the governor's approval
 
 If a *blocking* rule fails, execution halts with no partial state. Reporting and advisory rules surface findings and continue — what blocks versus what reports depends on the mode.
+
+**Who may change the law.** On CORE's own server the law (`.intent/`, `.specs/`, `CLAUDE.md`, the assistant's settings and hooks) belongs to a separate account, `core-law`. It changes only through `sudo -u core-law core-admin law apply <id> --write`: the governor's password, then the proposal id typed by hand. Each change appends a signed line to `.intent/custody/ledger.jsonl`. Adopters do not need this; without it, CORE detects changes to the law but does not prevent them.
 
 ### Current proof status
 
@@ -226,7 +228,7 @@ CORE's guarantee semantics are split across modes by design. This is the honest 
 
 | Surface | Mode | Behaviour |
 |---|---|---|
-| `.intent/` writes | hard invariant | blocked — the governance directory is immutable to all components |
+| `.intent/` writes | hard invariant | blocked for every CORE service; the only writer is `core-admin law apply`, run as the `core-law` account with the governor's typed approval |
 | Constitutional rules | always-blocking | block a commit regardless of strict mode |
 | Policy rules | strict vs. default | block only when `strict_mode=True`; otherwise report |
 | Capability tier | advisory today | reports a "would-deny" signal; does not yet block (ADR-079) |
@@ -277,7 +279,7 @@ Enforcement strengths: **Blocking** · **Reporting** · **Advisory**
 
 Deterministic when possible. LLM only when necessary.
 
-264 rules across 61 rule documents. 254 are mapped to enforcement engines; the other 10 are advisory rules that are mapping-exempt by design (#820), so every rule that requires a mapping has one. "Mapped" means engine-bound — not enforced in every mode: stateless CI skips `knowledge_gate` and `llm_gate`, which need the knowledge graph and an LLM provider.
+265 rules across 62 rule documents. 255 are mapped to enforcement engines; the other 10 are advisory rules that are mapping-exempt by design (#820), so every rule that requires a mapping has one. "Mapped" means engine-bound — not enforced in every mode: stateless CI skips `knowledge_gate` and `llm_gate`, which need the knowledge graph and an LLM provider.
 
 ---
 
@@ -339,6 +341,8 @@ The full gate definitions and acceptance criteria are in [`URS-production-readin
 
 > **Honest status — what works today.** CORE governs *itself* end to end (the demo above), and audits any repo that **has a `.intent/` constitution** — in CI via the [GitHub Action](https://dariusznewecki.github.io/CORE/cold-reviewer/), or locally with `core-admin code audit --offline` *inside that repo*. `pip install core-runtime` gives you the `core-admin` CLI.
 >
+> **Connect your AI assistant:** `core-admin mcp run` serves CORE to Claude Code or any MCP client. The assistant can look up rules and decisions, check its change, and submit it as a proposal. Only you can approve it, by typing its id at a terminal; the commit names the assistant as author and CORE as committer. [Connect your AI assistant](https://dariusznewecki.github.io/CORE/connect-an-assistant/).
+
 > **Govern your own repo (BYOR):** getting a constitution *into* an existing repo is not a zero-infrastructure step today. `project onboard` (delivers the machinery floor) and `project scout` (proposes fitted rules — via LLM, or a curated four-rule menu without one — each of which you ratify) are `core-cli` commands (`pip install core-cli`) that talk to a **running CORE API**, which needs Postgres + Qdrant behind it (ADR-146). The [BYOR quickstart](https://dariusznewecki.github.io/CORE/byor-quickstart/) walks that path end to end. Once a repo carries a `.intent/`, everything downstream is service-free: `core-admin project adopt-pack core/starter-python --write` adds a ready-made rule pack, and `core-admin code audit --offline` enforces the rules immediately — both from a plain `pip install core-runtime` (2.11.0 or later). **Starting a new project needs no services at all:** `core-admin project new myproject --write` creates it with the machinery floor, then adopt a pack and audit — [step by step](https://dariusznewecki.github.io/CORE/start-a-project/).
 >
 > **Fastest way to see CORE today: run it on itself, below.**
@@ -381,7 +385,7 @@ Full documentation, architecture deep-dive, and governance reference:
 To understand what CORE is for before reading its implementation, start here:
 [`.specs/northstar/CORE-What-It-Does.md`](.specs/northstar/CORE%20-%20What%20It%20Does.md)
 
-**Who builds CORE and how:** one human governor and one AI agent, using separate accounts. `main` is stable and protected; work lands on `develop` first. The details are in [CONTRIBUTING.md](CONTRIBUTING.md#2-how-core-is-developed-branches-and-people). None of this changes anything for someone trying CORE: install it or clone `main` as above.
+**Who builds CORE and how:** one human governor and one AI agent, using separate accounts; a third account, `core-law`, owns the law and changes it only on the governor's approval. `main` is stable and protected; work lands on `develop` first. The details are in [CONTRIBUTING.md](CONTRIBUTING.md#2-how-core-is-developed-branches-and-people). None of this changes anything for someone trying CORE: install it or clone `main` as above.
 
 ---
 
@@ -393,7 +397,7 @@ CORE's tracker mixes governance-internal bookkeeping with ordinary engineering w
 
 ## Project Status
 
-**Current Release:** v2.13.0 — your AI assistant can ask CORE instead of guessing: law, decisions and a change verdict over MCP, verified end to end on a clean Ubuntu 26.04 LTS machine
+**Current Release:** v2.14.2 — law apply completes against the release law; an assistant can propose a change and only the governor can let it land
 
 Active work: A3 Governed Autonomy. The mechanism is built — the daemon runs continuously,
 finds constitutional violations in its own codebase, proposes fixes, routes them through the

@@ -16,7 +16,9 @@ from shared.config import Settings
 from shared.infrastructure.intent.law_roots import (
     configured_repo_root,
     intent_root_for,
+    law_glob,
     law_path,
+    law_relpath,
     specs_root_for,
 )
 from shared.path_resolver import PathResolver
@@ -184,3 +186,57 @@ def test_law_facts_reads_decisions_from_the_specs_root(
     decisions.mkdir(parents=True)
     (decisions / "ADR-001-example.md").write_text("# ADR-001\n")
     assert [p.name for p, _ in LawFacts(repo)._adr_files()] == ["ADR-001-example.md"]
+
+
+# The inverse direction (2026-10-12, first live D2 runtime): naming a law
+# file relative to the clone raised ValueError ("not in the subpath"), and
+# globbing ".specs/..." on the clone matched nothing.
+
+
+# ID: ad6ac607-38a0-4554-830d-c79b3e23ebb4
+def test_law_relpath_names_law_files_the_way_the_repository_does(
+    d2: tuple[Path, Path],
+) -> None:
+    repo, law = d2
+    assert (
+        law_relpath(repo, law / ".intent" / "rules" / "a.json")
+        == ".intent/rules/a.json"
+    )
+    assert law_relpath(repo, law / ".specs" / "decisions" / "ADR-1.md") == (
+        ".specs/decisions/ADR-1.md"
+    )
+    assert law_relpath(repo, repo / "src" / "x.py") == "src/x.py"
+    assert law_relpath(repo, Path("/elsewhere/y")) == "/elsewhere/y"
+
+
+# ID: a73c4f8d-7885-430d-a816-c10791ff67e6
+def test_law_glob_looks_for_law_patterns_beside_the_clone(
+    d2: tuple[Path, Path],
+) -> None:
+    repo, law = d2
+    adr = law / ".specs" / "decisions" / "ADR-1.md"
+    adr.parent.mkdir(parents=True)
+    adr.write_text("# ADR-1\n")
+    (repo / "src").mkdir()
+    (repo / "src" / "x.py").write_text("")
+    assert law_glob(repo, ".specs/decisions/*.md") == [adr]
+    assert law_glob(repo, "src/*.py") == [repo / "src" / "x.py"]
+
+
+# ID: ceea61c7-dbb8-48d9-b1f1-7229b2c82c47
+def test_crawler_sees_law_files_and_names_them_repository_style(
+    d2: tuple[Path, Path],
+) -> None:
+    # Before: the crawler saw no law file under D2 and proposed reaping all
+    # of them (the reap_too_large safety rail stopped it).
+    from body.services.crawl_service.orchestrator import _resolve_file_artifact_types
+
+    repo, law = d2
+    rule = law / ".intent" / "rules" / "a.json"
+    rule.parent.mkdir(parents=True)
+    rule.write_text("{}")
+    found = _resolve_file_artifact_types(
+        repo, [(".intent/rules/*.json", "intent_json")]
+    )
+    assert found == {rule: "intent_json"}
+    assert law_relpath(repo, rule) == ".intent/rules/a.json"

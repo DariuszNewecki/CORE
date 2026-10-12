@@ -269,7 +269,7 @@ per-request auth, remote access, or multi-operator deployment.
 
 Before implementation begins, a live grep is run on lira to enumerate all files
 in the Phase 3 scope that carry direct `body.*`, `will.*`, `mind.*`, or
-`shared.*` imports. The result is saved to `var/adr057-phase3-imports.txt` and
+`shared.*` imports. The result
 becomes the authoritative D7 file list. The list in the Context section above is
 derived from the capability map and is an approximation; the grep output governs.
 
@@ -310,7 +310,7 @@ This ADR is verified when:
    (`write=false`) and at least one circuit-breaker boundary case.
 4. `POST /audit/remediations` is covered by tests for all three modes
    (`safe`, `medium`, `all`) and a missing-`audit_run_id` 422 case.
-5. All files enumerated in the live `var/adr057-phase3-imports.txt` grep import
+5. All files enumerated in the live D7 grep import
    exclusively from `api.*` — no `body.*`, `will.*`, `mind.*`, or `shared.*`
    imports remain. This includes `components.py` and `search.py`.
 6. `core-admin code audit` reports no new findings introduced by Phase 3.
@@ -348,3 +348,7 @@ Context section updated to name the two files as added to Phase 3 scope. D3
 updated to name `GET /v1/components` and `GET /v1/search/*` explicitly. D7
 updated to confirm `components.py` and `search.py` are in the D7 suppression
 list. No resource tables added; no other decisions changed.*
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

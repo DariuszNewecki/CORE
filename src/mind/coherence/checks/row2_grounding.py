@@ -29,7 +29,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from shared.infrastructure.intent.law_roots import specs_root_for
+from shared.infrastructure.intent.law_roots import law_glob, law_relpath, specs_root_for
 
 from .base import CoherenceCandidate
 
@@ -134,7 +134,7 @@ class Row2GroundingCheck:
             return []
         universe: set[Path] = set()
         for glob in spec_md_globs:
-            universe.update(self._repo_root.glob(glob))
+            universe.update(law_glob(self._repo_root, glob))
         adr_paths = sorted(
             p
             for p in universe
@@ -159,7 +159,7 @@ class Row2GroundingCheck:
             if _grounded_otherwise(content, adr_path.name, paper_names, accepted_ids):
                 continue
 
-            rel = str(adr_path.relative_to(self._repo_root))
+            rel = law_relpath(self._repo_root, adr_path)
 
             # Does this ADR declare supersession?
             supersedes_ids = _extract_supersedes_adr_ids(content)

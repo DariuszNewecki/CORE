@@ -196,7 +196,7 @@ def test_run_tests_accepts_repo_root_override() -> None:
     """ADR-106 D1 impl note: run_tests must accept a repo_root so a sandboxed
     test.sandbox_validate runs pytest inside the worktree where the generated
     test lives — not the main tree."""
-    from shared.infrastructure.validation.test_runner import run_tests
+    from body.sandbox.repo_tests import run_tests
 
     params = inspect.signature(run_tests).parameters
     assert "repo_root" in params

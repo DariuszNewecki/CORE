@@ -18,7 +18,7 @@ status: accepted
 **Grounding decisions:**
 - ADR-082 — writer-as-sensor retention policy; established `BlackboardShopManager` as the blackboard janitor running bounded hygiene sweeps (telemetry TTL, DELEGATE-finding TTL, stale-alert auto-resolution). This ADR adds one more sweep of the same class.
 - ADR-070 D8 — destructive/rate-limited autonomous operations must ship their rails (row caps) in the same change. The reclaim cap (D3) is that discipline applied to the reaper.
-- ADR-071 D2.2 — atomic actions sandbox their production in `var/tmp/core-action-sandbox-<uuid>/`; the *mutation* is already restart-safe. This ADR closes the residual leak: the *claim* is not.
+- ADR-071 D2.2 — atomic actions sandbox their production in a per-action sandbox; the *mutation* is already restart-safe. This ADR closes the residual leak: the *claim* is not.
 - ADR-041 — governed per-worker liveness thresholds; the "alive worker uuids" set that defines orphanhood is read through `WorkerRegistryService` at the ADR-041 threshold.
 - **ADR-069 D8 / D2 / D6 — the closest prior art (added in Revision B).** D8 already releases a worker's held claims in the `Worker.start()` `finally` block on graceful shutdown (`CancelledError`), on uncaught exception, and on the success path. D8's own docstring names the remaining gap: *"the lease mechanism (ADR-069 D2/D6, future work) remains the recovery path for ungraceful exits where the finally block cannot run."* This ADR **is** that D2/D6 lease/recovery work realized — both the reaper (recovery) and the lease (D8 below, the renewal that makes "alive" honest).
 
@@ -106,7 +106,7 @@ The lease is folded into ADR-104 rather than given its own ADR because the reape
 
 - **Claim TTL independent of liveness.** This ADR defines orphanhood by owner-liveness, not by a fixed claim age. A separate "a claim older than T is suspicious even if its owner is alive" policy is out of scope.
 - **Changing how claims are taken.** The `WHERE claimed_by IS NULL` claim predicate is unchanged.
-- **Mutation-sandbox lifecycle.** ADR-071 D2.2 governs orphaned `var/tmp/core-action-sandbox-*` directories; their cleanup is a separate concern from claim release.
+- **Mutation-sandbox lifecycle.** ADR-071 D2.2 governs orphaned action-sandbox directories; their cleanup is a separate concern from claim release.
 
 ---
 
@@ -223,7 +223,7 @@ absorbed by the delegated finding and must not create duplicate work or repeated
 - The time-based re-arm (`remediation_rearm_after_sec`, cited in code as "ADR-104 D11
   draft" — no D11 was ever recorded) is withdrawn.
 
-**Why.** Measured 2026-10-03 (`var/reports/violation-remediation-deep-dive-20261003.md`):
+**Why.** Measured 2026-10-03:
 `abandoned` is excluded from the sensor's dedup set, so an abandoned lineage is re-posted
 every cycle and re-abandoned — six formatter findings ~1,225 times each over 66 days,
 five `test.runner.missing` lineages ~1,000 times each per week — and never reached a
@@ -238,3 +238,7 @@ also ends the churn.
 ADR-127's clean-pass drain (the violation is gone); retirement of the rule
 (`resolve_findings_with_retired_rules`). Other changed conditions are added by recording
 them, not by a timer.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

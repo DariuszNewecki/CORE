@@ -13,7 +13,7 @@ Every autonomous operation in CORE follows the same governed loop:
 ```mermaid
 flowchart TD
     A["🟢 GOAL\nHUMAN INTENT"] --> B["📂 CONTEXT\nRepo state • knowledge • history"]
-    B --> C["🔒 CONSTRAINTS\nImmutable rules\n264 rules • 17 engines"]
+    B --> C["🔒 CONSTRAINTS\nImmutable rules\n265 rules • 17 engines"]
     C --> D["🗺️ PLAN\nStep-by-step reasoning\nRule-aware plan"]
     D --> E["✨ GENERATE\nCode • changes • tool calls"]
     E --> F["✅ VALIDATE\nDeterministic checks\nAST • semantic • intent • style"]
@@ -53,7 +53,7 @@ CORE separates responsibility across four layers. Three are enforced as constitu
 
 The human intent layer. Contains architectural papers, northstar documents, user requirements, architectural decision records, and planning documents. This is where the reasoning behind constitutional decisions lives.
 
-`.specs/` is authored by humans and never written by CORE. It is vectorized into the `core_specs` collection and semantically searchable — context build evidence draws from it alongside constitutional rules.
+`.specs/` is never written by CORE's services; changes land through a governor-approved law proposal, like `.intent/`. It is vectorized into the `core_specs` collection and semantically searchable — context build evidence draws from it alongside constitutional rules.
 
 Start here: [`.specs/northstar/CORE-What-It-Does.md`](https://github.com/DariuszNewecki/CORE/blob/main/.specs/northstar/CORE%20-%20What%20It%20Does.md)
 
@@ -104,7 +104,7 @@ Every rule with an enforcement mapping names exactly one engine; the rules witho
 
 **Mind never executes. Mind never mutates. Mind defines law.**
 
-The `.intent/` directory is the authoritative source for operational governance. It is human-authored and immutable at runtime. CORE cannot write to it. No autonomous operation can amend constitutional law.
+The `.intent/` directory is the authoritative source for operational governance. No CORE service can write to it: every runtime write under `.intent/` is refused. It changes only with the governor's approval — on a law-custody host through `core-admin law apply`, run as the separate `core-law` account. No autonomous operation can amend it.
 
 ---
 
@@ -134,7 +134,7 @@ Body contains deterministic, atomic components: analyzers, evaluators, file oper
 
 ## How an Action Executes
 
-Every autonomous mutation in CORE flows through one path. Workers do not call each other; they communicate through the blackboard. A finding becomes a proposal, the proposal is approved (automatically only inside the safe-auto-approval envelope, otherwise by a human), and `ProposalConsumerWorker` executes approved proposals through `ActionExecutor` — the only caller permitted to invoke an `@atomic_action`. The decorator refuses any other caller: a direct call raises `GovernanceBypassError`. (A governor running a command directly from the CLI is a separate, human-operated path; see the [Proof Index](proof-index.md).)
+Every autonomous mutation in CORE flows through one path. A proposal starts either from a finding or from a producer — an AI assistant submitting a patch with its reason; CORE checks it, and only the governor can approve it, by typing its id at a terminal. The commit names the producer as author and CORE as committer. Workers do not call each other; they communicate through the blackboard. A finding becomes a proposal, the proposal is approved (automatically only inside the safe-auto-approval envelope, otherwise by a human), and `ProposalConsumerWorker` executes approved proposals through `ActionExecutor` — the only caller permitted to invoke an `@atomic_action`. The decorator refuses any other caller: a direct call raises `GovernanceBypassError`. (A governor running a command directly from the CLI is a separate, human-operated path; see the [Proof Index](proof-index.md).)
 
 ```mermaid
 sequenceDiagram
@@ -225,7 +225,7 @@ Within CORE:
 - No structural rule can be bypassed silently
 - No atomic action can execute outside the governed executor (inline authorization is deferred to the audit→consequence loop)
 - Decisions are phase-aware and logged with decision traces (audit persistence is best-effort — surfaced as `AUDIT_GAP`, not silent; see the [Proof Index](proof-index.md))
-- No agent can amend constitutional law
+- No CORE component can change constitutional law. Whether an assistant can depends on the operation mode: in solo mode (the default) a direct edit is detected by the audit, not prevented; on a solo-separated host the law belongs to a separate account and changes only through `core-admin law apply` with the governor's approval
 
 If a *blocking* rule fails, execution halts with no partial state. Reporting and advisory rules surface findings and continue — what blocks versus what reports depends on the mode.
 
@@ -240,8 +240,11 @@ If a *blocking* rule fails, execution halts with no partial state. Reporting and
 | Rules engine | ✅ Yes |
 | Audit system | ✅ Yes — recording is best-effort; a failed write is logged as `AUDIT_GAP`, not silent ([Proof Index](proof-index.md) claim 4) |
 | Execution system | ✅ Yes |
+| AI assistant (producer) | ❌ Never — its change is checked by CORE and lands only on the governor's approval |
 | AI outputs | ❌ Never |
 | Generated code | ❌ Never |
 | Plans | ❌ Never |
 
 The process is trustworthy even when the AI is not.
+
+**Operation modes.** How much CORE can prevent depends on how roles map to accounts (ADR-068). In **solo** mode, the default, you and your assistant share one account: CORE detects every change to the law and the code, but cannot stop one. In **solo-separated** mode each role has its own OS account and the law belongs to `core-law`, so a change the governor did not approve is prevented; CORE's own server runs this way. **Platform** mode (core-platform) adds user identities and separation of duties. The mode is declared in `.intent/taxonomies/principal_roles.yaml`; CORE does not yet check that the machine matches it.

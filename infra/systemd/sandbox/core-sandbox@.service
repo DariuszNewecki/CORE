@@ -1,0 +1,74 @@
+# infra/systemd/sandbox/core-sandbox@.service -> /etc/systemd/system/ (root:root 0644).
+# One sandbox job (ADR-132 D10.10, closes R4). Started per connection by
+# core-sandbox.socket; the connection is standard input. The unit is the
+# isolation: the code (body.sandbox.server, from the release) only refuses
+# and runs. Every wall here is checked by `core-admin runtime sandbox-check`.
+[Unit]
+Description=CORE sandbox job %i
+CollectMode=inactive-or-failed
+
+[Service]
+Type=simple
+User=core-sandbox
+Group=core-sandbox
+StandardInput=socket
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=core-sandbox
+WorkingDirectory=/work
+Environment=PATH=/opt/core/current/venv/bin:/usr/bin:/bin
+Environment=CORE_SANDBOX_INBOX_ROOT=/opt/core/repo/var/tmp/sandbox-inbox
+Environment=CORE_SANDBOX_WORK_ROOT=/work
+Environment=CORE_SANDBOX_CLIENT_USER=core
+ExecStart=/opt/core/current/venv/bin/python -I -m body.sandbox.server
+
+# --- identity -------------------------------------------------------------
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictSUIDSGID=yes
+UMask=0077
+
+# --- network and sockets --------------------------------------------------
+# No network namespace peers; no new sockets of any family (the accepted
+# connection is inherited, not created); the host sockets under /run are
+# also hidden by path (InaccessiblePaths below). /run itself is not replaced
+# with a tmpfs: on systemd 255 that breaks the namespace setup (226/NAMESPACE,
+# "/run/systemd/incoming: No such file or directory").
+PrivateNetwork=yes
+RestrictAddressFamilies=none
+PrivateTmp=yes
+PrivateIPC=yes
+
+# --- filesystem -----------------------------------------------------------
+ProtectSystem=strict
+ProtectHome=yes
+PrivateDevices=yes
+ReadOnlyPaths=/opt/core/repo/var/tmp/sandbox-inbox
+InaccessiblePaths=-/opt/core/etc -/opt/core/law -/opt/core/build -/opt/core/backups -/opt/core/run -/opt/dev -/opt/core-law -/etc/core -/run/core -/run/user -/run/dbus -/run/docker.sock -/run/docker -/run/containerd -/run/credentials -/run/snapd.socket -/run/snapd-snap.socket
+TemporaryFileSystem=/work:size=2G,mode=1777
+
+# --- kernel surface and syscalls -----------------------------------------
+ProtectProc=invisible
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~io_uring_setup io_uring_enter io_uring_register
+SystemCallErrorNumber=EPERM
+
+# --- resources and cleanup ------------------------------------------------
+# A job's own timeout is at most 3600 s; this is the hard ceiling. When the
+# instance ends, everything it started is killed and reaped.
+RuntimeMaxSec=3700
+KillMode=control-group
+MemoryMax=4G
+TasksMax=256
+CPUQuota=200%

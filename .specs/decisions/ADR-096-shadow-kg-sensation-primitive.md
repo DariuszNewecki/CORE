@@ -185,7 +185,7 @@ D6's deferral is explicit, not silent. When v2's reflex loop or v3's full autono
 - `src/mind/governance/shadow_audit.py::_SHADOW_SKIP_REASONS` has one reason per engine in `_SHADOW_INCOMPATIBLE_ENGINES`; the two sets agree (asserted by import-smoke verification at v1 ship time).
 - `run_shadow_audit` accepts the same `(intent_repo, repo_path, *, files=None)` signature as `run_stateless_audit` and returns a dict carrying `mode="shadow"`, `findings`, `skipped_rules`, `executed_rule_ids`, `verdict`, `passed`, `duration_sec`.
 - `materialize_workspace_for_audit` is a context manager yielding a `Path` under `var/tmp/core-shadow-<uuid>/`. The tempdir cleans up on context exit (verified end-to-end at v1 ship time).
-- `core-admin dev smell-test --file <src-path> --content-from <local-file>` runs end-to-end against the real repo. The end-to-end demo against `src/shared/path_utils.py` with `var/tmp/broken_path_utils.py` produces: 3 new findings (deliberate `print()` violation + downstream pytest failure), 0 resolved findings (the cli_gate ghost is gone), 1 removed symbol (`get_repo_root`), 6 orphaned callers across `body/`, `cli/`. Verdict exit code 1 (new constitutional findings).
+- `core-admin dev smell-test --file <src-path> --content-from <local-file>` runs end-to-end against the real repo. The end-to-end demo against `src/shared/path_utils.py` with a deliberately broken copy of it produces: 3 new findings (deliberate `print()` violation + downstream pytest failure), 0 resolved findings (the cli_gate ghost is gone), 1 removed symbol (`get_repo_root`), 6 orphaned callers across `body/`, `cli/`. Verdict exit code 1 (new constitutional findings).
 - 22 unit tests across `tests/shared/infrastructure/context/test_shadow_diff.py` and `tests/shared/infrastructure/context/test_shadow_audit_diff.py` pass under pytest.
 - `src/mind/governance/audit_context.py` is unchanged by the v1 ship. `git log src/mind/governance/audit_context.py` does not show commit `6c7d0ea5`.
 - `src/mind/governance/stateless_audit.py` is unchanged by the v1 ship. `git log src/mind/governance/stateless_audit.py` does not show commit `6c7d0ea5`.
@@ -212,3 +212,7 @@ D6's deferral is explicit, not silent. When v2's reflex loop or v3's full autono
 ## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
 
 Reference correction (append-only; the text above is unchanged): the V2 Adaptive Workflow Pattern paper is `.specs/papers/CORE-Adaptive-Workflow-Pattern.md`.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

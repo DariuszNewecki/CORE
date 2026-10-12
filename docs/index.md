@@ -21,7 +21,7 @@ CORE is a governance runtime. When an AI agent proposes a change, CORE:
 
 The aim: AI-assisted development that is auditable and governed. It is **not yet proven safe to leave unattended** — CORE's own [production-readiness verdict](https://github.com/DariuszNewecki/CORE/blob/main/.specs/attestations/production-readiness.yaml) is NOT ATTESTED, and unattended reliability (gate G4) is not demonstrated.
 
-The goal at A3 (Governed Autonomy) is that the governor's job shrinks to two things: check the dashboard, and write constitutional intent. That is the design target, not today's measured state — see the [Autonomy Ladder](autonomy-ladder.md).
+The goal at A3 (Governed Autonomy) is that the governor's job shrinks to two things: check the dashboard (`core-admin runtime dashboard`), and write constitutional intent. That is the design target, not today's measured state — see the [Autonomy Ladder](autonomy-ladder.md).
 
 ---
 
@@ -45,6 +45,7 @@ CORE is a **controlled production pipeline** whose purpose is to converge toward
 | Block pull requests that break the rules | [Audit in CI](cold-reviewer.md) (GitHub) · [pre-commit or GitLab](other-ci.md) | A repository with a `.intent/` |
 | Bring an existing repository under governance, with rules fitted to it | [Govern your own repository](byor-quickstart.md) | `core-cli` and a running CORE |
 | Run the whole loop — audit, propose, approve, fix, verify — and see CORE govern itself | [Run the full runtime](getting-started.md) | Docker, Poetry; an LLM only for code generation |
+| Let your AI assistant ask CORE and propose changes | [Connect your AI assistant](connect-an-assistant.md) | Python 3.12+; a running CORE to submit changes |
 | Check compliance documents against a regulation | [Run a GRC gap analysis](grc-gap-analysis.md) | The full runtime |
 | Upgrade an existing installation | [Upgrade a CORE database](upgrading.md) | — |
 | Build on CORE's API | [API contract](reference/api.md) | — |
@@ -59,6 +60,10 @@ small client for a running CORE: proposals, the remediation lane, onboarding. Se
 - **Not production-attested.** CORE's own
   [production-readiness verdict](https://github.com/DariuszNewecki/CORE/blob/main/.specs/attestations/production-readiness.yaml)
   is NOT ATTESTED. Do not leave it unattended on code that matters.
+- **Detects, does not prevent, by default.** On a single account (solo mode) CORE sees every
+  change to your law and code, but cannot stop you or your assistant from making one. Separate
+  OS accounts per role (solo-separated) let it prevent them; CORE's own server runs that way.
+  CORE does not yet check that the machine matches the declared mode.
 - **No API authentication.** The API binds to `127.0.0.1` and trusts every caller.
   Keep it there.
 - **An LLM is optional.** Auditing, rule packs, CI gating and the deterministic fixes
@@ -66,7 +71,8 @@ small client for a running CORE: proposals, the remediation lane, onboarding. Se
   vendor and works with a local model server or an external API.
 - **Open and complete.** Everything on this site is in the open-source product (MIT),
   free indefinitely. Commercial offerings add usability and scale around it, never a
-  missing capability (ADR-084).
+  missing capability (ADR-084). Open CORE is the command line, the API and the MCP server;
+  any web interface belongs to core-platform, a separate product.
 
 ## Understand it
 

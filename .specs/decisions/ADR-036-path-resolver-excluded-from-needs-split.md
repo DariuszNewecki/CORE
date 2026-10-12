@@ -19,8 +19,8 @@ Add `src/shared/path_resolver.py` to the `excludes` list of the
 ## Rationale
 
 During the 2026-05-11 SRP refactor session, `path_resolver.py` was the
-seventh and final `modularity.needs_split` candidate. Analysis (documented
-in `var/splits/path_resolver_split.md`) established that the file is a
+seventh and final `modularity.needs_split` candidate. Analysis
+established that the file is a
 **catalog class** — ~30 trivial property getters returning `Path` objects,
 one validation method, and four filesystem-search lookups. The rule fired on
 volume (408 lines), not on lumped concerns.
@@ -46,3 +46,7 @@ that the current file is cohesive.
 
 - `.intent/enforcement/mappings/code/modularity.yaml` — `excludes` entry added
   to `modularity.needs_split`.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

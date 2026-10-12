@@ -30,11 +30,28 @@ from shared.component_primitive import ComponentPhase
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
+# One evaluation per distinct input for the whole module. Each evaluation
+# loads the knowledge graph and runs a scoped audit (~17 s in CI); the tests
+# assert different properties of the same few results, so re-running the
+# identical evaluation per test only cost time (14 tests, ~4 min of CI).
+_RESULTS: dict[str, object] = {}
+
+
 # ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
 @pytest.fixture
 def evaluator():
-    """Fixture providing ConstitutionalEvaluator instance bound to the live repo root."""
-    return ConstitutionalEvaluator(repo_root=_REPO_ROOT)
+    """ConstitutionalEvaluator bound to the live repo root, results memoised per input."""
+    instance = ConstitutionalEvaluator(repo_root=_REPO_ROOT)
+    real_execute = instance.execute
+
+    async def execute(**kwargs):
+        key = repr(sorted(kwargs.items()))
+        if key not in _RESULTS:
+            _RESULTS[key] = await real_execute(**kwargs)
+        return _RESULTS[key]
+
+    instance.execute = execute
+    return instance
 
 
 # ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e

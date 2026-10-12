@@ -19,6 +19,7 @@ from shared.governance.coherence_harvester import (
     NOT_IN_FORCE_STATUSES,
     document_status,
 )
+from shared.infrastructure.intent.law_roots import law_glob, law_relpath
 
 from .base import CoherenceCandidate
 
@@ -77,7 +78,7 @@ class PathRefCheck:
             # paths of its time (ADR-105 D5 terminal states).
             if document_status(content) in NOT_IN_FORCE_STATUSES:
                 continue
-            rel_doc = str(doc_path.relative_to(self._repo_root))
+            rel_doc = law_relpath(self._repo_root, doc_path)
             seen: set[str] = set()
             for match in _BACKTICK_PATH.finditer(content):
                 ref = _normalize_ref(match.group(1))
@@ -126,5 +127,5 @@ class PathRefCheck:
         yaml_globs = repo.get_artifact_type("intent_yaml").content["discovery"]
         universe: set[Path] = set()
         for glob in (*spec_globs, *yaml_globs):
-            universe.update(self._repo_root.glob(glob))
+            universe.update(law_glob(self._repo_root, glob))
         return sorted(p for p in universe if p.is_file())

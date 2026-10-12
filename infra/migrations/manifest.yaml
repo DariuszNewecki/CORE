@@ -81,6 +81,7 @@ migrations:
     - 20261005_adr169_state_observations.sql
     - 20261005b_adr169_cycle_trigger.sql
     - 20261005c_adr169_changes_and_outside_writes.sql
+    - 20261012_approver_original.sql
 
   # -- per-migration verification probes (ADR-162 D3/D6/D12 §2) --------------
   # Each `verify` returns one boolean. Structural probes read the catalog;
@@ -277,6 +278,12 @@ migrations:
            and exists (select 1 from pg_trigger
                        where tgrelid = to_regclass('core.outside_writes')
                          and tgname = 'trg_outside_writes_append_only')
+    20261012_approver_original.sql:
+      verify: >-
+        select exists (select 1 from information_schema.columns
+                       where table_schema = 'core'
+                         and table_name = 'autonomous_proposals'
+                         and column_name = 'approved_by_original')
 
   # -- declared baselines (ADR-162 D3/D4) ----------------------------------
   # `status` suggests the LATEST baseline whose probes all hold (read-only);

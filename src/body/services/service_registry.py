@@ -23,6 +23,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Final
 
+import body.sandbox.repo_tests  # noqa: F401  (registers the sandbox test collector, ADR-132 D10.10)
 from shared.exceptions import NoLLMConfiguredError
 from shared.infrastructure.bootstrap_registry import bootstrap_registry
 from shared.logger import getLogger

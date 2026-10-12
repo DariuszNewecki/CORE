@@ -22,7 +22,7 @@ from shared.governance.coherence_harvester import (
     document_status,
 )
 from shared.infrastructure.git_service import GitService
-from shared.infrastructure.intent.law_roots import specs_root_for
+from shared.infrastructure.intent.law_roots import law_glob, law_relpath, specs_root_for
 
 from .base import CoherenceCandidate
 
@@ -98,7 +98,7 @@ class Row3CitationCheck:
             return []
         universe: set[Path] = set()
         for glob in spec_md_globs:
-            universe.update(self._repo_root.glob(glob))
+            universe.update(law_glob(self._repo_root, glob))
         paper_paths = sorted(p for p in universe if p.is_relative_to(papers))
         git = GitService(self._repo_root)
         candidates: list[CoherenceCandidate] = []
@@ -110,7 +110,7 @@ class Row3CitationCheck:
             # 34 sections of draft papers.
             if document_status(content) in _NOT_DOCTRINE_STATUSES:
                 continue
-            rel = str(path.relative_to(self._repo_root))
+            rel = law_relpath(self._repo_root, path)
             first_seen = git.first_seen_date(rel)
             if first_seen is not None and first_seen < _ROW3_OPERATIONALIZED:
                 continue

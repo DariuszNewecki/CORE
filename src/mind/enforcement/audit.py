@@ -7,7 +7,7 @@ Refactored to be stateless and pure async (logic layer).
 Now HEADLESS: Returns data, does not logger.info(LOG-001 compliance).
 
 CONSTITUTIONAL FIX:
-- Integrated with shared.infrastructure.validation.test_runner for Traceable Evidence.
+- Test evidence comes from body.sandbox.repo_tests (runs in the sandbox).
 - Promoted test_system to async-native.
 """
 

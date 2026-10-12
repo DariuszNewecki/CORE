@@ -30,7 +30,9 @@ _CALLS = _shared._CALLS
 
 
 @pytest.mark.asyncio
-async def test_lists_exactly_the_allowlisted_tools_as_read_only(repo: Path) -> None:
+async def test_lists_exactly_the_allowlisted_tools_read_only_unless_they_ask_core(
+    repo: Path,
+) -> None:
     async with Client(build_server(repo)) as client:
         listed = (await client.list_tools()).tools
 
@@ -38,8 +40,11 @@ async def test_lists_exactly_the_allowlisted_tools_as_read_only(repo: Path) -> N
     for tool in listed:
         assert tool.input_schema == TOOLS[tool.name].input_schema
         assert tool.annotations is not None
-        assert tool.annotations.read_only_hint is True
         assert tool.annotations.destructive_hint is False
+        # submit_change must never be advertised as read-only (a client could
+        # auto-allow it).
+        expected = tool.name not in ("validate_change", "submit_change")
+        assert tool.annotations.read_only_hint is expected
 
 
 @pytest.mark.asyncio

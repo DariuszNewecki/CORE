@@ -2,10 +2,9 @@
 """Proof Index claim 7: governor-only routes carry the enforcement hook, rule-enforced.
 
 Standing regression check for docs/proof-index.md claim 7 (#798), post-correction.
-In OSS mode `require_governor` is a trusted-localhost pass-through (not JWT /
-platform_admin / 403); its constitutional value is that the hook is present on
-every sensitive route and its placement is rule-enforced, so core-platform can
-mount a real guard at the same hook in Console mode.
+`require_governor` is live (ADR-132 D10.3 as amended): it passes only for the
+bound governor on CORE's Unix socket. Its placement on every sensitive route is
+rule-enforced. Behaviour is proven in tests/api/test_dependencies_require_governor.py.
 """
 
 from __future__ import annotations
@@ -20,10 +19,10 @@ _PROPOSALS = _REPO_ROOT / "src/api/v1/proposals_routes.py"
 _LAYER_RULES = _REPO_ROOT / ".intent/rules/architecture/layer_separation.json"
 
 
-def test_oss_require_governor_is_trusted_localhost_passthrough() -> None:
-    assert "require_governor = Depends(_oss_passthrough)" in _DEPS.read_text(
-        encoding="utf-8"
-    )
+def test_require_governor_is_the_live_gate() -> None:
+    source = _DEPS.read_text(encoding="utf-8")
+    assert "require_governor = Depends(get_governor)" in source
+    assert "_oss_passthrough" not in source
 
 
 def test_require_governor_hook_wired_on_proposal_mutations() -> None:

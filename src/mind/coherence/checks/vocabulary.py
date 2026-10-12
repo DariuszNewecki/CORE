@@ -22,7 +22,12 @@ import json
 import re
 from pathlib import Path
 
-from shared.infrastructure.intent.law_roots import intent_root_for, specs_root_for
+from shared.infrastructure.intent.law_roots import (
+    intent_root_for,
+    law_glob,
+    law_relpath,
+    specs_root_for,
+)
 
 from .base import CoherenceCandidate
 
@@ -51,7 +56,7 @@ class VocabularyCheck:
         candidates: list[CoherenceCandidate] = []
         for path in artifacts:
             content = path.read_text(encoding="utf-8", errors="replace")
-            rel = str(path.relative_to(self._repo_root))
+            rel = law_relpath(self._repo_root, path)
             for alias, canonical in alias_map.items():
                 if _whole_word(content, alias) and not _whole_word(content, canonical):
                     candidates.append(
@@ -121,7 +126,7 @@ def _iter_governance_markdown(repo_root: Path):
     spec_md_globs = repo.get_artifact_type("spec_markdown").content["discovery"]
     universe: set[Path] = set()
     for glob in spec_md_globs:
-        universe.update(repo_root.glob(glob))
+        universe.update(law_glob(repo_root, glob))
     governance_dirs = [
         specs_root_for(repo_root) / sub for sub in ("decisions", "papers", "northstar")
     ]

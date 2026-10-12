@@ -48,7 +48,7 @@
       "enforcement": "reporting",
       "authority": "constitution",
       "phase": "audit",
-      "rationale": "An exemption that exempts nothing is not inert: it widens the rule's blind spot for whatever lands under it next. Measured 2026-10-07: 126 of 204 exclude entries were dead -- left behind after their files were routed onto the sanctioned surface, written for files outside the rule's scope, or matching nothing; src/**/test_*.py entries meant for test files were exempting production modules named test_* (var/reports/2026-10-07-self-policing-excludes.md). Complements architecture.intent.references_resolve, which leaves exclude lists out of scope. Coverage ceiling: rules on context-level or LLM engines are judged on the matching conditions only, not on whether the covered files would violate."
+      "rationale": "An exemption that exempts nothing is not inert: it widens the rule's blind spot for whatever lands under it next. Measured 2026-10-07: 126 of 204 exclude entries were dead -- left behind after their files were routed onto the sanctioned surface, written for files outside the rule's scope, or matching nothing; src/**/test_*.py entries meant for test files were exempting production modules named test_*. Complements architecture.intent.references_resolve, which leaves exclude lists out of scope. Coverage ceiling: rules on context-level or LLM engines are judged on the matching conditions only, not on whether the covered files would violate."
     }
   ]
 }

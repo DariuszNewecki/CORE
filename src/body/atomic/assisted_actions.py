@@ -31,8 +31,8 @@ could not evaluate is named in the result.
 Constitutional note (governance.dangerous_execution_primitives): subprocess calls
 for ``git apply``, ``ruff``, and the stateless audit runner are concentrated in
 ``ToolRunner`` (``body.atomic.tool_runner``) — the designated Body validation
-sanctuary, mirroring the pytest subprocess in
-``shared.infrastructure.validation.test_runner``.
+sanctuary; pytest itself runs only in the sandbox runner
+(``body.sandbox.repo_tests``, ADR-132 D10.10).
 Calls run only against the throwaway worktree, never the main tree.
 """
 
@@ -432,10 +432,10 @@ async def action_assisted_validate_diff(
                     checks[f"audit_rule_cleared:{rid}"] = True
 
         # 4. Mapped tests for the touched sources must pass (when they exist).
+        from body.sandbox.repo_tests import run_tests
         from shared.infrastructure.intent.test_coverage_paths import (
             source_to_test_path,
         )
-        from shared.infrastructure.validation.test_runner import run_tests
 
         test_targets = {source_to_test_path(p) for p in touched_py}
         existing_tests = [t for t in test_targets if t and (wt_path / t).is_file()]
@@ -658,7 +658,7 @@ def _general_test_targets(wt_path: Path, touched_py: list[str]) -> list[str]:
 
 async def _run_test_files(aid: str, wt_path: Path, targets: list[str]) -> bool:
     """True when every test file in *targets* passes in *wt_path*."""
-    from shared.infrastructure.validation.test_runner import run_tests
+    from body.sandbox.repo_tests import run_tests
 
     passed = True
     for target in targets:

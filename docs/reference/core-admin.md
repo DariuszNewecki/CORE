@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-99 commands.
+106 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -25,12 +25,12 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`grc`](#grc) | 2 | Compliance gap-analysis: check a document corpus against a requirements catalog. |
 | [`intent`](#intent) | 1 | Constitutional intent operations (.intent/ projections). |
 | [`interactive-test`](#interactive-test) | 2 | Interactive test generation with step-by-step approval |
-| [`law`](#law) | 2 | Grounded answers about this repository's law, with sources (ADR-168). |
+| [`law`](#law) | 7 | Grounded answers about this repository's law, with sources (ADR-168). |
 | [`llm-resources`](#llm-resources) | 2 | core.llm_resources authoring/validation surface (#821 Unit 3). |
 | [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant (ADR-168). |
 | [`project`](#project) | 2 | Operations for project lifecycle: scaffolding. |
 | [`refactor`](#refactor) | 4 | Refactoring analysis and suggestions |
-| [`runtime`](#runtime) | 2 | Runtime state and health of the running CORE system. |
+| [`runtime`](#runtime) | 4 | Runtime state and health of the running CORE system. |
 | [`secrets`](#secrets) | 4 | Manage encrypted secrets in the database. |
 | [`status`](#status) | 1 | Single-glance system state and readiness. |
 | [`symbols`](#symbols) | 1 | Operations for the symbol registry and Knowledge Graph identification. |
@@ -1244,6 +1244,74 @@ Show information about interactive test generation.
 
 Grounded answers about this repository's law, with sources (ADR-168).
 
+### `core-admin law apply` {#law-apply}
+
+```
+core-admin law apply PROPOSAL_ID [OPTIONS]
+```
+
+Approve law proposal PROPOSAL_ID (ADR-170 D3). Run as:
+
+  sudo -u core-law /opt/core-law/venv/bin/core-admin law apply &lt;id> --write
+
+Refusals are shown first and nothing is written. Otherwise the warnings
+follow. Without --write nothing more happens; with --write the proposal
+is written to every destination, with one signed ledger line, only
+after you type the proposal id.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `PROPOSAL_ID` | required | Proposal id, e.g. 0020-example. |
+| `--repo` |  | Development tree (default: discovered from cwd). |
+| `--key` |  | core-law's ledger signing key (default ~/.ssh/core_law_ledger). |
+| `--release-law` | `/opt/core/law` | The law beside the release runtime; a second destination when it exists. |
+| `--scratch` |  | Where the scratch tree is built (default ~/scratch). |
+| `--write` | off | Ask for the typed id and write. Without it, show the report only. |
+
+### `core-admin law apply-merge` {#law-apply-merge}
+
+```
+core-admin law apply-merge PROPOSAL_ID [OPTIONS]
+```
+
+Apply governed text merged on GitHub (one-path flow, 2026-10-12). The
+merge into main is the governor's approval; it is recorded as the ledger
+approver ("github-merge &lt;sha> by &lt;who>"). Runs only as core-law, started
+by root (core-deploy through runuser), never through the governor's sudo
+rule, which allows `law apply` only. Same checks as `law apply`; a
+refusal writes nothing.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `PROPOSAL_ID` | required | The proposal core-deploy built. |
+| `--proposals-dir` | required |  |
+| `--merge-commit` | required |  |
+| `--merged-by` | required |  |
+| `--repo` | required | Development tree. |
+| `--key` |  |  |
+| `--release-law` | `/opt/core/law` |  |
+| `--write` | off | Apply; without it, report only. |
+
+### `core-admin law auto-apply` {#law-auto-apply}
+
+```
+core-admin law auto-apply [OPTIONS]
+```
+
+Apply pending law proposals that change no rule (governor redesign
+2026-10-12). A proposal is record-only when it only adds or edits text
+under .specs/, removes nothing, and CORE computes no warning for it; it
+is applied with ledger approver "auto:record-only" and shows up in
+`law digest`. Every other proposal is listed and left for `law apply`
+with the typed id. Runs only as core-law (its timer, no sudo needed).
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--repo` |  | Development tree (default: discovered from cwd). |
+| `--key` |  | core-law's ledger signing key (default ~/.ssh/core_law_ledger). |
+| `--release-law` | `/opt/core/law` | The law beside the release runtime. |
+| `--write` | off | Apply. Without it, only classify the proposals. |
+
 ### `core-admin law check` {#law-check}
 
 ```
@@ -1259,6 +1327,33 @@ Example: core-admin law check .intent/rules/architecture/governance_basics.json
 | Argument / option | Default | Description |
 |---|---|---|
 | `PATH` | required | Path to ask about, repo-relative or absolute. |
+
+### `core-admin law check-tree` {#law-check-tree}
+
+```
+core-admin law check-tree [OPTIONS]
+```
+
+Run the D5 refusal checks (schemas, references, the law loading,
+.claude/settings.json) on the repository in the working directory.
+Data only: no repository code runs. Exit 1 on any refusal.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--json` | off | Print one JSON line. |
+
+### `core-admin law digest` {#law-digest}
+
+```
+core-admin law digest [OPTIONS]
+```
+
+List law applied in the last HOURS from the ledger, record-only first.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--hours` | `24` | How far back to look. |
+| `--repo` |  | Development tree (default: discovered from cwd). |
 
 ### `core-admin law show` {#law-show}
 
@@ -1466,6 +1561,33 @@ recent crawl stats, and blast radius top symbols.
 | Argument / option | Default | Description |
 |---|---|---|
 | `--plain` | off | Plain text output (log/pipe friendly). |
+
+### `core-admin runtime sandbox-check` {#runtime-sandbox-check}
+
+```
+core-admin runtime sandbox-check [OPTIONS]
+```
+
+Run the sandbox closure probes and show which walls held.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--mode` | `service` | service \| local |
+| `--socket` | `/run/core/sandbox.sock` | The sandbox service's socket. |
+
+### `core-admin runtime status` {#runtime-status}
+
+```
+core-admin runtime status [OPTIONS]
+```
+
+Last merge, what applied and deployed, and what waits on the governor.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--status-file` | `/var/lib/core-pipeline/status.json` |  |
+| `--repo` | `DariuszNewecki/CORE` |  |
+| `--api` | `http://127.0.0.1:8000` |  |
 
 ---
 
@@ -1761,20 +1883,19 @@ Examples:
 core-admin workers resolve ENTRY_ID [OPTIONS]
 ```
 
-Close a finding delegated to the governor, with an operator-provided reason.
+Close a finding delegated to the governor, with a reason.
 
 Acts on 'indeterminate' findings and on 'open' findings whose
-resolution_mechanism is 'human'. Symmetric counterpart to 'proposals reject' for findings the audit sensor
-delegated to the governor. Flips status to 'resolved', stamps the
-operator attribution into payload, and stops counting against the
-Governor Inbox.
+resolution_mechanism is 'human'. A governor act (ADR-132 D10.4): it goes
+through POST /v1/findings/{id}/resolve, which only the governor may call,
+on CORE's Unix socket (CORE_API_URL=unix:///run/core/api/api.sock). The
+server records who resolved it and under which authority; neither is
+taken from this command.
 
 | Argument / option | Default | Description |
 |---|---|---|
 | `ENTRY_ID` | required | Blackboard entry UUID. |
 | `--reason`, `-r` | required | Why this finding is being closed. |
-| `--by` | `cli_admin` | Operator identity. |
-| `--authority` | `principal.governor` | Authority under which the resolution is recorded (URS NFR.5). |
 
 ### `core-admin workers run` {#workers-run}
 

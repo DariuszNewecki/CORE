@@ -30,6 +30,7 @@ from cli.renderers.audit_overview import render_overview
 from mind.logic.engines.workflow_gate.base_check import StructuredViolation
 from mind.logic.engines.workflow_gate.checks.quality import QualityGateCheck
 from mind.logic.engines.workflow_gate.engine import WorkflowGateEngine
+from shared.infrastructure.repo_code import CollectOutcome
 from shared.models import AuditFinding, AuditSeverity
 from shared.utils.audit_grouping import group_findings
 
@@ -42,6 +43,9 @@ _MYPY_OUTPUT = (
 )
 
 
+_QUALITY = "mind.logic.engines.workflow_gate.checks.quality"
+
+
 def _path_resolver() -> MagicMock:
     pr = MagicMock()
     pr.repo_root = "/repo"
@@ -49,8 +53,13 @@ def _path_resolver() -> MagicMock:
 
 
 def _run_verify(check_type: str, output: str, stderr: str = "") -> list:
-    """Run QualityGateCheck.verify with a mocked nonzero-exit subprocess."""
+    """Run QualityGateCheck.verify with a mocked nonzero-exit subprocess
+    (pytest_check: a sandbox collector reporting collection errors)."""
     check = QualityGateCheck(_path_resolver(), check_type, ["tool"])
+    if check_type == "pytest_check":
+        collector = AsyncMock(return_value=CollectOutcome("failed", output))
+        with patch(f"{_QUALITY}.get_test_collector", return_value=collector):
+            return list(asyncio.run(check.verify(None, {})))
 
     async def fake_exec(*args, **kwargs):
         proc = MagicMock()
@@ -300,3 +309,38 @@ def test_overview_rollup_absent_for_ordinary_findings() -> None:
     render_overview(Console(file=buf, width=100), group_findings(findings))
 
     assert "Aggregate Quality Gates" not in buf.getvalue()
+
+
+# -- pytest_check runs only in the sandbox (ADR-132 D10.10, M2) ------------------
+
+
+def _collect(outcome: CollectOutcome | None) -> tuple[list, AsyncMock | None]:
+    check = QualityGateCheck(_path_resolver(), "pytest_check", ["pytest"])
+    collector = None if outcome is None else AsyncMock(return_value=outcome)
+    with (
+        patch(f"{_QUALITY}.get_test_collector", return_value=collector),
+        patch("asyncio.create_subprocess_exec") as spawn,
+    ):
+        result = list(asyncio.run(check.verify(None, {})))
+    assert not spawn.called  # collection never runs as the services account
+    return result, collector
+
+
+def test_pytest_check_collects_through_the_registered_collector() -> None:
+    result, collector = _collect(CollectOutcome("passed", "10 tests collected"))
+    assert result == []
+    assert collector is not None and collector.await_args.args[0] == "/repo"
+
+
+def test_pytest_check_without_a_sandbox_is_unknown_not_a_pass() -> None:
+    result, _ = _collect(None)
+    assert len(result) == 1
+    assert result[0].context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+    assert result[0].context["reason"] == "sandbox_unavailable"
+
+
+def test_pytest_check_not_finished_in_the_sandbox_is_unknown() -> None:
+    for status in ("timeout", "not_run", "error"):
+        result, _ = _collect(CollectOutcome(status, reason="why"))
+        assert result[0].context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
+        assert result[0].context["reason"] == status

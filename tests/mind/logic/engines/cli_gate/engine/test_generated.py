@@ -18,8 +18,14 @@ from shared.models import AuditFinding
 
 @pytest.fixture
 def mock_path_resolver():
-    """Return a MagicMock that satisfies PathResolver protocol."""
-    return MagicMock()
+    """Return a MagicMock that satisfies PathResolver protocol.
+
+    repo_root is this repository, whose CLI is the importable one: the
+    engine refuses to walk a tree whose CLI is not (#965).
+    """
+    resolver = MagicMock()
+    resolver.repo_root = Path(__file__).resolve().parents[6]
+    return resolver
 
 
 @pytest.fixture

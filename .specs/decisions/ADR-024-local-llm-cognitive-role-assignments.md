@@ -23,7 +23,7 @@ status: accepted
 ## Context
 
 CORE uses LLMs as cognitive roles — named capability contracts that map to
-PromptModel artifacts in `var/prompts/`. Each cognitive role is backed by a
+PromptModel artifacts. Each cognitive role is backed by a
 configured provider and model. Prior to this ADR, role-to-model assignments
 for local (Ollama) models were untested assumptions. CORE's production path
 uses `anthropic_claude_sonnet` for all cognitive roles; local models existed
@@ -42,7 +42,7 @@ The available local models were:
 Three evaluation passes were conducted using a purpose-built harness
 (`scripts/eval_ollama.py`) that:
 
-- Reads actual PromptModel artifacts from `var/prompts/` (system.txt,
+- Reads actual PromptModel artifacts (system.txt,
   user.txt, model.yaml) — not synthetic proxies.
 - Injects CORE-domain fixtures into each prompt template.
 - Calls each model via the same HTTP API CORE's OllamaProvider uses.
@@ -251,3 +251,7 @@ prompts.
 **A4. Embed model names in cognitive role names.**
 Rejected on constitutional grounds. See Finding F5 and rule
 `ai.prompt.artifact.role_abstraction`.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

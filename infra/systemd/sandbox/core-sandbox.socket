@@ -1,0 +1,19 @@
+# infra/systemd/sandbox/core-sandbox.socket -> /etc/systemd/system/ (root:root 0644).
+# The sandbox runner's door (ADR-132 D10.10): one connection = one job = one
+# core-sandbox@.service instance (Accept=yes). Only group `core` can connect;
+# the server also checks the kernel peer uid on every connection.
+[Unit]
+Description=CORE sandbox runner socket (repository code without credentials)
+
+[Socket]
+ListenStream=/run/core/sandbox.sock
+Accept=yes
+SocketUser=root
+SocketGroup=core
+SocketMode=0660
+DirectoryMode=0755
+MaxConnections=4
+MaxConnectionsPerSource=4
+
+[Install]
+WantedBy=sockets.target

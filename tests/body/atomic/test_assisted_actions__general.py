@@ -84,7 +84,7 @@ async def _validate(
     full_audit = MagicMock(return_value=audit)
     with (
         patch("body.atomic.assisted_actions._run_full_audit", full_audit),
-        patch("shared.infrastructure.validation.test_runner.run_tests", run_tests),
+        patch("body.sandbox.repo_tests.run_tests", run_tests),
     ):
         result = await fn(patch=patch_text, general=True, core_context=_context(root))
     return result, run_tests, full_audit

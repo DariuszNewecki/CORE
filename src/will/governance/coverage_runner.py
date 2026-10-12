@@ -36,7 +36,6 @@ from shared.infrastructure.intent.test_coverage_paths import (
     resolve_contained_source_path,
 )
 from shared.logger import getLogger
-from shared.utils.subprocess_utils import run_command_async
 from will.self_healing.symbol_coverage_remediation import (
     remediate_batch_by_symbol,
     remediate_file_by_symbol,
@@ -109,22 +108,22 @@ async def get_coverage_check(context: CoreContext) -> dict:
 async def get_coverage_report(
     context: CoreContext, *, show_missing: bool = False
 ) -> dict:
-    """Run pytest with coverage and return the text report.
+    """Run the suite with coverage in the sandbox and return the text report.
 
-    Subprocess-backed via the sanctioned run_command_async primitive.
-    Returns the JSON-safe `{ok, exit_code, stdout_tail, stderr_tail}`
-    shape; full report lives in `stdout_tail`.
+    ADR-132 D10.10: the tests run in the sandbox runner, never as the
+    services account. Returns the JSON-safe `{ok, exit_code, stdout_tail,
+    stderr_tail}` shape; the coverage table is in `stdout_tail`. `ok` means
+    the run passed in full (integration tests excluded by the service make
+    it partial, so not ok); the table is returned whenever it was measured.
+    `show_missing` is accepted for the route's contract; the table lists
+    the files below 100%.
     """
-    argv = [
-        "pytest",
-        "--cov=src",
-        "--cov-report=term" + (":skip-covered" if not show_missing else ""),
-        "-q",
-        "--no-header",
-    ]
-    cwd = context.git_service.repo_path
+    from body.sandbox.repo_tests import run_in_sandbox
+
     try:
-        completed = await run_command_async(argv, cwd=cwd)
+        result = await run_in_sandbox(
+            context.git_service.repo_path, ["tests"], coverage=True
+        )
     except Exception as exc:
         return {
             "ok": False,
@@ -133,50 +132,37 @@ async def get_coverage_report(
             "stdout_tail": [],
             "stderr_tail": [],
         }
+    table = str(result.coverage.get("text", ""))
     return {
-        "ok": completed.returncode == 0,
-        "exit_code": completed.returncode,
-        "stdout_tail": (completed.stdout or "").splitlines()[-200:],
-        "stderr_tail": (completed.stderr or "").splitlines()[-50:],
+        "ok": result.ok,
+        "exit_code": result.exit_code if result.exit_code is not None else -1,
+        "summary": f"{result.status}: {result.reason}".rstrip(": "),
+        "stdout_tail": table.splitlines()[-200:],
+        "stderr_tail": result.stderr.splitlines()[-50:],
     }
 
 
 # ID: 8c4f1e9b-2a6d-4b73-9e80-1f2c3d4e5a6b
 async def get_coverage_html_report(context: CoreContext) -> dict:
-    """Run pytest with coverage and generate the HTML report directory.
+    """The HTML coverage report is not available.
 
-    Subprocess-backed via the sanctioned run_command_async primitive.
-    Closes #358. Returns the JSON-safe `{ok, exit_code, html_path,
-    stdout_tail, stderr_tail}` shape; `html_path` is the repo-relative
-    directory where the HTML report was written (None on failure).
+    It was written by running the suite as the services account; under
+    ADR-132 D10.10 the suite runs only in the sandbox, which cannot write
+    into the repository. The text report (`get_coverage_report`) carries the
+    same numbers. Returns the route's `{ok, exit_code, html_path,
+    stdout_tail, stderr_tail}` shape with ok=False and the reason.
     """
-    argv = [
-        "pytest",
-        "--cov=src",
-        "--cov-report=html",
-        "-q",
-        "--no-header",
-    ]
-    cwd = context.git_service.repo_path
-    try:
-        completed = await run_command_async(argv, cwd=cwd)
-    except Exception as exc:
-        return {
-            "ok": False,
-            "exit_code": -1,
-            "summary": f"{type(exc).__name__}: {exc}",
-            "html_path": None,
-            "stdout_tail": [],
-            "stderr_tail": [],
-        }
-    htmlcov_dir = cwd / "htmlcov"
-    html_path = "htmlcov" if htmlcov_dir.exists() else None
     return {
-        "ok": completed.returncode == 0,
-        "exit_code": completed.returncode,
-        "html_path": html_path,
-        "stdout_tail": (completed.stdout or "").splitlines()[-50:],
-        "stderr_tail": (completed.stderr or "").splitlines()[-50:],
+        "ok": False,
+        "exit_code": -1,
+        "summary": (
+            "HTML coverage is unavailable: the test suite runs only in the "
+            "sandbox (ADR-132 D10.10), which cannot write the report into the "
+            "repository. Use the text coverage report."
+        ),
+        "html_path": None,
+        "stdout_tail": [],
+        "stderr_tail": [],
     }
 
 
@@ -210,7 +196,7 @@ def get_coverage_targets(context: CoreContext) -> dict:
 
 
 # ID: 4d9e2f7a-58c3-4ba1-9e6f-3c4a7b6d8e21
-def get_coverage_gaps(
+async def get_coverage_gaps(
     context: CoreContext,
     *,
     threshold: float = 75.0,
@@ -224,7 +210,7 @@ def get_coverage_gaps(
     """
     repo_root = context.git_service.repo_path
     analyzer = CoverageAnalyzer(repo_root)
-    coverage = analyzer.get_module_coverage()
+    coverage = await analyzer.get_module_coverage()
 
     gaps = [
         {

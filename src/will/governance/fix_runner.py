@@ -548,7 +548,8 @@ _QUALITY_GATES: list[tuple[str, list[str], bool]] = [
     # and let callers interpret severity.
     ("ruff", ["ruff", "check", "src/"], False),
     ("mypy", ["mypy", "src/", "--ignore-missing-imports"], False),
-    ("pytest", ["pytest", "-q", "--no-cov"], False),
+    # pytest runs in the sandbox (ADR-132 D10.10), see _run_sandboxed_tests.
+    ("pytest", ["pytest"], False),
     ("pip-audit", ["pip-audit"], False),
     ("radon", ["radon", "cc", "src/", "-nc", "-a"], True),
     ("vulture", ["vulture", "src/", "--min-confidence", "80"], True),
@@ -637,6 +638,29 @@ async def _run_subprocess(
     }
 
 
+# ID: 85557998-72db-42d6-b57c-e50439071c80
+async def _run_sandboxed_tests(cwd: Path | None, path: str | None) -> dict:
+    """Run the repository's tests (or *path*) in the sandbox runner, never as
+    the services account (ADR-132 D10.10); same shape as _run_subprocess.
+    A run that did not happen in full is not ok."""
+    from body.sandbox.repo_tests import run_in_sandbox
+
+    try:
+        result = await run_in_sandbox(cwd, [path] if path else ["tests"])
+    except Exception as exc:
+        return {"ok": False, "exit_code": -1, "summary": f"{type(exc).__name__}: {exc}"}
+    return {
+        "ok": result.ok,
+        "exit_code": result.exit_code if result.exit_code is not None else -1,
+        "status": result.status,
+        "completeness": result.completeness,
+        "isolation": result.isolation,
+        "summary": result.reason,
+        "stdout_tail": result.stdout.strip().splitlines()[-50:],
+        "stderr_tail": result.stderr.strip().splitlines()[-50:],
+    }
+
+
 # ID: 34305b01-d3c7-4452-b600-b51ec71aeea6
 async def _run_quality_lint(context: CoreContext, fix: bool) -> dict:
     """Run ruff check on src/ (optionally with --fix). Subprocess-backed."""
@@ -650,10 +674,7 @@ async def _run_quality_lint(context: CoreContext, fix: bool) -> dict:
 # ID: ef67960d-a46e-4bca-9633-7fddc9d1bdba
 async def _run_quality_tests(context: CoreContext, path: str | None) -> dict:
     """Run pytest, optionally scoped to a path."""
-    argv = ["pytest", "-q", "--no-cov"]
-    if path:
-        argv.append(path)
-    sub = await _run_subprocess(argv, cwd=context.git_service.repo_path)
+    sub = await _run_sandboxed_tests(context.git_service.repo_path, path)
     return {"check": "tests", "path": path, **sub}
 
 
@@ -667,7 +688,7 @@ async def _run_quality_system(context: CoreContext) -> dict:
     """
     cwd = context.git_service.repo_path
     lint_sub = await _run_subprocess(["ruff", "check", "src/"], cwd=cwd)
-    tests_sub = await _run_subprocess(["pytest", "-q", "--no-cov"], cwd=cwd)
+    tests_sub = await _run_sandboxed_tests(cwd, None)
     ok = lint_sub["ok"] and tests_sub["ok"]
     return {
         "check": "system",
@@ -692,7 +713,10 @@ async def _run_quality_gates(context: CoreContext) -> dict:
     any_critical_failed = False
 
     for name, argv, is_warning in _QUALITY_GATES:
-        sub = await _run_subprocess(argv, cwd=cwd)
+        if name == "pytest":
+            sub = await _run_sandboxed_tests(cwd, None)
+        else:
+            sub = await _run_subprocess(argv, cwd=cwd)
         components[name] = {**sub, "is_warning": is_warning}
         if not sub["ok"] and not is_warning:
             any_critical_failed = True

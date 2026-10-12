@@ -96,50 +96,21 @@ writing a throwaway script.
 
 ## Governed and prohibited surfaces
 
-### `.intent/` and `.specs/` — the confirmation gate
+### Governed text — the law apply gate (ADR-170 Stage 1, live since 2026-10-11)
 
-**ADR-170 rehearsal in force (since 2026-10-08) — it overrides Paths A, B and C below.**
-Governed text is `.intent/`, `.specs/`, `CLAUDE.md`, `.claude/settings.json` and `.claude/hooks/`.
-Never write governed text directly. Instead:
-1. collect the session's changes as one batch of complete files under `var/law-proposals/<id>/`, with a `proposal.md`;
-2. check the batch in a scratch worktree with `core-admin constitution validate` and `core-admin code audit --offline`;
-3. ask the governor once per batch. The approval comes in chat, as the stand-in for the sudo password;
-4. on approval, copy exactly those bytes into place, check their sha256, append a line to `var/law-custody/rehearsal-ledger.jsonl`, and commit naming the id.
+Governed text is `.intent/`, `.specs/`, `CLAUDE.md`, `.claude/settings.json` and `.claude/hooks/`. It is owned by
+`core-law`; no other account can write, rename or replace it (the OS enforces this). Never try to write it directly.
+1. Put the session's changes in one proposal: complete files under `var/law-proposals/<id>/files/`, mirroring repo
+   paths, plus `proposal.md` with a `## Declared warnings` section and, if needed, a `## Remove` section.
+2. Check it in a scratch worktree with `REPO_PATH` set to the worktree: `core-admin law check-tree`,
+   `core-admin constitution validate`, `core-admin code audit --offline`. Run the audit with `PYTHONPATH` set to the
+   worktree's `src/` as well; without it the CLI rules report "not evaluated" (#965).
+3. Ask the governor once. They run, as `darek`, from `/opt/dev/CORE`:
+   `sudo -u core-law /opt/core-law/venv/bin/core-admin law apply <id>` (report), then the same with `--write`
+   (password, then the typed id). It writes both destinations and one signed line in `.intent/custody/ledger.jsonl`.
+4. Verify the bytes against the proposal and the ledger signature, then commit the files and the ledger, naming the id.
 
-Full procedure: ADR-170 D0. Paths A–C below remain as history until ADR-170 Stage 1 replaces this section.
-
-Both are human-authored by default. Default posture: **draft-in-response** — produce the
-complete corrected file in the response; the governor applies it. Direct writes are permitted
-only under one of two paths, both governor-initiated:
-
-**Path A — confirmed write (semantic edits permitted).** The governor explicitly confirms a
-write to a named file in the current turn. **Turn-scoped**: authorizes the writes named in
-that turn only; does not carry forward.
-
-**Path B — authorized mechanical substitution.** A purely syntactic change the governor named
-in the prompt, where all four hold: (1) explicitly authorized — the governor names the
-transformation; no inferring, optimizing, or improving it; (2) purely syntactic — a string or
-regex substitution; if applying it requires understanding the governance meaning, it is
-semantic → Path A; (3) no content added or removed — no "while you're at it" fixes, no
-reorganization; (4) semantically invariant — two readers interpret the file the same way
-before and after. Passing examples: filename-rename propagation, path-reference updates after
-a move, renaming a governor-decided constant.
-
-**Path C — batched confirmation for precedent-grounded transcription.** When several planned
-writes are each a mechanical transcription of a decision already made elsewhere (an accepted
-ADR, an existing enum/taxonomy value, a rule already stated in prose) — not a fresh
-interpretive call — Claude Code may present the batch together with its grounding citation per
-item and get one confirmation covering the set, rather than confirming file-by-file. Any item
-in the batch that requires judgment beyond transcription drops out and needs its own Path A
-confirmation. Does not apply to the constitutional core (below), which always confirms
-file-by-file regardless of how well-grounded the change is.
-
-**Constitutional core — heightened confirmation.** `.intent/constitution/`, `.intent/META/`,
-`.intent/rules/governance/` define the governance frame. Path A reaches them, but the
-governor must name the **specific** file in the confirmation (no blanket "go ahead"), and
-Claude Code surfaces the change for review before writing. Path C (batching) never applies here.
-
-When neither path applies, draft-in-response. Direct writes are the exception.
+Full procedure: ADR-170 D3–D6 and amendments. Paths A, B and C are retired.
 
 ### Never modify
 
@@ -165,7 +136,7 @@ and do it on a yes. Do not tell the governor to do it themselves.
 The same Claude Code session does two different jobs, and they carry different authority.
 
 **Governed role — the default.** You are CORE's execution arm, working on CORE itself.
-Everything above applies: the write scope, the `.intent/` confirmation gate, reconnaissance
+Everything above applies: the write scope, the law apply gate for governed text, reconnaissance
 before editing, tests as part of the change, push remains governor-only. Assume this role
 unless the governor has granted the other one.
 
@@ -179,7 +150,7 @@ Grant rules:
 
 - A grant is explicit and names its surface. Silence, convenience, or an earlier grant in a
   previous turn is not a grant.
-- Grants are turn-scoped by default, like Path A. A standing grant must say it is standing.
+- Grants are turn-scoped by default. A standing grant must say it is standing.
 - The grant names what is permitted, not what is forbidden. Anything the grant does not name
   stays out of scope, and you ask rather than infer.
 
@@ -203,7 +174,7 @@ by CORE's own governance, so your report is the only record they leave. Write it
 Derived operational digest. `.intent/` is canonical: on divergence, `.intent/` wins — surface
 the divergence, don't resolve it in code. Severity is read from each rule's on-disk
 `enforcement` field (`blocking` / `reporting` / `advisory`); blocking rules stop a commit,
-the other two surface findings. At digest time: 40 blocking + 28 reporting + 12 advisory = 80.
+the other two surface findings. At digest time: 41 blocking + 28 reporting + 12 advisory = 81.
 
 **Integrity check (run before trusting this digest):** the digest's rule-id set must equal
 `jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u`. A mismatch means the
@@ -267,6 +238,9 @@ digest has drifted — surface it to the governor.
 **API (`src/api/v1/**`)**
 - `architecture.api.route_module_must_declare_exposure` — Every `*_routes.py` MUST declare a module-level `ROUTER_EXPOSURE` from the closed set {`governor-only`, `user-facing`}.
 - `architecture.api.router_exposure_must_match_dependencies` — A `governor-only` router MUST carry `require_governor` in its `APIRouter` constructor dependencies; a `user-facing` router MUST NOT carry it at the router level (per-route gates remain allowed).
+
+**Sandbox (`src/**`)**
+- `architecture.sandbox.tests_run_in_sandbox` — Code in `src/` MUST NOT start pytest itself (a `["pytest", ...]` command, `-m pytest`, `pytest.main()`); repository tests run only through `body.sandbox` (`run_in_sandbox`, `repo_tests.run_tests`). ADR-132 D10.10/D10.16.
 
 **Workers (`src/will/workers/** | src/body/workers/**`)**
 - `architecture.workers.no_direct_worker_import` — Workers MUST NOT import one another at runtime; all inter-worker communication routes exclusively through the blackboard.
@@ -553,9 +527,8 @@ superseded by ADR-101 and removed from the codebase — don't reach for them.
 10. Workers post to blackboard; never call other workers directly
 11. Constitutional compliance comment at the top of modified files reflects the change
 12. No Rich objects or markup passed to `logger.info()`
-13. `.env`, `.venv/`, `*.pth` untouched; any `.intent/`/`.specs/` write satisfied the
-    confirmation gate (Path A or B); any constitutional-core write was confirmed by the
-    governor naming that specific file this turn
+13. `.env`, `.venv/`, `*.pth` untouched; governed text changed only through `law apply`, with
+    its ledger line committed alongside
 14. Every relevant ADR in `.specs/decisions/` honored
 15. No writes to `/tmp/` or outside the repo — temp files in `var/tmp/` only
 16. Signature/behavior changes have test updates in the same commit; new public symbols have

@@ -44,7 +44,11 @@ from shared.infrastructure.intent.intent_repository import (
     IntentRepository,
     get_intent_repository,
 )
-from shared.infrastructure.intent.law_roots import intent_root_for, law_path
+from shared.infrastructure.intent.law_roots import (
+    intent_root_for,
+    law_path,
+    law_relpath,
+)
 from shared.infrastructure.intent.operational_capabilities import (
     OperationalCapabilityTaxonomyError,
     load_operational_capabilities,
@@ -556,10 +560,7 @@ class TaxonomyGateEngine(BaseEngine):
         for yaml_path, rule_id, entry, index in _iter_governed_exclusions_entries(
             intent_repo
         ):
-            try:
-                rel_path = yaml_path.relative_to(repo_root)
-            except ValueError:
-                rel_path = yaml_path
+            rel_path = Path(law_relpath(repo_root, yaml_path))
 
             errors = list(validator.iter_errors(entry))
             if errors:

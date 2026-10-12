@@ -46,7 +46,7 @@ file is not a violation; it is the template for the correct pattern.
 **`serializers.py` — operational service logic in Shared.**
 `src/shared/infrastructure/context/serializers.py` instantiates
 `FileHandler(str(settings.REPO_PATH))` at call time inside `to_yaml` to write
-context cache packets to `var/`. The write is initiated by
+context cache packets. The write is initiated by
 `src/shared/infrastructure/context/cache.py` (also in Shared), which calls
 `ContextSerializer.to_yaml`. The call chain from `cache.py` through
 `serializers.py` to `FileHandler` is entirely operational I/O — writing runtime
@@ -55,9 +55,8 @@ accessibility, not because it satisfies Shared's admission criteria.
 
 **`test_runner.py` — execution-tier service in Shared.**
 `src/shared/infrastructure/validation/test_runner.py` executes subprocess pytest,
-persists results to the DB (`get_session`), and writes operational logs to
-`var/logs/tests.jsonl` and `var/reports/test_failures.json` via two FileHandler
-instantiations. Its callers are Body, Will, and API. The file logging calls are
+persists results to the DB (`get_session`), and writes operational logs (a test log and a
+test-failures report) via two FileHandler instantiations. Its callers are Body, Will, and API. The file logging calls are
 best-effort (each is wrapped in `except Exception: logger.debug(...)`). This file
 has no substrate properties — it is an execution-tier service that ended up in
 Shared because multiple layers call it.
@@ -286,3 +285,7 @@ This ADR is verified when, on or before 2026-09-12:
   Stage 2.
 - CORE-Mind-Body-Will-Separation.md §7.2 Admission Test 1 — the shared-layer
   admission test (`no_layer_imports`) that this ADR satisfies by elimination.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

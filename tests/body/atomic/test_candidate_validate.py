@@ -7,9 +7,10 @@ flow.build_test_for_symbol path: PytestAcceptanceCondition used to write
 generation iteration (rejected candidates included), via a `file_service` that
 was not scoped to the sandbox worktree even when running inside one — leaking
 candidates into the main repo tree and guaranteeing a propagate_changes
-conflict. This action materializes each candidate under `var/tmp/` ephemeral
-scratch instead, runs pytest there, and always cleans up — the real
-target_path is never touched by candidate evaluation at all.
+conflict. This action adds each candidate to the sandbox's copy of the
+repository only (an overlay under `var/tmp/candidate_validate/`) and runs
+pytest there; nothing is written to disk, so the real target_path is never
+touched by candidate evaluation at all.
 
 The action is @atomic_action-governed, so direct invocation goes through
 `.__wrapped__` (mirrors tests/body/atomic/test_sandbox_validate.py).
@@ -168,6 +169,10 @@ async def test_run_tests_targets_scratch_path_not_real_target(repo: Path) -> Non
     assert "candidate_validate" in call_kwargs["target"]
     assert call_kwargs["target"].endswith("test_generated.py")
     assert Path(call_kwargs["repo_root"]) == repo
+    # The candidate reaches the sandbox as an overlay at the target it runs.
+    assert call_kwargs["overlay"] == (
+        (call_kwargs["target"], b"def test_new():\n    assert True\n"),
+    )
 
 
 async def test_refuses_without_core_context() -> None:
@@ -221,6 +226,7 @@ async def test_candidate_leaking_state_into_siblings_is_rejected(repo: Path) -> 
     combined_call = mocked.call_args_list[1].kwargs
     assert "candidate_validate" in combined_call["target"]
     assert combined_call["extra_targets"] == ["tests/x_test_x.py"]
+    assert combined_call["overlay"][0][0] == combined_call["target"]
 
 
 async def test_candidate_not_blamed_when_siblings_already_fail(repo: Path) -> None:
@@ -245,3 +251,68 @@ async def test_rejected_solo_candidate_skips_sibling_run(repo: Path) -> None:
 
     assert not result.ok
     assert mocked.await_count == 1
+
+
+# --- real sandbox run (local mode): the candidate must reach the sandbox copy
+
+
+@pytest.fixture
+def code_repo(repo: Path) -> Path:
+    (repo / "pyproject.toml").write_text(
+        '[tool.pytest.ini_options]\npythonpath = ["src"]\n', encoding="utf-8"
+    )
+    (repo / "src" / "mymod").mkdir(parents=True)
+    (repo / "src" / "mymod" / "__init__.py").write_text("", encoding="utf-8")
+    (repo / "src" / "mymod" / "example.py").write_text(
+        "def add(a: int, b: int) -> int:\n    return a + b\n", encoding="utf-8"
+    )
+    return repo
+
+
+async def _validate_in_local_sandbox(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, candidate: str
+) -> ActionResult:
+    monkeypatch.setenv("CORE_SANDBOX_MODE", "local")
+    with (
+        patch(
+            "shared.infrastructure.bootstrap_registry.BootstrapRegistry.get_repo_path",
+            return_value=repo,
+        ),
+        patch("body.sandbox.repo_tests._persist_result_to_db", new=AsyncMock()),
+    ):
+        return await _action(
+            source_file="src/mymod/example.py",
+            target_path="tests/mymod/example/test_generated.py",
+            candidate_content=candidate,
+            core_context=_make_context(repo),
+        )
+
+
+async def test_passing_candidate_runs_in_the_sandbox_and_is_accepted(
+    code_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The sandbox copies no var/; the candidate reaches it as an overlay."""
+    result = await _validate_in_local_sandbox(
+        code_repo,
+        monkeypatch,
+        "from mymod.example import add\n\n\ndef test_add() -> None:\n"
+        "    assert add(1, 2) == 3\n",
+    )
+
+    assert result.ok, result.data.get("summary")
+    assert result.data["counts"].get("passed") == 1
+    assert not (code_repo / "tests").exists()
+
+
+async def test_failing_candidate_is_rejected_by_the_sandbox_run(
+    code_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    result = await _validate_in_local_sandbox(
+        code_repo,
+        monkeypatch,
+        "from mymod.example import add\n\n\ndef test_add() -> None:\n"
+        "    assert add(1, 2) == 4\n",
+    )
+
+    assert not result.ok
+    assert result.data["counts"].get("failed") == 1

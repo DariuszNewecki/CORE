@@ -121,6 +121,31 @@ _AUDIT_ENGINES = (
 # any shared models.
 _CONSTITUTIONAL_SEVERITY = "constitutional"
 
+# ADR-079 stage 2, writer by writer: capabilities whose writes are DENIED,
+# not just logged, when their fs_profile does not cover the write. A
+# capability is added only after production showed it writing with no
+# would-deny (7 days of journal, 2026-10-05..12) and the suite is green.
+# Every other capability, and every write with no capability, stays
+# advisory (log-only) until it is wired and proven the same way.
+# Not enforced: test.sandbox_validate and assisted.validate_diff run tests
+# through the sandbox runner, which writes the sandbox inbox (var/tmp/) since
+# M2 (2026-10-12) -- after the journal window -- and their profiles do not
+# list it yet (profile change awaiting the governor).
+ENFORCED_CAPABILITIES: frozenset[str] = frozenset(
+    {
+        "assisted.apply_diff",
+        "build.test_for_symbol",
+        "claim.proposal",
+        "fix.format",
+        "fix.headers",
+        "fix.ids",
+        "fix.imports",
+        "log.archive_partitions",
+        "sync.db",
+    }
+)
+CAPABILITY_RULE_ID = "capability.fs_profile.enforced"
+
 
 # ID: 085acfeb-4ce6-4cfb-91eb-544e686a97fb
 class IntentGuard:
@@ -347,15 +372,42 @@ class IntentGuard:
         for path_str in proposed_paths:
             abs_path = (self.repo_path / path_str).resolve()
 
-            # ADR-079 stage 1 (advisory). Capability tier runs alongside the
-            # existing tiers and emits log-only "would-deny" observations.
-            # Does not contribute to violations or is_valid in stage 1.
-            self._evaluate_capability_tier_advisory(
+            # ADR-079 capability tier. Advisory (log-only "would-deny") for
+            # every capability except ENFORCED_CAPABILITIES, whose denials
+            # block the write (stage 2, writer by writer).
+            deny_reason = self._evaluate_capability_tier_advisory(
                 path_str=path_str,
                 op_class=(op_classes or {}).get(path_str),
                 capability=calling_capability,
                 mode=current_mode,
             )
+            if deny_reason and calling_capability in ENFORCED_CAPABILITIES:
+                logger.warning(
+                    "chokepoint.enforced.deny path=%s capability=%s reason=%s",
+                    path_str,
+                    calling_capability,
+                    deny_reason,
+                )
+                violations.append(
+                    ViolationReport(
+                        rule_name=CAPABILITY_RULE_ID,
+                        path=path_str,
+                        message=(
+                            f"Capability {calling_capability!r} may not "
+                            f"{(op_classes or {}).get(path_str)} {path_str} "
+                            f"({deny_reason}); its fs_profile in "
+                            ".intent/taxonomies/operational_capabilities.yaml "
+                            "does not cover this write."
+                        ),
+                        severity=_CONSTITUTIONAL_SEVERITY,
+                        suggested_fix=(
+                            "Write only where the capability's fs_profile allows, "
+                            "or have the governor extend the profile."
+                        ),
+                        source_policy="constitution",
+                    )
+                )
+                continue
 
             # 1. HARD INVARIANT: Absolute block on .intent writes. Decided on
             # the RESOLVED destination and before any target-class dispatch,
@@ -573,11 +625,15 @@ class IntentGuard:
         op_class: str | None,
         capability: str | None,
         mode: str | None,
-    ) -> None:
-        """Stage 1 capability-tier evaluation: emit advisory log lines only.
+    ) -> str | None:
+        """Capability-tier evaluation: log the decision, return a deny reason.
 
-        Implements ADR-079 D5 branches 3-8. Does NOT mutate violations or
-        is_valid. Logs at INFO with marker ``chokepoint.advisory.would-deny``
+        Implements ADR-079 D5 branches 3-8. Returns the deny reason
+        (``no_capability_context``, ``unknown_capability``,
+        ``operation_not_authorized``, ``path_not_authorized``,
+        ``mode_not_authorized``) or None on a permit or when it cannot decide.
+        The caller blocks only for ENFORCED_CAPABILITIES. Does NOT mutate
+        violations or is_valid. Logs at INFO with marker ``chokepoint.advisory.would-deny``
         when a path would be denied; logs at DEBUG with marker
         ``chokepoint.advisory.would-permit`` on a permit.
 
@@ -587,7 +643,7 @@ class IntentGuard:
         target_path probe) pass none and the tier is skipped.
         """
         if self._capabilities is None or op_class is None or mode is None:
-            return
+            return None
 
         # Branch 3: no capability in context (paper §7).
         if capability is None:
@@ -598,7 +654,7 @@ class IntentGuard:
                 path_str,
                 mode,
             )
-            return
+            return "no_capability_context"
 
         # Branch 4: unknown capability.
         cap = self._capabilities.get(capability)
@@ -611,7 +667,7 @@ class IntentGuard:
                 mode,
                 capability,
             )
-            return
+            return "unknown_capability"
 
         fs_profile = cap.as_mapping
         entries = fs_profile.get(op_class, ())
@@ -626,7 +682,7 @@ class IntentGuard:
                 mode,
                 capability,
             )
-            return
+            return "operation_not_authorized"
 
         # Branch 6: no matching path pattern.
         matching = [e for e in entries if matches_glob(path_str, e.path_pattern)]
@@ -641,7 +697,7 @@ class IntentGuard:
                 capability,
                 declared,
             )
-            return
+            return "path_not_authorized"
 
         # Branch 7: mode-excluded.
         if not any(mode in e.modes for e in matching):
@@ -653,7 +709,7 @@ class IntentGuard:
                 mode,
                 capability,
             )
-            return
+            return "mode_not_authorized"
 
         # Branch 8: permit.
         logger.debug(
@@ -663,6 +719,7 @@ class IntentGuard:
             mode,
             capability,
         )
+        return None
 
 
 def _audit_engines_set():

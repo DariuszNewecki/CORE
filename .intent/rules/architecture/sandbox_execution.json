@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.sandbox_execution",
+        "title": "Repository Tests Run Only in the Sandbox",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "architecture.sandbox.tests_run_in_sandbox",
+            "statement": "Code in src/ MUST NOT start pytest itself: no command beginning with pytest or python -m pytest, and no pytest.main(). Repository tests run only through the sandbox runner (body.sandbox: run_repo_code, run_in_sandbox), which src/body/sandbox/ alone implements.",
+            "authority": "constitution",
+            "phase": "audit",
+            "enforcement": "blocking",
+            "rationale": "ADR-132 D10.10 and D10.16: running repository tests is running repository code. As the services account it holds the production credential (R4). The sandbox runs it under an account and walls that hold none, and reports a run that did not happen as not run, never passed. A pytest started anywhere else reopens R4."
+        }
+    ]
+}

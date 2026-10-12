@@ -26,7 +26,7 @@ _CFG = load_operational_config().coverage
 
 
 # ID: b4f51cb1-33f0-4fd0-9fb9-51f5f12c5e42
-def select_batch_candidates(
+async def select_batch_candidates(
     repo_root: Path,
     count: int,
     *,
@@ -42,7 +42,7 @@ def select_batch_candidates(
     shrink the returned set below what the caller asked for.
     """
     analyzer = CoverageAnalyzer(repo_path=repo_root)
-    coverage_data = analyzer.get_module_coverage()
+    coverage_data = await analyzer.get_module_coverage()
     if not coverage_data:
         return []
 

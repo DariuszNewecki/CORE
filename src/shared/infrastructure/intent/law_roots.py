@@ -95,12 +95,47 @@ def configured_repo_root() -> Path:
     REPO_PATH naming an external target therefore does not displace CORE's
     own law for a process started inside CORE's checkout.
     """
-    from shared.config import REPO_ROOT, settings
+    from shared.config import REPO_ROOT, discover_law_root, settings
 
-    cwd = Path.cwd()
-    for candidate in [cwd, *cwd.parents]:
-        if (candidate / ".intent").is_dir():
-            return candidate
+    found = discover_law_root()
+    if found is not None:
+        return found
     if "REPO_PATH" in settings.model_fields_set:
         return Path(settings.REPO_PATH)
     return REPO_ROOT
+
+
+# ID: 01eab0cd-f2c9-4768-b40c-bcbce556977a
+def law_relpath(repo_root: Path, path: Path) -> str:
+    """The repository-style name of ``path`` (``.intent/...``, ``.specs/...``,
+    or relative to ``repo_root``) -- the inverse of ``law_path``.
+
+    Under D2 the law is not inside the clone, so ``path.relative_to(repo_root)``
+    raises for every law file; findings and reports still name them the way
+    the repository does. A path outside all three is returned as given.
+    """
+    bases = (
+        (".intent", intent_root_for(repo_root)),
+        (".specs", specs_root_for(repo_root)),
+        ("", Path(repo_root)),
+    )
+    for p in (Path(path), Path(path).resolve()):
+        for name, root in bases:
+            for base in (root, root.resolve()):
+                if p.is_relative_to(base):
+                    return Path(name, p.relative_to(base)).as_posix()
+    return Path(path).as_posix()
+
+
+# ID: 8ccc74df-f0c5-412a-bafc-8d86e4fa5693
+def law_glob(repo_root: Path, pattern: str) -> list[Path]:
+    """``repo_root.glob(pattern)`` for repository-style patterns that may name
+    the law (``.intent/...``, ``.specs/...``), looked up where the law lives.
+
+    Under D2 ``repo_root.glob(".specs/...")`` matches nothing: the clone carries
+    no law, and an empty match reads as "nothing to check".
+    """
+    parts = Path(pattern).parts
+    if parts and parts[0] in (".intent", ".specs") and len(parts) > 1:
+        return list(law_path(repo_root, parts[0]).glob(str(Path(*parts[1:]))))
+    return list(Path(repo_root).glob(pattern))

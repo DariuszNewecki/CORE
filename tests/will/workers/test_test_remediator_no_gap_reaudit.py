@@ -1,6 +1,6 @@
 """ADR-133 D4 no-gap path hands test.runner.missing back to re-audit (2026-10-03).
 
-Traced loop (var/reports/test-coverage-loop-trace-20261003.md): a
+Traced loop: a
 ``test.runner.missing`` finding whose governed test file had since been
 written was claimed by TestRemediatorWorker every ~60 s, the gap evaluator
 correctly found no gaps, and the finding was released back to ``open`` —

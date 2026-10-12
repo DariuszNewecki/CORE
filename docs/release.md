@@ -59,8 +59,10 @@ Once the one-time setup is complete:
    links. It lists any pin it cannot rewrite safely
    (the README "Current Release" line, which also describes the release);
    edit those by hand. CI runs `--check` and fails on any drift.
-3. Commit the bump (`chore: bump version to X.Y.Z`).
+3. Commit the bump (`release: X.Y.Z -- <one-line summary>`).
 4. Tag the commit: `git tag vX.Y.Z && git push --tags`.
+5. Create the GitHub release, so the repository page shows it as Latest:
+   `gh release create vX.Y.Z --verify-tag --latest --title "vX.Y.Z — <summary>" --notes-file <the CHANGELOG section>`.
 
 ### Schema and upgrade-path checklist (ADR-162 D4/D5/D9)
 
@@ -82,9 +84,14 @@ Before tagging a release that changes the database schema:
   testable from a shallow checkout.
 - **CHANGELOG** lists the release's schema migrations and whether writers must be quiesced.
 
+Before tagging, start the **full** CI run on the commit you will tag:
+`gh workflow run "CORE CI" --ref develop` (with `develop` at that commit). Push and PR runs
+skip the release-upgrade tests (pytest marker `upgrade`); the full run, like the nightly
+one, includes them.
+
 The `publish-pypi.yml` workflow fires on the tag push. It first refuses
 unless the latest CORE CI run for the exact tagged SHA concluded success
-(#954), then verifies the tag version matches `pyproject.toml`, builds the
+(#954) and a full (`workflow_dispatch`) run on that SHA succeeded, then verifies the tag version matches `pyproject.toml`, builds the
 wheel + sdist, installs the wheel into a clean venv and walks the adopter
 path (`project new` → `adopt-pack` → `code audit --offline`, asserting
 PASS / DEGRADED / FAIL where each is due), and publishes via OIDC. The release appears at
@@ -102,10 +109,10 @@ a re-tagged release.
 ## Notes
 
 - The workflow does **not** run pytest itself; it requires that CORE CI
-  (`core-ci.yml`, which runs on pushes to `develop` and on PRs) passed on
-  the tagged SHA. Tag a commit whose CI is green: a failed, cancelled,
+  (`core-ci.yml`, which runs on pushes to `develop`, on PRs, nightly and on
+  `workflow_dispatch`) passed on the tagged SHA, including a full run. Tag a commit whose CI is green: a failed, cancelled,
   in-progress or missing run refuses the release. Re-run CI, then re-run
   the publish workflow.
-- The Docker image counterpart (`core-engine:X.Y.Z`) ships via F-48.3
-  (#539). Per ADR-086 D7, PyPI and Docker versions are paired — see
-  that issue for the matched-version invariant once it lands.
+- Each tag also publishes `core-engine:X.Y.Z` and `core-audit-gate:X.Y.Z` to GHCR,
+  built from the PyPI wheel of the same version (ADR-086 D7). If an image build runs
+  before PyPI lists the new version, it fails; re-run it once the version is listed.

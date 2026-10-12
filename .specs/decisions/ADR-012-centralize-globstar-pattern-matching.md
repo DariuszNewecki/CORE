@@ -19,16 +19,16 @@ status: accepted
 `pathlib.Path.match` is used at eight sites across `src/` to evaluate whether a file path matches a glob pattern. On Python 3.12.3 (the runtime CORE targets), `Path.match` has two semantics that callers do not appear to expect:
 
 1. **`**` is treated as a single segment**, equivalent to `*`. The pattern `src/**/*.py` matches `src/api/main.py` (3 segments matching 3 segments) but does **not** match `src/main.py` (too few segments) or `src/api/sub/main.py` (too many).
-2. **Matching is suffix-only.** A pattern is checked against the trailing N segments of the path, where N is the pattern's segment count. `Path("var/secrets/k.txt").match("secrets/*")` returns `True` because the last two segments of the path match the two-segment pattern — even though the caller may have intended `secrets/*` to mean "anchored at root."
+2. **Matching is suffix-only.** A pattern is checked against the trailing N segments of the path, where N is the pattern's segment count. `Path("data/secrets/k.txt").match("secrets/*")` returns `True` because the last two segments of the path match the two-segment pattern — even though the caller may have intended `secrets/*` to mean "anchored at root."
 
 A 14-case empirical run (this session) found four behavior mismatches between `Path.match` and `fnmatch.fnmatch` at realistic inputs. Three of the four are silent under-enforcement at security-sensitive sites:
 
 | Path | Pattern | Path.match | fnmatch | Site |
 |---|---|---|---|---|
-| `var/app/secrets/sub/k.txt` | `**/secrets/**` | False | True | redactor |
+| `app/secrets/sub/k.txt` | `**/secrets/**` | False | True | redactor |
 | `.intent/keys/sub/k.txt` | `.intent/keys/*` | False | True | FileNavigator |
 | `src/api/sub/main.py` | `src/**/*.py` | False | True | (no live consumer) |
-| `var/secrets/k.txt` | `secrets/*` | True | False | FileNavigator (over-fires; right answer wrong reason) |
+| `data/secrets/k.txt` | `secrets/*` | True | False | FileNavigator (over-fires; right answer wrong reason) |
 
 The eight call sites are:
 
@@ -198,3 +198,7 @@ At the time of this addendum all seven in-scope sites are migrated:
 | `src/body/governance/intent_guard.py` | ✅ Migrated 2026-05-03 | refs #143 |
 
 Issue #143 closed 2026-05-03.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

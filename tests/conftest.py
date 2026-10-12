@@ -23,6 +23,15 @@ from shared.infrastructure.database.session_manager import (
 )
 
 
+def pytest_configure(config: pytest.Config) -> None:
+    # Release-upgrade tests: replay released versions' migrations. CI runs
+    # them only in full runs (nightly, workflow_dispatch before a tag).
+    config.addinivalue_line(
+        "markers",
+        "upgrade: replays released versions' migrations (full CI runs only)",
+    )
+
+
 @pytest_asyncio.fixture
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
     async with get_session() as session:

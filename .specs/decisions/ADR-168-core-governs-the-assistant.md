@@ -181,7 +181,7 @@ Second review (2026-10-04) judged revision 2 sound and governor-ready, and voted
 ## Experiment evidence (2026-10-06, appended; not a revision)
 
 The governor chose on 2026-10-04 to run D4.1 and D4.2 as an experiment before deciding D5/D6.
-Data from `var/experiments/adr168/verdicts.jsonl`, 2026-10-04 11:40Z to 2026-10-06 15:04Z:
+Data recorded 2026-10-04 11:40Z to 2026-10-06 15:04Z:
 
 - **73 assistant commit attempts. 69 allowed, 4 refused.**
   - 2 refusals were deliberate acceptance plants: the pipe test, and the planted `asyncio.run`
@@ -246,7 +246,7 @@ Unchanged: every assistant gets the same operations (ADR-084 D6); the surface ex
 explicit allowlist of read and verdict operations; nothing it exposes can write governor authority
 (D3).
 
-Grounds: the recon in `var/reports/adr168-d43-design-20261006.md` found that the API requires
+Grounds: a recon found that the API requires
 PostgreSQL and Qdrant to start, while the newcomer path is `pip install` only.
 
 ## Amendment 2026-10-10: the Proposal capability — one way in for every producer (governor ruling)
@@ -255,8 +255,7 @@ PostgreSQL and Qdrant to start, while the newcomer path is `pip install` only.
 assistant beside the governor. The two routes differ only in **who owns the problem**. CORE's own
 fixes enter as proposals and leave a full chain (problem → code → verdict → approval → consequence);
 the assistant's commits leave only a commit. D2's third capability, **Proposal**, closes that gap and
-was not built. This amendment rules how it is built. Evidence: `var/reports/producer-proposal-recon-20261010.md`
-(recon, plus one external review verified against the code).
+was not built. This amendment rules how it is built.
 
 **A1 — The allowlist gains exactly one write.** The 2026-10-06 amendment's "explicit allowlist of read
 and verdict operations" becomes: read and verdict operations, **plus submit-a-proposal**. Submit may
@@ -306,7 +305,7 @@ and linked to its consequence record.
 
 ## Amendment 2026-10-10 (later): rulings for building the Proposal capability (governor ruling)
 
-**Why.** Writing the build plan (`var/reports/producer-build-plan-20261010.md`) raised four questions the
+**Why.** Writing the build plan raised four questions the
 amendment above leaves open. The governor answered them on 2026-10-10. A further fact shapes them: the governor
 does not write code or type commands to CORE. The governor's requests reach CORE through a Claude session running as the
 `core-darek` account, carrying prompts the governor and the assistant decided together.
@@ -330,3 +329,7 @@ to the approver and never refuses a submission on its own.
 **R5 — Governed text is declared as data (implements A5).** The paths a proposal may not touch are listed in
 `.intent/enforcement/config/governance_paths.yaml` (`governed_text`), read by CORE at submission, not
 hard-coded in `src/`.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

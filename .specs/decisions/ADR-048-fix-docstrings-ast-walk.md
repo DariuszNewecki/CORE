@@ -346,10 +346,12 @@ verification requirement but worth noting as defensive behavior.
   `check_docstrings_present` (ADR-047); D1 mirrors its predicate.
 - `src/shared/infrastructure/storage/file_handler.py:97-126` —
   `FileHandler.write_runtime_text`; the mutation gateway D2 uses.
-- `var/prompts/docstring_writer/` —
-  `PromptModel.load("docstring_writer")` artifact; unchanged.
 - ADR-047 — `purity.docstrings.required` moved to ast_gate; this ADR
   closes the gap that move surfaced.
 - 2026-05-15 governor session — 7 `fix.docstrings` proposals reached
   `completed` status with zero file modifications. Observation that
   motivated this ADR.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

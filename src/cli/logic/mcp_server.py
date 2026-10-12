@@ -38,16 +38,26 @@ _INSTRUCTIONS = (
     "limits. Before committing, call change_verdict on your change: BLOCKED "
     "means a blocking rule is violated; CLEAR_IN_SCOPE means none of the rules "
     "it evaluated is, and it names the rules it did not evaluate. It never says "
-    "PASS; the full audit (commit hook, CI) is authoritative. These tools only "
-    "read: none can approve, waive or act as the governor."
+    "PASS; the full audit (commit hook, CI) is authoritative. To submit a change, "
+    "validate_change asks CORE to check a patch and submit_change records it as "
+    "a pending proposal; both need a running CORE. No tool can approve, waive or "
+    "act as the governor."
 )
 
-# Every tool only reads the repository; none reaches outside it.
+# The read tools only read the repository; none reaches outside it.
 _READ_ONLY = types.ToolAnnotations(
     read_only_hint=True,
     destructive_hint=False,
     idempotent_hint=True,
     open_world_hint=False,
+)
+# validate_change and submit_change ask CORE's API to act (a check run, a
+# pending proposal): not read-only, so a client must not auto-allow them.
+_ASKS_CORE = types.ToolAnnotations(
+    read_only_hint=False,
+    destructive_hint=False,
+    idempotent_hint=False,
+    open_world_hint=True,
 )
 
 
@@ -72,7 +82,7 @@ def build_server(repo_root: Path) -> Server[Any]:
                     name=tool.name,
                     description=tool.description,
                     input_schema=tool.input_schema,
-                    annotations=_READ_ONLY,
+                    annotations=_READ_ONLY if tool.reads_only else _ASKS_CORE,
                 )
                 for tool in TOOLS.values()
             ]

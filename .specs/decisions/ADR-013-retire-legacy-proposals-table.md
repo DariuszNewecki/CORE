@@ -17,7 +17,7 @@ status: accepted
 `core.proposals` (the original constitutional file-replacement table with
 cryptographic signing) is retired and dropped. It was never provisioned in
 production — zero rows, no active writers, signing infrastructure
-(`var/governance/approvers.yaml`, `var/keys/`) never created.
+never created.
 
 All proposal activity runs through `core.autonomous_proposals`, which is the
 A3 pipeline's primary table and the only active proposal mechanism in CORE.
@@ -30,7 +30,6 @@ A3 pipeline's primary table and the only active proposal mechanism in CORE.
 - Code: `src/cli/logic/proposals/` (service, canary, crypto, models)
 - Code: `src/cli/logic/proposal_service.py`
 - Code: `src/will/self_healing/refactoring_proposal_writer.py`
-- Filesystem: `var/workflows/proposals/`
 
 ## Reserved name
 
@@ -46,3 +45,7 @@ qualifier should disappear with the distinction it described.
 The two-table confusion that produced issue #144 (status enum mismatch,
 tooling querying the wrong table) is eliminated. One proposal table, one
 status enum, one code path.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

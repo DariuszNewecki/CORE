@@ -58,7 +58,18 @@ jobs:
             echo "::error::No green CORE CI for ${GITHUB_SHA} (latest run: ${CONCLUSION}). Refusing to publish."
             exit 1
           fi
-          echo "CORE CI green on ${GITHUB_SHA}"
+          # Push runs skip the release-upgrade tests (marker `upgrade`); a
+          # release also needs a green *full* run on this SHA, started with
+          # workflow_dispatch (docs/release.md).
+          FULL=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&event=workflow_dispatch&per_page=100" \
+            --jq '[.workflow_runs[] | select(.name == "CORE CI")]
+                  | sort_by(.created_at) | last | .conclusion // "none"')
+          if [ "$FULL" != "success" ]; then
+            echo "::error::No green full CORE CI (workflow_dispatch) for ${GITHUB_SHA} (latest: ${FULL}). Refusing to publish."
+            exit 1
+          fi
+          echo "CORE CI green on ${GITHUB_SHA}, full run included"
 
       - name: Checkout
         uses: actions/checkout@v7

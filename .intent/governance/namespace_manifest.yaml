@@ -688,6 +688,15 @@ classifications:
     governance_namespace: project::core
 
   # ---------------------------------------------------------------------
+  # .intent/custody/** -- the law's custody record (ADR-170 D4): the
+  # ledger written only by core-law, and the key that verifies it.
+  # ---------------------------------------------------------------------
+  - path: .intent/custody/allowed_signers
+    governance_namespace: project::core
+  - path: .intent/custody/ledger.jsonl
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
   # .intent/flows/** -- CORE's specific flow orchestrations
   # (reference CORE-specific workers).
   # ---------------------------------------------------------------------
@@ -826,6 +835,8 @@ classifications:
   - path: .intent/rules/architecture/privileged_boundaries.json
     governance_namespace: project::core
   - path: .intent/rules/architecture/quality_gates.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/sandbox_execution.json
     governance_namespace: project::core
   - path: .intent/rules/architecture/artifact_discovery.json
     governance_namespace: project::core
@@ -1146,6 +1157,8 @@ classifications:
   - path: .intent/enforcement/mappings/architecture/privileged_boundaries.yaml
     governance_namespace: project::core
   - path: .intent/enforcement/mappings/architecture/quality_gates.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/sandbox_execution.yaml
     governance_namespace: project::core
   - path: .intent/enforcement/mappings/architecture/artifact_discovery.yaml
     governance_namespace: project::core

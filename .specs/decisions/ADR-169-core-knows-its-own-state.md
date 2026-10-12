@@ -18,7 +18,6 @@ ADR-005 S3 (DEGRADED is never silently PASS); ADR-030 (detect-and-DEGRADE, accep
 implemented); ADR-101 / ADR-129 (commit authorship); ADR-148 (consequence chain).
 **Relates:** ADR-166 (two governed write surfaces) — orders its unit 5 after this ADR;
 ADR-168 draft (external assistants are governed producers); ADR-159 (external-run evidence).
-**Evidence:** `var/reports/repo-state-awareness-thesis-20261005.md`.
 
 ## Governor rulings (2026-10-05) incorporated
 
@@ -199,3 +198,7 @@ amendment of the same date:
 
 What proposals are validated against (the clone's HEAD) and which law judged (the law digest) stay separate
 facts, as ADR-132 D10.14 records.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

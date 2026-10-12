@@ -8,6 +8,101 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+### Fixed
+
+- **The CLI rules no longer pass on nothing when the audited tree is not the importable one (#965).** A worktree or
+  sandbox audit under an editable install imported the main tree's CLI, dropped every command as out-of-repo, and
+  reported the CLI rules clean. They now report `ENFORCEMENT_UNAVAILABLE` (could not check, not a pass); with
+  `PYTHONPATH=<tree>/src` they evaluate the tree's own CLI. `cli.discovery_strict` reads source and still runs.
+- **The MCP server no longer advertises `validate_change` and `submit_change` as read-only.** Both ask CORE's API to act
+  (a check run, a pending proposal); a client could have auto-allowed them.
+
+## [2.14.2] — 2026-10-11
+
+Patch release. No database migrations.
+
+### Fixed
+
+- **`core-admin law apply` writes only `.intent/` and `.specs/` to the release law.** `/opt/core/law` holds the law
+  the services read (ADR-132 D10.13), never `CLAUDE.md` or `.claude/`; a proposal changing `CLAUDE.md` failed there
+  (root-owned directory) and wrote no ledger line.
+- **`core-admin` no longer crashes when started in a directory it cannot read.** `sudo -u core-law core-admin
+  law apply` run from the governor's home raised `PermissionError` at import; law discovery now passes over an
+  unreadable directory.
+
+## [2.14.1] — 2026-10-11
+
+Patch release. No database migrations.
+
+### Fixed
+
+- **`core-admin law apply` can change `CLAUDE.md`.** With the repository root protected (root-owned, sticky), the
+  custodian owns `CLAUDE.md` but cannot create a temporary file beside it; such a file is now rewritten in place.
+- **`core-admin law apply --release-law`** names the second destination (default `/opt/core/law`), so the
+  installed-wheel test no longer reaches the host's live release law, and it accepts a repository that already
+  carries a ledger (law 0024 onward).
+
+## [2.14.0] — 2026-10-11
+
+**An assistant can propose a change, and only the governor can let it land.** A producer — Claude
+Code over MCP, or CORE's own loop — submits a patch with who made it and why; CORE runs its own
+checks on it and the governor approves at a terminal, typing the proposal's id. The commit names
+the producer as author and CORE as committer. This release also carries the pieces of two
+hardening steps that are **prepared but not yet active**: law changes approved through a
+dedicated account (`core-admin law apply`, ADR-170) and a release runtime that runs only
+installed releases (ADR-132 D10 · D2). Minor release. No database migrations: a 2.13.x database
+needs no upgrade.
+
+### Added — one way in for every producer (ADR-168, amendment 2026-10-10)
+
+- **`validate_change` and `submit_change`** (MCP tools) and `POST /v1/proposals/submit`: a patch
+  not born from a finding becomes a pending proposal. Every proposal records its producer, owner
+  and anchor (a finding, an issue, an ADR or a governor request); one without an anchor is
+  refused.
+- **CORE chooses the checks**: governed text is refused, ruff runs on the touched files, the full
+  stateless audit runs on the candidate tree, and the test-integrity rules bind every producer.
+- **Step zero**: one report answers what the patch does, what it retires (verified), which
+  decisions touch it, and which existing code looks like it. "Could not search" is never shown
+  as "nothing found".
+- **Deletions are part of a change**: declared deletions reach the main tree and the commit.
+- **Approval needs a human at a terminal** (core-cli 2.1.0: `core proposals approve` asks for the
+  typed short id).
+
+### Added — prepared, not yet active
+
+- **`core-admin law apply <id>` and `core-admin law check-tree`** (ADR-170 Stage 1). The
+  approval command for a law proposal: it runs only as the `core-law` account under sudo, reads
+  the proposal once, runs data-only checks on a scratch tree, shows refusals, CORE's computed
+  warnings and the proposer's declared warnings, and only with `--write` and the typed id writes
+  the law and one signed ledger line. Inert until the governor runs `infra/core-law-setup`.
+- **The D2 release runtime** (ADR-132 D10): CORE's own clone that follows upstream by fast-forward
+  only, journalled and recoverable; an installed release is its own code identity; services
+  refuse to start without law; systemd units and `core-deploy` under `infra/`. Not installed.
+- **CORE's git never runs repository-supplied hooks or fsmonitor** (ADR-132 D10.11 step 1).
+
+### Fixed
+
+- **A live sandbox is never swept** by another worker's start-up clean-up, and a vanished one no
+  longer falls through to the main repository; copy-back refuses when the main tree moved under
+  a target file.
+- **Batch embedding** calls the batch method again (broken since July), also through the
+  fallback client.
+- **The coherence checker (CCC)** names the check classes that did not run, treats an unjudged
+  pair as unchecked rather than "no contradiction", skips documents no longer in force, stops
+  reporting parser artefacts, and carries a dismissal forward while its documents are unchanged.
+- **Proposals**: a malformed proposal is refused at submission; an unknown action is never
+  "safe"; a reaper-rebuilt consequence names the findings its proposal addressed.
+- **`assisted.validate_diff`** sees the files a patch creates.
+- **The import-resolution check** runs in the analysed repository, not the working directory.
+
+### Changed
+
+- **The dead-code check sees**, against a ratchet baseline; 111 unreferenced symbols and 23
+  unreachable modules were deleted, with the never-built anchor subsystem.
+- **`code audit --verbose`** lists the sample issues behind an aggregate finding (ADR-098 D3).
+- Law and specs are read through one root resolver, so a process can run from a tree that holds
+  no law of its own.
+
 ## [2.13.0] — 2026-10-09
 
 **Your AI assistant can ask CORE instead of guessing.** Claude Code, or any assistant that speaks
@@ -1079,7 +1174,10 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.13.0...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.14.2...HEAD
+[2.14.2]: https://github.com/DariuszNewecki/CORE/compare/v2.14.1...v2.14.2
+[2.14.1]: https://github.com/DariuszNewecki/CORE/compare/v2.14.0...v2.14.1
+[2.14.0]: https://github.com/DariuszNewecki/CORE/compare/v2.13.0...v2.14.0
 [2.13.0]: https://github.com/DariuszNewecki/CORE/compare/v2.12.1...v2.13.0
 [2.12.1]: https://github.com/DariuszNewecki/CORE/compare/v2.12.0...v2.12.1
 [2.12.0]: https://github.com/DariuszNewecki/CORE/compare/v2.11.0...v2.12.0

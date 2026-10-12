@@ -13,10 +13,12 @@ It is also the sanctioned DI root for Body services the API needs
 (architecture.api.no_body_bypass excludes this file): routes take them as
 ``*Dep`` parameters instead of importing Body themselves (ADR-049 D1 S6).
 
-OSS MODE: CORE runs in trusted-localhost mode — no authentication.
-Multi-tenant UAC (users, orgs, API keys) lives in core-platform.
-require_governor and require_operator are no-op pass-throughs here;
-core-platform mounts real role guards on top when running in Console mode.
+GOVERNOR GATE (ADR-132 D10.3 as amended, D10.9): ``require_governor`` passes
+only for a caller on the API's Unix socket whose kernel-reported uid the
+principal binding (/etc/core/principals.yaml) maps to principal.governor.
+TCP carries no identity and never passes. A missing or untrustworthy
+binding fails closed: nobody is governor. Multi-tenant UAC (users, orgs,
+API keys) lives in core-platform.
 """
 
 from __future__ import annotations
@@ -26,7 +28,7 @@ from collections.abc import AsyncGenerator, Awaitable, Callable
 from dataclasses import dataclass
 from typing import Annotated, Any
 
-from fastapi import Depends, Request
+from fastapi import Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.serve import PEER_CRED_EXTENSION
@@ -35,9 +37,10 @@ from body.introspection.drift_service import run_drift_analysis_async
 from body.introspection.generate_capability_docs import (
     main as _generate_capability_docs,
 )
+from body.services.blackboard_service.blackboard_service import BlackboardService
 from body.services.consequence_log_service import ConsequenceLogService
 from shared.infrastructure.database.session_manager import get_db_session, get_session
-from shared.infrastructure.principal_binding import load_principal_binding
+from shared.infrastructure.principal_binding import GOVERNOR, load_principal_binding
 from shared.infrastructure.secrets_service import SecretsService
 from shared.infrastructure.secrets_service import (
     get_secrets_service as _get_secrets_svc,
@@ -58,16 +61,6 @@ async def open_background_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-# ID: d0a70ac3-7799-46e5-9e02-0fea32a6b144
-async def _oss_passthrough() -> dict:
-    """OSS mode: trusted localhost — no authentication required."""
-    return {}
-
-
-require_governor = Depends(_oss_passthrough)
-require_operator = Depends(_oss_passthrough)
-
-
 @dataclass(frozen=True)
 # ID: e4c361b1-f851-4885-979c-8a03ccd07d1e
 class CallerPrincipal:
@@ -85,11 +78,7 @@ class CallerPrincipal:
 
 # ID: d1aa4d9f-e173-4be9-a38a-07af629f5e2b
 async def get_caller_principal(request: Request) -> CallerPrincipal:
-    """Resolve the caller from the connection's kernel peer credentials.
-
-    Not yet consulted by any gate: ``require_governor`` stays a pass-through
-    until stamps and enforcement land together (ADR-132 D10.6 as amended).
-    """
+    """Resolve the caller from the connection's kernel peer credentials."""
     extensions = request.scope.get("extensions") or {}
     peer_cred = extensions.get(PEER_CRED_EXTENSION)
     if peer_cred is None:
@@ -109,6 +98,34 @@ async def get_caller_principal(request: Request) -> CallerPrincipal:
 
 
 caller_principal = Depends(get_caller_principal)
+
+
+# ID: 51909dc3-f9ca-42fa-8ca2-82f51b2b5c62
+async def get_governor(
+    principal: CallerPrincipal = caller_principal,
+) -> dict[str, str]:
+    """The governor's identity, or 403 (ADR-132 D10.3 as amended).
+
+    The returned ``sub`` is the OS account the kernel reported; routes stamp
+    it as the actor (D10.4) and never take an actor from the request.
+    """
+    if principal.uid is None:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Governor acts are accepted only on CORE's Unix socket "
+                "(CORE_API_URL=unix:///run/core/api/api.sock); TCP carries no identity."
+            ),
+        )
+    if principal.role != GOVERNOR or principal.account is None:
+        reason = principal.binding_error or (
+            f"account {principal.account or principal.uid!s} is not bound to {GOVERNOR}"
+        )
+        raise HTTPException(status_code=403, detail=f"Not the governor: {reason}.")
+    return {"sub": principal.account, "principal": GOVERNOR}
+
+
+require_governor = Depends(get_governor)
 
 
 # ID: 7854c52e-6493-402f-ba18-08ecdcf1fd2b
@@ -161,3 +178,15 @@ async def get_secrets_service_dep(
 ) -> SecretsService:
     """FastAPI dependency that provides a SecretsService instance."""
     return await _get_secrets_svc(session)
+
+
+FindingResolver = Callable[..., Awaitable[int]]
+
+
+# ID: 9eacade5-4c6d-42ba-9a75-eb4c6e4572d5
+def get_finding_resolver() -> FindingResolver:
+    """FastAPI dependency that closes a finding delegated to a human."""
+    return BlackboardService().resolve_indeterminate_entry
+
+
+FindingResolverDep = Annotated[FindingResolver, Depends(get_finding_resolver)]

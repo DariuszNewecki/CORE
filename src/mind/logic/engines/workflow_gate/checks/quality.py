@@ -27,6 +27,7 @@ from mind.logic.engines.workflow_gate.base_check import (
     WorkflowCheck,
 )
 from shared.infrastructure.intent.operational_config import load_operational_config
+from shared.infrastructure.repo_code import get_test_collector
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 from shared.utils.subprocess_utils import run_command_async
@@ -66,6 +67,8 @@ class QualityGateCheck(WorkflowCheck):
     async def verify(
         self, file_path: Path | None, params: dict[str, Any]
     ) -> Sequence[str | StructuredViolation]:
+        if self.check_type == "pytest_check":
+            return await self._verify_collection()
         try:
             result = await asyncio.wait_for(
                 run_command_async(self.cmd, cwd=self._paths.repo_root),
@@ -207,6 +210,45 @@ class QualityGateCheck(WorkflowCheck):
                     "sample_issues": vulns[:_SAMPLE_CAP],
                     "first_issue_line": None,
                 },
+            )
+        ]
+
+    async def _verify_collection(self) -> Sequence[str | StructuredViolation]:
+        """pytest_check: collect the suite in the sandbox (ADR-132 D10.10).
+
+        Collection imports every test module -- repository code -- so it never
+        runs here, as the services account. It runs through the collector Body
+        registers (shared.infrastructure.repo_code); without one, or when the
+        sandbox did not finish, compliance is UNKNOWN, never a pass.
+        """
+        collector = get_test_collector()
+        if collector is None:
+            return [
+                self._unavailable(
+                    reason="sandbox_unavailable",
+                    message=(
+                        "Quality gate pytest_check runs only in the sandbox, and "
+                        "no sandbox runner is loaded in this process. Compliance "
+                        "status UNKNOWN for this rule -- not a pass."
+                    ),
+                )
+            ]
+        timeout = max(1, int(_CFG.quality_timeout_sec))
+        outcome = await collector(self._paths.repo_root, timeout)
+        if outcome.status == "passed":
+            return []
+        if outcome.status == "failed":
+            return self._parse_output(outcome.output)
+        if outcome.status == "timeout":
+            logger.warning("pytest_check timed out after %ss in the sandbox", timeout)
+        return [
+            self._unavailable(
+                reason=outcome.status,
+                message=(
+                    f"Quality gate pytest_check did not complete in the sandbox "
+                    f"({outcome.status}: {outcome.reason}). Compliance status "
+                    f"UNKNOWN for this rule -- not a violation, not a pass."
+                ),
             )
         ]
 

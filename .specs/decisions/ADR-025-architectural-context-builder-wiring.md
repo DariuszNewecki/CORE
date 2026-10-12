@@ -70,8 +70,8 @@ This was surfaced 2026-05-05 during #228 root-cause investigation. Five `build.t
 
 ## Retirement (2026-10-09)
 
-**Retired by:** the governor, 2026-10-09 ("remove the feature"), during the dead-code sweep
-(`var/reports/2026-10-09-dead-code-sweep-plan.md`). The text above is kept as the record.
+**Retired by:** the governor, 2026-10-09 ("remove the feature"), during the dead-code sweep.
+The text above is kept as the record.
 
 **Why.** Priority 1 ("Semantic Architectural Context") asks `ModuleAnchorGenerator.find_best_placement` for
 the best placement in the Qdrant collection `core_module_anchors`. That collection was never built: its
@@ -89,3 +89,7 @@ beats Priority 2) was never testable, because Priority 1 never ran successfully.
 `shared/tools/context/`, `CodeGenerator`'s Priority-1 branch, `CoreContext.context_builder` /
 `context_builder_factory`, and `build.tests`' JIT block. CodeGenerator now has two modes: context-enriched
 (`ContextService`) and standard.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

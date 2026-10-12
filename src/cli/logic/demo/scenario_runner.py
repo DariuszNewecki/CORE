@@ -220,6 +220,11 @@ async def _resolve_proposal(finding_entry_id: str) -> ProposalIdentity | None:
     )
 
 
+def _demo_governor() -> dict[str, str]:
+    """The demo runner, standing in for the governor in its own deployment."""
+    return {"sub": "core-demo", "principal": "principal.governor"}
+
+
 async def _execute_and_fetch_chain(
     app: Any, proposal_id: str
 ) -> tuple[dict[str, Any], ChainEvidence | None]:
@@ -293,6 +298,7 @@ async def run_scenario(state_dir: Path, seed_rel_path: str, run_id: str) -> None
     field so the parent can fail closed with a specific reason rather than
     a crashed child process with no evidence.
     """
+    from api.dependencies import get_governor
     from api.main import create_app
 
     error: str | None = None
@@ -307,6 +313,11 @@ async def run_scenario(state_dir: Path, seed_rel_path: str, run_id: str) -> None
 
     try:
         app = create_app()
+        # The demo's private, in-process app (ADR-155 D6), never the served
+        # one: an ASGI call carries no socket identity, so in the demo's own
+        # disposable deployment the demo runner stands in for the governor's
+        # execute step (ADR-132 D10.11 step 4).
+        app.dependency_overrides[get_governor] = _demo_governor
         async with app.router.lifespan_context(app):
             core_context = app.state.core_context
 

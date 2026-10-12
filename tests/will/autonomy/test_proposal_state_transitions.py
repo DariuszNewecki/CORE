@@ -41,6 +41,7 @@ def _row(proposal_id: str, *, status: str) -> AutonomousProposal:
         approval_required=False,
         approval_authority="risk_classification.safe_auto_approval",
         created_at=datetime.now(UTC),
+        validation_results={"pre_approval_run": True},
     )
 
 

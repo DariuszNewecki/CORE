@@ -1,0 +1,907 @@
+#!/usr/bin/python3 -I
+# infra/core-runtime-setup — run once by the governor, as root (ADR-132 D10 · D2, D10.10).
+"""
+core-runtime-setup — prepare the release runtime and the sandbox runner.
+
+Usage (the governor, as root, from their own account):
+
+    sudo /opt/dev/CORE/infra/core-runtime-setup --ref <sha>            # plan only
+    sudo /opt/dev/CORE/infra/core-runtime-setup --ref <sha> --apply    # do it
+
+<sha> is a full commit on GitHub's develop. Every file this script installs
+(core-deploy, the units, the example configuration) is fetched from GitHub at
+that commit over HTTPS, never copied from the development tree, so root
+installs exactly the pushed bytes. Their sha256 are printed.
+
+Without ``--apply`` it prints what it would do and changes nothing. Every
+step is safe to run again: what is already right is left alone; core.env,
+deploy.conf, secrets.env and CORE's clone, once made, are kept.
+
+What it does (the D2 checklist, then the sandbox steps, in one run):
+
+ 1. accounts ``core-build`` (builds wheels; build backends run code) and
+    ``core-sandbox`` (runs sandbox jobs): system accounts, no login, no
+    password, each in its own group only;
+ 2. ``/opt/core/{releases,run,etc,build,backups}``;
+ 3. CORE's clone ``/opt/core/repo``: cloned by ``core`` from the upstream,
+    sparse (no ``.intent/``, ``.specs/``, ``CLAUDE.md``, ``.claude/``),
+    checked out at <sha>; ``.git`` group ``core-dev``, readable not
+    writable (the assistant reads it, never writes it);
+ 4. configuration in ``/opt/core/etc``: ``core.env`` from the example,
+    ``deploy.conf`` from the example, ``secrets.env`` from the
+    development tree's ``.secrets/core.env`` plus ``DATABASE_URL`` from its
+    ``.env`` (refused unless it then holds DATABASE_URL and CORE_MASTER_KEY);
+ 5. ``/usr/local/sbin/core-deploy``;
+ 6. the sandbox: its inbox in the clone, the two system units, the socket
+    enabled and started;
+ 7. the governor's socket and binding (ADR-132 D10.3 as amended, D10.9):
+    group ``core-gov`` holding only the governor (``--governor``, by
+    default the account that ran sudo; never a ``core*`` account, which a
+    model session or a service runs as); ``/run/core/api`` (tmpfiles:
+    ``core:core-gov 2750``) for the API's Unix socket; and
+    ``/etc/core/principals.yaml`` binding that account to
+    ``principal.governor`` (root-owned; an existing different file is
+    never replaced); and the governor's ``core`` command (core-cli, a
+    published wheel, installed into ``/opt/core/cli`` and linked from
+    ``/usr/local/bin/core``), so the approving CLI is not one the coding
+    assistant can write;
+ 8. last, ``core``'s three user units (daemon, API, dedicated workers),
+    replacing today's; old files and the drop-in that loaded
+    ``/opt/dev/CORE/.env`` are kept in ``/opt/core/backups``. The units are
+    reloaded, not restarted: the running services keep today's code until
+    ``core-deploy`` switches and restarts them;
+ 9. probes: core-build and core-sandbox cannot read ``/opt/core/etc``;
+    core-sandbox can read its inbox; the socket is listening; the coding
+    assistant cannot enter ``/run/core/api``; the governor can.
+
+It runs no code from the development tree. git runs only as ``core``.
+
+Afterwards, the governor (printed at the end):
+
+    sudo core-deploy <sha>
+    (then the sandbox check, printed with it)
+
+Exit codes: 0 done (or plan printed); 1 refused or a probe failed.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime
+import grp
+import hashlib
+import os
+import pwd
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import urllib.request
+from dataclasses import dataclass, field
+from pathlib import Path
+
+
+SERVICES = "core"
+DEV_GROUP = "core-dev"
+BUILDER = "core-build"
+SANDBOX = "core-sandbox"
+GOVERNOR_GROUP = "core-gov"
+ASSISTANT = "core-claude"
+GOVERNOR_ROLE = "principal.governor"
+API_SOCKET_DIR = "/run/core/api"
+# The governor's CLI: a published wheel, never built here (no build backend runs).
+CORE_CLI = "core-cli==2.1.0"
+TMPFILES_CONF = (
+    "# core-runtime-setup: CORE's Unix sockets (ADR-132 D10.3 as amended).\n"
+    "d /run/core 0755 root root -\n"
+    f"d {API_SOCKET_DIR} 2750 {SERVICES} {GOVERNOR_GROUP} -\n"
+).encode()
+NO_LOGIN = ("/usr/sbin/nologin", "/sbin/nologin", "/bin/false")
+GITHUB_RAW = "https://raw.githubusercontent.com/DariuszNewecki/CORE"
+SAFE_GIT = ("-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false")
+# What CORE's clone never checks out: governed text lives in /opt/core/law.
+SPARSE = ("/*", "!/.intent/", "!/.specs/", "!/CLAUDE.md", "!/.claude/")
+SERVICE_UNITS = (
+    "core-daemon.service",
+    "core-api.service",
+    "core-daemon-worker@.service",
+)
+SANDBOX_UNITS = ("core-sandbox.socket", "core-sandbox@.service")
+# The release reads these only from /opt/core/etc/secrets.env.
+REQUIRED_ENV_NAMES = ("DATABASE_URL", "CORE_MASTER_KEY")
+# Secrets that today live in the dev tree's .env, carried into secrets.env.
+CARRIED_FROM_DEV_ENV = ("DATABASE_URL",)
+# Installed file name -> path in the repository at <sha>.
+SOURCES = {
+    "core-deploy": "infra/core-deploy",
+    "core-daemon.service": "infra/systemd/d2/core-daemon.service",
+    "core-api.service": "infra/systemd/d2/core-api.service",
+    "core-daemon-worker@.service": "infra/systemd/d2/core-daemon-worker@.service",
+    "core.env.example": "infra/systemd/d2/core.env.example",
+    "deploy.conf.example": "infra/systemd/d2/deploy.conf.example",
+    "core-sandbox.socket": "infra/systemd/sandbox/core-sandbox.socket",
+    "core-sandbox@.service": "infra/systemd/sandbox/core-sandbox@.service",
+}
+
+
+class Refused(Exception):
+    """Nothing further is done."""
+
+
+@dataclass(frozen=True)
+class Layout:
+    core_root: Path = Path("/opt/core")
+    dev_repo: Path = Path("/opt/dev/CORE")
+    system_units: Path = Path("/etc/systemd/system")
+    sbin: Path = Path("/usr/local/sbin")
+    etc_core: Path = Path("/etc/core")
+    tmpfiles: Path = Path("/etc/tmpfiles.d")
+    bin: Path = Path("/usr/local/bin")
+
+    @property
+    def repo(self) -> Path:
+        return self.core_root / "repo"
+
+    @property
+    def etc(self) -> Path:
+        return self.core_root / "etc"
+
+    @property
+    def law(self) -> Path:
+        return self.core_root / "law"
+
+    @property
+    def backups(self) -> Path:
+        return self.core_root / "backups"
+
+    @property
+    def build(self) -> Path:
+        return self.core_root / "build"
+
+    @property
+    def inbox(self) -> Path:
+        return self.repo / "var" / "tmp" / "sandbox-inbox"
+
+    @property
+    def dev_secrets(self) -> Path:
+        return self.dev_repo / ".secrets" / "core.env"
+
+    @property
+    def dev_env(self) -> Path:
+        return self.dev_repo / ".env"
+
+
+# ---------------------------------------------------------------------------
+# Host: accounts, ownership, processes and HTTP go through here, so the tests
+# can run the whole procedure unprivileged against a temporary layout.
+# ---------------------------------------------------------------------------
+
+
+class Host:
+    def is_root(self) -> bool:
+        return os.geteuid() == 0
+
+    def account(self, name: str) -> pwd.struct_passwd | None:
+        try:
+            return pwd.getpwnam(name)
+        except KeyError:
+            return None
+
+    def group_members(self, name: str) -> list[str] | None:
+        """Members of group *name*, or None when it does not exist."""
+        try:
+            return sorted(grp.getgrnam(name).gr_mem)
+        except KeyError:
+            return None
+
+    def groups_of(self, user: str) -> list[str]:
+        primary = pwd.getpwnam(user).pw_gid
+        return sorted(
+            g.gr_name for g in grp.getgrall() if user in g.gr_mem or g.gr_gid == primary
+        )
+
+    def run(
+        self,
+        cmd: list[str],
+        *,
+        user: str | None = None,
+        cwd: Path | None = None,
+        check: bool = True,
+    ) -> subprocess.CompletedProcess[bytes]:
+        argv = list(cmd)
+        if user:
+            home = pwd.getpwnam(user).pw_dir
+            argv = [
+                "runuser",
+                "-u",
+                user,
+                "--",
+                "env",
+                "-i",
+                f"HOME={home}",
+                "PATH=/usr/local/bin:/usr/bin:/bin",
+                "LANG=C.UTF-8",
+                *cmd,
+            ]
+        result = subprocess.run(
+            argv, cwd=cwd, stdin=subprocess.DEVNULL, capture_output=True
+        )
+        if check and result.returncode != 0:
+            raise Refused(
+                f"command failed ({result.returncode}): {' '.join(argv)}\n"
+                + result.stderr.decode(errors="replace").strip()
+            )
+        return result
+
+    def fetch(self, url: str, timeout: float = 30.0) -> bytes:
+        request = urllib.request.Request(
+            url, headers={"User-Agent": "core-runtime-setup"}
+        )
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.read()
+
+    def owner(self, path: Path) -> tuple[str, str]:
+        info = os.lstat(path)
+        return pwd.getpwuid(info.st_uid).pw_name, grp.getgrgid(info.st_gid).gr_name
+
+    def chown(self, path: Path, user: str, group: str) -> None:
+        os.lchown(path, pwd.getpwnam(user).pw_uid, grp.getgrnam(group).gr_gid)
+
+    def now(self) -> datetime.datetime:
+        return datetime.datetime.now(datetime.UTC)
+
+
+# ---------------------------------------------------------------------------
+# Pure helpers
+# ---------------------------------------------------------------------------
+
+
+def valid_sha(ref: str) -> bool:
+    return bool(re.fullmatch(r"[0-9a-f]{40}", ref))
+
+
+def env_keys(text: str) -> dict[str, str]:
+    """KEY=VALUE lines of an environment file; comments ignored."""
+    values: dict[str, str] = {}
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip().strip('"').strip("'")
+    return values
+
+
+def sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+# ---------------------------------------------------------------------------
+# The procedure
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class Setup:
+    layout: Layout
+    host: Host
+    ref: str
+    apply: bool
+    governor: str | None = None
+    files: dict[str, bytes] = field(default_factory=dict)
+    log: list[str] = field(default_factory=list)
+    failures: list[str] = field(default_factory=list)
+
+    def say(self, message: str) -> None:
+        self.log.append(message)
+        print(message, flush=True)
+
+    def act(self, message: str) -> bool:
+        """Announce a change; True when it should be made."""
+        self.say(("  do: " if self.apply else "  would: ") + message)
+        return self.apply
+
+    def _now(self, path: Path) -> str:
+        try:
+            info = os.lstat(path)
+        except FileNotFoundError:
+            return "absent"
+        user, group = self.host.owner(path)
+        return f"{user}:{group} {stat.S_IMODE(info.st_mode):o}"
+
+    def _ensure_dir(self, path: Path, user: str, group: str, mode: int) -> None:
+        if path.is_symlink():
+            raise Refused(f"{path} is a symlink")
+        if (
+            path.is_dir()
+            and self.host.owner(path) == (user, group)
+            and stat.S_IMODE(path.stat().st_mode) == mode
+        ):
+            return
+        if self.act(f"{path}: {user}:{group} {mode:o} (now {self._now(path)})"):
+            path.mkdir(parents=True, exist_ok=True)
+            self.host.chown(path, user, group)
+            os.chmod(path, mode)
+
+    def _install_file(
+        self,
+        path: Path,
+        data: bytes,
+        user: str,
+        group: str,
+        mode: int,
+        *,
+        secret: bool = False,
+    ) -> None:
+        """Write *data* to *path* unless it is already exactly that.
+
+        For a *secret* file nothing derived from its bytes is printed, not
+        even a hash prefix.
+        """
+        if path.is_symlink():
+            raise Refused(f"{path} is a symlink")
+        same = path.is_file() and path.read_bytes() == data
+        right = (
+            same
+            and self.host.owner(path) == (user, group)
+            and stat.S_IMODE(path.stat().st_mode) == mode
+        )
+        if right:
+            self.say(f"  ok: {path}")
+            return
+        if same:
+            what = "permissions"
+        elif secret:
+            what = "content (secret, not shown)"
+        else:
+            what = f"content sha256 {sha256(data)[:16]}"
+        if self.act(f"{path}: {what}, {user}:{group} {mode:o}"):
+            if not same:
+                staged = path.with_name(f".{path.name}.new")
+                staged.write_bytes(data)
+                os.chmod(staged, mode)
+                os.replace(staged, path)
+            self.host.chown(path, user, group)
+            os.chmod(path, mode)
+
+    # -- preflight ---------------------------------------------------------
+
+    def preflight(self) -> None:
+        if not self.host.is_root():
+            raise Refused("run it as root (sudo)")
+        if not valid_sha(self.ref):
+            raise Refused(
+                f"--ref must be a full 40-character commit sha, not {self.ref!r}"
+            )
+        if self.host.account(SERVICES) is None:
+            raise Refused(f"the services account {SERVICES!r} does not exist")
+        if not (self.layout.law / ".intent").is_dir():
+            raise Refused(
+                f"{self.layout.law}/.intent is missing: run core-law-setup first (ADR-170 Stage 1)"
+            )
+        for name in (BUILDER, SANDBOX):
+            existing = self.host.account(name)
+            if existing is not None and existing.pw_shell not in NO_LOGIN:
+                raise Refused(f"{name} exists with a login shell; not ours")
+        # ADR-132 D10.9: the governor is an account only the human uses; every
+        # core* account is a service or a model session.
+        if (
+            not self.governor
+            or self.governor == "root"
+            or self.governor.startswith("core")
+        ):
+            raise Refused(
+                f"--governor must name the human's own account, not {self.governor!r}"
+            )
+        if self.host.account(self.governor) is None:
+            raise Refused(f"the governor account {self.governor!r} does not exist")
+
+    def fetch_files(self) -> None:
+        self.say(f"fetching the files to install from GitHub at {self.ref[:12]}")
+        for name, rel in SOURCES.items():
+            url = f"{GITHUB_RAW}/{self.ref}/{rel}"
+            try:
+                data = self.host.fetch(url)
+            except Exception as exc:  # network, 404
+                raise Refused(f"cannot fetch {url}: {exc}") from exc
+            if not data.strip():
+                raise Refused(f"{url} is empty")
+            self.files[name] = data
+            self.say(f"  {rel:<48} sha256 {sha256(data)}")
+
+    # -- 1. accounts -----------------------------------------------------------
+
+    def accounts(self) -> None:
+        self.say(f"1. accounts {BUILDER} and {SANDBOX}")
+        for name in (BUILDER, SANDBOX):
+            if self.host.account(name) is not None:
+                extra = [g for g in self.host.groups_of(name) if g != name]
+                if extra:
+                    self.failures.append(
+                        f"{name} is in other groups ({', '.join(extra)}); it must be in its own only"
+                    )
+                else:
+                    self.say(f"  ok: {name} exists, own group only")
+                continue
+            if self.act(f"create system account {name} (no login, locked password)"):
+                self.host.run(
+                    [
+                        "useradd",
+                        "--system",
+                        "--user-group",
+                        "--no-create-home",
+                        "--home-dir",
+                        "/nonexistent",
+                        "--shell",
+                        "/usr/sbin/nologin",
+                        name,
+                    ]
+                )
+                self.host.run(["passwd", "--lock", name])
+
+    # -- 2. directories --------------------------------------------------------
+
+    def directories(self) -> None:
+        self.say(f"2. {self.layout.core_root}")
+        root = self.layout.core_root
+        for path, user, group, mode in (
+            (root, "root", "root", 0o755),
+            (root / "releases", "root", "root", 0o755),
+            (root / "run", SERVICES, SERVICES, 0o700),
+            # core reads its configuration; core-build and core-sandbox cannot list it.
+            (self.layout.etc, "root", SERVICES, 0o750),
+            # core-deploy hands core-build one subdirectory per build.
+            (self.layout.build, "root", "root", 0o711),
+            (self.layout.backups, "root", "root", 0o700),
+        ):
+            self._ensure_dir(path, user, group, mode)
+
+    # -- 3. CORE's clone -------------------------------------------------------
+
+    def _git(
+        self, *args: str, check: bool = True
+    ) -> subprocess.CompletedProcess[bytes]:
+        return self.host.run(
+            ["git", "-C", str(self.layout.repo), *SAFE_GIT, *args],
+            user=SERVICES,
+            check=check,
+        )
+
+    def upstream(self) -> str:
+        current = self.layout.etc / "core.env"
+        text = (
+            current.read_text(encoding="utf-8")
+            if current.is_file()
+            else self.files["core.env.example"].decode()
+        )
+        url = env_keys(text).get("CORE_UPSTREAM_URL", "")
+        if not re.fullmatch(r"https://github\.com/[\w.-]+/[\w.-]+?(\.git)?/?", url):
+            raise Refused(f"CORE_UPSTREAM_URL is not an https GitHub URL: {url!r}")
+        return url
+
+    def clone(self) -> None:
+        repo = self.layout.repo
+        self.say(f"3. CORE's clone {repo}")
+        if (repo / ".git").is_dir():
+            head = self._git("rev-parse", "HEAD", check=False).stdout.decode().strip()
+            sparse = self._git("sparse-checkout", "list", check=False).stdout.decode()
+            self.say(f"  ok: exists, HEAD {head[:12] or 'unknown'} (kept)")
+            missing = [p for p in SPARSE if p not in sparse.split()]
+            if missing:
+                self.failures.append(f"{repo} sparse checkout lacks {missing}")
+            for name in (".intent", ".specs", "CLAUDE.md", ".claude"):
+                if (repo / name).exists():
+                    self.failures.append(
+                        f"{repo / name} exists: the clone must not hold governed text"
+                    )
+        else:
+            if repo.exists() and any(repo.iterdir()):
+                raise Refused(f"{repo} exists, is not a clone and is not empty")
+            upstream = self.upstream()
+            if self.act(
+                f"clone {upstream} as {SERVICES} (sparse, no governed text), check out {self.ref[:12]}"
+            ):
+                self._ensure_dir(repo, SERVICES, DEV_GROUP, 0o751)
+                self.host.run(
+                    [
+                        "git",
+                        *SAFE_GIT,
+                        "clone",
+                        "--no-hardlinks",
+                        "--no-checkout",
+                        upstream,
+                        str(repo),
+                    ],
+                    user=SERVICES,
+                )
+                self._git("sparse-checkout", "set", "--no-cone", *SPARSE)
+                # A branch, not a detached HEAD: the ancestry hook needs develop.
+                self._git("checkout", "-B", "develop", self.ref)
+                self._git("config", "core.sharedRepository", "0640")
+        if not self.apply and not (repo / ".git").is_dir():
+            self.say(
+                "  would: .git group core-dev, read-only for the group; var/ and var/tmp/ traversable"
+            )
+            return
+        if self.apply:
+            # The assistant (group core-dev) reads CORE's history and never writes it.
+            self.host.run(["chgrp", "-R", DEV_GROUP, str(repo / ".git")])
+            self.host.run(["chmod", "-R", "g+rX,g-w,o-rwx", str(repo / ".git")])
+            # setgid: what core's later fetches create stays group core-dev.
+            self.host.run(
+                [
+                    "find",
+                    str(repo / ".git"),
+                    "-type",
+                    "d",
+                    "-exec",
+                    "chmod",
+                    "g+s",
+                    "{}",
+                    "+",
+                ]
+            )
+        # core-sandbox reaches its inbox through these: traverse only (o+x).
+        for path in (repo, repo / "var", repo / "var" / "tmp"):
+            self._ensure_dir(path, SERVICES, DEV_GROUP, 0o751)
+
+    # -- 4. configuration ------------------------------------------------------
+
+    def configuration(self) -> None:
+        etc = self.layout.etc
+        self.say(f"4. configuration in {etc}")
+        core_env = etc / "core.env"
+        example = self.files["core.env.example"]
+        if core_env.is_file():
+            have = env_keys(core_env.read_text(encoding="utf-8"))
+            missing = sorted(set(env_keys(example.decode())) - set(have))
+            self.say(
+                f"  ok: {core_env} kept" + (f"; lacks {missing}" if missing else "")
+            )
+            self._install_file(
+                core_env, core_env.read_bytes(), SERVICES, SERVICES, 0o600
+            )
+        else:
+            self._install_file(core_env, example, SERVICES, SERVICES, 0o600)
+
+        deploy_conf = etc / "deploy.conf"
+        if deploy_conf.is_file():
+            self.say(f"  ok: {deploy_conf} kept")
+            self._install_file(
+                deploy_conf, deploy_conf.read_bytes(), "root", "root", 0o600
+            )
+        else:
+            self._install_file(
+                deploy_conf, self.files["deploy.conf.example"], "root", "root", 0o600
+            )
+
+        # Messages here name the file by a constant and never carry anything
+        # read from it (CodeQL py/clear-text-logging-sensitive-data, PR #967).
+        service_env = etc / "secrets.env"
+        shown = f"{etc}/secrets.env"
+        if service_env.is_file():
+            self.say(f"  ok: {shown} kept")
+            self._install_file(
+                service_env,
+                service_env.read_bytes(),
+                SERVICES,
+                SERVICES,
+                0o600,
+                secret=True,
+            )
+            data = service_env.read_bytes()
+        elif self.layout.dev_secrets.is_file():
+            data = self.layout.dev_secrets.read_bytes()
+            have = env_keys(data.decode(errors="replace"))
+            # Today DATABASE_URL (with its password) sits in the dev tree's
+            # .env, not in .secrets/; the release reads it only from here.
+            carried = 0
+            for name, line in self._dev_env_lines():
+                if name in CARRIED_FROM_DEV_ENV and name not in have:
+                    data = data.rstrip(b"\n") + b"\n" + line + b"\n"
+                    carried += 1
+            self.say(
+                f"  {shown} is built from .secrets/core.env and {carried} line(s) "
+                "of .env (names and values not shown)"
+            )
+            self._install_file(
+                service_env, data, SERVICES, SERVICES, 0o600, secret=True
+            )
+        else:
+            self.failures.append(
+                f"no {shown} and no .secrets/core.env in the development tree to "
+                "copy it from: create it (DATABASE_URL, CORE_MASTER_KEY, API keys), "
+                "core:core 0600"
+            )
+            return
+        present = env_keys(data.decode(errors="replace"))
+        for required in REQUIRED_ENV_NAMES:
+            if required not in present:
+                self.failures.append(f"{shown} would lack {required}")
+
+    def _dev_env_lines(self) -> list[tuple[str, bytes]]:
+        """(KEY, raw line) for each assignment in the dev tree's .env."""
+        if not self.layout.dev_env.is_file():
+            return []
+        found = []
+        for raw in self.layout.dev_env.read_bytes().splitlines():
+            line = raw.strip()
+            if not line or line.startswith(b"#") or b"=" not in line:
+                continue
+            found.append((line.split(b"=", 1)[0].strip().decode(), line))
+        return found
+
+    # -- 5. core-deploy --------------------------------------------------------
+
+    def deploy_script(self) -> None:
+        self.say("5. core-deploy")
+        self._install_file(
+            self.layout.sbin / "core-deploy",
+            self.files["core-deploy"],
+            "root",
+            "root",
+            0o755,
+        )
+
+    # -- 6. sandbox --------------------------------------------------------------
+
+    def sandbox(self) -> None:
+        self.say("6. sandbox runner (ADR-132 D10.10)")
+        if self.apply or (self.layout.repo / "var" / "tmp").is_dir():
+            # setgid: every snapshot core writes is group core-sandbox, readable, not writable.
+            self._ensure_dir(self.layout.inbox, SERVICES, SANDBOX, 0o2750)
+        else:
+            self.say(f"  would: {self.layout.inbox}: {SERVICES}:{SANDBOX} 2750")
+        changed = False
+        for name in SANDBOX_UNITS:
+            path = self.layout.system_units / name
+            changed |= not (path.is_file() and path.read_bytes() == self.files[name])
+            self._install_file(path, self.files[name], "root", "root", 0o644)
+        if changed and self.act("systemctl daemon-reload"):
+            self.host.run(["systemctl", "daemon-reload"])
+        active = (
+            self.host.run(
+                ["systemctl", "is-active", "core-sandbox.socket"], check=False
+            ).returncode
+            == 0
+        )
+        if active and not changed:
+            self.say("  ok: core-sandbox.socket active")
+        elif self.act("systemctl enable --now core-sandbox.socket"):
+            self.host.run(["systemctl", "enable", "--now", "core-sandbox.socket"])
+            if changed and active:
+                self.host.run(["systemctl", "restart", "core-sandbox.socket"])
+
+    # -- 7. the governor's socket and binding ------------------------------------
+
+    def governor_access(self) -> None:
+        name = self.governor
+        assert name is not None
+        self.say(f"7. the governor's socket and binding (ADR-132 D10.9): {name}")
+        members = self.host.group_members(GOVERNOR_GROUP)
+        if members is None:
+            if self.act(f"create system group {GOVERNOR_GROUP}"):
+                self.host.run(["groupadd", "--system", GOVERNOR_GROUP])
+            members = []
+        others = [m for m in members if m != name]
+        if others:
+            self.failures.append(
+                f"{GOVERNOR_GROUP} has other members ({', '.join(others)}); "
+                f"only {name} may reach the governor socket"
+            )
+        if name in members:
+            self.say(f"  ok: {name} is in {GOVERNOR_GROUP}")
+        elif self.act(
+            f"add {name} to {GOVERNOR_GROUP} (takes effect at their next login)"
+        ):
+            self.host.run(["usermod", "--append", "--groups", GOVERNOR_GROUP, name])
+        conf = self.layout.tmpfiles / "core-api.conf"
+        stale = not (conf.is_file() and conf.read_bytes() == TMPFILES_CONF)
+        self._install_file(conf, TMPFILES_CONF, "root", "root", 0o644)
+        if stale and self.act(f"systemd-tmpfiles --create {conf}"):
+            self.host.run(["systemd-tmpfiles", "--create", str(conf)])
+        self._ensure_dir(self.layout.etc_core, "root", "root", 0o755)
+        binding = self.layout.etc_core / "principals.yaml"
+        data = f"principals:\n  {name}: {GOVERNOR_ROLE}\n".encode()
+        if binding.is_file() and binding.read_bytes() != data:
+            self.failures.append(
+                f"{binding} exists with other content; not replaced. Expected:\n"
+                + data.decode()
+            )
+            return
+        self._install_file(binding, data, "root", "root", 0o644)
+        self._governor_cli()
+
+    def _governor_cli(self) -> None:
+        venv = self.layout.core_root / "cli"
+        marker = venv / "installed"
+        link = self.layout.bin / "core"
+        if marker.is_file() and marker.read_text().strip() == CORE_CLI:
+            self.say(f"  ok: {CORE_CLI} in {venv}")
+        elif self.act(f"install {CORE_CLI} (wheel only) into {venv}"):
+            self.host.run(["python3", "-m", "venv", "--clear", str(venv)])
+            self.host.run(
+                [
+                    str(venv / "bin" / "pip"),
+                    "install",
+                    "--only-binary=:all:",
+                    "--no-cache-dir",
+                    CORE_CLI,
+                ]
+            )
+            marker.write_text(CORE_CLI + "\n")
+        target = venv / "bin" / "core"
+        if link.is_symlink() and os.readlink(link) == str(target):
+            self.say(f"  ok: {link} -> {target}")
+        elif link.exists() and not link.is_symlink():
+            self.failures.append(f"{link} exists and is not our link; not replaced")
+        elif self.act(f"link {link} -> {target}"):
+            link.unlink(missing_ok=True)
+            link.symlink_to(target)
+
+    # -- 8. core's units ---------------------------------------------------------
+
+    def service_units(self) -> None:
+        account = self.host.account(SERVICES)
+        assert account is not None
+        unit_dir = Path(account.pw_dir) / ".config" / "systemd" / "user"
+        self.say(f"8. {SERVICES}'s user units in {unit_dir} (reloaded, not restarted)")
+        # Without linger, core's user manager (and every service) stops when its
+        # last session closes; the daemon-reload below closed it on 2026-10-12.
+        linger = self.host.run(
+            ["loginctl", "show-user", SERVICES, "--property=Linger", "--value"],
+            check=False,
+        )
+        if linger.stdout.strip() == b"yes":
+            self.say(f"  ok: linger enabled for {SERVICES}")
+        elif self.act(f"loginctl enable-linger {SERVICES}"):
+            self.host.run(["loginctl", "enable-linger", SERVICES])
+        stamp = self.host.now().strftime("%Y%m%dT%H%M%SZ")
+        saved = self.layout.backups / f"units-{stamp}"
+        changed = False
+        for name in SERVICE_UNITS:
+            path = unit_dir / name
+            if path.is_file() and path.read_bytes() != self.files[name]:
+                if self.act(f"keep the old {name} in {saved}"):
+                    saved.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(path, saved / name)
+            changed |= not (path.is_file() and path.read_bytes() == self.files[name])
+            if self.apply:
+                unit_dir.mkdir(parents=True, exist_ok=True)
+            self._install_file(path, self.files[name], SERVICES, SERVICES, 0o644)
+        # Drop-ins that point the services at the development tree (today's
+        # env.conf exported /opt/dev/CORE/.env) would undo the release runtime.
+        for name in SERVICE_UNITS:
+            dropins = unit_dir / f"{name}.d"
+            if not dropins.is_dir():
+                continue
+            for conf in sorted(dropins.glob("*.conf")):
+                if str(self.layout.dev_repo) not in conf.read_text(errors="replace"):
+                    continue
+                changed = True
+                if self.act(f"move {conf} to {saved} (it loads the development tree)"):
+                    saved.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(conf), saved / f"{name}.d-{conf.name}")
+        if changed and self.act(f"daemon-reload {SERVICES}'s user manager"):
+            self.host.run(
+                ["systemctl", "--user", "-M", f"{SERVICES}@", "daemon-reload"]
+            )
+        elif not changed:
+            self.say("  ok: units already installed")
+
+    # -- 9. probes ---------------------------------------------------------------
+
+    def probes(self) -> None:
+        self.say("9. probes")
+        if not self.apply:
+            self.say("  would: run the probes after the changes")
+            return
+        for account in (BUILDER, SANDBOX):
+            done = self.host.run(
+                ["cat", str(self.layout.etc / "core.env")], user=account, check=False
+            )
+            if done.returncode == 0:
+                self.failures.append(
+                    f"{account} can read {self.layout.etc / 'core.env'}"
+                )
+            else:
+                self.say(f"  denied as expected: {account} reads /opt/core/etc")
+        inbox = self.host.run(["ls", str(self.layout.inbox)], user=SANDBOX, check=False)
+        if inbox.returncode != 0:
+            self.failures.append(f"{SANDBOX} cannot read its inbox {self.layout.inbox}")
+        else:
+            self.say(f"  allowed as expected: {SANDBOX} reads its inbox")
+        socket = self.host.run(
+            ["systemctl", "is-active", "core-sandbox.socket"], check=False
+        )
+        if socket.returncode != 0:
+            self.failures.append("core-sandbox.socket is not active")
+        else:
+            self.say("  core-sandbox.socket active")
+        if self.host.account(ASSISTANT) is not None:
+            entered = self.host.run(["ls", API_SOCKET_DIR], user=ASSISTANT, check=False)
+            if entered.returncode == 0:
+                self.failures.append(f"{ASSISTANT} can enter {API_SOCKET_DIR}")
+            else:
+                self.say(f"  denied as expected: {ASSISTANT} enters {API_SOCKET_DIR}")
+        assert self.governor is not None
+        entered = self.host.run(["ls", API_SOCKET_DIR], user=self.governor, check=False)
+        if entered.returncode != 0:
+            self.failures.append(f"{self.governor} cannot enter {API_SOCKET_DIR}")
+        else:
+            self.say(f"  allowed as expected: {self.governor} enters {API_SOCKET_DIR}")
+
+    def run_all(self) -> int:
+        self.preflight()
+        self.fetch_files()
+        self.accounts()
+        self.directories()
+        self.clone()
+        self.configuration()
+        self.deploy_script()
+        self.sandbox()
+        self.governor_access()
+        self.service_units()
+        self.probes()
+        if self.failures:
+            self.say("FAILED:\n  " + "\n  ".join(self.failures))
+            return 1
+        if not self.apply:
+            self.say("plan only; nothing changed. Re-run with --apply.")
+            return 0
+        check = (
+            "sudo -u core bash -c 'set -a; . /opt/core/etc/core.env; "
+            "/opt/core/current/venv/bin/core-admin runtime sandbox-check --mode service'"
+        )
+        self.say(
+            "done. Next, in this order:\n"
+            f"  1. sudo core-deploy {self.ref}\n"
+            f"  2. {check}\n"
+            "     expected: every row passed\n"
+            "  3. sudo systemctl stop core-sandbox.socket; then the same check "
+            "(expected: every row not_run); then sudo systemctl start core-sandbox.socket\n"
+            f"  4. log in again as {self.governor} (the {GOVERNOR_GROUP} group applies to new "
+            "logins), then approve with:\n"
+            f"     CORE_API_URL=unix://{API_SOCKET_DIR}/api.sock core proposals approve <id>\n"
+            "     (add the CORE_API_URL line to your shell profile to skip typing it)"
+        )
+        return 0
+
+
+def main(
+    argv: list[str] | None = None,
+    host: Host | None = None,
+    layout: Layout | None = None,
+) -> int:
+    parser = argparse.ArgumentParser(
+        prog="core-runtime-setup", description=__doc__.split("\n\n")[0]
+    )
+    parser.add_argument(
+        "--ref", required=True, help="full commit sha on GitHub's develop"
+    )
+    parser.add_argument("--apply", action="store_true", help="make the changes")
+    parser.add_argument(
+        "--governor",
+        default=os.environ.get("SUDO_USER"),
+        help="the human's own account, bound to principal.governor "
+        "(default: the account that ran sudo)",
+    )
+    args = parser.parse_args(argv)
+    os.umask(0o022)
+    setup = Setup(
+        layout=layout or Layout(),
+        host=host or Host(),
+        ref=args.ref,
+        apply=args.apply,
+        governor=args.governor,
+    )
+    try:
+        return setup.run_all()
+    except Refused as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

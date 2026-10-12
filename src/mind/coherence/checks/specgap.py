@@ -26,7 +26,11 @@ from typing import TYPE_CHECKING
 
 import yaml
 
-from shared.infrastructure.intent.law_roots import intent_root_for, specs_root_for
+from shared.infrastructure.intent.law_roots import (
+    intent_root_for,
+    law_relpath,
+    specs_root_for,
+)
 
 from .base import CoherenceCandidate
 
@@ -162,7 +166,7 @@ class SpecGapCheck:
         if not path.exists():
             return []
         content = path.read_text(encoding="utf-8")
-        rel = str(path.relative_to(self._repo_root))
+        rel = law_relpath(self._repo_root, path)
         matches = list(_UR_HEADING.finditer(content))
         result: list[tuple[str, str, str]] = []
         for i, m in enumerate(matches):

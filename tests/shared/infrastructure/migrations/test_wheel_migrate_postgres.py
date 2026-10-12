@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from .conftest import FreshDatabase
 
 
-pytestmark = [pytest.mark.integration, pytest.mark.slow]
+pytestmark = [pytest.mark.integration, pytest.mark.upgrade, pytest.mark.slow]
 
 assert REPO_ROOT is not None
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "schema"

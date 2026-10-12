@@ -1,5 +1,7 @@
 # G4 soak — pre-declaration (2026 Q4, first run)
 
+> **Note 2026-10-12 (governor ruling):** links in this record to files under `var/` point to files that were not retained (deleted 2026-10-12). The record is otherwise kept as written. LLM assumed too much while writing this text.
+
 **Status:** committed 2026-09-21 on the governor's Path A instruction, before T0; §0's SHA and T0 are filled by the governor at the moment the clock starts, from `origin/main` at that moment. Signature is the governor's, at §0.
 
 > **Superseded 2026-10-09 (proposal 0008).** G4 is no longer measured by a frozen soak; see

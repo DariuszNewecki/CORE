@@ -105,7 +105,7 @@ include_files:
   - "src/api/v1/proposals_routes.py"
 
   # -- mind/logic (2026-10-02: scope widened; governor decision 2026-09-21,
-  # all files; recommendation var/tmp/include-files-widening-recommendation-20260921.md).
+  # all files).
   # Pure by constitution (no DB/FS/Body/Will/LLM) -- the 08-26 failure classes
   # (FastAPI+DB handlers, Rich renderers) are absent here.
   # 2026-10-03: knowledge_source_check.py removed with the module (dead code:

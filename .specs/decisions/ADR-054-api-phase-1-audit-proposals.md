@@ -107,8 +107,6 @@ src/cli/resources/code/audit.py
 src/cli/resources/code/lint.py
 ```
 
-Source: `var/adr054-phase1-imports.txt` (grep run 2026-05-16).
-
 ---
 
 ## Verification
@@ -141,7 +139,6 @@ This ADR is verified when:
 - ADR-038 — circuit breaker (proposal creation gate; API must respect
   it)
 - Issue #335 — phase tracking issue
-- `var/adr054-phase1-imports.txt` — D4 source grep (2026-05-16)
 - `src/api/` — current stub (7 files, health check only)
 - Commit `5c0ee6b0` — `_check_authorization` deliberate-stub precedent
   for D3 rationale
@@ -212,3 +209,7 @@ JOIN core.audit_runs r USING (run_id)
 GROUP BY check_id
 ORDER BY occurrences DESC;
 ```
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

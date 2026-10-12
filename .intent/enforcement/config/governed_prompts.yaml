@@ -41,10 +41,6 @@ governed_prompts:
     anchors: ["ADR-134:D8"]
     rationale: Rewrites call sites in source files via ActionExecutor("crate.create").
 
-  - name: body_contracts_fixer
-    anchors: ["ADR-134:D8"]
-    rationale: Fixes Body-layer contract violations; output written via FileHandler.write_runtime_text.
-
   - name: docstring_writer
     anchors: ["ADR-134:D8"]
     rationale: Generates docstrings written to source files via FileHandler.write_runtime_text.

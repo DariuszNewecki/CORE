@@ -627,5 +627,7 @@ artifact).
   constitutionally-invisible drift signal D4 retires.
 - `src/will/workers/repo_crawler.py` — the worker whose
   reap extension is the D8 implementation site.
-- `var/audits/repo_artifacts_orphans_2026-05-23.txt` — captured
-  list of the 350 orphan rows that surfaced this gap.
+
+---
+
+**Amendment 2026-10-12 (governor ruling):** references to `var/` removed from this ADR. LLM assumed too much while writing ADRs text.

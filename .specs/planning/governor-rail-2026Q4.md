@@ -41,7 +41,7 @@ so it cannot be redefined at 1am into whatever happened to occur.
 > zero or cannot be read; each is an `act` under D2 by construction):
 > 1. **The envelope ADR** — `flow.build_test_for_symbol` becomes auto-approvable under
 >    stated conditions (today no flow is: #853 ruling 6, `eb853e36` 2026-09-15; last
->    self-approved test-gen proposal 2026-08-26). Draft: `var/tmp/ADR-163-…md`.
+>    self-approved test-gen proposal 2026-08-26). Draft not retained.
 > 2. **The monthly census counter** — per calendar month: symbols landed with a test through
 >    autonomous proposals (real commit, `approved_by = autonomous_self_promote`) vs public
 >    symbols added in governor-authored commits with no test referencing them. No instrument
@@ -111,7 +111,7 @@ DariuszNewecki --state open`): 42 open assigned issues, of which decisions the g
 alone can make: #920, #917, #900, #897, #887, #816, #801, #891 (ADR, `status:blocked`),
 and #808, which is *one* issue carrying **39 indeterminate findings needing triage**.
 Off-GitHub, also open tonight: the G4 pre-declaration signature and T0; the envelope
-ADR; ADR-161 acceptance; three drafts in `var/tmp/ingest-fix-drafts/`; 20 `pending`
+ADR; ADR-161 acceptance; three drafts (not retained); 20 `pending`
 test-gen proposals; #891's one ping. That is **≈ 16 decisions open**, one of which hides 39.
 
 A cap set below that number starts tripped: at N = 5 the rail's first act would be
@@ -214,7 +214,7 @@ is a visible decision rather than a drift:
 >   fake a C8 signature — if it does, D2's `act` clause covers it
 > - **core-platform**
 > - **G11 residual** — #919 (paper drift; execution, not a decision)
-> - **the `permitted_tools` enforcement rule** (`var/tmp/ingest-fix-drafts/rule-workers-no-full-audit.md`)
+> - **the `permitted_tools` enforcement rule** (draft not retained)
 >   — safe to ignore *only because* soak condition **C9 was adopted** into the pre-declaration
 >   2026-09-21 as the runtime verdict for the same property; the rule follows on a quiet week
 >   once C9 has shown what normal looks like
@@ -226,8 +226,8 @@ is a visible decision rather than a drift:
 > **Picked up 2026-10-05 (governor).** From the audit-engine false-positive cluster:
 > #904, #876, #870 — fixed in 929be92f and c518b854. #858, #869, #902 stay on the list.
 
-◆ **On the last candidate:** the `permitted_tools` rule is already drafted
-(`var/tmp/ingest-fix-drafts/rule-workers-no-full-audit.md`) and applying it is a Path A
+◆ **On the last candidate:** the `permitted_tools` rule was drafted
+(draft not retained) and applying it is a Path A
 edit of minutes, so ignoring it is a real choice, not a saving. It is a *safe* ignore only
 because soak condition C9 (`llm_exchange_log` per role per day vs a T0 baseline) is the
 runtime verdict for the same property — if C9 is not adopted into the pre-declaration,
@@ -322,7 +322,7 @@ and the review date should be T1 + 7 days instead.
 | core-platform | — | yes |
 | packaging and onboarding polish | #892, #795, #796, #797, #888 | yes **if the bar is B**; impossible if the bar is C |
 | reject-without-disposition | #920 | yes — but it is also the shape D2 needs for governor "no"s; if D2 is signed, #920 is half-answered by this document and should say so when closed |
-| `permitted_tools` enforcement rule | drafted, `var/tmp/ingest-fix-drafts/` | yes **only if C9 is adopted** into the pre-declaration; otherwise apply the rule (minutes) and ignore C9 instead |
+| `permitted_tools` enforcement rule | drafted (draft not retained) | yes **only if C9 is adopted** into the pre-declaration; otherwise apply the rule (minutes) and ignore C9 instead |
 | not on the list but should be decided | #808 — 39 indeterminate findings under one issue | **not ignorable and not one decision**: split it into ≤ 5 clusters this quarter or the ratchet is fiction |
 | not on the list, safe to add | #887 (embedding consolidation = full re-embed), #896 (blackboard index), #848 (CI perf), #774 (literal sweep), #819, #816 | yes — none touches A or B |
 

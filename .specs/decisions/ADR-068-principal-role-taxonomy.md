@@ -346,3 +346,116 @@ Deferred to implementation. At implementation, verification is:
 ## Note 2026-10-10 — CCC run 6558a043, structural triage (proposal 0012)
 
 Reference correction (append-only; the text above is unchanged): the taxonomy is `.intent/taxonomies/principal_roles.yaml`; `.intent/governance/principal_roles.yaml` never existed.
+
+## Amendment 2026-10-11 — operation modes, the producer role, and who may do what
+
+**Proposed by:** Claude (core-claude), proposal 0023. **Rests on:** the governor's ruling of 2026-10-11 (three
+operation modes, option A: "single user for adopters and RBAC for Platform", with a separated mode between them);
+ADR-132 D10.1, D10.2, D10.9, D10.10; ADR-170 D2, D6; ADR-168 (producers); #942.
+
+### A1 — "Local" no longer means "trusted" (D4 superseded)
+
+D4's Single-Governor Local posture assumed that whoever reaches CORE on this machine is the governor. That stopped
+being true when AI assistants began working on the same machine: an assistant, the governor's own model session and
+CORE's services can all act locally (#942). D4 is replaced by the operation modes below. A record stamped
+`principal.governor` must say which mode stood behind it (A6).
+
+### A2 — Three operation modes
+
+The role set (D2, plus A3) is the same in every mode. A mode decides how principals are bound to roles (Layer 2)
+and therefore what CORE may honestly claim.
+
+| Mode | For | How principals are bound | CORE's claim |
+|---|---|---|---|
+| `solo` | an adopter: one OS account, human and assistant indistinguishable to the system | none: every local actor may be the assistant | **detects, does not prevent.** Governor acts need a human-typed confirmation and leave a record; CORE says plainly that the assistant could have made them |
+| `solo-separated` | CORE's own server, and any adopter who sets it up | one OS account per role or mechanism (A4); the binding file of ADR-132 D10.2, root-owned, outside the repository | **prevents**, for each act in A5 whose mechanism is live; an act whose mechanism is not live is reported as such |
+| `platform` | teams, through core-platform | identities and roles from the platform; D3's separation of duties enforced | prevents, and separates duties. Built **on** a `solo-separated` host, never instead of one |
+
+The default for an adopter is `solo`. A mode never changes silently: a deployment declared `solo-separated` whose
+machine does not match is a finding (A6), not a quiet fall-back to `solo`.
+
+### A3 — A fifth role: `principal.producer`
+
+| Role ID | Display name | Authority |
+|---|---|---|
+| `principal.producer` | Producer | Produces changes — code, tests, drafts of law — and submits them as proposals (ADR-168). Writes only its own working tree and proposals. Never approves a proposal, never writes governed text, never deploys, never holds a production credential. AI assistants, including the governor's own model session, are producers. |
+
+The role stays flat (D1). `proposal_approval_authority` does not gain it (D5).
+
+**Mechanism accounts are not principals.** `core-law`, `core-build` and `core-sandbox` hold no authority of their
+own. Each acts only on someone else's act: `core-law` on the governor's sudo approval (ADR-170), `core-build` and
+root on the governor's deploy (ADR-132 D10.8), `core-sandbox` on a job from the services (ADR-132 D10.10).
+
+### A4 — Accounts in `solo-separated` (CORE's own server)
+
+| Account | Role or mechanism | Must never |
+|---|---|---|
+| the governor's human account (proposed `darek`) | `principal.governor` — the only account bound to it (ADR-132 D10.9) | be used by a model session |
+| `core-darek` | `principal.producer` — the governor's model session | approve anything; hold sudo or any root-equivalent group |
+| `core-claude` | `principal.producer` — the coding assistant | write governed text, deploy, or read production credentials |
+| `core` | `principal.system` — daemon, workers, API | write governed text; run repository code outside the sandbox |
+| `core-law` | mechanism: the law's custodian (ADR-170) | run git or repository code; act without the governor's password |
+| `core-build` | mechanism: release builds (ADR-132 D10.8) | read `/opt/core/etc` or any credential |
+| `core-sandbox` | mechanism: runs repository code (ADR-132 D10.10) | hold a credential, reach the network or write outside its scratch |
+| `root` | break-glass, used only by the governor through sudo | change governed text without a following proposal (ADR-170 D6) |
+
+### A5 — Which act needs which role (Layer 3)
+
+| Act | Who | How it is enforced in `solo-separated` |
+|---|---|---|
+| Approve a code proposal | governor | the kernel identity of the caller, bound to `principal.governor` (ADR-132 D10.1–D10.3) |
+| Apply a law proposal | governor | sudo to `core-law`, with a fresh password (ADR-170 D6) |
+| Deploy a release | governor | root, `core-deploy` (ADR-132 D10.8) |
+| Tag a release (a `v*.*.*` tag publishes to PyPI and GHCR automatically) | governor; a producer may push the tag on the governor's yes | **not enforced by the system.** Any account with write access to the GitHub repository, including the assistant's `core-claude-bot`, can push a release tag; no tag ruleset exists and the `pypi` environment has no required reviewer. Root on the host does not reach GitHub. The control today is the governor's yes in the session |
+| Change accounts, groups or sudo rules on the host | governor | root, through sudo with the governor's password |
+| Resolve a finding with governor authority | governor | as for approval (#942) |
+| Push to `develop` | a producer, on the governor's yes | the governor's yes in the session (not yet enforced by the system) |
+| Propose a change or a law change | producer or system | the producer submission route (ADR-168) |
+| Run repository code **on behalf of CORE's services** (tests, `conftest.py`, build and lint scripts CORE runs on purpose) | `core-sandbox` only | the sandbox service (ADR-132 D10.10). Out of this row: a producer's own development commands, which run as that producer's account with its limits, and setup scripts the governor runs as root |
+| Read state, run an audit | any principal | — |
+
+### A6 — The mode is declared, recorded and checked
+
+1. **Declared.** The deployment's mode is declared in law, beside the role taxonomy. The binding of accounts to roles
+   stays where ADR-132 D10.2 put it (`/etc/core/principals.yaml`, root-owned), because the binding must be out of a
+   producer's reach in every mode.
+2. **Recorded.** Every governor act and every audit verdict records the mode under which it was made, so the trail
+   shows how strong each attribution is.
+3. **Checked.** A rule, reporting first, compares the declared mode with the machine. Ownership alone is not
+   evidence of protection: the check computes **effective** permissions. For every producer and system account it
+   decides whether that account can write, create, delete, rename or replace governed text or its protected names,
+   from the permission bits, the owner and the account's group memberships, ACL entries, the sticky bit, and every
+   parent directory up to `/`. In `solo-separated` it reports each such possibility, and also: a governor binding to
+   an account a model session runs as; a producer or system account in a root-equivalent group (`sudo`, `docker`,
+   `lxd`, `disk`, ...); a missing binding file. A check the services' account cannot perform (for example, reading
+   the sudo rules) is reported as **not evaluated**, never as passed.
+
+### A7 — Where CORE's own server stands today
+
+CORE's server is declared `solo-separated` once A6 is built, and the check will report, truthfully: no human
+governor account yet and no binding file (ADR-132 D10.11 step 4); `core-darek` in `sudo` and `docker`; the custodian
+not live (ADR-170 Stage 1). Each finding closes with the step that already owns it.
+
+### State: pending implementation
+
+Until implemented, the canonical taxonomy `.intent/taxonomies/principal_roles.yaml` is what is in force (D2), and it
+does not yet carry this amendment:
+- `principal.producer` (A3) is **pending**: not in the taxonomy; no record or check uses it.
+- The operation modes and the deployment's declared mode (A2, A6.1) are **pending**: the taxonomy still carries
+  `deployment_topologies.single_governor_local`, which A1 supersedes once the taxonomy is amended.
+- Recording the mode (A6.2) and the check (A6.3) are **pending**.
+Each enters the taxonomy and the rules through its own law proposal.
+
+### Not decided here
+
+- How a core-platform user becomes a principal CORE trusts (ADR-132 D10, consequences: its own decision).
+- The implementation order of A6 beyond "the taxonomy and the mode first, the check second, recording the mode on
+  governor acts with ADR-132 D10.11 step 4".
+
+### State update 2026-10-11 — proposal 0026
+
+- `principal.producer` (A3) is in the taxonomy (`principal_roles.yaml` 1.1.0). No record or check uses it yet.
+- The three operation modes (A2) and this deployment's declared mode, `solo-separated` (A6.1), are in the taxonomy;
+  `deployment_topologies.single_governor_local` is removed (A1).
+- Still pending: the check (A6.3), recording the mode on governor acts and verdicts (A6.2), and the binding file
+  (ADR-132 D10.11 step 4).
