@@ -54,6 +54,8 @@ class _Counter:
             "deselected": 0,
         }
         self.excluded: list[str] = []
+        self.passed_ids: list[str] = []
+        self.failed_ids: list[str] = []
 
     # ID: b592c847-b22b-4e2b-a393-e74f5ad1314e
     def pytest_collection_modifyitems(self, items: list[Any]) -> None:
@@ -73,8 +75,10 @@ class _Counter:
             self.counts["executed"] += 1
             if report.passed:
                 self.counts["passed"] += 1
+                self.passed_ids.append(report.nodeid)
             elif report.failed:
                 self.counts["failed"] += 1
+                self.failed_ids.append(report.nodeid)
             elif report.skipped:
                 self.counts["skipped"] += 1
         elif report.when == "setup":
@@ -83,6 +87,7 @@ class _Counter:
             elif report.failed:
                 self.counts["executed"] += 1
                 self.counts["failed"] += 1
+                self.failed_ids.append(report.nodeid)
         elif report.when == "teardown" and report.failed:
             self.counts["failed"] += 1
 
@@ -150,6 +155,8 @@ def main(argv: list[str]) -> int:
         "exit_code": exit_code,
         "counts": counter.counts,
         "excluded": counter.excluded,
+        "passed_ids": counter.passed_ids,
+        "failed_ids": counter.failed_ids,
         "error": _candidate_error(snapshot),
     }
     payload = json.dumps(report).encode("utf-8")

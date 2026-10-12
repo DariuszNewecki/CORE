@@ -42,6 +42,7 @@ from body.sandbox.runner import run_job
 from body.sandbox.snapshot import (
     DEFAULT_INCLUDE,
     SnapshotRefused,
+    apply_overlay,
     read_snapshot,
     snapshot_digest,
 )
@@ -71,6 +72,10 @@ class SandboxRequest:
     include: tuple[str, ...] = DEFAULT_INCLUDE
     # Law roots copied in as .intent/ and .specs/ (see read_snapshot).
     law: tuple[Path, ...] = ()
+    # Files added to (or replacing files of) the copy: (relative path, bytes).
+    # Code that exists only in memory -- a generated test, a workspace's
+    # uncommitted files -- runs without being written into the tree.
+    overlay: tuple[tuple[str, bytes], ...] = ()
 
 
 # ID: 7017d79f-4d5d-4892-8ff6-5f96a37a8e24
@@ -106,6 +111,7 @@ async def run_repo_code(
         entries = await asyncio.to_thread(
             read_snapshot, request.tree, request.include, request.law
         )
+        entries = apply_overlay(entries, request.overlay)
         digest = snapshot_digest(entries)
         handler.write_snapshot(inbox_rel, entries)
     except (SnapshotRefused, OSError, ValueError) as exc:

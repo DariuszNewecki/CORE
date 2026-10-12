@@ -255,3 +255,43 @@ def _read_dir(fd: int, rel_path: str, budget: _Budget) -> Iterator[SnapshotEntry
             yield from _read_entry(dir_fd, child, f"{rel_path}/{child}", budget)
     finally:
         os.close(dir_fd)
+
+
+# ID: 252d4651-c3b1-4f7c-90dc-0df524b259f2
+def apply_overlay(
+    entries: list[SnapshotEntry], overlay: tuple[tuple[str, bytes], ...]
+) -> list[SnapshotEntry]:
+    """*entries* with each (relative path, bytes) of *overlay* added as a file,
+    replacing a file or link at that path; missing parent directories are
+    added before it. Raises ``SnapshotRefused`` for an unsafe path or one that
+    names a directory."""
+    if not overlay:
+        return entries
+    result = list(entries)
+    by_path = {e.rel_path: e for e in result}
+    for rel_path, data in overlay:
+        parts = rel_path.split("/")
+        if (
+            not rel_path
+            or rel_path.startswith("/")
+            or any(p in ("", ".", "..") or is_refused_name(p) for p in parts)
+        ):
+            raise SnapshotRefused(
+                f"overlay path must be relative and safe: {rel_path!r}"
+            )
+        existing = by_path.get(rel_path)
+        if existing is not None and existing.kind == "dir":
+            raise SnapshotRefused(f"overlay path names a directory: {rel_path}")
+        if existing is not None:
+            result.remove(existing)
+        for i in range(1, len(parts)):
+            parent = "/".join(parts[:i])
+            if parent not in by_path:
+                by_path[parent] = SnapshotEntry(parent, "dir")
+                result.append(by_path[parent])
+            elif by_path[parent].kind != "dir":
+                raise SnapshotRefused(f"overlay parent is not a directory: {parent}")
+        entry = SnapshotEntry(rel_path, "file", bytes(data))
+        by_path[rel_path] = entry
+        result.append(entry)
+    return result

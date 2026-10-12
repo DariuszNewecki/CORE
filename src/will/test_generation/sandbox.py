@@ -1,32 +1,31 @@
 # src/will/test_generation/sandbox.py
 
 """
-Pytest Sandbox Runner - Materialized Sensation.
+Pytest Sandbox Runner - runs generated tests in the sandbox runner.
 
 Purpose:
-- Execute generated tests in isolation.
-- Materialize the 'Shadow Truth' (LimbWorkspace) to disk so subprocesses can see it.
+- Execute a generated test against the repository as it would be with the
+  LimbWorkspace's uncommitted files (the 'Future Truth') applied.
 - Return per-test results.
 
-Constitutional Fix (V2.3.0):
-- Ghost File Resolution: Materializes the entire LimbWorkspace into the temp dir.
-- Sets PYTHONPATH to the temp dir so imports resolve to the 'Future Truth'.
+ADR-132 D10.10 (M2): the test runs in the sandbox runner, never as a pytest
+subprocess of the services account. The workspace's files and the test are
+laid over the copy of the repository (SandboxRequest.overlay); nothing is
+written into the tree, and the services' environment is not passed on (the
+old runner copied os.environ into the child).
 """
 
 from __future__ import annotations
 
-import asyncio
-import os
 import re
-import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from body.sandbox.repo_tests import run_in_sandbox
 from body.services.file_service import FileService
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
-from shared.utils.subprocess_utils import run_command_async
 
 
 if TYPE_CHECKING:
@@ -75,138 +74,51 @@ class PytestSandboxRunner:
         code: str,
         symbol_name: str,
         timeout_seconds: int = _CFG.sandbox_timeout_sec,
-        workspace: LimbWorkspace | None = None,  # <--- NEW: Accept the Shadow Truth
+        workspace: LimbWorkspace | None = None,
     ) -> SandboxResult:
         """
-        Execute code in a sandbox.
-        If 'workspace' is provided, we materialize its uncommitted files
-        so the test subprocess can import them.
+        Run the generated test *code* in the sandbox runner (ADR-132 D10.10).
+
+        The repository is copied as it is, with the workspace's uncommitted
+        files (the "future truth") laid over it and the test added at the
+        top level; nothing is written into the tree. The sandbox's own
+        environment applies: the services' environment is never passed on.
         """
-        # Unique ID for this run to avoid collision
-        run_id = f"sandbox_{int(time.time())}_{symbol_name}"
+        safe_name = re.sub(r"\W", "_", symbol_name) or "generated"
+        test_rel = f"test_{safe_name}_sandbox.py"
+        overlay: list[tuple[str, bytes]] = []
+        if workspace:
+            for rel_path, content in workspace.get_crate_content().items():
+                overlay.append((rel_path, content.encode("utf-8")))
+        overlay.append((test_rel, code.encode("utf-8")))
 
-        # We use a dedicated temp directory for the ENTIRE execution environment.
-        # CLAUDE.md /tmp/ prohibition: temp dir must resolve inside the repo under var/tmp/.
-        import tempfile
+        try:
+            result = await run_in_sandbox(
+                self._repo_root,
+                [test_rel],
+                timeout_sec=timeout_seconds,
+                overlay=overlay,
+            )
+        except Exception as e:
+            return SandboxResult(passed=False, error=str(e))
 
-        with tempfile.TemporaryDirectory(
-            prefix="core_sandbox_", dir=str(self._repo_root / "var" / "tmp")
-        ) as tmp_dir:
-            sandbox_root = Path(tmp_dir)
+        if result.status == "timeout":
+            return SandboxResult(
+                passed=False, error=f"Execution timeout ({timeout_seconds}s)."
+            )
+        passed_tests = [_test_name(n) for n in result.passed_ids]
+        failed_tests = [_test_name(n) for n in result.failed_ids]
+        output = "\n".join(s for s in (result.stdout, result.stderr) if s)
+        return SandboxResult(
+            passed=result.ok,
+            error="" if result.ok else (output or f"{result.status}: {result.reason}"),
+            passed_tests=passed_tests,
+            failed_tests=failed_tests,
+            total_tests=len(passed_tests) + len(failed_tests),
+        )
 
-            try:
-                # 1. MATERIALIZATION: Replicate necessary context.
-                # Writes route through FileService → FileHandler.write
-                # (ADR-097 step 5). The sandbox lives under var/tmp/, so
-                # every materialized path classifies as ephemeral-scratch
-                # via target_class_boundaries.yaml: no source-shape
-                # transforms, no ID-anchor injection, no syntax gate, no
-                # policy-rule evaluation. Parent-dir creation is handled
-                # by FileHandler internally.
-                if workspace:
-                    crate = workspace.get_crate_content()
-                    for rel_path, content in crate.items():
-                        dst = sandbox_root / rel_path
-                        rel_to_repo = str(dst.relative_to(self._repo_root))
-                        self._fh.write(rel_to_repo, content)
 
-                # 2. WRITE THE TEST
-                # We place the test in a location that mimics the repo structure
-                # to help relative imports work if necessary
-                test_file_path = sandbox_root / f"test_{symbol_name}_sandbox.py"
-                self._fh.write(
-                    str(test_file_path.relative_to(self._repo_root)),
-                    code,
-                )
-
-                # 3. CONFIGURE ENVIRONMENT
-                # We append sandbox_root to PYTHONPATH so imports find the materialized files first
-                env = os.environ.copy()
-                original_pythonpath = env.get("PYTHONPATH", "")
-
-                # Priority: Sandbox > Real Repo > System
-                # This ensures we see "Future Truth" (Sandbox) before "Historical Truth" (Repo)
-                env["PYTHONPATH"] = (
-                    f"{sandbox_root}:{self._repo_root}/src:{self._repo_root}:{original_pythonpath}"
-                )
-
-                # 4. EXECUTE
-                # We run pytest pointed specifically at our test file, through
-                # the sanctioned subprocess surface. On timeout the cancelled
-                # helper kills and reaps the child before TimeoutError lands.
-                try:
-                    result = await asyncio.wait_for(
-                        run_command_async(
-                            [
-                                "pytest",
-                                "-c",
-                                "/dev/null",  # Ignore local pytest.ini
-                                "-p",
-                                "no:cov",  # Disable coverage (too slow for sandbox)
-                                "-p",
-                                "no:cacheprovider",
-                                "--tb=short",
-                                "-v",
-                                str(test_file_path),
-                            ],
-                            cwd=sandbox_root,  # CWD is the sandbox
-                            env=env,
-                        ),
-                        timeout=timeout_seconds,
-                    )
-                except TimeoutError:
-                    return SandboxResult(
-                        passed=False,
-                        error=f"Execution timeout ({timeout_seconds}s).",
-                        passed_tests=[],
-                        failed_tests=[],
-                        total_tests=0,
-                    )
-
-                # Streams arrive stripped; join on a newline so the last
-                # stdout line never fuses with the first stderr line.
-                output = "\n".join(s for s in (result.stdout, result.stderr) if s)
-                ok = result.returncode == 0
-
-                # 5. PARSE RESULTS
-                passed_tests, failed_tests = self._parse_test_results(output)
-                total = len(passed_tests) + len(failed_tests)
-
-                return SandboxResult(
-                    passed=ok,
-                    error=("" if ok else output),
-                    passed_tests=passed_tests,
-                    failed_tests=failed_tests,
-                    total_tests=total,
-                )
-
-            except Exception as e:
-                return SandboxResult(
-                    passed=False,
-                    error=str(e),
-                    passed_tests=[],
-                    failed_tests=[],
-                    total_tests=0,
-                )
-
-    def _parse_test_results(self, output: str) -> tuple[list[str], list[str]]:
-        """
-        Parse pytest -v output.
-        """
-        passed = []
-        failed = []
-
-        # Regex to capture test names from verbose output
-        # Example: test_file.py::test_func PASSED
-        pattern = re.compile(r"(?:::)?([a-zA-Z_][a-zA-Z0-9_]*)\s+(PASSED|FAILED)")
-
-        for match in pattern.finditer(output):
-            test_name = match.group(1)
-            status = match.group(2)
-
-            if status == "PASSED":
-                passed.append(test_name)
-            elif status == "FAILED":
-                failed.append(test_name)
-
-        return passed, failed
+def _test_name(nodeid: str) -> str:
+    """``tests/x.py::TestA::test_b[1]`` -> ``test_b`` (the function name the
+    callers match generated tests by)."""
+    return nodeid.split("::")[-1].split("[", 1)[0]

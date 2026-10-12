@@ -185,3 +185,22 @@ def test_nested_includes_share_their_parent_once(scratch: Path) -> None:
 def test_include_paths_must_stay_inside(scratch: Path, bad: str) -> None:
     with pytest.raises(SnapshotRefused):
         read_snapshot(_tree(scratch / "t"), (bad,))
+
+
+def test_overlay_replaces_files_and_adds_parents(scratch: Path) -> None:
+    entries = read_snapshot(_tree(scratch / "t"))
+    out = snap.apply_overlay(
+        entries, (("src/pkg/__init__.py", b"X = 2\n"), ("new/dir/f.py", b"y"))
+    )
+    by_path = {e.rel_path: e for e in out}
+    assert by_path["src/pkg/__init__.py"].data == b"X = 2\n"
+    assert [e.rel_path for e in out].count("src/pkg/__init__.py") == 1
+    order = [e.rel_path for e in out]
+    assert order.index("new") < order.index("new/dir") < order.index("new/dir/f.py")
+
+
+@pytest.mark.parametrize("bad", ["../x", "/abs", "src", "a/.env", ".git/config"])
+def test_overlay_refuses_unsafe_paths(scratch: Path, bad: str) -> None:
+    entries = read_snapshot(_tree(scratch / "t"))
+    with pytest.raises(SnapshotRefused):
+        snap.apply_overlay(entries, ((bad, b"x"),))

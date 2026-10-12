@@ -127,6 +127,8 @@ def run_job(
         exit_code=exit_code,
         counts=dict((report or {}).get("counts", {})),
         excluded=list((report or {}).get("excluded", [])),
+        passed_ids=list((report or {}).get("passed_ids", [])),
+        failed_ids=list((report or {}).get("failed_ids", [])),
         stdout=captured.stdout.decode(errors="replace"),
         stderr=captured.stderr.decode(errors="replace"),
         output_truncated=captured.truncated,

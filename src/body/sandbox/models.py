@@ -132,6 +132,9 @@ class SandboxResult:
     exit_code: int | None = None
     counts: dict[str, int] = field(default_factory=dict)
     excluded: list[str] = field(default_factory=list)
+    # Node ids of the tests that passed / failed (setup failures included).
+    passed_ids: list[str] = field(default_factory=list)
+    failed_ids: list[str] = field(default_factory=list)
     stdout: str = ""
     stderr: str = ""
     output_truncated: bool = False

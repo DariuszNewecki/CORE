@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from body.sandbox.client import SandboxRequest, run_repo_code
+from body.sandbox.models import SandboxResult
 from body.sandbox.snapshot import SKIPPED_NAMES, is_refused_name
 from shared.action_types import ActionImpact, ActionResult
 from shared.infrastructure.database.session_manager import get_session
@@ -40,7 +41,6 @@ from shared.logger import getLogger
 
 if TYPE_CHECKING:
     from body.infrastructure.storage.file_handler import FileHandler
-    from body.sandbox.models import SandboxResult
 
 logger = getLogger(__name__)
 
@@ -84,28 +84,11 @@ async def run_tests(
     if not suppress_logging:
         logger.info("Running repository tests in the sandbox")
 
-    if repo_root is None:
-        from shared.infrastructure.bootstrap_registry import BootstrapRegistry
-
-        repo_root = BootstrapRegistry.get_repo_path()
-    repo_root = Path(repo_root)
-    targets = (target, *extra_targets) if target else ("tests",)
-    law = tuple(
-        root
-        for root in (intent_root_for(repo_root), specs_root_for(repo_root))
-        if root.is_dir()
-    )
-    result = await run_repo_code(
-        SandboxRequest(
-            tree=repo_root,
-            targets=tuple(targets),
-            timeout_sec=timeout_sec,
-            markers=markers,
-            include=repo_include(repo_root),
-            law=law,
-        ),
-        repo_root=repo_root,
-        mode=sandbox_mode(),
+    result = await run_in_sandbox(
+        repo_root,
+        (target, *extra_targets) if target else ("tests",),
+        markers=markers,
+        timeout_sec=timeout_sec,
     )
 
     data = _result_data(result)
@@ -125,6 +108,44 @@ async def run_tests(
     if not suppress_logging:
         logger.info("Test run complete: %s", data["summary"])
     return action_result
+
+
+# ID: 25ba8f87-287d-44de-982c-12171a33846d
+async def run_in_sandbox(
+    tree: Path | None,
+    targets: Sequence[str],
+    *,
+    markers: str | None = None,
+    timeout_sec: int = DEFAULT_TIMEOUT_SEC,
+    overlay: Sequence[tuple[str, bytes]] = (),
+) -> SandboxResult:
+    """Run the pytest *targets* of *tree* (default: CORE's bound repository)
+    in the sandbox, with *overlay* files added; the raw SandboxResult.
+
+    The copy is written to the bound repository's inbox whatever *tree* is:
+    the sandbox service reads only that inbox, so a flow worktree's own
+    var/tmp would never be seen.
+    """
+    from shared.infrastructure.bootstrap_registry import BootstrapRegistry
+
+    bound = Path(BootstrapRegistry.get_repo_path())
+    tree = Path(tree) if tree is not None else bound
+    law = tuple(
+        root for root in (intent_root_for(tree), specs_root_for(tree)) if root.is_dir()
+    )
+    return await run_repo_code(
+        SandboxRequest(
+            tree=tree,
+            targets=tuple(targets),
+            timeout_sec=timeout_sec,
+            markers=markers,
+            include=repo_include(tree),
+            law=law,
+            overlay=tuple(overlay),
+        ),
+        repo_root=bound,
+        mode=sandbox_mode(),
+    )
 
 
 # ID: f5cedfa0-7194-4b0f-962d-4dbd299fe17c

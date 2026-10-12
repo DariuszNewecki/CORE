@@ -17,6 +17,9 @@ from body.sandbox import repo_tests
 from body.sandbox.models import SandboxResult
 
 
+BOUND = Path("/opt/core/repo")
+
+
 def _result(**kw: object) -> SandboxResult:
     base: dict[str, object] = {
         "status": "passed",
@@ -34,6 +37,10 @@ async def _run(scratch: Path, result: SandboxResult, **kw: object):
     with (
         patch.object(repo_tests, "run_repo_code", fake),
         patch.object(repo_tests, "_persist_result_to_db", AsyncMock()),
+        patch(
+            "shared.infrastructure.bootstrap_registry.BootstrapRegistry.get_repo_path",
+            return_value=BOUND,
+        ),
     ):
         action = await repo_tests.run_tests(repo_root=scratch, **kw)  # type: ignore[arg-type]
     return action, fake.call_args
@@ -51,7 +58,9 @@ async def test_targets_and_markers_reach_the_sandbox(scratch: Path) -> None:
     assert request.targets == ("tests/test_a.py", "tests/test_b.py")
     assert request.markers == "not integration"
     assert request.tree == scratch
-    assert call.kwargs["repo_root"] == scratch
+    # The copy goes to the bound repository's inbox, the only one the
+    # service reads, even when the tree is a flow worktree.
+    assert call.kwargs["repo_root"] == BOUND
 
 
 async def test_without_target_the_whole_tests_tree_runs(scratch: Path) -> None:
