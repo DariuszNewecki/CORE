@@ -13,6 +13,7 @@ own probes (step 8), then core-deploy and the sandbox check.
 from __future__ import annotations
 
 import datetime
+import hashlib
 import importlib.machinery
 import importlib.util
 import stat
@@ -315,7 +316,12 @@ def test_configuration_from_the_examples_and_the_dev_secrets(world, capsys) -> N
         assert _mode(etc / name) == 0o600
         assert world.host.owners[etc / name] == owner
     out = capsys.readouterr().out
-    assert "CORE_MASTER_KEY, DATABASE_URL" in out and "pw@db" not in out
+    # Nothing derived from the secrets is printed: no values, no names, no
+    # hash (CodeQL py/clear-text-logging-sensitive-data, PR #967).
+    assert "pw@db" not in out and "CORE_MASTER_KEY" not in out
+    assert "secret, not shown" in out
+    secret_hash = hashlib.sha256((etc / "secrets.env").read_bytes()).hexdigest()
+    assert secret_hash[:16] not in out
 
 
 def test_existing_configuration_is_kept(world) -> None:

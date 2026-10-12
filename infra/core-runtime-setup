@@ -325,9 +325,20 @@ class Setup:
             os.chmod(path, mode)
 
     def _install_file(
-        self, path: Path, data: bytes, user: str, group: str, mode: int
+        self,
+        path: Path,
+        data: bytes,
+        user: str,
+        group: str,
+        mode: int,
+        *,
+        secret: bool = False,
     ) -> None:
-        """Write *data* to *path* unless it is already exactly that."""
+        """Write *data* to *path* unless it is already exactly that.
+
+        For a *secret* file nothing derived from its bytes is printed, not
+        even a hash prefix.
+        """
         if path.is_symlink():
             raise Refused(f"{path} is a symlink")
         same = path.is_file() and path.read_bytes() == data
@@ -339,7 +350,12 @@ class Setup:
         if right:
             self.say(f"  ok: {path}")
             return
-        what = "permissions" if same else f"content sha256 {sha256(data)[:16]}"
+        if same:
+            what = "permissions"
+        elif secret:
+            what = "content (secret, not shown)"
+        else:
+            what = f"content sha256 {sha256(data)[:16]}"
         if self.act(f"{path}: {what}, {user}:{group} {mode:o}"):
             if not same:
                 staged = path.with_name(f".{path.name}.new")
@@ -563,7 +579,9 @@ class Setup:
         secrets = etc / "secrets.env"
         if secrets.is_file():
             self.say(f"  ok: {secrets} kept")
-            self._install_file(secrets, secrets.read_bytes(), SERVICES, SERVICES, 0o600)
+            self._install_file(
+                secrets, secrets.read_bytes(), SERVICES, SERVICES, 0o600, secret=True
+            )
             data = secrets.read_bytes()
         elif self.layout.dev_secrets.is_file():
             data = self.layout.dev_secrets.read_bytes()
@@ -574,9 +592,8 @@ class Setup:
                 if key in CARRIED_FROM_DEV_ENV and key not in have:
                     data = data.rstrip(b"\n") + b"\n" + line + b"\n"
                     self.say(f"  {key} from {self.layout.dev_env} (value not shown)")
-            keys = sorted(env_keys(data.decode(errors="replace")))
-            self.say(f"  secrets.env will hold: {', '.join(keys)} (values not shown)")
-            self._install_file(secrets, data, SERVICES, SERVICES, 0o600)
+            self.say("  secrets.env is built from them (names and values not shown)")
+            self._install_file(secrets, data, SERVICES, SERVICES, 0o600, secret=True)
         else:
             self.failures.append(
                 f"no {secrets} and no {self.layout.dev_secrets} to copy it from: "
