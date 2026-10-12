@@ -174,9 +174,17 @@ class Runner:
         if not isinstance(pulls, list):
             return None, None
         for pull in pulls:
-            if pull.get("merge_commit_sha") == sha and pull.get("merged_by"):
-                head = (pull.get("head") or {}).get("sha")
-                return str(pull["merged_by"]["login"]), str(head) if head else None
+            if pull.get("merge_commit_sha") != sha:
+                continue
+            # The per-commit list leaves merged_by empty; only the pull
+            # request itself carries it.
+            detail = self.host.http(
+                f"{self.api}/repos/{self.repo}/pulls/{pull['number']}"
+            )
+            if not isinstance(detail, dict) or not detail.get("merged_by"):
+                return None, None
+            head = (detail.get("head") or {}).get("sha")
+            return str(detail["merged_by"]["login"]), str(head) if head else None
         return None, None
 
     def issue(self, title: str, body: str) -> str | None:
@@ -220,14 +228,23 @@ class Runner:
         self.load()
         head = self.head()
         self.state["seen_head"] = head
-        if head in (self.state.get("done"), self.live_sha()):
+        # A skipped head is looked at again every tick: the merger lookup can
+        # come back empty (GitHub still settling) and must not lose a merge.
+        finished = (
+            head == self.state.get("done")
+            and (self.state.get("last") or {}).get("result") != "skipped"
+        )
+        if finished or head == self.live_sha():
             self.state["done"] = head
             self.save()
             self.write_status(state="idle")
             return
         merger, tested = self.merge(head)
         if merger != self.governor or not tested:
-            self.log(head, f"skipped: merged by {merger!r}, not {self.governor!r}")
+            note = f"skipped: merged by {merger!r}, not {self.governor!r}"
+            if self.state.get("skip_note") != [head, note]:
+                self.log(head, note)
+                self.state["skip_note"] = [head, note]
             self.state["done"] = head
             self.state["last"] = {
                 "sha": head,

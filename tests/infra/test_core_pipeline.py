@@ -68,13 +68,13 @@ class FakeHost(cp.Host):
         if url.endswith("/branches/main"):
             return {"commit": {"sha": self.head}}
         if url.endswith("/pulls"):
-            return [
-                {
-                    "merge_commit_sha": self.head,
-                    "merged_by": {"login": self.merger},
-                    "head": {"sha": HEAD},
-                }
-            ]
+            # As GitHub answers: the per-commit list carries no merged_by.
+            return [{"number": 967, "merge_commit_sha": self.head, "merged_by": None}]
+        if url.endswith("/pulls/967"):
+            return {
+                "merged_by": {"login": self.merger} if self.merger else None,
+                "head": {"sha": HEAD},
+            }
         if "check-runs" in url:
             return {"check_runs": self.runs}
         raise AssertionError(url)
@@ -194,3 +194,25 @@ def test_refuses_without_the_governor_named(tmp_path: Path) -> None:
     conf.write_text("GITHUB_REPO=DariuszNewecki/CORE\n")
     layout = cp.Layout(state_dir=tmp_path / "s", conf=conf, current=tmp_path / "c")
     assert cp.main([], host=FakeHost(), layout=layout) == 1
+
+
+def test_a_merge_skipped_while_github_settles_is_deployed_next_tick(world) -> None:
+    """2026-10-12: PR #967's merge was read 6s after merging with no merger
+    and skipped for good. A skipped head is now looked at again."""
+    host, layout = world
+    host.merger = None
+    assert _tick(world)["last"]["result"] == "skipped"
+    host.merger = "DariuszNewecki"
+    assert _tick(world)["last"]["result"] == "live"
+    log = (layout.logs / f"{SHA[:12]}.log").read_text()
+    assert log.count("skipped") == 1
+
+
+def test_a_known_other_merger_is_logged_once(world) -> None:
+    host, layout = world
+    host.merger = "core-claude-bot"
+    _tick(world)
+    _tick(world)
+    assert _privileged(host) == []
+    log = (layout.logs / f"{SHA[:12]}.log").read_text()
+    assert log.count("skipped") == 1
