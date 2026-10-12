@@ -819,3 +819,61 @@ R4 is closed for repository tests: they do not run as `core`. Three things remai
   correctness gap (they can see an older version), not repository code running as `core`.
 - **Local mode** (`CORE_SANDBOX_MODE=local`, the development default) runs the same jobs without isolation and
   labels them `isolation: local`. It does not close R4; only `service` does.
+
+## Addendum — D10.11 step 4 as built: the governor gate is live (2026-10-12)
+
+**Proposed by:** Claude (core-claude), 2026-10-12, proposal 0034. **Rests on:** D10.3 as amended, D10.4, D10.9,
+D10.11 step 4; ADR-068 D2 (roles); ADR-168 Amendment 2026-10-10 (the producer path). Code: commit 27265f2c.
+
+### D10.17 — Which routes need the governor
+
+`require_governor` passes only for a caller on CORE's Unix socket (`/run/core/api/api.sock`) whose kernel-reported
+uid `/etc/core/principals.yaml` binds to `principal.governor`. TCP, every other account and a missing or
+untrustworthy binding get 403. `_oss_passthrough` is gone; so is `require_operator`, which nothing used.
+
+The gate stays on every route that had it, except these, each open for a stated reason:
+
+- **Producer submission** (`POST /proposals/submit`) and **proposal reads** (`GET /proposals`, `/{id}`,
+  `/{id}/chain`). The coding assistant submits under ADR-168; a submission is only a PENDING proposal, and
+  nothing lands without the governor's approval.
+- **Fix dry runs** (`POST /fix/run/{fix_id}` with `write=false`) and **run status** (`GET /fix/runs/{id}`). The
+  assistant's `validate_change` runs `assisted.validate_diff` this way. `write=true` is checked in the handler and
+  needs the governor.
+- **Daemon status** (`GET /daemon/status`), the read `core-deploy` uses for its heartbeat check. Daemon start and
+  stop stay gated; the daemon router is now user-facing with per-route gates.
+
+What the assistant can no longer do over the API: approve, reject, execute or create proposals; run a fix with
+`write=true`; resolve a finding; the governor-only routers (refactor, cognitive roles, LLM resources, sync,
+integrity, develop), including their reads. Those are the governor's, on the socket.
+
+### D10.18 — Stamps, as built
+
+- `approve` writes `approved_by` (the governor's OS account) and `approval_authority` (`principal.governor`)
+  itself. A body `approved_by` is ignored; a body `approval_authority` that differs is a 400.
+- `POST /findings/{id}/resolve` (new) closes a finding delegated to a human and writes `resolved_by` and
+  `resolution_authority` the same way. `core-admin workers resolve` calls it and has no `--by` or `--authority`.
+- `BlackboardService.resolve_indeterminate_entry` has no default authority, so an omitted one cannot claim the
+  governor.
+- **The demo** (ADR-155 D6) drives its own disposable deployment through an in-process app that carries no socket
+  identity. That private app overrides the gate with the demo runner; the served app never does.
+
+### D10.19 — Deployment
+
+- `core-api` runs `python -m api.serve`, on TCP (user-facing) and on `/run/core/api/api.sock` (mode 0660).
+- `core-runtime-setup` makes the group `core-gov`, holding only the governor (`--governor`, by default the
+  account that ran sudo; never a `core*` account); a tmpfiles entry for `/run/core/api` (`core:core-gov 2750`);
+  and `/etc/core/principals.yaml` (root, 0644), never replacing a different existing file. Its probes check that
+  `core-claude` cannot enter `/run/core/api` and the governor can.
+- The governor's `core` command is core-cli, a published wheel that setup installs into a root-owned venv
+  (`/opt/core/cli`, linked from `/usr/local/bin/core`). The approving CLI must not be one the coding assistant can
+  write: a CLI in the development venv could approve a different id than the one typed.
+- The governor approves with `CORE_API_URL=unix:///run/core/api/api.sock core proposals approve <id>`.
+
+### Still open, and named
+
+- **Verification** (D10.11 step 7) runs after the governor applies the setup and deploys: as `core-claude` and
+  `core-darek`, governor routes are refused; as `darek` over the socket they succeed and the stored actor is
+  `darek`; with the binding missing, nobody is governor.
+- **D10.11 steps 5–6** (inventory of DB-direct commands, credential isolation) are unchanged and come next.
+- **The platform route** stays its own decision (Consequences of the 2026-10-10 addendum; ADR-068 D1 Layer 2 for
+  Team and Enterprise tiers). The Console reaching CORE over TCP is refused governor acts until then.
