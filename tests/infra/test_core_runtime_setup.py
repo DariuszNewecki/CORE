@@ -126,7 +126,12 @@ def world(tmp_path: Path):
     )
     (layout.law / ".intent").mkdir(parents=True)
     layout.dev_secrets.parent.mkdir(parents=True)
-    layout.dev_secrets.write_bytes(b"DATABASE_URL=postgres://x\nCORE_MASTER_KEY=k\n")
+    # As on the host today: the key in .secrets/, the database URL in .env.
+    layout.dev_secrets.write_bytes(b"CORE_MASTER_KEY=k\n")
+    (layout.dev_repo / ".env").write_bytes(
+        b'CORE_ENV="development"\nREPO_PATH="/opt/dev/CORE"\n'
+        b'DATABASE_URL="postgresql+asyncpg://u:pw@db/core"\n'
+    )
     layout.system_units.mkdir(parents=True)
     layout.sbin.mkdir(parents=True)
     # Today's units: an old daemon unit and the drop-in that loads the dev tree.
@@ -259,7 +264,12 @@ def test_configuration_from_the_examples_and_the_dev_secrets(world, capsys) -> N
     assert (etc / "deploy.conf").read_bytes() == _content(
         "infra/systemd/d2/deploy.conf.example"
     )
-    assert (etc / "secrets.env").read_bytes() == world.layout.dev_secrets.read_bytes()
+    secrets = (etc / "secrets.env").read_bytes()
+    assert secrets == (
+        b'CORE_MASTER_KEY=k\nDATABASE_URL="postgresql+asyncpg://u:pw@db/core"\n'
+    )
+    # Only the secret is carried: the dev tree's REPO_PATH must never reach the release.
+    assert b"REPO_PATH" not in secrets
     for name, owner in (
         ("core.env", ("core", "core")),
         ("deploy.conf", ("root", "root")),
@@ -268,7 +278,7 @@ def test_configuration_from_the_examples_and_the_dev_secrets(world, capsys) -> N
         assert _mode(etc / name) == 0o600
         assert world.host.owners[etc / name] == owner
     out = capsys.readouterr().out
-    assert "CORE_MASTER_KEY, DATABASE_URL" in out and "postgres://x" not in out
+    assert "CORE_MASTER_KEY, DATABASE_URL" in out and "pw@db" not in out
 
 
 def test_existing_configuration_is_kept(world) -> None:
@@ -277,12 +287,19 @@ def test_existing_configuration_is_kept(world) -> None:
     (etc / "core.env").write_bytes(
         b"CORE_UPSTREAM_URL=https://github.com/a/b.git\nMINE=1\n"
     )
-    (etc / "secrets.env").write_bytes(b"DATABASE_URL=mine\n")
+    (etc / "secrets.env").write_bytes(b"DATABASE_URL=mine\nCORE_MASTER_KEY=m\n")
     assert _run(world, "--apply") == 0
     assert b"MINE=1" in (etc / "core.env").read_bytes()
-    assert (etc / "secrets.env").read_bytes() == b"DATABASE_URL=mine\n"
+    assert (
+        etc / "secrets.env"
+    ).read_bytes() == b"DATABASE_URL=mine\nCORE_MASTER_KEY=m\n"
     clone = next(cmd for cmd, _ in _ran(world, "git") if "clone" in cmd)
     assert "https://github.com/a/b.git" in clone
+
+
+def test_secrets_without_a_database_url_is_a_failure(world) -> None:
+    (world.layout.dev_repo / ".env").unlink()
+    assert _run(world, "--apply") == 1
 
 
 def test_missing_secrets_is_a_failure(world) -> None:

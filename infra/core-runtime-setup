@@ -28,8 +28,9 @@ What it does (the D2 checklist, then the sandbox steps, in one run):
     checked out at <sha>; ``.git`` group ``core-dev``, readable not
     writable (the assistant reads it, never writes it);
  4. configuration in ``/opt/core/etc``: ``core.env`` from the example,
-    ``deploy.conf`` from the example, ``secrets.env`` copied from the
-    development tree's ``.secrets/core.env``;
+    ``deploy.conf`` from the example, ``secrets.env`` from the
+    development tree's ``.secrets/core.env`` plus ``DATABASE_URL`` from its
+    ``.env`` (refused unless it then holds DATABASE_URL and CORE_MASTER_KEY);
  5. ``/usr/local/sbin/core-deploy``;
  6. the sandbox: its inbox in the clone, the two system units, the socket
     enabled and started;
@@ -84,6 +85,10 @@ SERVICE_UNITS = (
     "core-daemon-worker@.service",
 )
 SANDBOX_UNITS = ("core-sandbox.socket", "core-sandbox@.service")
+# The release reads these only from /opt/core/etc/secrets.env.
+REQUIRED_SECRETS = ("DATABASE_URL", "CORE_MASTER_KEY")
+# Secrets that today live in the dev tree's .env, carried into secrets.env.
+CARRIED_FROM_DEV_ENV = ("DATABASE_URL",)
 # Installed file name -> path in the repository at <sha>.
 SOURCES = {
     "core-deploy": "infra/core-deploy",
@@ -135,6 +140,10 @@ class Layout:
     @property
     def dev_secrets(self) -> Path:
         return self.dev_repo / ".secrets" / "core.env"
+
+    @property
+    def dev_env(self) -> Path:
+        return self.dev_repo / ".env"
 
 
 # ---------------------------------------------------------------------------
@@ -494,18 +503,40 @@ class Setup:
         if secrets.is_file():
             self.say(f"  ok: {secrets} kept")
             self._install_file(secrets, secrets.read_bytes(), SERVICES, SERVICES, 0o600)
+            data = secrets.read_bytes()
         elif self.layout.dev_secrets.is_file():
             data = self.layout.dev_secrets.read_bytes()
+            have = env_keys(data.decode(errors="replace"))
+            # Today DATABASE_URL (with its password) sits in the dev tree's
+            # .env, not in .secrets/; the release reads it only from here.
+            for key, line in self._dev_env_lines():
+                if key in CARRIED_FROM_DEV_ENV and key not in have:
+                    data = data.rstrip(b"\n") + b"\n" + line + b"\n"
+                    self.say(f"  {key} from {self.layout.dev_env} (value not shown)")
             keys = sorted(env_keys(data.decode(errors="replace")))
-            self.say(
-                f"  secrets from {self.layout.dev_secrets}: {', '.join(keys)} (values not shown)"
-            )
+            self.say(f"  secrets.env will hold: {', '.join(keys)} (values not shown)")
             self._install_file(secrets, data, SERVICES, SERVICES, 0o600)
         else:
             self.failures.append(
                 f"no {secrets} and no {self.layout.dev_secrets} to copy it from: "
                 "create it (DATABASE_URL, CORE_MASTER_KEY, API keys), core:core 0600"
             )
+            return
+        for key in REQUIRED_SECRETS:
+            if key not in env_keys(data.decode(errors="replace")):
+                self.failures.append(f"{secrets} would lack {key}")
+
+    def _dev_env_lines(self) -> list[tuple[str, bytes]]:
+        """(KEY, raw line) for each assignment in the dev tree's .env."""
+        if not self.layout.dev_env.is_file():
+            return []
+        found = []
+        for raw in self.layout.dev_env.read_bytes().splitlines():
+            line = raw.strip()
+            if not line or line.startswith(b"#") or b"=" not in line:
+                continue
+            found.append((line.split(b"=", 1)[0].strip().decode(), line))
+        return found
 
     # -- 5. core-deploy --------------------------------------------------------
 
