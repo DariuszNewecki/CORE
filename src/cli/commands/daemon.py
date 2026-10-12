@@ -226,7 +226,7 @@ def _enabled_template_stems() -> set[str] | None:
 
 
 # ID: 0b1ce63d-8b46-4d8b-b1d7-2c5b6a93e0a9
-def _pid_file_for(only: str | None, repo_root: Path = Path(".")) -> Path:
+def _pid_file_for(only: str | None, repo_root: Path | None = None) -> Path:
     """Repo-relative PID file path for this daemon invocation.
 
     Default mode (``only is None``): the lightweight core-daemon PID file.
@@ -234,8 +234,17 @@ def _pid_file_for(only: str | None, repo_root: Path = Path(".")) -> Path:
     ``var/run/core-daemon-worker-<stem>.pid``. Per-stem files mean an
     operator can run the lightweight daemon and one or more dedicated
     daemons simultaneously without lock contention. Per ADR-081 D4.
+
+    Relative to the bound repository, never to the working directory: the
+    release runtime runs in /opt/core/run, outside the repository (ADR-132
+    D10 · D2), and an absolute path there is refused by FileHandler.
     """
-    run_dir = PathResolver(repo_root).run_dir
+    if repo_root is None:
+        from shared.infrastructure.bootstrap_registry import BootstrapRegistry
+
+        repo_root = BootstrapRegistry.get_repo_path()
+    root = Path(repo_root).resolve()
+    run_dir = PathResolver(root).run_dir.relative_to(root)
     if only is None:
         return run_dir / "core-daemon.pid"
     return run_dir / f"core-daemon-worker-{only}.pid"
