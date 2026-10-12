@@ -3,8 +3,8 @@
 Prepared, not installed. Installing is a governor act. Design:
 ADR-132 D10.10.
 
-The units run the **release** (`/opt/core/current`), so the D2 release runtime
-(`infra/systemd/d2/README.md`) must be installed first, in the same root session.
+The units run the **release** (`/opt/core/current`), so the first `core-deploy` must
+run before the check below.
 
 ## Files
 
@@ -17,16 +17,12 @@ They are **system** units, not `core`'s user units: `PrivateNetwork=` and the ot
 namespace walls need privileges that user units do not have on this host
 (`apparmor_restrict_unprivileged_userns = 1`).
 
-## Root steps (after the D2 checklist)
+## Installing
 
-1. Account: `useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin core-sandbox`.
-   It is in no other group: not `core`, `core-dev`, `docker` or `sudo`.
-2. Inbox: `install -d -o core -g core-sandbox -m 2750 /opt/core/repo/var/tmp/sandbox-inbox`.
-   The setgid bit makes every snapshot `core` writes group `core-sandbox`, readable but not writable by
-   the job. `core-sandbox` must be able to traverse `/opt/core`, `/opt/core/repo`, `.../var` and
-   `.../var/tmp` (mode `o+x`); it must not be able to read `/opt/core/etc`.
-3. Units: copy the two files, `systemctl daemon-reload`, `systemctl enable --now core-sandbox.socket`.
-4. Mode: `CORE_SANDBOX_MODE=service` in `/opt/core/etc/core.env` (read by callers from M2 on).
+`infra/core-runtime-setup` (see `infra/systemd/d2/README.md`) installs these units together with
+the release runtime: the account `core-sandbox` (its own group only), the inbox
+`/opt/core/repo/var/tmp/sandbox-inbox` (`core:core-sandbox 2750`), the two units, and the socket
+enabled and started. `CORE_SANDBOX_MODE=service` comes with `core.env`.
 
 ## Verification (M1)
 

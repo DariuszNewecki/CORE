@@ -23,26 +23,24 @@ They differ from today's units in three ways:
 - the working directory is `/opt/core/run`;
 - exit 78 (a startup gate refused) does not restart-loop.
 
-## Root script checklist (one script, later; listed here so nothing is missed)
+## Installing (one root session, with the sandbox)
 
-1. Accounts: `core-build`, a system account with no login, outside `core-dev`, unable to read
-   `/opt/core/etc`.
-2. Directories: create `/opt/core/{releases,run,etc,build,backups}` with the modes in the
-   design's layout table (`run` is `core:core 700`; `build` is root-owned and traversable;
-   `/opt/core` itself is `root:root 755`).
-3. CORE's clone: clone `/opt/core/repo` as `core` with `--no-hardlinks` and a sparse checkout
-   that excludes `.intent/`, `.specs/`, `CLAUDE.md` and `.claude/`. Set `.git` to group
-   `core-dev`, readable but not writable by the group, with `core.sharedRepository=0640`.
-4. Law: done by ADR-170 Stage 1, before this script: `infra/core-law-setup` creates `core-law`,
-   its venv and key, and seeds `/opt/core/law/{.intent,.specs}` owned by `core-law`.
-5. Secrets: `/opt/core/etc/secrets.env` (`core:core 0600`) holds `DATABASE_URL`,
-   `CORE_MASTER_KEY` and the API keys. It is named by `CORE_SECRETS_FILE`, never by
-   `EnvironmentFile`.
-6. Units: install the three units, remove the old `core-daemon.service.d/env.conf` drop-in
-   (it exported `/opt/dev/CORE/.env`), then `daemon-reload`.
-7. Deploy: install `core-deploy`, then run `sudo core-deploy <tag>` for the first release.
-8. The assistant's side: add `safe.directory=/opt/core/repo/.git` to `core-claude`'s own git
-   config, then fetch `core/develop` from the clone.
+`infra/core-runtime-setup` does every step: the accounts, `/opt/core`, CORE's clone, the
+configuration, `core-deploy`, the sandbox units and these units. Its docstring lists each step,
+owner and mode. Every file it installs is fetched from GitHub at the commit you name, so root
+installs exactly the pushed bytes. `--ref` is a full commit sha on `develop` whose CI is green.
+
+```
+cd /opt/dev/CORE
+sudo infra/core-runtime-setup --ref <sha>            # plan: prints every change, makes none
+sudo infra/core-runtime-setup --ref <sha> --apply    # does it, then runs its probes
+sudo core-deploy <sha>                               # the first release goes live
+```
+
+The script reloads the units but does not restart them: the services keep running today's code
+until `core-deploy` switches to the release and restarts them. Run the three commands in one
+session. Afterwards, the assistant adds `safe.directory=/opt/core/repo/.git` to its own git
+config.
 
 ## What `core-deploy` guarantees (tested in `tests/infra/test_core_deploy.py`)
 
