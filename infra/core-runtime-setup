@@ -34,13 +34,22 @@ What it does (the D2 checklist, then the sandbox steps, in one run):
  5. ``/usr/local/sbin/core-deploy``;
  6. the sandbox: its inbox in the clone, the two system units, the socket
     enabled and started;
- 7. last, ``core``'s three user units (daemon, API, dedicated workers),
+ 7. the governor's socket and binding (ADR-132 D10.3 as amended, D10.9):
+    group ``core-gov`` holding only the governor (``--governor``, by
+    default the account that ran sudo; never a ``core*`` account, which a
+    model session or a service runs as); ``/run/core/api`` (tmpfiles:
+    ``core:core-gov 2750``) for the API's Unix socket; and
+    ``/etc/core/principals.yaml`` binding that account to
+    ``principal.governor`` (root-owned; an existing different file is
+    never replaced);
+ 8. last, ``core``'s three user units (daemon, API, dedicated workers),
     replacing today's; old files and the drop-in that loaded
     ``/opt/dev/CORE/.env`` are kept in ``/opt/core/backups``. The units are
     reloaded, not restarted: the running services keep today's code until
     ``core-deploy`` switches and restarts them;
- 8. probes: core-build and core-sandbox cannot read ``/opt/core/etc``;
-    core-sandbox can read its inbox; the socket is listening.
+ 9. probes: core-build and core-sandbox cannot read ``/opt/core/etc``;
+    core-sandbox can read its inbox; the socket is listening; the coding
+    assistant cannot enter ``/run/core/api``; the governor can.
 
 It runs no code from the development tree. git runs only as ``core``.
 
@@ -74,6 +83,15 @@ SERVICES = "core"
 DEV_GROUP = "core-dev"
 BUILDER = "core-build"
 SANDBOX = "core-sandbox"
+GOVERNOR_GROUP = "core-gov"
+ASSISTANT = "core-claude"
+GOVERNOR_ROLE = "principal.governor"
+API_SOCKET_DIR = "/run/core/api"
+TMPFILES_CONF = (
+    "# core-runtime-setup: CORE's Unix sockets (ADR-132 D10.3 as amended).\n"
+    "d /run/core 0755 root root -\n"
+    f"d {API_SOCKET_DIR} 2750 {SERVICES} {GOVERNOR_GROUP} -\n"
+).encode()
 NO_LOGIN = ("/usr/sbin/nologin", "/sbin/nologin", "/bin/false")
 GITHUB_RAW = "https://raw.githubusercontent.com/DariuszNewecki/CORE"
 SAFE_GIT = ("-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false")
@@ -112,6 +130,8 @@ class Layout:
     dev_repo: Path = Path("/opt/dev/CORE")
     system_units: Path = Path("/etc/systemd/system")
     sbin: Path = Path("/usr/local/sbin")
+    etc_core: Path = Path("/etc/core")
+    tmpfiles: Path = Path("/etc/tmpfiles.d")
 
     @property
     def repo(self) -> Path:
@@ -159,6 +179,13 @@ class Host:
     def account(self, name: str) -> pwd.struct_passwd | None:
         try:
             return pwd.getpwnam(name)
+        except KeyError:
+            return None
+
+    def group_members(self, name: str) -> list[str] | None:
+        """Members of group *name*, or None when it does not exist."""
+        try:
+            return sorted(grp.getgrnam(name).gr_mem)
         except KeyError:
             return None
 
@@ -255,6 +282,7 @@ class Setup:
     host: Host
     ref: str
     apply: bool
+    governor: str | None = None
     files: dict[str, bytes] = field(default_factory=dict)
     log: list[str] = field(default_factory=list)
     failures: list[str] = field(default_factory=list)
@@ -334,6 +362,18 @@ class Setup:
             existing = self.host.account(name)
             if existing is not None and existing.pw_shell not in NO_LOGIN:
                 raise Refused(f"{name} exists with a login shell; not ours")
+        # ADR-132 D10.9: the governor is an account only the human uses; every
+        # core* account is a service or a model session.
+        if (
+            not self.governor
+            or self.governor == "root"
+            or self.governor.startswith("core")
+        ):
+            raise Refused(
+                f"--governor must name the human's own account, not {self.governor!r}"
+            )
+        if self.host.account(self.governor) is None:
+            raise Refused(f"the governor account {self.governor!r} does not exist")
 
     def fetch_files(self) -> None:
         self.say(f"fetching the files to install from GitHub at {self.ref[:12]}")
@@ -594,13 +634,52 @@ class Setup:
             if changed and active:
                 self.host.run(["systemctl", "restart", "core-sandbox.socket"])
 
-    # -- 7. core's units ---------------------------------------------------------
+    # -- 7. the governor's socket and binding ------------------------------------
+
+    def governor_access(self) -> None:
+        name = self.governor
+        assert name is not None
+        self.say(f"7. the governor's socket and binding (ADR-132 D10.9): {name}")
+        members = self.host.group_members(GOVERNOR_GROUP)
+        if members is None:
+            if self.act(f"create system group {GOVERNOR_GROUP}"):
+                self.host.run(["groupadd", "--system", GOVERNOR_GROUP])
+            members = []
+        others = [m for m in members if m != name]
+        if others:
+            self.failures.append(
+                f"{GOVERNOR_GROUP} has other members ({', '.join(others)}); "
+                f"only {name} may reach the governor socket"
+            )
+        if name in members:
+            self.say(f"  ok: {name} is in {GOVERNOR_GROUP}")
+        elif self.act(
+            f"add {name} to {GOVERNOR_GROUP} (takes effect at their next login)"
+        ):
+            self.host.run(["usermod", "--append", "--groups", GOVERNOR_GROUP, name])
+        conf = self.layout.tmpfiles / "core-api.conf"
+        stale = not (conf.is_file() and conf.read_bytes() == TMPFILES_CONF)
+        self._install_file(conf, TMPFILES_CONF, "root", "root", 0o644)
+        if stale and self.act(f"systemd-tmpfiles --create {conf}"):
+            self.host.run(["systemd-tmpfiles", "--create", str(conf)])
+        self._ensure_dir(self.layout.etc_core, "root", "root", 0o755)
+        binding = self.layout.etc_core / "principals.yaml"
+        data = f"principals:\n  {name}: {GOVERNOR_ROLE}\n".encode()
+        if binding.is_file() and binding.read_bytes() != data:
+            self.failures.append(
+                f"{binding} exists with other content; not replaced. Expected:\n"
+                + data.decode()
+            )
+            return
+        self._install_file(binding, data, "root", "root", 0o644)
+
+    # -- 8. core's units ---------------------------------------------------------
 
     def service_units(self) -> None:
         account = self.host.account(SERVICES)
         assert account is not None
         unit_dir = Path(account.pw_dir) / ".config" / "systemd" / "user"
-        self.say(f"7. {SERVICES}'s user units in {unit_dir} (reloaded, not restarted)")
+        self.say(f"8. {SERVICES}'s user units in {unit_dir} (reloaded, not restarted)")
         # Without linger, core's user manager (and every service) stops when its
         # last session closes; the daemon-reload below closed it on 2026-10-12.
         linger = self.host.run(
@@ -644,10 +723,10 @@ class Setup:
         elif not changed:
             self.say("  ok: units already installed")
 
-    # -- 8. probes ---------------------------------------------------------------
+    # -- 9. probes ---------------------------------------------------------------
 
     def probes(self) -> None:
-        self.say("8. probes")
+        self.say("9. probes")
         if not self.apply:
             self.say("  would: run the probes after the changes")
             return
@@ -673,6 +752,18 @@ class Setup:
             self.failures.append("core-sandbox.socket is not active")
         else:
             self.say("  core-sandbox.socket active")
+        if self.host.account(ASSISTANT) is not None:
+            entered = self.host.run(["ls", API_SOCKET_DIR], user=ASSISTANT, check=False)
+            if entered.returncode == 0:
+                self.failures.append(f"{ASSISTANT} can enter {API_SOCKET_DIR}")
+            else:
+                self.say(f"  denied as expected: {ASSISTANT} enters {API_SOCKET_DIR}")
+        assert self.governor is not None
+        entered = self.host.run(["ls", API_SOCKET_DIR], user=self.governor, check=False)
+        if entered.returncode != 0:
+            self.failures.append(f"{self.governor} cannot enter {API_SOCKET_DIR}")
+        else:
+            self.say(f"  allowed as expected: {self.governor} enters {API_SOCKET_DIR}")
 
     def run_all(self) -> int:
         self.preflight()
@@ -683,6 +774,7 @@ class Setup:
         self.configuration()
         self.deploy_script()
         self.sandbox()
+        self.governor_access()
         self.service_units()
         self.probes()
         if self.failures:
@@ -701,7 +793,10 @@ class Setup:
             f"  2. {check}\n"
             "     expected: every row passed\n"
             "  3. sudo systemctl stop core-sandbox.socket; then the same check "
-            "(expected: every row not_run); then sudo systemctl start core-sandbox.socket"
+            "(expected: every row not_run); then sudo systemctl start core-sandbox.socket\n"
+            f"  4. log in again as {self.governor} (the {GOVERNOR_GROUP} group applies to new "
+            "logins), then approve with:\n"
+            f"     CORE_API_URL=unix://{API_SOCKET_DIR}/api.sock core proposals approve <id>"
         )
         return 0
 
@@ -718,10 +813,20 @@ def main(
         "--ref", required=True, help="full commit sha on GitHub's develop"
     )
     parser.add_argument("--apply", action="store_true", help="make the changes")
+    parser.add_argument(
+        "--governor",
+        default=os.environ.get("SUDO_USER"),
+        help="the human's own account, bound to principal.governor "
+        "(default: the account that ran sudo)",
+    )
     args = parser.parse_args(argv)
     os.umask(0o022)
     setup = Setup(
-        layout=layout or Layout(), host=host or Host(), ref=args.ref, apply=args.apply
+        layout=layout or Layout(),
+        host=host or Host(),
+        ref=args.ref,
+        apply=args.apply,
+        governor=args.governor,
     )
     try:
         return setup.run_all()

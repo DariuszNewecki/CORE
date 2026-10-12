@@ -17,6 +17,7 @@ import pytest
 from fastapi import BackgroundTasks, HTTPException, Response
 from pydantic import ValidationError
 
+from api.dependencies import CallerPrincipal
 from api.v1.fix_routes import (
     RunFixRequest,
     RunFlowRequest,
@@ -29,6 +30,11 @@ from api.v1.fix_routes import (
     run_fix_ir,
     run_fix_modularity,
 )
+
+
+GOVERNOR = CallerPrincipal(uid=1004, account="darek", role="principal.governor")
+ASSISTANT = CallerPrincipal(uid=1001, account="core-claude", role=None)
+TCP = CallerPrincipal(uid=None, account=None, role=None)
 
 
 def _mock_request():
@@ -84,6 +90,7 @@ async def test_run_fix_unknown_id_raises_422():
                 background_tasks=MagicMock(spec=BackgroundTasks),
                 payload=RunFixRequest(),
                 session=AsyncMock(),
+                principal=TCP,
             )
     assert exc.value.status_code == 422
     assert "fix.nonexistent" in exc.value.detail
@@ -107,6 +114,7 @@ async def test_run_fix_valid_id_returns_202_with_pending():
             background_tasks=bg,
             payload=RunFixRequest(write=False),
             session=session,
+            principal=TCP,
         )
 
     assert out == {
@@ -136,10 +144,37 @@ async def test_run_fix_propagates_write_flag_to_insert():
             background_tasks=bg,
             payload=RunFixRequest(write=True),
             session=session,
+            principal=GOVERNOR,
         )
 
     insert_params = session.execute.await_args.args[1]
     assert insert_params["write"] is True
+
+
+@pytest.mark.parametrize("caller", [ASSISTANT, TCP], ids=["assistant", "tcp"])
+async def test_run_fix_write_is_refused_for_anyone_but_the_governor(
+    caller: CallerPrincipal,
+) -> None:
+    """write=true needs the governor (ADR-132 D10.11 step 4); nothing is queued."""
+    session = AsyncMock()
+    bg = MagicMock(spec=BackgroundTasks)
+    with patch(
+        "api.v1.fix_routes.list_registered_action_ids",
+        return_value=["fix.format"],
+    ):
+        with pytest.raises(HTTPException) as exc:
+            await run_fix(
+                fix_id="fix.format",
+                request=_mock_request(),
+                response=MagicMock(spec=Response),
+                background_tasks=bg,
+                payload=RunFixRequest(write=True),
+                session=session,
+                principal=caller,
+            )
+    assert exc.value.status_code == 403
+    session.execute.assert_not_called()
+    bg.add_task.assert_not_called()
 
 
 # ── run_fix_all ───────────────────────────────────────────────────────────────

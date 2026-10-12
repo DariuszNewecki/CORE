@@ -95,7 +95,7 @@ the project root.
 
 ## Propose a change
 
-With a running CORE, the assistant can submit a change in two steps: `validate_change` runs CORE's full checks on the patch (a few minutes); `submit_change` then records it as a pending proposal, naming who produced it and why (an issue, an ADR or your request). Nothing lands until you run `core proposals approve <id>` and type the short id at a terminal. The commit names the assistant as author and CORE as committer.
+With a running CORE, the assistant can submit a change in two steps: `validate_change` runs CORE's full checks on the patch (a few minutes); `submit_change` then records it as a pending proposal, naming who produced it and why (an issue, an ADR or your request). Nothing lands until you run `core proposals approve <id>` from your own account, over CORE's Unix socket (`CORE_API_URL=unix:///run/core/api/api.sock`), and type the short id at a terminal. The assistant's account is refused (403). The commit names the assistant as author and CORE as committer.
 
 ## What the answers mean
 

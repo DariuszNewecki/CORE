@@ -3,7 +3,7 @@
   "info": {
     "title": "CORE OEM API",
     "description": "\nThe CORE API surface — the stable, versioned interface that external\nintegrations and downstream distributions consume to embed CORE's\nconstitutional governance layer.\n\n**Stability policy:** see [ADR-087](https://github.com/DariuszNewecki/CORE/blob/main/.specs/decisions/ADR-087-oem-api-versioning-and-stability-policy.md).\n**Route classification:** see [CORE-OEM-API paper](https://github.com/DariuszNewecki/CORE/blob/main/.specs/papers/CORE-OEM-API.md).\n\nRoutes marked `internal` (or absent from this spec) are CORE-operator\nconcerns — daemon lifecycle, autonomy-loop triggers, CI gate dispatch.\nThey are subject to change without notice and not part of this contract.\n",
-    "version": "2.14.2",
+    "version": "2.14.1",
     "x-stability-policy": "https://github.com/DariuszNewecki/CORE/blob/main/.specs/decisions/ADR-087-oem-api-versioning-and-stability-policy.md"
   },
   "paths": {
@@ -291,7 +291,7 @@
           "Proposals"
         ],
         "summary": "Approve a pending proposal",
-        "description": "Approve a proposal awaiting governance review. `approval_authority` is non-omittable per URS NFR.5 and validated against the `proposal_approval_authority` closed set inside ProposalStateManager. Returns 404 if the proposal doesn't exist; 400 if the authority is outside the closed vocabulary or the proposal is in a non-approvable state.",
+        "description": "Approve a proposal awaiting governance review. Only the governor, on CORE's Unix socket, may call it (403 otherwise). The server stamps `approved_by` (the governor's OS account) and `approval_authority` (`principal.governor`); a body `approval_authority` must equal it (400 otherwise). Returns 404 if the proposal doesn't exist; 400 if the proposal is in a non-approvable state.",
         "operationId": "approve_proposal_v1_proposals__proposal_id__approve_post",
         "parameters": [
           {
@@ -476,6 +476,61 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GovernanceChainResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/findings/{entry_id}/resolve": {
+      "post": {
+        "tags": [
+          "Findings"
+        ],
+        "summary": "Close a finding delegated to the governor",
+        "description": "Close a finding the audit sensor delegated to a human ('indeterminate', or 'open' with resolution_mechanism 'human'). Only the governor, on CORE's Unix socket, may call it (403 otherwise). The server stamps `resolved_by` (the governor's OS account) and `resolution_authority` (`principal.governor`); the body carries only the reason. Returns 404 if the entry does not exist or is not delegated to a human.",
+        "operationId": "resolve_finding_v1_findings__entry_id__resolve_post",
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveFindingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Resolve Finding V1 Findings  Entry Id  Resolve Post"
                 }
               }
             }
@@ -1598,7 +1653,7 @@
           "Fix"
         ],
         "summary": "Dispatch an atomic fix action",
-        "description": "Run an atomic action from the registry by `fix_id` (e.g. `fix.format`, `fix.imports`, `fix.docstrings`). Returns 422 if `fix_id` is unknown — the response body includes a registered ids count. Valid ids return 202 + a `run_id` to poll. `write=false` is the dry-run default (ADR-014). `params` carries action-specific kwargs (e.g. `fix.docstrings`'s `limit`) and is forwarded as `**kwargs` to ActionExecutor.execute.",
+        "description": "Run an atomic action from the registry by `fix_id` (e.g. `fix.format`, `fix.imports`, `fix.docstrings`). Returns 422 if `fix_id` is unknown — the response body includes a registered ids count. Valid ids return 202 + a `run_id` to poll. `write=false` is the dry-run default (ADR-014) and is open; `write=true` needs the governor on CORE's Unix socket (403 otherwise). `params` carries action-specific kwargs (e.g. `fix.docstrings`'s `limit`) and is forwarded as `**kwargs` to ActionExecutor.execute.",
         "operationId": "run_fix_v1_fix_run__fix_id__post",
         "parameters": [
           {
@@ -3556,16 +3611,20 @@
       "ApproveRequest": {
         "properties": {
           "approval_authority": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Approval Authority"
           }
         },
         "type": "object",
-        "required": [
-          "approval_authority"
-        ],
         "title": "ApproveRequest",
-        "description": "Body for POST /proposals/{id}/approve.\n\n`approved_by` is derived server-side from the request context and is\nnot accepted from the request body."
+        "description": "Body for POST /proposals/{id}/approve.\n\nThe server writes `approved_by` and `approval_authority` from the\ncaller's verified identity (ADR-132 D10.4); neither is taken from the\nbody. An `approval_authority` sent anyway must equal the server's value."
       },
       "AsyncDispatchResponse": {
         "properties": {
@@ -5426,6 +5485,21 @@
         ],
         "title": "RemediationRunResponse",
         "description": "GET /v1/audit/remediations/{run_id} response shape."
+      },
+      "ResolveFindingRequest": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "ResolveFindingRequest",
+        "description": "Body for POST /findings/{entry_id}/resolve: the reason only."
       },
       "RunFixRequest": {
         "properties": {

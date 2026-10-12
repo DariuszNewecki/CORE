@@ -19,6 +19,12 @@ CONSTITUTIONAL:
   ConsequenceLogService facades.
 - CoreContext is read from request.app.state.core_context — never
   constructed in routes.
+
+GOVERNOR GATE (ADR-132 D10.11 step 4): approve, reject, execute and create
+need the governor on CORE's Unix socket; approve is stamped from that
+identity (D10.4). Submitting a producer's change (ADR-168) and reading
+proposals are open: a submission is only a pending proposal, and nothing
+lands without the governor's approval.
 """
 
 from __future__ import annotations
@@ -63,16 +69,27 @@ API_CLAIMER_UUID: Final[UUID] = UUID("00000000-0000-0000-0000-000000000002")
 ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(prefix="/proposals")
 
+INTENTIONALLY_UNGATED: dict[str, str] = {
+    "submit_change": (
+        "Producer submission (ADR-168 Amendment 2026-10-10): the coding "
+        "assistant's submit_change records a PENDING proposal only, after "
+        "CORE re-reads the validation run that binds the patch. It never "
+        "approves or executes; approve_proposal (governor, Unix socket) is "
+        "the only way a submission lands."
+    ),
+}
+
 
 # ID: 5103629b-96d2-4c2c-8217-df99555ed221
 class ApproveRequest(BaseModel):
     """Body for POST /proposals/{id}/approve.
 
-    `approved_by` is derived server-side from the request context and is
-    not accepted from the request body.
+    The server writes `approved_by` and `approval_authority` from the
+    caller's verified identity (ADR-132 D10.4); neither is taken from the
+    body. An `approval_authority` sent anyway must equal the server's value.
     """
 
-    approval_authority: str
+    approval_authority: str | None = None
 
 
 # ID: 3a74ddce-87c2-4528-a2f4-5ec68d171ea0
@@ -135,7 +152,6 @@ class CreateProposalRequest(BaseModel):
     status_code=201,
     response_model=SubmitChangeResponse,
     summary="Submit a producer's validated change as a pending proposal",
-    dependencies=[require_governor],
     description=(
         "One way in for a change not born from a finding (ADR-168 Amendment "
         "2026-10-10). The patch must have cleared a general-mode "
@@ -221,7 +237,6 @@ async def create_proposal(
 @router.get(
     "",
     summary="List proposals",
-    dependencies=[require_governor],
     description=(
         "List proposals, optionally filtered by `status`. When `status` is "
         "omitted, returns proposals awaiting approval. `limit` is capped at 500. "
@@ -280,7 +295,6 @@ async def list_proposals(
     "/{proposal_id}/chain",
     response_model=GovernanceChainResponse,
     summary="Governance chain for a proposal",
-    dependencies=[require_governor],
     description=(
         "Return the complete governance chain for a proposal: the proposal "
         "itself, every linked finding (detected violations), and the execution "
@@ -309,7 +323,6 @@ async def get_proposal_chain(
     "/{proposal_id}",
     response_model=ProposalResponse,
     summary="Fetch a single proposal",
-    dependencies=[require_governor],
     description=(
         "Return a proposal by `proposal_id`. Returns 404 if no proposal "
         "exists with that id."
@@ -336,11 +349,12 @@ async def get_proposal(
     summary="Approve a pending proposal",
     dependencies=[require_governor],
     description=(
-        "Approve a proposal awaiting governance review. `approval_authority` "
-        "is non-omittable per URS NFR.5 and validated against the "
-        "`proposal_approval_authority` closed set inside ProposalStateManager. "
-        "Returns 404 if the proposal doesn't exist; 400 if the authority is "
-        "outside the closed vocabulary or the proposal is in a non-approvable state."
+        "Approve a proposal awaiting governance review. Only the governor, on "
+        "CORE's Unix socket, may call it (403 otherwise). The server stamps "
+        "`approved_by` (the governor's OS account) and `approval_authority` "
+        "(`principal.governor`); a body `approval_authority` must equal it "
+        "(400 otherwise). Returns 404 if the proposal doesn't exist; 400 if the "
+        "proposal is in a non-approvable state."
     ),
 )
 # ID: 499722f9-8c4c-4d04-99b2-aed56329c592
@@ -350,20 +364,23 @@ async def approve_proposal(
     user: dict = require_governor,
     session: AsyncSession = Depends(get_api_session),
 ) -> dict:
-    """Approve a pending proposal.
-
-    `approval_authority` is non-omittable per URS NFR.5 and validated
-    against the proposal_approval_authority closed set inside
-    ProposalStateManager.approve. `approved_by` is derived from the
-    request context (trusted-localhost in OSS mode).
-    """
-    approved_by = user.get("email") or user.get("sub", "unknown")
+    """Approve a pending proposal, stamped from the verified caller (ADR-132 D10.4)."""
+    approved_by = user["sub"]
+    approval_authority = user["principal"]
+    if payload.approval_authority not in (None, approval_authority):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"approval_authority {payload.approval_authority!r} does not match "
+                f"the caller's verified authority {approval_authority!r}"
+            ),
+        )
     service = ProposalService(session)
     try:
         await service.approve(
             proposal_id,
             approved_by=approved_by,
-            approval_authority=payload.approval_authority,
+            approval_authority=approval_authority,
         )
     except ProposalNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -375,7 +392,7 @@ async def approve_proposal(
         "proposal_id": proposal_id,
         "status": ProposalStatus.APPROVED.value,
         "approved_by": approved_by,
-        "approval_authority": payload.approval_authority,
+        "approval_authority": approval_authority,
     }
 
 

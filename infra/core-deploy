@@ -50,9 +50,9 @@ when a migration lies between them (a symlink does not roll back a database).
 Exit codes: 0 done; 1 refused (nothing live changed, or switched back);
 3 stopped after a migration — governor decision needed.
 
-Known limit: the heartbeat check reads GET /v1/daemon/status. When
-``require_governor`` goes live (ADR-132 D10.11 step 4) that route needs the
-governor's identity, and this check needs its own read-only channel.
+The heartbeat check reads GET /v1/daemon/status over TCP. Since
+``require_governor`` went live (ADR-132 D10.11 step 4) that route stays open
+as a read; daemon start and stop need the governor.
 """
 
 from __future__ import annotations

@@ -664,11 +664,17 @@ class BlackboardService:
         self,
         entry_id: str,
         reason: str,
-        resolved_by: str = "cli_admin",
-        resolution_authority: str = "principal.governor",
+        *,
+        resolved_by: str,
+        resolution_authority: str,
     ) -> int:
         """
         Close a single indeterminate finding with an operator-provided reason.
+
+        ``resolved_by`` and ``resolution_authority`` have no defaults: an
+        omitted authority must not silently claim the governor (ADR-132
+        D10.4). The governor's closures come through POST
+        /v1/findings/{id}/resolve, which stamps them from the verified caller.
 
         Indeterminate is terminal from the audit sensor's perspective — the
         sensor delegates to a human and will not re-evaluate the row. Without

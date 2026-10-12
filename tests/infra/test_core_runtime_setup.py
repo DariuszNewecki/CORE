@@ -59,8 +59,15 @@ class FakeHost(rs.Host):
         self.root = True
         self.accounts = {
             "core": SimpleNamespace(pw_shell="/bin/bash", pw_dir=str(home / "core")),
+            "darek": SimpleNamespace(pw_shell="/bin/bash", pw_dir=str(home / "darek")),
+            "core-claude": SimpleNamespace(
+                pw_shell="/bin/bash", pw_dir=str(home / "core-claude")
+            ),
         }
         self.groups: dict[str, list[str]] = {}
+        self.group_table: dict[str, list[str]] = {}
+        # Who can list the API socket directory (the real kernel decides).
+        self.enters_api_dir: set[str] = {"darek"}
         self.owners: dict[Path, tuple[str, str]] = {}
         self.calls: list[tuple[list[str], str | None]] = []
         self.fetched: list[str] = []
@@ -76,6 +83,10 @@ class FakeHost(rs.Host):
 
     def groups_of(self, user: str) -> list[str]:
         return self.groups.get(user, [user])
+
+    def group_members(self, name: str) -> list[str] | None:
+        members = self.group_table.get(name)
+        return None if members is None else sorted(members)
 
     def fetch(self, url: str, timeout: float = 30.0) -> bytes:
         self.fetched.append(url)
@@ -115,6 +126,12 @@ class FakeHost(rs.Host):
             self.linger = True
         elif cmd[0] == "cat" and user is not None:
             code = 0 if user in self.readable_etc_by else 1
+        elif cmd[0] == "groupadd":
+            self.group_table[cmd[-1]] = []
+        elif cmd[0] == "usermod":
+            self.group_table[cmd[-2]].append(cmd[-1])
+        elif cmd[0] == "ls" and cmd[1] == rs.API_SOCKET_DIR:
+            code = 0 if user in self.enters_api_dir else 2
         result = subprocess.CompletedProcess(cmd, code, out, b"")
         if check and code:
             raise rs.Refused(f"failed: {cmd}")
@@ -128,6 +145,8 @@ def world(tmp_path: Path):
         dev_repo=tmp_path / "dev" / "CORE",
         system_units=tmp_path / "etc" / "systemd" / "system",
         sbin=tmp_path / "usr" / "local" / "sbin",
+        etc_core=tmp_path / "etc" / "core",
+        tmpfiles=tmp_path / "etc" / "tmpfiles.d",
     )
     (layout.law / ".intent").mkdir(parents=True)
     layout.dev_secrets.parent.mkdir(parents=True)
@@ -139,6 +158,7 @@ def world(tmp_path: Path):
     )
     layout.system_units.mkdir(parents=True)
     layout.sbin.mkdir(parents=True)
+    layout.tmpfiles.mkdir(parents=True)
     # Today's units: an old daemon unit and the drop-in that loads the dev tree.
     units = tmp_path / "home" / "core" / ".config" / "systemd" / "user"
     (units / "core-daemon.service.d").mkdir(parents=True)
@@ -150,8 +170,12 @@ def world(tmp_path: Path):
     return SimpleNamespace(layout=layout, host=host, units=units, tmp=tmp_path)
 
 
-def _run(world, *extra: str) -> int:
-    return rs.main(["--ref", SHA, *extra], host=world.host, layout=world.layout)
+def _run(world, *extra: str, governor: str = "darek") -> int:
+    return rs.main(
+        ["--ref", SHA, "--governor", governor, *extra],
+        host=world.host,
+        layout=world.layout,
+    )
 
 
 def _mode(path: Path) -> int:
@@ -383,3 +407,69 @@ def test_an_account_in_another_group_fails(world) -> None:
 def test_a_probe_that_reads_etc_fails(world) -> None:
     world.host.readable_etc_by = {"core-build"}
     assert _run(world, "--apply") == 1
+
+
+# -- the governor's socket and binding (ADR-132 D10.3 as amended, D10.9) --------
+
+
+@pytest.mark.parametrize("name", ["core-darek", "core-claude", "core", "root", ""])
+def test_refuses_a_governor_a_model_or_service_runs_as(world, name: str) -> None:
+    assert _run(world, "--apply", governor=name) == 1
+    assert world.host.calls == []
+
+
+def test_refuses_an_unknown_governor_account(world) -> None:
+    assert _run(world, "--apply", governor="nobody-here") == 1
+    assert world.host.calls == []
+
+
+def test_binding_group_and_socket_directory(world) -> None:
+    assert _run(world, "--apply") == 0
+    binding = world.layout.etc_core / "principals.yaml"
+    assert binding.read_bytes() == b"principals:\n  darek: principal.governor\n"
+    assert world.host.owners[binding] == ("root", "root")
+    assert _mode(binding) == 0o644
+    assert world.host.group_table["core-gov"] == ["darek"]
+    conf = world.layout.tmpfiles / "core-api.conf"
+    assert b"d /run/core/api 2750 core core-gov -" in conf.read_bytes()
+    assert [c[0] for c in _ran(world, "systemd-tmpfiles")] == [
+        ["systemd-tmpfiles", "--create", str(conf)]
+    ]
+
+
+def test_binding_is_loadable_by_core(world, tmp_path: Path) -> None:
+    """The file the script writes is the shape principal_binding reads."""
+    import yaml
+
+    assert _run(world, "--apply") == 0
+    document = yaml.safe_load(
+        (world.layout.etc_core / "principals.yaml").read_text(encoding="utf-8")
+    )
+    assert document == {"principals": {"darek": "principal.governor"}}
+
+
+def test_an_existing_different_binding_is_never_replaced(world) -> None:
+    binding = world.layout.etc_core / "principals.yaml"
+    binding.parent.mkdir(parents=True)
+    binding.write_bytes(b"principals:\n  someone: principal.governor\n")
+    assert _run(world, "--apply") == 1
+    assert binding.read_bytes() == b"principals:\n  someone: principal.governor\n"
+
+
+def test_another_member_of_the_governor_group_fails(world) -> None:
+    world.host.group_table["core-gov"] = ["core-claude"]
+    assert _run(world, "--apply") == 1
+
+
+def test_probe_fails_when_the_assistant_can_enter_the_socket_directory(world) -> None:
+    world.host.enters_api_dir.add("core-claude")
+    assert _run(world, "--apply") == 1
+
+
+def test_rerun_keeps_the_governor_step_unchanged(world) -> None:
+    assert _run(world, "--apply") == 0
+    world.host.calls.clear()
+    assert _run(world, "--apply") == 0
+    assert not _ran(world, "groupadd")
+    assert not _ran(world, "usermod")
+    assert not _ran(world, "systemd-tmpfiles")

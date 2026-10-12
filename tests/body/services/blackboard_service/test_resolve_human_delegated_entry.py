@@ -35,7 +35,10 @@ async def _resolve_sql() -> str:
     session.begin = _begin
     with patch("body.services.service_registry.ServiceRegistry.session", new=_session):
         updated = await BlackboardService().resolve_indeterminate_entry(
-            entry_id="00000000-0000-0000-0000-000000000001", reason="r"
+            entry_id="00000000-0000-0000-0000-000000000001",
+            reason="r",
+            resolved_by="darek",
+            resolution_authority="principal.governor",
         )
     assert updated == 1
     return " ".join(str(session.execute.await_args.args[0]).split())
@@ -55,3 +58,12 @@ async def test_still_stamps_resolution_attribution() -> None:
     sql = await _resolve_sql()
     assert "SET status = 'resolved'" in sql
     assert "'resolution_authority', cast(:authority as text)" in sql
+
+
+@pytest.mark.asyncio
+async def test_authority_has_no_default() -> None:
+    """An omitted authority must not silently claim the governor (ADR-132 D10.4)."""
+    with pytest.raises(TypeError):
+        await BlackboardService().resolve_indeterminate_entry(  # type: ignore[call-arg]
+            entry_id="00000000-0000-0000-0000-000000000001", reason="r"
+        )

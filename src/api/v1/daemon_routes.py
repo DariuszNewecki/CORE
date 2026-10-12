@@ -12,6 +12,11 @@ Three synchronous endpoints; no resource table:
   `systemctl stop` runs as a FastAPI BackgroundTask after the response
   is sent (ADR-058 D3 fire-and-forget pattern).
 
+GOVERNOR GATE (ADR-132 D10.11 step 4): start and stop need the governor on
+CORE's Unix socket. Status is a read, open so `core-deploy` can check the
+heartbeats over TCP after a deployment (ADR-132 D10.11 step 2, "Heartbeat
+check").
+
 CONSTITUTIONAL:
 - `CoreContext` read from `request.app.state.core_context`.
 - `body.services.worker_registry_service` and the subprocess primitive
@@ -36,13 +41,12 @@ from will.governance.daemon_runner import (
 logger = getLogger(__name__)
 
 
-ROUTER_EXPOSURE = "governor-only"
+ROUTER_EXPOSURE = "user-facing"
 router = APIRouter(
     prefix="/daemon",
     # F-40.1: internal — daemon lifecycle is operator concern, not part
     # of the OEM API contract. Excluded from /v1/openapi.json per ADR-087.
     include_in_schema=False,
-    dependencies=[require_governor],
 )
 
 
@@ -54,7 +58,7 @@ async def daemon_status(request: Request) -> dict:
     return await get_status(core_context)
 
 
-@router.post("/start")
+@router.post("/start", dependencies=[require_governor])
 # ID: 5b2d9c7e-1a6f-4c4d-9dca-8f067890a123
 async def daemon_start(request: Request) -> dict:
     """Start the core-daemon service via `systemctl --user start`."""
@@ -71,7 +75,7 @@ async def daemon_start(request: Request) -> dict:
     return {"status": "started", "exit_code": result.get("exit_code", 0)}
 
 
-@router.post("/stop")
+@router.post("/stop", dependencies=[require_governor])
 # ID: 6c3e0d8f-2b7a-4d5e-aedb-90178901b234
 async def daemon_stop(
     request: Request,

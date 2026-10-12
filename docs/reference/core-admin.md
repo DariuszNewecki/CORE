@@ -1812,20 +1812,19 @@ Examples:
 core-admin workers resolve ENTRY_ID [OPTIONS]
 ```
 
-Close a finding delegated to the governor, with an operator-provided reason.
+Close a finding delegated to the governor, with a reason.
 
 Acts on 'indeterminate' findings and on 'open' findings whose
-resolution_mechanism is 'human'. Symmetric counterpart to 'proposals reject' for findings the audit sensor
-delegated to the governor. Flips status to 'resolved', stamps the
-operator attribution into payload, and stops counting against the
-Governor Inbox.
+resolution_mechanism is 'human'. A governor act (ADR-132 D10.4): it goes
+through POST /v1/findings/{id}/resolve, which only the governor may call,
+on CORE's Unix socket (CORE_API_URL=unix:///run/core/api/api.sock). The
+server records who resolved it and under which authority; neither is
+taken from this command.
 
 | Argument / option | Default | Description |
 |---|---|---|
 | `ENTRY_ID` | required | Blackboard entry UUID. |
 | `--reason`, `-r` | required | Why this finding is being closed. |
-| `--by` | `cli_admin` | Operator identity. |
-| `--authority` | `principal.governor` | Authority under which the resolution is recorded (URS NFR.5). |
 
 ### `core-admin workers run` {#workers-run}
 

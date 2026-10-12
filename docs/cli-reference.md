@@ -169,6 +169,17 @@ Serves CORE to an AI assistant over MCP. See [Connect your AI assistant](connect
 ### `core proposals approve`
 
 Asks you to type the proposal's short id and refuses without a terminal.
+Only the governor can approve, from their own account, over CORE's Unix
+socket: `CORE_API_URL=unix:///run/core/api/api.sock core proposals approve <id>`.
+Over TCP, or from any other account, CORE answers 403. CORE records your
+account as the approver; the command cannot name someone else.
+
+### `core-admin workers resolve`
+
+Closes a finding CORE handed to you (`indeterminate`, or waiting for a
+human). A governor act, over the same socket as approval:
+`CORE_API_URL=unix:///run/core/api/api.sock core-admin workers resolve <id> --reason "..."`.
+CORE records your account as the one who resolved it.
 
 ## Governance note
 
