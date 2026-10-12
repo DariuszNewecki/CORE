@@ -129,6 +129,9 @@ class FakeHost(cd.Host):
         self.alive = ["sync_db_worker"]
         self.beats_after_switch = True
         self.clock = T0
+        self.law_diff = b""  # git diff --name-status -z output for governed text
+        self.law_rc = 0
+        self.law_runs: list[dict] = []
 
     # -- processes --------------------------------------------------------
     def run(self, cmd, *, user=None, input=None, check=True):
@@ -143,8 +146,16 @@ class FakeHost(cd.Host):
                 out = SHA.encode() + b"\n"
             elif "archive" in cmd:
                 out = _archive(SOURCE)
+            elif "diff" in cmd:
+                out = self.law_diff
+            elif "show" in cmd and cmd[-1].split(":", 1)[-1].startswith(
+                (".intent", ".specs")
+            ):
+                out = b"governed text at " + cmd[-1].encode() + b"\n"
             elif "show" in cmd:
                 out = LOCK if cmd[-1].endswith("poetry.lock") else PYPROJECT
+            elif "log" in cmd:
+                out = b"Dariusz Newecki\n"
         elif "wheel" in cmd and "--wheel-dir" in cmd:
             target = Path(cmd[cmd.index("--wheel-dir") + 1])
             _wheel(
@@ -152,6 +163,23 @@ class FakeHost(cd.Host):
                 self.wheel_files,
                 self.wheel_scripts,
             )
+        elif cmd[0].endswith("/core-admin") and "apply-merge" in cmd:
+            pdir = Path(cmd[cmd.index("--proposals-dir") + 1]) / cmd[3]
+            self.law_runs.append(
+                {
+                    "user": user,
+                    "core_admin": cmd[0],
+                    "commit": cmd[cmd.index("--merge-commit") + 1],
+                    "merged_by": cmd[cmd.index("--merged-by") + 1],
+                    "files": sorted(
+                        p.relative_to(pdir / "files").as_posix()
+                        for p in (pdir / "files").rglob("*")
+                        if p.is_file()
+                    ),
+                    "proposal_md": (pdir / "proposal.md").read_text(),
+                }
+            )
+            rc = self.law_rc
         elif cmd[:4] == ["/usr/bin/python3", "-I", "-m", "venv"] and user is None:
             (Path(cmd[4]) / "bin").mkdir(parents=True)
         elif cmd[0] == "systemd-run":
@@ -571,3 +599,58 @@ def test_refuses_without_root_when_not_under_test(
 ) -> None:
     monkeypatch.setattr(cd.os, "geteuid", lambda: 1001)
     assert cd.main([SHA, "--root", str(root)]) == 1
+
+
+# -- one-path flow: deploy branch and law (governor redesign 2026-10-12) -------
+
+LAW_DIFF = b"M\0.intent/rules/a.json\0D\0.specs/old.md\0"
+
+
+def test_deploy_branch_comes_from_deploy_conf(root: Path) -> None:
+    (root / "etc" / "deploy.conf").write_text("DEPLOY_BRANCH=main\n")
+    host = FakeHost(root)
+    assert _deploy(root, host) == 0
+    fetch = next(c for c in host.commands("git") if "fetch" in c)
+    assert "refs/heads/main:refs/remotes/upstream/main" in fetch
+
+
+def test_changed_law_is_applied_by_core_law_with_the_new_release(root: Path) -> None:
+    _with_previous(root)
+    host = FakeHost(root)
+    host.law_diff = LAW_DIFF
+    assert _deploy(root, host, "--merged-by", "darek") == 0
+    [run] = host.law_runs
+    assert run["user"] == "core-law"
+    assert run["core_admin"].endswith(f"releases/{SHA}/venv/bin/core-admin")
+    assert run["commit"] == SHA and run["merged_by"] == "darek"
+    assert run["files"] == [".intent/rules/a.json"]
+    assert "- `.specs/old.md`" in run["proposal_md"]
+    entry = json.loads((root / "deploy-ledger.jsonl").read_text().splitlines()[-1])
+    assert entry["law_applied"] is True and entry["merged_by"] == "darek"
+
+
+def test_no_law_change_runs_no_law_apply(root: Path) -> None:
+    _with_previous(root)
+    host = FakeHost(root)
+    assert _deploy(root, host) == 0
+    assert host.law_runs == []
+
+
+def test_refused_law_stops_before_anything_switches(root: Path) -> None:
+    _with_previous(root)
+    host = FakeHost(root)
+    host.law_diff = LAW_DIFF
+    host.law_rc = 1
+    assert _deploy(root, host) == 1
+    assert _current(root) == OLD
+    assert not (root / "releases" / SHA).exists()
+
+
+def test_switch_back_puts_the_law_back(root: Path) -> None:
+    _with_previous(root)
+    host = FakeHost(root)
+    host.law_diff = LAW_DIFF
+    host.inactive = {"core-api.service"}
+    assert _deploy(root, host) == 1
+    assert _current(root) == OLD
+    assert [r["commit"] for r in host.law_runs] == [SHA, OLD]

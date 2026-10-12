@@ -111,3 +111,94 @@ def test_digest_separates_automatic_from_typed(tmp_path: Path) -> None:
     assert "Applied automatically (record-only): 1" in result.output
     assert "Approved by you: 1" in result.output
     assert "0001-old" not in result.output
+
+
+# -- law apply-merge: the post-merge path (one-path flow, 2026-10-12) ----------
+
+
+def test_apply_merge_runs_only_as_core_law() -> None:
+    result = CliRunner().invoke(
+        app,
+        [
+            "apply-merge",
+            "merge-abc",
+            "--proposals-dir",
+            "/x",
+            "--merge-commit",
+            "a" * 40,
+            "--merged-by",
+            "darek",
+            "--repo",
+            "/x",
+            "--write",
+        ],
+    )
+    assert result.exit_code == 1
+    assert "runs only as core-law" in result.output
+
+
+def test_apply_merge_refuses_under_sudo_and_a_short_sha(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import cli.resources.law.apply as apply_mod
+
+    monkeypatch.setattr(apply_mod, "current_account", lambda: "core-law")
+    args = [
+        "apply-merge",
+        "merge-abc",
+        "--proposals-dir",
+        "/x",
+        "--merged-by",
+        "d",
+        "--repo",
+        "/x",
+        "--write",
+    ]
+    monkeypatch.setenv("SUDO_USER", "darek")
+    under_sudo = CliRunner().invoke(app, [*args, "--merge-commit", "a" * 40])
+    assert under_sudo.exit_code == 1 and "not through sudo" in under_sudo.output
+    monkeypatch.delenv("SUDO_USER")
+    short = CliRunner().invoke(app, [*args, "--merge-commit", "abc123"])
+    assert short.exit_code == 1 and "full sha" in short.output
+
+
+def test_apply_merge_records_the_merge_as_the_approver(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    import cli.resources.law.apply as apply_mod
+
+    seen: dict = {}
+    prepared = _prepared([".intent/rules/x.json"])
+    monkeypatch.setattr(apply_mod, "current_account", lambda: "core-law")
+    monkeypatch.delenv("SUDO_USER", raising=False)
+    monkeypatch.setattr(apply_mod, "prepare", lambda **kw: prepared)
+    monkeypatch.setattr(apply_mod, "_render", lambda p: None)
+
+    class _Outcome:
+        def ok(self) -> bool:
+            return True
+
+    def _apply(p, *, approver, key_path):
+        seen["approver"] = approver
+        return _Outcome()
+
+    monkeypatch.setattr(apply_mod, "apply_prepared", _apply)
+    sha = "b" * 40
+    result = CliRunner().invoke(
+        app,
+        [
+            "apply-merge",
+            "merge-x",
+            "--proposals-dir",
+            str(tmp_path),
+            "--merge-commit",
+            sha,
+            "--merged-by",
+            "darek",
+            "--repo",
+            str(tmp_path),
+            "--write",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert seen["approver"] == f"github-merge {sha} by darek"

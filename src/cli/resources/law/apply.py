@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -399,3 +400,90 @@ async def law_digest(
             console.print(
                 f"  {r['approved_utc']}  {r['proposal']}  ({', '.join(sorted(r['paths']))})"
             )
+
+
+_MERGE_SHA = re.compile(r"^[0-9a-f]{40}$")
+
+
+@app.command("apply-merge")
+@command_meta(
+    canonical_name="law.apply-merge",
+    behavior=CommandBehavior.MUTATE,
+    layer=CommandLayer.BODY,
+    exposure=CommandExposure.GOVERNOR_ONLY,
+    summary="Apply governed text merged on GitHub (called by core-deploy, no typed id).",
+    # Mutating: writes governed text; core-deploy passes --write.
+    dangerous=True,
+)
+@core_command(dangerous=True, requires_context=False, requires_brain_services=False)
+# ID: 25211bad-42f9-428e-8360-e27c61d74ac5
+async def law_apply_merge(
+    ctx: typer.Context,
+    proposal_id: str = typer.Argument(..., help="The proposal core-deploy built."),
+    proposals_dir: Path = typer.Option(..., "--proposals-dir"),
+    merge_commit: str = typer.Option(..., "--merge-commit"),
+    merged_by: str = typer.Option(..., "--merged-by"),
+    repo: Path = typer.Option(..., "--repo", help="Development tree."),
+    key: Path = typer.Option(None, "--key"),
+    release_law: Path = typer.Option(RELEASE_LAW_ROOT, "--release-law"),
+    write: bool = typer.Option(
+        False, "--write", help="Apply; without it, report only."
+    ),
+) -> None:
+    """
+    Apply governed text merged on GitHub (one-path flow, 2026-10-12). The
+    merge into main is the governor's approval; it is recorded as the ledger
+    approver ("github-merge <sha> by <who>"). Runs only as core-law, started
+    by root (core-deploy through runuser), never through the governor's sudo
+    rule, which allows `law apply` only. Same checks as `law apply`; a
+    refusal writes nothing.
+    """
+    if current_account() != CUSTODIAN_ACCOUNT:
+        console.print(
+            f"[bold red]law apply-merge runs only as {CUSTODIAN_ACCOUNT}.[/bold red]"
+        )
+        raise typer.Exit(1)
+    if os.environ.get("SUDO_USER"):
+        console.print(
+            "[bold red]law apply-merge is started by core-deploy, not through sudo; "
+            "use `law apply` with the typed id.[/bold red]"
+        )
+        raise typer.Exit(1)
+    if not _MERGE_SHA.match(merge_commit):
+        console.print(
+            f"[bold red]--merge-commit must be a full sha, not {merge_commit!r}.[/bold red]"
+        )
+        raise typer.Exit(1)
+    repo_root = repo.resolve()
+    destinations = [repo_root] + ([release_law] if release_law.is_dir() else [])
+    try:
+        prepared = prepare(
+            repo_root=repo_root,
+            proposals_dir=proposals_dir,
+            proposal_id=proposal_id,
+            destinations=destinations,
+            scratch_parent=Path.home() / "scratch",
+        )
+    except (ProposalError, CustodyError, CheckRunError) as exc:
+        console.print(f"REFUSED -- nothing written: {exc}")
+        raise typer.Exit(1)
+    _render(prepared)
+    if prepared.refusals:
+        raise typer.Exit(1)
+    if not write:
+        return
+    try:
+        outcome = apply_prepared(
+            prepared,
+            approver=f"github-merge {merge_commit} by {merged_by}",
+            key_path=key or Path.home() / ".ssh" / "core_law_ledger",
+        )
+    except (CustodyError, LedgerSignError) as exc:
+        console.print(f"REFUSED -- nothing written: {exc}")
+        raise typer.Exit(1)
+    if not outcome.ok():
+        console.print("Not applied: no ledger line was written.")
+        raise typer.Exit(1)
+    console.print(
+        f"Applied {proposal_id} for {merge_commit[:12]} (merged by {merged_by})."
+    )

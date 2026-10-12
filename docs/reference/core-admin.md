@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-104 commands.
+105 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -25,7 +25,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`grc`](#grc) | 2 | Compliance gap-analysis: check a document corpus against a requirements catalog. |
 | [`intent`](#intent) | 1 | Constitutional intent operations (.intent/ projections). |
 | [`interactive-test`](#interactive-test) | 2 | Interactive test generation with step-by-step approval |
-| [`law`](#law) | 6 | Grounded answers about this repository's law, with sources (ADR-168). |
+| [`law`](#law) | 7 | Grounded answers about this repository's law, with sources (ADR-168). |
 | [`llm-resources`](#llm-resources) | 2 | core.llm_resources authoring/validation surface (#821 Unit 3). |
 | [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant (ADR-168). |
 | [`project`](#project) | 2 | Operations for project lifecycle: scaffolding. |
@@ -1267,6 +1267,30 @@ after you type the proposal id.
 | `--release-law` | `/opt/core/law` | The law beside the release runtime; a second destination when it exists. |
 | `--scratch` |  | Where the scratch tree is built (default ~/scratch). |
 | `--write` | off | Ask for the typed id and write. Without it, show the report only. |
+
+### `core-admin law apply-merge` {#law-apply-merge}
+
+```
+core-admin law apply-merge PROPOSAL_ID [OPTIONS]
+```
+
+Apply governed text merged on GitHub (one-path flow, 2026-10-12). The
+merge into main is the governor's approval; it is recorded as the ledger
+approver ("github-merge &lt;sha> by &lt;who>"). Runs only as core-law, started
+by root (core-deploy through runuser), never through the governor's sudo
+rule, which allows `law apply` only. Same checks as `law apply`; a
+refusal writes nothing.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `PROPOSAL_ID` | required | The proposal core-deploy built. |
+| `--proposals-dir` | required |  |
+| `--merge-commit` | required |  |
+| `--merged-by` | required |  |
+| `--repo` | required | Development tree. |
+| `--key` |  |  |
+| `--release-law` | `/opt/core/law` |  |
+| `--write` | off | Apply; without it, report only. |
 
 ### `core-admin law auto-apply` {#law-auto-apply}
 

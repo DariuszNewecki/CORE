@@ -127,10 +127,13 @@ _CONSTITUTIONAL_SEVERITY = "constitutional"
 # would-deny (7 days of journal, 2026-10-05..12) and the suite is green.
 # Every other capability, and every write with no capability, stays
 # advisory (log-only) until it is wired and proven the same way.
+# Not enforced: test.sandbox_validate and assisted.validate_diff run tests
+# through the sandbox runner, which writes the sandbox inbox (var/tmp/) since
+# M2 (2026-10-12) -- after the journal window -- and their profiles do not
+# list it yet (profile change awaiting the governor).
 ENFORCED_CAPABILITIES: frozenset[str] = frozenset(
     {
         "assisted.apply_diff",
-        "assisted.validate_diff",
         "build.test_for_symbol",
         "claim.proposal",
         "fix.format",
@@ -139,7 +142,6 @@ ENFORCED_CAPABILITIES: frozenset[str] = frozenset(
         "fix.imports",
         "log.archive_partitions",
         "sync.db",
-        "test.sandbox_validate",
     }
 )
 CAPABILITY_RULE_ID = "capability.fs_profile.enforced"
