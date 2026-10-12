@@ -35,7 +35,7 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from shared.infrastructure.intent.law_roots import specs_root_for
+from shared.infrastructure.intent.law_roots import law_relpath, specs_root_for
 from shared.logger import getLogger
 
 
@@ -182,7 +182,7 @@ class GovernanceClaimHarvester:
         content = path.read_text(encoding="utf-8")
         if document_status(content) in NOT_IN_FORCE_STATUSES:
             return
-        rel = str(path.relative_to(self._repo_root))
+        rel = law_relpath(self._repo_root, path)
         lines = content.split("\n")
         para: list[str] = []
         para_start = 1
@@ -230,7 +230,7 @@ class GovernanceClaimHarvester:
         if data is None:
             return
 
-        rel = str(path.relative_to(self._repo_root))
+        rel = law_relpath(self._repo_root, path)
         idx = 0
         for value in _walk_strings(data):
             if len(value) < _MIN_TEXT_LEN:

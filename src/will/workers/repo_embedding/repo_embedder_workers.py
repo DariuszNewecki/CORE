@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from shared.infrastructure.intent.law_roots import law_path
 from shared.logger import getLogger
 from shared.workers.scheduled_worker import ScheduledWorker
 
@@ -68,7 +69,7 @@ class RepoEmbedderWorker(ScheduledWorker):
             artifact_type = artifact["artifact_type"]
             collection = artifact["qdrant_collection"]
 
-            full_path = self._repo_root / file_path
+            full_path = law_path(self._repo_root, file_path)
             if not full_path.exists():
                 logger.warning("RepoEmbedderWorker: file missing: %s", file_path)
                 continue

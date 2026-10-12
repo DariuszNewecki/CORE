@@ -29,7 +29,12 @@ import hashlib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from shared.infrastructure.intent.law_roots import intent_root_for, specs_root_for
+from shared.infrastructure.intent.law_roots import (
+    intent_root_for,
+    law_glob,
+    law_relpath,
+    specs_root_for,
+)
 from shared.logger import getLogger
 
 
@@ -357,7 +362,7 @@ class CoherenceChecker:
         spec_md_globs = repo.get_artifact_type("spec_markdown").content["discovery"]
         universe: set[Path] = set()
         for glob in spec_md_globs:
-            universe.update(self._repo_root.glob(glob))
+            universe.update(law_glob(self._repo_root, glob))
         decisions_dir = specs_root_for(self._repo_root) / "decisions"
         if not decisions_dir.exists():
             return []
@@ -382,7 +387,7 @@ class CoherenceChecker:
         spec_md_globs = repo.get_artifact_type("spec_markdown").content["discovery"]
         universe: set[Path] = set()
         for glob in spec_md_globs:
-            universe.update(self._repo_root.glob(glob))
+            universe.update(law_glob(self._repo_root, glob))
         papers_dir = specs_root_for(self._repo_root) / "papers"
         if not papers_dir.exists():
             return []
@@ -400,7 +405,7 @@ class CoherenceChecker:
         spec_md_globs = repo.get_artifact_type("spec_markdown").content["discovery"]
         universe: set[Path] = set()
         for glob in spec_md_globs:
-            universe.update(self._repo_root.glob(glob))
+            universe.update(law_glob(self._repo_root, glob))
         northstar_dir = specs_root_for(self._repo_root) / "northstar"
         if not northstar_dir.exists():
             return []
@@ -418,7 +423,7 @@ class CoherenceChecker:
         intent_yaml_globs = repo.get_artifact_type("intent_yaml").content["discovery"]
         universe: set[Path] = set()
         for glob in intent_yaml_globs:
-            universe.update(self._repo_root.glob(glob))
+            universe.update(law_glob(self._repo_root, glob))
         phases_dir = intent_root_for(self._repo_root) / "phases"
         if not phases_dir.exists():
             return []
@@ -430,7 +435,7 @@ class CoherenceChecker:
 
     def _rel(self, path: Path) -> str:
         try:
-            return str(path.relative_to(self._repo_root))
+            return law_relpath(self._repo_root, path)
         except ValueError:
             return str(path)
 

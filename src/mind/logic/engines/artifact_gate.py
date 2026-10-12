@@ -45,6 +45,7 @@ from shared.infrastructure.intent.law_roots import (
     configured_repo_root,
     intent_root_for,
     law_path,
+    law_relpath,
 )
 from shared.infrastructure.intent.vocabulary_projection import (
     VOCABULARY_JSON_REL,
@@ -901,12 +902,12 @@ def _check_namespace_manifest_completeness(repo_root: Path, check: str) -> Engin
 
     fs_paths: set[str] = set()
     for root_name in _NAMESPACE_GOVERNED_ROOTS:
-        root_dir = repo_root / root_name
+        root_dir = law_path(repo_root, root_name)
         if not root_dir.is_dir():
             continue
         for p in root_dir.rglob("*"):
             if p.is_file():
-                fs_paths.add(str(p.relative_to(repo_root)))
+                fs_paths.add(law_relpath(repo_root, p))
 
     unclassified = sorted(fs_paths - classified)
     if not unclassified:

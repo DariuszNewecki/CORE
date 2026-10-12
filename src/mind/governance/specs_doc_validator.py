@@ -34,6 +34,7 @@ from referencing.jsonschema import DRAFT7
 
 from mind.governance.meta_validator import ValidationError, ValidationReport
 from shared.infrastructure.intent.intent_repository import get_intent_repository
+from shared.infrastructure.intent.law_roots import law_glob, law_relpath
 from shared.logger import getLogger
 
 
@@ -165,11 +166,11 @@ class SpecsDocValidator:
                 continue
             seen: set[Path] = set()
             for glob in globs:
-                for path in sorted(self._repo_root.glob(glob)):
+                for path in sorted(law_glob(self._repo_root, glob)):
                     if path in seen or not path.is_file():
                         continue
                     seen.add(path)
-                    rel = str(path.relative_to(self._repo_root))
+                    rel = law_relpath(self._repo_root, path)
                     checked += 1
                     header = parse_frontmatter(
                         path.read_text(encoding="utf-8", errors="replace")

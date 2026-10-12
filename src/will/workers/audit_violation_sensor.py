@@ -54,6 +54,7 @@ from pathlib import Path
 from typing import Any
 
 from shared.infrastructure.intent.intent_repository import get_intent_repository
+from shared.infrastructure.intent.law_roots import law_glob
 from shared.logger import getLogger
 from shared.workers.base import Worker
 from will.audit_violation.drain import drain_cleared_findings
@@ -144,7 +145,7 @@ class AuditViolationSensor(Worker):
         file_count = sum(
             1
             for pattern in artifact_globs
-            for _ in auditor_context.repo_path.glob(pattern)
+            for _ in law_glob(auditor_context.repo_path, pattern)
         )
         rule_count = len(intent_repo._rule_index or {})
         logger.info(

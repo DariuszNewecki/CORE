@@ -67,7 +67,11 @@ from typing import TYPE_CHECKING, Any, ClassVar
 import yaml
 from sqlalchemy import text
 
-from shared.infrastructure.intent.law_roots import intent_root_for
+from shared.infrastructure.intent.law_roots import (
+    intent_root_for,
+    law_path,
+    law_relpath,
+)
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
@@ -277,7 +281,7 @@ def _check_layer_scope_coherence(context: AuditorContext) -> list[AuditFinding]:
                         f"contract or remove {class_name} from governed_classes. "
                         f"See ADR-102 for the canonical case (Finding.json + AuditFinding)."
                     ),
-                    file_path=str(contract_path.relative_to(repo_root)),
+                    file_path=law_relpath(repo_root, contract_path),
                     context={
                         "contract_id": contract_id,
                         "class_name": class_name,
@@ -676,7 +680,7 @@ def _check_persistence_reach_coherence(context: AuditorContext) -> list[AuditFin
                         f"the class should be removed from it. "
                         f"See ADR-102 and issue #619."
                     ),
-                    file_path=str(contract_path.relative_to(repo_root)),
+                    file_path=law_relpath(repo_root, contract_path),
                     context={
                         "contract_id": contract_id,
                         "class_name": class_name,
@@ -783,7 +787,7 @@ def _check_passive_gate_symbol_attestation(
     repo_root: Path = context.paths.repo_root
     mappings_root_param = params.get("mappings_root", ".intent/enforcement/mappings")
     src_root_param = params.get("src_root", "src")
-    mappings_root = repo_root / mappings_root_param
+    mappings_root = law_path(repo_root, mappings_root_param)
     src_root = repo_root / src_root_param
 
     if not mappings_root.is_dir():
@@ -828,7 +832,7 @@ def _check_passive_gate_symbol_attestation(
             else:
                 continue
 
-            rel_yaml = str(yaml_file.relative_to(repo_root))
+            rel_yaml = law_relpath(repo_root, yaml_file)
             declared = [d.strip() for d in declared if isinstance(d, str) and d.strip()]
 
             if not declared:
