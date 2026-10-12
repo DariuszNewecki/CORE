@@ -109,7 +109,7 @@ SERVICE_UNITS = (
 )
 SANDBOX_UNITS = ("core-sandbox.socket", "core-sandbox@.service")
 # The release reads these only from /opt/core/etc/secrets.env.
-REQUIRED_SECRETS = ("DATABASE_URL", "CORE_MASTER_KEY")
+REQUIRED_ENV_NAMES = ("DATABASE_URL", "CORE_MASTER_KEY")
 # Secrets that today live in the dev tree's .env, carried into secrets.env.
 CARRIED_FROM_DEV_ENV = ("DATABASE_URL",)
 # Installed file name -> path in the repository at <sha>.
@@ -616,7 +616,7 @@ class Setup:
             )
             return
         present = env_keys(data.decode(errors="replace"))
-        for required in REQUIRED_SECRETS:
+        for required in REQUIRED_ENV_NAMES:
             if required not in present:
                 self.failures.append(f"{shown} would lack {required}")
 
