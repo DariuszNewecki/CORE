@@ -836,6 +836,8 @@ classifications:
     governance_namespace: project::core
   - path: .intent/rules/architecture/quality_gates.json
     governance_namespace: project::core
+  - path: .intent/rules/architecture/sandbox_execution.json
+    governance_namespace: project::core
   - path: .intent/rules/architecture/artifact_discovery.json
     governance_namespace: project::core
   - path: .intent/rules/architecture/test_generation_acceptance.json
@@ -1155,6 +1157,8 @@ classifications:
   - path: .intent/enforcement/mappings/architecture/privileged_boundaries.yaml
     governance_namespace: project::core
   - path: .intent/enforcement/mappings/architecture/quality_gates.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/sandbox_execution.yaml
     governance_namespace: project::core
   - path: .intent/enforcement/mappings/architecture/artifact_discovery.yaml
     governance_namespace: project::core

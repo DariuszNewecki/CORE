@@ -1,0 +1,30 @@
+# .intent/enforcement/mappings/architecture/sandbox_execution.yaml
+#
+# Repository tests run only in the sandbox runner (ADR-132 D10.10, D10.16).
+# Narrow by design: it finds a pytest command list, `-m pytest`, or
+# pytest.main(); it does not try to see every way code can be run.
+
+mappings:
+  architecture.sandbox.tests_run_in_sandbox:
+    engine: regex_gate
+    params:
+      check_type: pattern_match
+      patterns:
+        # A command list that starts with pytest: ["pytest", ...]
+        - '\[\s*["'']pytest["'']\s*,'
+        # python -m pytest: ..., "-m", "pytest"
+        - '["'']-m["'']\s*,\s*["'']pytest["'']'
+        # pytest started in-process
+        - '\bpytest\.main\('
+      message: >
+        pytest started outside the sandbox. Run repository tests through
+        body.sandbox (run_in_sandbox, or repo_tests.run_tests for an
+        ActionResult); ADR-132 D10.10.
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        # The sandbox itself: its bootstrap is the one place pytest starts.
+        - "src/body/sandbox/**"
+        # A list of testing-library names in a dependency taxonomy, not a command.
+        - "src/mind/logic/engines/ast_gate/checks/modularity_checks.py"

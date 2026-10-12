@@ -174,7 +174,7 @@ by CORE's own governance, so your report is the only record they leave. Write it
 Derived operational digest. `.intent/` is canonical: on divergence, `.intent/` wins — surface
 the divergence, don't resolve it in code. Severity is read from each rule's on-disk
 `enforcement` field (`blocking` / `reporting` / `advisory`); blocking rules stop a commit,
-the other two surface findings. At digest time: 40 blocking + 28 reporting + 12 advisory = 80.
+the other two surface findings. At digest time: 41 blocking + 28 reporting + 12 advisory = 81.
 
 **Integrity check (run before trusting this digest):** the digest's rule-id set must equal
 `jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u`. A mismatch means the
@@ -238,6 +238,9 @@ digest has drifted — surface it to the governor.
 **API (`src/api/v1/**`)**
 - `architecture.api.route_module_must_declare_exposure` — Every `*_routes.py` MUST declare a module-level `ROUTER_EXPOSURE` from the closed set {`governor-only`, `user-facing`}.
 - `architecture.api.router_exposure_must_match_dependencies` — A `governor-only` router MUST carry `require_governor` in its `APIRouter` constructor dependencies; a `user-facing` router MUST NOT carry it at the router level (per-route gates remain allowed).
+
+**Sandbox (`src/**`)**
+- `architecture.sandbox.tests_run_in_sandbox` — Code in `src/` MUST NOT start pytest itself (a `["pytest", ...]` command, `-m pytest`, `pytest.main()`); repository tests run only through `body.sandbox` (`run_in_sandbox`, `repo_tests.run_tests`). ADR-132 D10.10/D10.16.
 
 **Workers (`src/will/workers/** | src/body/workers/**`)**
 - `architecture.workers.no_direct_worker_import` — Workers MUST NOT import one another at runtime; all inter-worker communication routes exclusively through the blackboard.
