@@ -129,6 +129,7 @@ class FakeHost(cd.Host):
         self.alive = ["sync_db_worker"]
         self.beats_after_switch = True
         self.clock = T0
+        self.same_tree = True
         self.law_diff = b""  # git diff --name-status -z output for governed text
         self.law_rc = 0
         self.law_runs: list[dict] = []
@@ -142,6 +143,9 @@ class FakeHost(cd.Host):
         if cmd[0] == "git":
             if "merge-base" in cmd:
                 rc = 0 if self.on_develop else 1
+            elif "rev-parse" in cmd and cmd[-1].endswith("^{tree}"):
+                commit = cmd[-1].split("^")[0]
+                out = (b"tree-same" if self.same_tree else commit.encode()) + b"\n"
             elif "rev-parse" in cmd:
                 out = SHA.encode() + b"\n"
             elif "archive" in cmd:
@@ -654,3 +658,22 @@ def test_switch_back_puts_the_law_back(root: Path) -> None:
     assert _deploy(root, host) == 1
     assert _current(root) == OLD
     assert [r["commit"] for r in host.law_runs] == [SHA, OLD]
+
+
+TESTED = "e" * 40
+
+
+def test_tested_as_needs_the_same_tree_and_green_ci_on_the_tested_head(
+    root: Path,
+) -> None:
+    host = FakeHost(root)
+    assert _deploy(root, host, "--tested-as", TESTED) == 0
+    trees = [c for c in host.commands("git") if c[-1].endswith("^{tree}")]
+    assert {c[-1] for c in trees} == {f"{SHA}^{{tree}}", f"{TESTED}^{{tree}}"}
+
+
+def test_tested_as_with_a_different_tree_is_refused(root: Path) -> None:
+    host = FakeHost(root)
+    host.same_tree = False
+    assert _deploy(root, host, "--tested-as", TESTED) == 1
+    assert not (root / "releases" / SHA).exists()

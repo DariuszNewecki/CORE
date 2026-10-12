@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-105 commands.
+106 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -30,7 +30,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant (ADR-168). |
 | [`project`](#project) | 2 | Operations for project lifecycle: scaffolding. |
 | [`refactor`](#refactor) | 4 | Refactoring analysis and suggestions |
-| [`runtime`](#runtime) | 3 | Runtime state and health of the running CORE system. |
+| [`runtime`](#runtime) | 4 | Runtime state and health of the running CORE system. |
 | [`secrets`](#secrets) | 4 | Manage encrypted secrets in the database. |
 | [`status`](#status) | 1 | Single-glance system state and readiness. |
 | [`symbols`](#symbols) | 1 | Operations for the symbol registry and Knowledge Graph identification. |
@@ -1574,6 +1574,20 @@ Run the sandbox closure probes and show which walls held.
 |---|---|---|
 | `--mode` | `service` | service \| local |
 | `--socket` | `/run/core/sandbox.sock` | The sandbox service's socket. |
+
+### `core-admin runtime status` {#runtime-status}
+
+```
+core-admin runtime status [OPTIONS]
+```
+
+Last merge, what applied and deployed, and what waits on the governor.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--status-file` | `/var/lib/core-pipeline/status.json` |  |
+| `--repo` | `DariuszNewecki/CORE` |  |
+| `--api` | `http://127.0.0.1:8000` |  |
 
 ---
 

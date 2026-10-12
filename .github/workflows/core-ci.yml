@@ -276,6 +276,45 @@ jobs:
   # failing to collect in one job's environment, a typo'd marker name past
   # --strict-markers, a future -k filter layered on top of -m). No DB, no
   # test execution, just three `--collect-only` passes and a set comparison.
+  # One-path flow (governor ruling 2026-10-12): a required check on pull
+  # requests into main. The law-apply data checks a merged change must pass
+  # before core-deploy hands it to core-law.
+  law-validation:
+    name: Law validation (law_loads, schema, references)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Cache Poetry & Pip
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+          key: poetry-${{ runner.os }}-3.12-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-3.12-
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Law apply data checks
+        run: poetry run core-admin law check-tree
+
+      - name: Constitution validates
+        run: poetry run core-admin constitution validate
+
   test-partition-ratchet:
     name: Verify unit/integration partition (ADR-157 D3.4)
     runs-on: ubuntu-latest

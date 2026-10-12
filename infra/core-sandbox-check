@@ -1,0 +1,10 @@
+#!/bin/bash
+# infra/core-sandbox-check — installed as /usr/local/sbin/core-sandbox-check (root:root 0755).
+# Run as core by core-pipeline after a deploy (sudo -n -u core core-sandbox-check):
+# the live release's sandbox check in service mode, with the services' own
+# environment. Exit 0 only when every probe passed.
+set -euo pipefail
+set -a
+. /opt/core/etc/core.env
+set +a
+exec /opt/core/current/venv/bin/core-admin runtime sandbox-check --mode service

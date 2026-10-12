@@ -1,0 +1,337 @@
+#!/usr/bin/python3 -I
+# infra/core-pipeline — installed as /usr/local/sbin/core-pipeline (root:root 0755); run by
+# core-pipeline.timer as core-runner (one-path flow, governor ruling 2026-10-12).
+"""
+core-pipeline — after the governor merges into main, make it live.
+
+The governor's one action for a change is merging a pull request into main on
+GitHub. This runner, on a timer, as the account ``core-runner``:
+
+ 1. reads main's head from GitHub; nothing new -> it only refreshes status;
+ 2. acts only on a commit the governor's GitHub account merged
+    (``GOVERNOR_GITHUB``); anything else is skipped and logged;
+ 3. waits until every CI check run on it has completed; a red main is
+    reported once (a GitHub issue) and skipped;
+ 4. runs ``sudo -n core-deploy <sha> --migrate --merged-by <login>``.
+    core-deploy builds, applies the merged law through core-law (the merge is
+    the approval), migrates only when something is pending, switches,
+    verifies, and switches back itself when the new release fails;
+ 5. after a deploy, runs the sandbox check as core; when it fails, rolls back
+    (``sudo -n core-deploy --rollback``) and opens an issue;
+ 6. writes ``status.json`` for ``core-admin pipeline status``.
+
+Privileges (sudoers from one-path-setup.sh): core-runner may run exactly
+``/usr/local/sbin/core-deploy`` as root and ``/usr/local/sbin/core-sandbox-check``
+as core, without a password and without a shell. It holds no database
+credential and cannot write the law or the runtime itself.
+
+Configuration (/etc/core/pipeline.conf, KEY=VALUE): GITHUB_REPO (owner/name),
+GOVERNOR_GITHUB (the governor's GitHub login), BRANCH (main), TOKEN_FILE (a
+GitHub token that may open issues; optional).
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime
+import fcntl
+import json
+import os
+import subprocess
+import sys
+import urllib.request
+from dataclasses import dataclass, field
+from pathlib import Path
+
+
+GREEN = {"success", "skipped", "neutral"}
+CORE_DEPLOY = "/usr/local/sbin/core-deploy"
+SANDBOX_CHECK = "/usr/local/sbin/core-sandbox-check"
+EX_DEPLOY_GOVERNOR = 3
+
+
+@dataclass(frozen=True)
+class Layout:
+    state_dir: Path = Path("/var/lib/core-pipeline")
+    conf: Path = Path("/etc/core/pipeline.conf")
+    current: Path = Path("/opt/core/current")
+
+    @property
+    def state(self) -> Path:
+        return self.state_dir / "state.json"
+
+    @property
+    def status(self) -> Path:
+        return self.state_dir / "status.json"
+
+    @property
+    def logs(self) -> Path:
+        return self.state_dir / "logs"
+
+    @property
+    def lock(self) -> Path:
+        return self.state_dir / "lock"
+
+
+class Host:
+    """Every side effect outside the state directory goes through here."""
+
+    def __init__(self, token: str | None = None) -> None:
+        self.token = token
+
+    def run(self, cmd: list[str]) -> subprocess.CompletedProcess[bytes]:
+        return subprocess.run(cmd, capture_output=True, stdin=subprocess.DEVNULL)
+
+    def http(self, url: str, payload: dict | None = None) -> object:
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "core-pipeline",
+        }
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        data = None
+        if payload is not None:
+            data = json.dumps(payload).encode()
+            headers["Content-Type"] = "application/json"
+        request = urllib.request.Request(url, data=data, headers=headers)
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return json.loads(response.read().decode())
+
+    def now(self) -> datetime.datetime:
+        return datetime.datetime.now(datetime.UTC)
+
+
+def read_conf(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    if not path.is_file():
+        return values
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            values[key.strip()] = value.strip().strip('"')
+    return values
+
+
+@dataclass
+class Runner:
+    host: Host
+    layout: Layout
+    repo: str
+    governor: str
+    branch: str = "main"
+    api: str = "https://api.github.com"
+    state: dict = field(default_factory=dict)
+
+    # -- state ---------------------------------------------------------------
+
+    def load(self) -> None:
+        if self.layout.state.is_file():
+            self.state = json.loads(self.layout.state.read_text())
+
+    def save(self) -> None:
+        self.layout.state.write_text(json.dumps(self.state, indent=2, sort_keys=True))
+
+    def live_sha(self) -> str | None:
+        if not self.layout.current.is_symlink():
+            return None
+        return Path(os.readlink(self.layout.current)).name
+
+    def write_status(self, **fields: object) -> None:
+        status = {
+            "branch": self.branch,
+            "main_head": self.state.get("seen_head"),
+            "live": self.live_sha(),
+            "last": self.state.get("last"),
+            "at": self.host.now().isoformat(),
+            **fields,
+        }
+        self.layout.status.write_text(json.dumps(status, indent=2, sort_keys=True))
+        os.chmod(self.layout.status, 0o644)
+
+    # -- GitHub --------------------------------------------------------------
+
+    def head(self) -> str:
+        data = self.host.http(f"{self.api}/repos/{self.repo}/branches/{self.branch}")
+        assert isinstance(data, dict)
+        return str(data["commit"]["sha"])
+
+    def ci(self, sha: str) -> str:
+        """'green', 'red' or 'pending'."""
+        data = self.host.http(
+            f"{self.api}/repos/{self.repo}/commits/{sha}/check-runs?per_page=100"
+        )
+        runs = data.get("check_runs", []) if isinstance(data, dict) else []
+        if not runs or any(r.get("status") != "completed" for r in runs):
+            return "pending"
+        if any(r.get("conclusion") not in GREEN for r in runs):
+            return "red"
+        return "green"
+
+    def merge(self, sha: str) -> tuple[str | None, str | None]:
+        """(merger login, tested head sha) of the pull request merged as *sha*."""
+        pulls = self.host.http(f"{self.api}/repos/{self.repo}/commits/{sha}/pulls")
+        if not isinstance(pulls, list):
+            return None, None
+        for pull in pulls:
+            if pull.get("merge_commit_sha") == sha and pull.get("merged_by"):
+                head = (pull.get("head") or {}).get("sha")
+                return str(pull["merged_by"]["login"]), str(head) if head else None
+        return None, None
+
+    def issue(self, title: str, body: str) -> str | None:
+        if not self.host.token:
+            return None
+        try:
+            data = self.host.http(
+                f"{self.api}/repos/{self.repo}/issues",
+                {"title": title, "body": body[-60000:]},
+            )
+            return str(data.get("html_url")) if isinstance(data, dict) else None
+        except Exception:
+            return None
+
+    # -- the step --------------------------------------------------------------
+
+    def log(self, sha: str, text: str) -> None:
+        self.layout.logs.mkdir(parents=True, exist_ok=True)
+        with (self.layout.logs / f"{sha[:12]}.log").open("a") as handle:
+            handle.write(f"[{self.host.now().isoformat()}] {text}\n")
+
+    def run_logged(self, sha: str, cmd: list[str]) -> tuple[int, str]:
+        done = self.host.run(cmd)
+        text = (done.stdout + done.stderr).decode(errors="replace")
+        self.log(sha, f"$ {' '.join(cmd)}\n{text}\n(exit {done.returncode})")
+        return done.returncode, text
+
+    def fail(self, sha: str, what: str, text: str) -> None:
+        url = self.issue(
+            f"core-pipeline: {what} ({sha[:12]})",
+            f"main at `{sha}` did not go live: {what}.\n\n```\n{text[-20000:]}\n```",
+        )
+        self.state["last"] = {
+            "sha": sha,
+            "result": "failed",
+            "what": what,
+            "issue": url,
+        }
+
+    def tick(self) -> None:
+        self.load()
+        head = self.head()
+        self.state["seen_head"] = head
+        if head in (self.state.get("done"), self.live_sha()):
+            self.state["done"] = head
+            self.save()
+            self.write_status(state="idle")
+            return
+        merger, tested = self.merge(head)
+        if merger != self.governor or not tested:
+            self.log(head, f"skipped: merged by {merger!r}, not {self.governor!r}")
+            self.state["done"] = head
+            self.state["last"] = {
+                "sha": head,
+                "result": "skipped",
+                "what": f"not merged by {self.governor} (merger: {merger})",
+            }
+            self.save()
+            self.write_status(state="idle")
+            return
+        # CI runs on the pull request; core-deploy checks the merge has the
+        # tested head's exact tree (--tested-as).
+        ci = self.ci(tested)
+        if ci == "pending":
+            self.save()
+            self.write_status(state="waiting for CI", waiting_on=head)
+            return
+        self.state["done"] = head
+        if ci == "red":
+            self.fail(
+                head, "CI is red on main", "see the commit's check runs on GitHub"
+            )
+            self.save()
+            self.write_status(state="idle")
+            return
+
+        self.write_status(state="deploying", deploying=head, merged_by=merger)
+        rc, text = self.run_logged(
+            head,
+            [
+                "sudo",
+                "-n",
+                CORE_DEPLOY,
+                head,
+                "--migrate",
+                "--merged-by",
+                merger,
+                "--tested-as",
+                tested,
+            ],
+        )
+        if rc == EX_DEPLOY_GOVERNOR:
+            self.fail(head, "deploy stopped after a migration; your decision", text)
+        elif rc != 0:
+            self.fail(head, "deploy refused or switched back", text)
+        else:
+            check_rc, check_text = self.run_logged(
+                head, ["sudo", "-n", "-u", "core", SANDBOX_CHECK]
+            )
+            if check_rc != 0:
+                back_rc, back_text = self.run_logged(
+                    head, ["sudo", "-n", CORE_DEPLOY, "--rollback"]
+                )
+                self.fail(
+                    head,
+                    "probes failed after deploy; "
+                    + ("rolled back" if back_rc == 0 else "ROLLBACK FAILED"),
+                    check_text + "\n" + back_text,
+                )
+            else:
+                self.state["last"] = {
+                    "sha": head,
+                    "result": "live",
+                    "merged_by": merger,
+                }
+        self.save()
+        self.write_status(state="idle")
+
+
+def main(
+    argv: list[str] | None = None,
+    host: Host | None = None,
+    layout: Layout | None = None,
+) -> int:
+    parser = argparse.ArgumentParser(
+        prog="core-pipeline", description=__doc__.split("\n\n")[0]
+    )
+    parser.parse_args(argv)
+    layout = layout or Layout()
+    conf = read_conf(layout.conf)
+    repo, governor = conf.get("GITHUB_REPO"), conf.get("GOVERNOR_GITHUB")
+    if not repo or not governor:
+        print(
+            f"core-pipeline: GITHUB_REPO and GOVERNOR_GITHUB are required in {layout.conf}",
+            file=sys.stderr,
+        )
+        return 1
+    if host is None:
+        token_file = Path(conf.get("TOKEN_FILE", "/etc/core/pipeline-github-token"))
+        token = token_file.read_text().strip() if token_file.is_file() else None
+        host = Host(token or None)
+    layout.state_dir.mkdir(parents=True, exist_ok=True)
+    runner = Runner(host, layout, repo, governor, branch=conf.get("BRANCH", "main"))
+    with layout.lock.open("a") as lock:
+        try:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return 0
+        try:
+            runner.tick()
+        except Exception as exc:  # network, GitHub, a bad state file
+            runner.write_status(state="error", error=str(exc)[:500])
+            print(f"core-pipeline: {exc}", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -168,6 +168,7 @@ class Layout:
 class Options:
     migrate: bool = False
     merged_by: str | None = None
+    tested_as: str | None = None
     dev_repo: Path = DEV_REPO
     readiness_port: int = 8765
     api_base: str = "http://127.0.0.1:8000"
@@ -476,7 +477,25 @@ class Deployer:
         )
         if on_develop.returncode != 0:
             raise Refused(f"{sha[:12]} is not on upstream {branch}")
-        self.require_green_ci(github_slug(upstream), sha)
+        tested = self.options.tested_as
+        if tested:
+            # A merge commit on main has no CI run of its own (CI runs on the
+            # pull request). It is accepted when its tree is byte-identical to
+            # the tested pull-request head, which branch protection keeps up
+            # to date with main.
+            if not re.fullmatch(r"[0-9a-f]{40}", tested):
+                raise Refused(f"--tested-as must be a full sha, not {tested!r}")
+            trees = {
+                self.git("rev-parse", "--verify", f"{c}^{{tree}}").decode().strip()
+                for c in (sha, tested)
+            }
+            if len(trees) != 1:
+                raise Refused(
+                    f"{sha[:12]} does not have the same tree as the tested {tested[:12]}"
+                )
+            self.require_green_ci(github_slug(upstream), tested)
+        else:
+            self.require_green_ci(github_slug(upstream), sha)
         return sha
 
     def require_green_ci(self, slug: str, sha: str) -> None:
@@ -998,6 +1017,10 @@ def main(argv: list[str] | None = None, host: Host | None = None) -> int:
         help="who merged the commit on GitHub (the post-merge runner passes it)",
     )
     parser.add_argument(
+        "--tested-as",
+        help="the pull-request head CI tested; the commit's tree must equal it",
+    )
+    parser.add_argument(
         "--root", type=Path, default=Path("/opt/core"), help=argparse.SUPPRESS
     )
     args = parser.parse_args(argv)
@@ -1011,7 +1034,9 @@ def main(argv: list[str] | None = None, host: Host | None = None) -> int:
     deployer = Deployer(
         host or Host(),
         layout,
-        Options(migrate=args.migrate, merged_by=args.merged_by),
+        Options(
+            migrate=args.migrate, merged_by=args.merged_by, tested_as=args.tested_as
+        ),
     )
     layout.root.mkdir(parents=True, exist_ok=True)
     with layout.lock.open("a") as lock:
