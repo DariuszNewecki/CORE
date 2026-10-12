@@ -56,6 +56,21 @@ def test_passing_job(scratch: Path) -> None:
     assert result.ok
 
 
+def test_unreadable_link_in_src_still_reports(scratch: Path) -> None:
+    # The M1 secret_link probe ships such a link; following it once made the
+    # bootstrap crash before writing its report (2026-10-12).
+    tree = make_tree(scratch / "t", {"test_ok.py": PASSING}, {"pkg.py": ""})
+    locked = scratch / "locked"
+    locked.mkdir()
+    (tree / "src" / "secret_link").symlink_to(locked / "secret")
+    locked.chmod(0)
+    try:
+        result = _run(tree, scratch, _job(("tests/test_ok.py",)))
+    finally:
+        locked.chmod(0o700)
+    assert (result.status, result.completeness) == ("passed", "full"), result.stderr
+
+
 def test_failing_job(scratch: Path) -> None:
     tree = make_tree(scratch / "t", {"test_bad.py": FAILING})
     result = _run(tree, scratch, _job(("tests/test_bad.py",)))

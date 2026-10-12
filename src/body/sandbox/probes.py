@@ -81,7 +81,9 @@ def test_secrets():
 
 
 def test_secret_link():
-    link = os.path.join(os.path.dirname(__file__), "secret_link")
+    # The link sits in src/, not tests/: pytest stats every entry of a
+    # directory it collects, and an unreadable target stops collection.
+    link = os.path.join(os.path.dirname(os.path.dirname(__file__)), "src", "secret_link")
     assert os.path.islink(link)
     assert _denied(lambda: open(link, "rb").read(1))
 
@@ -146,7 +148,8 @@ async def run_probes(
     handler.write_runtime_text(
         str(tree_rel / "pyproject.toml"), "[tool.pytest.ini_options]\n"
     )
-    handler.create_symlink(str(tree_rel / "tests" / "secret_link"), SECRET_PATHS[0])
+    handler.ensure_dir(str(tree_rel / "src"))
+    handler.create_symlink(str(tree_rel / "src" / "secret_link"), SECRET_PATHS[0])
     tree = handler.repo_path / tree_rel
     rows: list[dict[str, Any]] = []
     try:

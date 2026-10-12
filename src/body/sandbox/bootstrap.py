@@ -92,11 +92,17 @@ def _candidate_error(snapshot: Path) -> str | None:
     src = snapshot / "src"
     if not src.is_dir():
         return None
-    shipped = {
-        p.name if p.is_dir() else p.stem
-        for p in src.iterdir()
-        if p.is_dir() or p.suffix == ".py"
-    }
+    # Never follow a link here: its target may be unreadable on purpose, and
+    # a stat that raises would leave the job without a report.
+    shipped: set[str] = set()
+    with os.scandir(src) as entries:
+        for entry in entries:
+            if entry.is_symlink():
+                shipped.add(entry.name.removesuffix(".py"))
+            elif entry.is_dir(follow_symlinks=False):
+                shipped.add(entry.name)
+            elif entry.name.endswith(".py"):
+                shipped.add(entry.name.removesuffix(".py"))
     for name, module in list(sys.modules.items()):
         if name.split(".", 1)[0] not in shipped:
             continue
