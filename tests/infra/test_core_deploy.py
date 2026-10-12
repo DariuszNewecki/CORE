@@ -125,6 +125,7 @@ class FakeHost(cd.Host):
             "core-daemon.service",
             "core-daemon-worker@sync_db_worker.service",
         ]
+        self.wanted: list[str] = []
         self.alive = ["sync_db_worker"]
         self.beats_after_switch = True
         self.clock = T0
@@ -168,6 +169,8 @@ class FakeHost(cd.Host):
                 out = "\n".join(
                     f"{u} loaded active running x" for u in self.unit_list
                 ).encode()
+            elif verb == "show" and cmd[5] == "default.target":
+                out = " ".join(["basic.target", *self.wanted]).encode()
             elif verb == "is-active":
                 rc = 1 if cmd[5] in self.inactive else 0
         elif cmd[:2] == ["/bin/sh", "-c"]:
@@ -263,6 +266,19 @@ def test_happy_path_installs_switches_verifies_and_records(root: Path) -> None:
     assert entry["migrations_applied"] == [] and entry["sha"] == SHA
     assert "restart" in host.systemctl_verbs()
     assert not (root / "build" / SHA).exists()
+
+
+# ID: 83e4a3c5-0176-4965-a5a0-3ee2ab1fdfd7
+def test_first_deploy_with_nothing_loaded_starts_the_enabled_units(root: Path) -> None:
+    # 2026-10-12: no unit was loaded, so the first deploy restarted nothing
+    # and refused ("API /health did not answer; no previous release").
+    host = FakeHost(root)
+    host.wanted = list(host.unit_list)
+    host.unit_list = []
+    assert _deploy(root, host) == 0
+    restart = next(c for c in host.commands("systemctl") if c[4] == "restart")
+    assert set(restart[5:]) == set(host.wanted)
+    assert _current(root) == SHA
 
 
 # ID: 4084c0c0-0029-4b7c-978a-ca94240f1cf8

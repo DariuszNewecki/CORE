@@ -383,8 +383,19 @@ class Deployer:
         out = self.systemctl(
             "list-units", "--all", "--plain", "--no-legend", "--type=service", "core-*"
         ).stdout.decode()
-        names = sorted({line.split()[0] for line in out.splitlines() if line.strip()})
-        return [n for n in names if not n.startswith(READINESS_UNIT)]
+        names = {line.split()[0] for line in out.splitlines() if line.strip()}
+        if not names:
+            # Nothing loaded (a first deploy, or every service down): restart
+            # starts them, so take the enabled ones default.target wants.
+            wants = self.systemctl(
+                "show", "default.target", "--property=Wants", "--value", check=False
+            ).stdout.decode()
+            names = {
+                n
+                for n in wants.split()
+                if n.startswith("core-") and n.endswith(".service")
+            }
+        return [n for n in sorted(names) if not n.startswith(READINESS_UNIT)]
 
     def current_sha(self) -> str | None:
         if not self.layout.current.is_symlink():

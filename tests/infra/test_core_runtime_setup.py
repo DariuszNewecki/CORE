@@ -66,6 +66,7 @@ class FakeHost(rs.Host):
         self.fetched: list[str] = []
         self.socket_active = False
         self.readable_etc_by: set[str] = set()
+        self.linger = False
 
     def is_root(self) -> bool:
         return self.root
@@ -108,6 +109,10 @@ class FakeHost(rs.Host):
             code = 0 if self.socket_active else 3
         elif cmd[:3] == ["systemctl", "enable", "--now"]:
             self.socket_active = True
+        elif cmd[:2] == ["loginctl", "show-user"]:
+            out = b"yes\n" if self.linger else b"no\n"
+        elif cmd[:2] == ["loginctl", "enable-linger"]:
+            self.linger = True
         elif cmd[0] == "cat" and user is not None:
             code = 0 if user in self.readable_etc_by else 1
         result = subprocess.CompletedProcess(cmd, code, out, b"")
@@ -250,9 +255,11 @@ def test_clone_runs_git_only_as_core_sparse_and_at_the_sha(world) -> None:
     sparse = next(cmd for cmd, _ in git if "set" in cmd)
     for pattern in ("!/.intent/", "!/.specs/", "!/CLAUDE.md", "!/.claude/"):
         assert pattern in sparse
-    assert any(cmd[-2:] == ["--detach", SHA] for cmd, _ in git)
+    assert any(cmd[-4:] == ["checkout", "-B", "develop", SHA] for cmd, _ in git)
     chmod = next(cmd for cmd, _ in _ran(world, "chmod"))
     assert "g-w" in chmod[2] and chmod[-1].endswith("/repo/.git")
+    setgid = next(cmd for cmd, _ in _ran(world, "find"))
+    assert setgid[1].endswith("/repo/.git") and "g+s" in setgid
     tmp = world.layout.repo / "var" / "tmp"
     assert _mode(tmp) == 0o751 and _mode(world.layout.repo) == 0o751
 
@@ -336,6 +343,12 @@ def test_service_units_replace_todays_and_keep_the_old_ones(world) -> None:
     assert not any("restart" in c and "--user" in c for c in cmds)
 
 
+def test_linger_is_enabled_for_core(world) -> None:
+    assert _run(world, "--apply") == 0
+    assert (["loginctl", "enable-linger", "core"], None) in world.host.calls
+    assert world.host.linger
+
+
 def test_rerun_is_a_no_op(world, capsys) -> None:
     assert _run(world, "--apply") == 0
     world.host.calls.clear()
@@ -345,6 +358,7 @@ def test_rerun_is_a_no_op(world, capsys) -> None:
         assert cmd[0] not in {"useradd", "passwd"}
         assert "clone" not in cmd and "daemon-reload" not in cmd
         assert cmd[:2] != ["systemctl", "enable"]
+        assert cmd[:2] != ["loginctl", "enable-linger"]
     assert "  do: " not in capsys.readouterr().out
 
 

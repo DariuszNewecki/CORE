@@ -454,7 +454,8 @@ class Setup:
                     user=SERVICES,
                 )
                 self._git("sparse-checkout", "set", "--no-cone", *SPARSE)
-                self._git("checkout", "--detach", self.ref)
+                # A branch, not a detached HEAD: the ancestry hook needs develop.
+                self._git("checkout", "-B", "develop", self.ref)
                 self._git("config", "core.sharedRepository", "0640")
         if not self.apply and not (repo / ".git").is_dir():
             self.say(
@@ -465,6 +466,20 @@ class Setup:
             # The assistant (group core-dev) reads CORE's history and never writes it.
             self.host.run(["chgrp", "-R", DEV_GROUP, str(repo / ".git")])
             self.host.run(["chmod", "-R", "g+rX,g-w,o-rwx", str(repo / ".git")])
+            # setgid: what core's later fetches create stays group core-dev.
+            self.host.run(
+                [
+                    "find",
+                    str(repo / ".git"),
+                    "-type",
+                    "d",
+                    "-exec",
+                    "chmod",
+                    "g+s",
+                    "{}",
+                    "+",
+                ]
+            )
         # core-sandbox reaches its inbox through these: traverse only (o+x).
         for path in (repo, repo / "var", repo / "var" / "tmp"):
             self._ensure_dir(path, SERVICES, DEV_GROUP, 0o751)
@@ -586,6 +601,16 @@ class Setup:
         assert account is not None
         unit_dir = Path(account.pw_dir) / ".config" / "systemd" / "user"
         self.say(f"7. {SERVICES}'s user units in {unit_dir} (reloaded, not restarted)")
+        # Without linger, core's user manager (and every service) stops when its
+        # last session closes; the daemon-reload below closed it on 2026-10-12.
+        linger = self.host.run(
+            ["loginctl", "show-user", SERVICES, "--property=Linger", "--value"],
+            check=False,
+        )
+        if linger.stdout.strip() == b"yes":
+            self.say(f"  ok: linger enabled for {SERVICES}")
+        elif self.act(f"loginctl enable-linger {SERVICES}"):
+            self.host.run(["loginctl", "enable-linger", SERVICES])
         stamp = self.host.now().strftime("%Y%m%dT%H%M%SZ")
         saved = self.layout.backups / f"units-{stamp}"
         changed = False
