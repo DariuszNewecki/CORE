@@ -136,12 +136,13 @@ capabilities:
       delete: []
 
   crate.create:
-    description: General-purpose intent crate packaging -- bundles source and tests into var/crates/ for proposal export.
+    description: General-purpose intent crate packaging -- bundles source and tests into var/workflows/crates/ for proposal export.
     risk: safe
     fs_profile:
       read: []
       create:
         - {path_pattern: "var/crates/**", modes: [dev, live]}
+        - {path_pattern: "var/workflows/crates/**", modes: [dev, live]}
       modify: []
       delete: []
 
@@ -197,7 +198,8 @@ capabilities:
     fs_profile:
       read:
         - {path_pattern: ".intent/rules/code/purity.json", modes: [dev, live]}
-      create: []
+      create:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
       modify:
         - {path_pattern: "src/**/*.py", modes: [dev, live]}
       delete: []
@@ -442,11 +444,13 @@ capabilities:
       create:
         - {path_pattern: "var/reports/test_failures.json", modes: [dev, live]}
         - {path_pattern: "var/logs/tests.jsonl", modes: [dev, live]}
+        - {path_pattern: "var/tmp/sandbox-inbox/**", modes: [dev, live]}
       modify:
         - {path_pattern: "var/logs/tests.jsonl", modes: [dev, live]}
         - {path_pattern: "var/reports/test_failures.json", modes: [dev, live]}
       delete:
         - {path_pattern: "var/reports/test_failures.json", modes: [dev, live]}
+        - {path_pattern: "var/tmp/sandbox-inbox/**", modes: [dev, live]}
 
   test.system:
     description: Test-execution dispatcher -- delegates to test.execute; own fs_profile empty (FS authorization resolves at runtime against the dispatched capability).

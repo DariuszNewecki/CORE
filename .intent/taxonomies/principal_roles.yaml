@@ -1,4 +1,4 @@
-version: "1.1.0"
+version: "2.0.0"
 status: active
 authority: constitutional
 title: CORE Principal Role Taxonomy
@@ -7,7 +7,10 @@ description: >
   exist and what authority each carries (Layer 1 of the three-layer role
   model). Principal-to-role binding (Layer 2) is a deployment concern.
   Action-to-role requirements (Layer 3) are expressed in enforcement rules.
-  Authority: ADR-068 (D2; amendment 2026-10-11 A2, A3, A6.1).
+  Authority: ADR-068 (D2; amendment 2026-10-11 A2, A3, A6.1); governor
+  redesign 2026-10-12: two roles, one human (governor) and CORE (system).
+  Operator, auditor and producer were enforced nowhere and are removed;
+  separation of duties returns with a second human.
 
 governance:
   flat_forever: true
@@ -22,74 +25,25 @@ roles:
     display_name: Governor
     authority: constitutional
     description: >
-      Full constitutional authority. May approve or reject proposals, accept
-      ADRs, authorize .intent/ changes, and trigger any governed operation.
+      The one human. Approves policy and exceptions: rule changes, proposals
+      that need a human after their pre-approval run, deployments. Recorded
+      as the principal `governor`; the identity behind it is kept beside it.
       At most one Governor per deployment at any given time.
     proposal_approval_authority: true
     read_access: full
     write_access: full
 
-  principal.operator:
-    display_name: Operator
-    authority: policy
-    description: >
-      Read all system state; trigger read-only operations (audit runs,
-      inspect, coverage). Cannot approve proposals or authorize
-      constitutional changes.
-    proposal_approval_authority: false
-    read_access: full
-    write_access: none
-
-  principal.auditor:
-    display_name: Auditor
-    authority: policy
-    description: >
-      Read audit findings, consequence chain, and compliance evidence.
-      No write access of any kind. Designed for the GxP QA archetype:
-      an external auditor who inspects the trail without influencing it.
-      A principal holding this role may not have approved the proposals
-      they are auditing (SoD constraint -- ADR-068 D3).
-    proposal_approval_authority: false
-    read_access: audit_trail_only
-    write_access: none
-
   principal.system:
     display_name: System Agent
     authority: policy
     description: >
-      Autonomous system actors -- workers, daemons, and the risk classifier.
-      The risk_classification.safe_auto_approval authority belongs to this
-      role class. Distinct from human principals; never issued credentials.
+      CORE itself: workers, daemons, the risk classifier, and the coding
+      assistants that produce proposals. The
+      risk_classification.safe_auto_approval authority belongs to this role.
+      Never approves what needs the governor; never issued credentials.
     proposal_approval_authority: false
     read_access: operational
     write_access: operational
-
-  principal.producer:
-    display_name: Producer
-    authority: policy
-    description: >
-      Produces changes -- code, tests, drafts of law -- and submits them as
-      proposals (ADR-168). Writes only its own working tree and proposals.
-      Never approves a proposal, never writes governed text, never deploys,
-      never holds a production credential. AI assistants, including the
-      governor's own model session, are producers. Mechanism accounts
-      (core-law, core-build, core-sandbox) are not principals: each acts
-      only on someone else's act. See ADR-068 amendment 2026-10-11 A3.
-    proposal_approval_authority: false
-    read_access: full
-    write_access: own_working_tree_and_proposals
-
-separation_of_duties:
-  governor_auditor_constraint:
-    description: >
-      A principal holding principal.governor authority may not serve as
-      principal.auditor for the same governance action. A proposal approved
-      by a Governor cannot have its audit-verification record signed by the
-      same principal. Enforcement deferred to first multi-operator deployment
-      (Track 3). Declared here so Team/Enterprise tiers inherit no structural
-      SoD gap. See ADR-068 D3.
-    status: declared
-    enforcement: deferred
 
 # ADR-068 amendment 2026-10-11 A1 superseded D4's single_governor_local
 # topology: "local" no longer means "the governor". The role set is the same
