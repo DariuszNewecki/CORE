@@ -65,7 +65,7 @@ async def status_cmd(
         lane = await _get(client, f"{api}/v1/lane?limit=10000")
 
     last = pipeline.get("last") or {}
-    table = Table(title="CORE", show_header=False)
+    table = Table(title="CORE status", show_header=False)
     table.add_column("what")
     table.add_column("state")
     table.add_row("live commit", _short(pipeline.get("live")))
