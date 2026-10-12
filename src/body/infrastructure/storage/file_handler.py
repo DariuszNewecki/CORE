@@ -13,6 +13,7 @@ import ast
 import json
 import os
 import shutil
+import stat
 import uuid
 from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager
@@ -43,6 +44,20 @@ class FileOpResult:
     status: str
     message: str
     detail: str
+
+
+def _mkdir_keeping_group(path: Path, mode: int) -> None:
+    """mkdir without losing the setgid group a parent passes down.
+
+    The sandbox inbox is setgid group core-sandbox, and core is not in that
+    group: an explicit chmod by core would clear S_ISGID (chmod(2)), so
+    every file below would be group core and unreadable by the sandbox.
+    chmod only when the umask changed the bits, and then keep S_ISGID.
+    """
+    path.mkdir(mode=mode)
+    current = path.stat().st_mode
+    if current & 0o777 != mode & 0o777:
+        os.chmod(path, mode | (current & stat.S_ISGID))
 
 
 # ID: 4684ec9b-095a-428b-95bc-60e5003dc7f7
@@ -409,8 +424,7 @@ class FileHandler:
         self._guard_paths([rel_dst_dir + "/"], op_class="create")
         abs_dst = self._resolve_repo_path(rel_dst_dir)
         abs_dst.parent.mkdir(parents=True, exist_ok=True)
-        abs_dst.mkdir(mode=dir_mode)
-        os.chmod(abs_dst, dir_mode)
+        _mkdir_keeping_group(abs_dst, dir_mode)
         count = 0
         for entry in entries:
             rel = str(entry.rel_path)
@@ -429,8 +443,7 @@ class FileHandler:
                     attempted_path=rel, bound_root=str(abs_dst)
                 )
             if entry.kind == "dir":
-                target.mkdir(mode=dir_mode)
-                os.chmod(target, dir_mode)
+                _mkdir_keeping_group(target, dir_mode)
             elif entry.kind == "link":
                 target.symlink_to(os.fsdecode(entry.data))
             elif entry.kind == "file":

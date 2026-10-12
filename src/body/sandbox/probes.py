@@ -169,6 +169,8 @@ async def run_probes(
                 "status": result.status,
                 "isolation": result.isolation,
                 "reason": result.reason,
+                # What the job said on stderr, so an error explains itself.
+                "detail": result.stderr[-2000:] if result.status == "error" else "",
             }
             if name == "leftover":
                 alive = _leftover_alive(result.stdout)

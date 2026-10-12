@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import stat
 from pathlib import Path
 
 import pytest
@@ -116,6 +117,21 @@ def test_write_snapshot_recreates_files_dirs_and_links(
     assert os.readlink(out / "tests/link") == "test_a.py"
     assert (out / "tests/test_a.py").stat().st_mode & 0o777 == 0o640
     assert (out / "tests").stat().st_mode & 0o777 == 0o750
+
+
+def test_write_snapshot_keeps_the_inbox_setgid_group(
+    scratch: Path, fh: FileHandler
+) -> None:
+    # 2026-10-12: chmod(0o750) cleared S_ISGID, so the live sandbox could not
+    # read the snapshot core wrote (group core, not core-sandbox).
+    inbox = fh.repo_path / "var/tmp/inbox"
+    inbox.mkdir(parents=True)
+    os.chmod(inbox, 0o2750)
+    fh.write_snapshot("var/tmp/inbox/job", read_snapshot(_tree(scratch / "t")))
+    out = inbox / "job"
+    for d in (out, out / "src", out / "src/pkg", out / "tests"):
+        assert d.stat().st_mode & stat.S_ISGID, d
+        assert d.stat().st_mode & 0o777 == 0o750, d
 
 
 def test_write_snapshot_refuses_an_existing_directory(fh: FileHandler) -> None:

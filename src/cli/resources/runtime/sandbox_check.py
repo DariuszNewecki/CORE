@@ -21,7 +21,9 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 
 from body.sandbox.client import DEFAULT_SOCKET, MODES
 from body.sandbox.probes import run_probes
@@ -66,5 +68,7 @@ async def sandbox_check_cmd(
             row["reason"],
         )
     console.print(table)
+    for detail in dict.fromkeys(row["detail"] for row in rows if row.get("detail")):
+        console.print(Panel(Text(detail), title="sandbox stderr", expand=False))
     if any(row["status"] != "passed" for row in rows):
         raise typer.Exit(1)
