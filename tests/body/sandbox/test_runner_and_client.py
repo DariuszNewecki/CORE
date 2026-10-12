@@ -283,3 +283,27 @@ async def test_client_refuses_a_secret_in_the_tree(
     )
     assert result.status == "not_run"
     assert "snapshot refused" in result.reason
+
+
+async def test_repo_tests_run_end_to_end_with_the_law_copied_in(
+    scratch: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The whole M2 path in local mode: snapshot (law included), bootstrap, result.
+    from unittest.mock import AsyncMock
+
+    from body.sandbox import repo_tests
+
+    reads_law = (
+        "from pathlib import Path\n\n"
+        "def test_law_is_there():\n"
+        "    assert Path('.intent/marker.txt').read_text() == 'law'\n"
+    )
+    tree = make_tree(scratch / "repo", {"test_law.py": reads_law})
+    (tree / ".intent").mkdir()
+    (tree / ".intent" / "marker.txt").write_text("law")
+    monkeypatch.setenv("CORE_SANDBOX_MODE", "local")
+    monkeypatch.setattr(repo_tests, "_persist_result_to_db", AsyncMock())
+    result = await repo_tests.run_tests(target="tests/test_law.py", repo_root=tree)
+    assert result.ok, result.data
+    assert result.data["isolation"] == "local"
+    assert result.data["counts"]["passed"] == 1

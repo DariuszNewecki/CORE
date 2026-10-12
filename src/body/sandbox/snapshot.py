@@ -38,11 +38,12 @@ from typing import Literal
 EntryKind = Literal["dir", "file", "link"]
 
 DEFAULT_INCLUDE: tuple[str, ...] = ("src", "tests", "pyproject.toml")
+LAW_NAMES: tuple[str, ...] = (".intent", ".specs")
 MAX_ENTRIES = 50_000
 MAX_FILE_BYTES = 64 * 1024 * 1024
 MAX_TOTAL_BYTES = 1024 * 1024 * 1024
 
-_SKIPPED_NAMES = frozenset(
+SKIPPED_NAMES = frozenset(
     {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
 )
 _REFUSED_NAMES = frozenset({".git", ".venv", ".secrets"})
@@ -73,16 +74,32 @@ def is_refused_name(name: str) -> bool:
 
 # ID: f155ff6b-7940-457f-a12d-a110b4a9a842
 def read_snapshot(
-    tree_root: Path, include: tuple[str, ...] = DEFAULT_INCLUDE
+    tree_root: Path,
+    include: tuple[str, ...] = DEFAULT_INCLUDE,
+    law: tuple[Path, ...] = (),
 ) -> list[SnapshotEntry]:
     """Read the allow-listed part of *tree_root*, refusing anything unsafe.
 
     A top-level name in *include* that does not exist is skipped (a tree may
     have no ``tests/``). Raises ``SnapshotRefused`` on any unsafe entry.
+
+    *law* names law roots (``.intent``, ``.specs``) to copy in at the top
+    level under their own names. Under D2 the law is kept beside the clone,
+    and the sandbox cannot read it there; the tests read it, and it is
+    public text. A law root replaces a same-named entry of the tree.
     """
     for name in include:
-        if not name or "/" in name or name in (".", "..") or is_refused_name(name):
-            raise SnapshotRefused(f"include must be plain top-level names: {name!r}")
+        parts = name.split("/")
+        if (
+            not name
+            or name.startswith("/")
+            or any(p in ("", ".", "..") or is_refused_name(p) for p in parts)
+        ):
+            raise SnapshotRefused(f"include must be relative names: {name!r}")
+    for root in law:
+        if root.name not in LAW_NAMES:
+            raise SnapshotRefused(f"law roots must be named {LAW_NAMES}: {root}")
+    law_names = {root.name for root in law}
     try:
         root_fd = os.open(tree_root, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
     except OSError as exc:
@@ -90,11 +107,27 @@ def read_snapshot(
     entries: list[SnapshotEntry] = []
     budget = _Budget()
     try:
-        for name in sorted(set(include)):
-            for entry in _read_entry(root_fd, name, name, budget):
+        seen_dirs: set[str] = set()
+        for name in sorted(set(include) - law_names):
+            for entry in _read_included(root_fd, name, budget):
+                if entry.kind == "dir":
+                    if entry.rel_path in seen_dirs:
+                        continue  # a parent shared by two nested includes
+                    seen_dirs.add(entry.rel_path)
                 entries.append(entry)
     finally:
         os.close(root_fd)
+    for root in law:
+        try:
+            parent_fd = os.open(
+                root.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC
+            )
+        except OSError as exc:
+            raise SnapshotRefused(f"law root cannot be opened: {exc}") from exc
+        try:
+            entries.extend(_read_entry(parent_fd, root.name, root.name, budget))
+        finally:
+            os.close(parent_fd)
     return entries
 
 
@@ -128,12 +161,40 @@ class _Budget:
             raise SnapshotRefused(f"snapshot larger than {MAX_TOTAL_BYTES} bytes")
 
 
+def _read_included(root_fd: int, name: str, budget: _Budget) -> list[SnapshotEntry]:
+    """An include, top-level or nested (``var/prompts``): its parent directories
+    are recorded as directories and opened without following links."""
+    *parents, leaf = name.split("/")
+    entries: list[SnapshotEntry] = []
+    fds: list[int] = []
+    try:
+        fd = root_fd
+        for i, part in enumerate(parents):
+            try:
+                fd = os.open(part, _DIR_FLAGS, dir_fd=fd)
+            except FileNotFoundError:
+                return []  # an allow-listed path the tree does not have
+            except OSError as exc:
+                raise SnapshotRefused(f"{name} cannot be opened: {exc}") from exc
+            fds.append(fd)
+            entries.append(SnapshotEntry("/".join(parents[: i + 1]), "dir"))
+        if parents:
+            try:
+                os.stat(leaf, dir_fd=fd, follow_symlinks=False)
+            except FileNotFoundError:
+                return []  # an allow-listed path the tree does not have
+        return entries + list(_read_entry(fd, leaf, name, budget))
+    finally:
+        for opened in fds:
+            os.close(opened)
+
+
 def _read_entry(
     parent_fd: int, name: str, rel_path: str, budget: _Budget
 ) -> Iterator[SnapshotEntry]:
     if is_refused_name(name):
         raise SnapshotRefused(f"refused name in snapshot: {rel_path}")
-    if name in _SKIPPED_NAMES:
+    if name in SKIPPED_NAMES:
         return
     try:
         fd = os.open(name, _FILE_FLAGS, dir_fd=parent_fd)

@@ -4,8 +4,8 @@
 
 Provides structural backing for the ``governance.dangerous_execution_primitives``
 rule: ``git apply``, ``ruff check``, and the stateless subprocess audit runner are
-concentrated here as the single authorised Body sanctuary, mirroring the pytest
-subprocess in ``shared.infrastructure.validation.test_runner``.
+concentrated here as the single authorised Body sanctuary, while pytest runs only in the
+sandbox runner (``body.sandbox.repo_tests``).
 
 All methods operate against a hermetic worktree path supplied by the caller —
 never the main working tree.

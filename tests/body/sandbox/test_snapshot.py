@@ -145,3 +145,43 @@ def test_write_snapshot_refuses_escaping_entries(fh: FileHandler, bad: str) -> N
     entry = snap.SnapshotEntry(rel_path=bad, kind="file", data=b"x")
     with pytest.raises(RepositoryBoundaryViolationError):
         fh.write_snapshot("var/tmp/inbox/job", [entry])
+
+
+def test_law_roots_are_copied_in_under_their_own_names(scratch: Path) -> None:
+    # Under D2 the law sits beside the clone, where the sandbox cannot read it.
+    root = _tree(scratch / "t")
+    law = scratch / "law"
+    (law / ".intent" / "rules").mkdir(parents=True)
+    (law / ".intent" / "rules" / "a.json").write_text("{}")
+    (law / ".specs").mkdir()
+    (law / ".specs" / "README.md").write_text("# specs\n")
+    paths = {
+        e.rel_path for e in read_snapshot(root, law=(law / ".intent", law / ".specs"))
+    }
+    assert {".intent/rules/a.json", ".specs/README.md", "src/pkg/__init__.py"} <= paths
+
+
+def test_a_law_root_must_be_named_intent_or_specs(scratch: Path) -> None:
+    root = _tree(scratch / "t")
+    with pytest.raises(SnapshotRefused):
+        read_snapshot(root, law=(scratch / "elsewhere",))
+
+
+def test_nested_includes_share_their_parent_once(scratch: Path) -> None:
+    root = _tree(scratch / "t")
+    for sub in ("prompts", "core"):
+        (root / "var" / sub).mkdir(parents=True)
+        (root / "var" / sub / "a.txt").write_text(sub)
+    (root / "var" / "logs").mkdir()
+    (root / "var" / "logs" / "secret.log").write_text("runtime")
+    entries = read_snapshot(root, ("src", "var/prompts", "var/core", "var/missing"))
+    paths = [e.rel_path for e in entries]
+    assert paths.count("var") == 1
+    assert {"var/prompts/a.txt", "var/core/a.txt"} <= set(paths)
+    assert not any(p.startswith("var/logs") for p in paths)
+
+
+@pytest.mark.parametrize("bad", ["../x", "/abs", "a/../b", "var/.env", ""])
+def test_include_paths_must_stay_inside(scratch: Path, bad: str) -> None:
+    with pytest.raises(SnapshotRefused):
+        read_snapshot(_tree(scratch / "t"), (bad,))

@@ -69,6 +69,8 @@ class SandboxRequest:
     timeout_sec: int
     markers: str | None = None
     include: tuple[str, ...] = DEFAULT_INCLUDE
+    # Law roots copied in as .intent/ and .specs/ (see read_snapshot).
+    law: tuple[Path, ...] = ()
 
 
 # ID: 7017d79f-4d5d-4892-8ff6-5f96a37a8e24
@@ -101,7 +103,9 @@ async def run_repo_code(
     inbox_rel = str(tmp_rel / INBOX_DIRNAME / job.job_id)
     work_rel = str(tmp_rel / WORK_DIRNAME / job.job_id)
     try:
-        entries = await asyncio.to_thread(read_snapshot, request.tree, request.include)
+        entries = await asyncio.to_thread(
+            read_snapshot, request.tree, request.include, request.law
+        )
         digest = snapshot_digest(entries)
         handler.write_snapshot(inbox_rel, entries)
     except (SnapshotRefused, OSError, ValueError) as exc:

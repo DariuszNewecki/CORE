@@ -3,13 +3,13 @@
 """
 Atomic-action wrapper for the pytest runner.
 
-Wraps shared.infrastructure.validation.test_runner.run_tests with the
+Wraps body.sandbox.repo_tests.run_tests with the
 register_action + atomic_action decoration pair so the test.execute
 capability has decoration backing per ADR-079 D9. When reached via
 ActionExecutor.execute("test.execute"), _executor_token is set to
 "test.execute" before run_tests runs — chokepoint identity propagates
-correctly. The underlying run_tests stays in shared/infrastructure
-(pure pytest+persistence infrastructure with no body imports).
+correctly. run_tests sends every job to the sandbox runner (ADR-132
+D10.10): repository tests never run as the services account.
 """
 
 from __future__ import annotations
@@ -19,10 +19,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from body.atomic.registry import ActionCategory, register_action
+from body.sandbox.repo_tests import run_tests
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.infrastructure.intent.test_coverage_paths import sibling_test_paths
-from shared.infrastructure.validation.test_runner import run_tests
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 
