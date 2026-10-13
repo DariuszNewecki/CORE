@@ -46,10 +46,10 @@ def test_file_entries_match_only_that_file() -> None:
 
 
 # ID: d2550542-bca0-4465-aff0-798b7b527f78
-def test_the_law_of_record_declares_specs_and_claude_md() -> None:
+def test_the_law_of_record_declares_specs() -> None:
     paths = load_governed_text_paths()
     assert ".specs/" in paths
-    assert "CLAUDE.md" in paths
+    assert "CLAUDE.md" not in paths
 
 
 # ID: 949568d1-9344-4f23-ac26-aea2029ed4a0

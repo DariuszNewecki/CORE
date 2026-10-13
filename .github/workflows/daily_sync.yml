@@ -3,9 +3,8 @@
 
 name: "Daily Constitutional Audit"
 
+# Manual only: run it when you want an audit, not on a daily schedule.
 on:
-  schedule:
-    - cron: '0 8 * * *'
   workflow_dispatch:
 
 # ADR-157 D2: cancel a superseded run if a manual dispatch overlaps the
