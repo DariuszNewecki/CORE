@@ -98,3 +98,26 @@ async def guard_stale_audit(
             current_violation_subjects=set(),
             resolved_by="audit_violation_sensor",
         )
+
+
+# ID: 63fe59e9-ce8d-4533-b518-db2f93a05f5c
+async def check_audited_commit(
+    worker: Any, core_context: Any, behind_cycles: int
+) -> tuple[AuditedCommit, int]:
+    """Record the commit this cycle audits and guard against stale code.
+
+    Returns the audited commit and the updated count of consecutive cycles
+    behind. The guard never stops the audit.
+    """
+    from body.infrastructure.repo_sync import upstream_branch
+
+    audited = audited_commit(core_context.git_service, upstream_branch())
+    behind_cycles = behind_cycles + 1 if audited.behind else 0
+    if audited.audited is None or audited.upstream is None:
+        return audited, behind_cycles  # nothing to compare against
+    try:
+        blackboard = await core_context.registry.get_blackboard_service()
+        await guard_stale_audit(worker, blackboard, audited, behind_cycles)
+    except Exception as exc:
+        logger.warning("stale-code guard failed: %s", exc)
+    return audited, behind_cycles

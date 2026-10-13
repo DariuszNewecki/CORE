@@ -163,6 +163,14 @@ def recover_at_boot(git: GitService, file_handler: FileHandler) -> dict | None:
         return RepoSync(git, file_handler, None).recover()
 
 
+# ID: 37cf0713-0d78-4df9-92c2-10dc259b081d
+def upstream_branch() -> str:
+    """The branch CORE's clone follows (CORE_UPSTREAM_BRANCH, default main)."""
+    from shared.config import settings
+
+    return settings.CORE_UPSTREAM_BRANCH
+
+
 # ID: b478d53f-3091-4f43-bfad-558c98b40d8f
 def repo_sync_for(core_context: Any) -> RepoSync:
     """RepoSync for CORE's own clone, upstream from settings (inert if unset)."""
@@ -172,7 +180,7 @@ def repo_sync_for(core_context: Any) -> RepoSync:
         core_context.git_service,
         core_context.file_handler,
         settings.CORE_UPSTREAM_URL,
-        settings.CORE_UPSTREAM_BRANCH,
+        upstream_branch(),
     )
 
 
