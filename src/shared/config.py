@@ -236,6 +236,9 @@ class Settings(BaseSettings):
     # ADR-132 D10 · D2: where CORE's own clone fetches the upstream line
     # (https, read-only). Unset: no sync, CORE works on its HEAD as today.
     CORE_UPSTREAM_URL: str | None = Field(None, validation_alias="CORE_UPSTREAM_URL")
+    # The branch merges land on; the clone fast-forwards along it. It was
+    # develop until the one-path flow moved merges to main (2026-10-12).
+    CORE_UPSTREAM_BRANCH: str = Field("main", validation_alias="CORE_UPSTREAM_BRANCH")
 
     REDIS_RATE_LIMIT_URL: str | None = Field(
         None, validation_alias="REDIS_RATE_LIMIT_URL"

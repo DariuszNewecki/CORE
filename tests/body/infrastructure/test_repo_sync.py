@@ -53,10 +53,10 @@ def _commit(repo: Path, files: dict[str, str], msg: str) -> str:
 def pair(tmp_path: Path) -> tuple[Path, Path]:
     up = tmp_path / "upstream"
     up.mkdir()
-    _git(up, "init", "-q", "-b", "develop")
+    _git(up, "init", "-q", "-b", "main")
     _commit(up, {"src/a.py": "a = 1\n"}, "base")
     clone = tmp_path / "clone"
-    _git(tmp_path, "clone", "-q", "--no-hardlinks", "-b", "develop", str(up), "clone")
+    _git(tmp_path, "clone", "-q", "--no-hardlinks", "-b", "main", str(up), "clone")
     return up, clone
 
 
@@ -280,3 +280,14 @@ def test_boot_recovery_refuses_a_journal_at_neither_end(
     _commit(clone, {"src/c.py": "c = 1\n"}, "someone moved HEAD")
     with pytest.raises(SyncRecoveryRefused):
         recover_at_boot(GitService(clone), _boot_handler(clone))
+
+
+def test_the_clone_follows_main_by_default() -> None:
+    """Merges land on main (one-path flow, 2026-10-12). Following the frozen
+    develop branch left the services' clone, and so every daemon audit, a
+    day behind what was deployed."""
+    from body.infrastructure.repo_sync import UPSTREAM_BRANCH
+    from shared.config import Settings
+
+    assert UPSTREAM_BRANCH == "main"
+    assert Settings().CORE_UPSTREAM_BRANCH == "main"
