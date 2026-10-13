@@ -34,7 +34,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from body.governance.law_custody.ledger import LEDGER_REL
+from body.governance.law_custody.ledger import LEDGER_REL, durable_ledger
 from body.governance.law_custody.proposal import LawProposal
 
 
@@ -267,18 +267,25 @@ def write_destinations(
 def append_ledger(
     destinations: Sequence[Path], line: bytes, *, custodian: str = CUSTODIAN_ACCOUNT
 ) -> None:
-    """Append the signed *line* to the ledger in every destination."""
+    """Append the signed *line* to the durable ledger when the host has one,
+    otherwise to the ledger in every destination."""
     if current_account() != custodian:
         raise CustodyError(f"the ledger is written only as {custodian}")
     if not line.endswith(b"\n") or line.count(b"\n") != 1:
         raise CustodyError("a ledger entry is exactly one line")
+    durable = durable_ledger()
+    if durable is not None:
+        _append_line(durable, line)
+        return
     for root in destinations:
         ledger = _safe_target(root, LEDGER_REL)
         ledger.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
-        fd = os.open(
-            ledger, os.O_WRONLY | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW, 0o644
-        )
-        with os.fdopen(fd, "ab") as handle:
-            handle.write(line)
-            handle.flush()
-            os.fsync(handle.fileno())
+        _append_line(ledger, line)
+
+
+def _append_line(ledger: Path, line: bytes) -> None:
+    fd = os.open(ledger, os.O_WRONLY | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW, 0o644)
+    with os.fdopen(fd, "ab") as handle:
+        handle.write(line)
+        handle.flush()
+        os.fsync(handle.fileno())

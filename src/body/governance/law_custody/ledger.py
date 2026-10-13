@@ -2,8 +2,11 @@
 """
 The custody ledger line (ADR-170 D4, amendment 2026-10-11 (later) item 4).
 
-One line per applied proposal, appended to ``.intent/custody/ledger.jsonl``
-in every destination. ``law apply`` writes every field itself -- nothing
+One line per applied proposal. On a host that has the durable custody
+ledger (``/opt/core/custody/ledger.jsonl``, outside every working tree and
+outside the law tree a deploy rewrites) the line goes there and only there;
+otherwise it is appended to ``.intent/custody/ledger.jsonl`` in every
+destination. ``law apply`` writes every field itself -- nothing
 the evaluation needs is kept by hand:
 - the proposal id and digest; the approver from ``SUDO_USER``;
 - the time the report was shown and the time of approval (UTC);
@@ -23,6 +26,7 @@ from __future__ import annotations
 
 import difflib
 import json
+import os
 import subprocess
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -34,6 +38,29 @@ from body.governance.law_custody.proposal import LawProposal
 
 LEDGER_REL = ".intent/custody/ledger.jsonl"
 SIGNING_NAMESPACE = "core-law-ledger"
+# The host's durable ledger: created by the host step, owned by core-law.
+# A deploy writes law into the development tree and the release law; neither
+# is a place a record may live (a checkout reset or a law resync drops it).
+CUSTODY_LEDGER = Path("/opt/core/custody/ledger.jsonl")
+CUSTODY_LEDGER_ENV = "CORE_CUSTODY_LEDGER"
+
+
+# ID: 45d4188e-91eb-4788-badd-a18547eaa7d5
+def durable_ledger() -> Path | None:
+    """The host's durable custody ledger, or None when the host has none.
+
+    ``CORE_CUSTODY_LEDGER`` overrides the location (tests); the ledger counts
+    as present when its directory exists.
+    """
+    path = Path(os.environ.get(CUSTODY_LEDGER_ENV) or CUSTODY_LEDGER)
+    return path if path.parent.is_dir() else None
+
+
+# ID: 6bf357ca-8a11-4b6a-b5ef-cbb1105fbb57
+def ledger_file(repo_root: Path) -> Path:
+    """Where the ledger of record is read: the durable ledger when the host
+    has one, otherwise the repository's own ``.intent/custody/ledger.jsonl``."""
+    return durable_ledger() or Path(repo_root) / LEDGER_REL
 
 
 # ID: a73e310f-d461-48e0-b205-a83a7f5729ae

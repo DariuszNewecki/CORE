@@ -312,3 +312,49 @@ def test_release_law_receives_only_intent_and_specs(tmp_path: Path, key: Path) -
     assert (law / ".specs" / "b.md").read_text() == "new b\n"
     assert ".claude/settings.json" in outcome.outcomes[0].written
     assert ".claude/settings.json" not in outcome.outcomes[1].written
+
+
+def test_durable_ledger_takes_the_line_and_no_working_tree_does(
+    tmp_path: Path, key: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With the host's durable ledger present, the signed line is appended
+    there only: a deploy must not leave records in the development tree or
+    the release law, where a checkout reset or a law resync drops them."""
+    from body.governance.law_custody.ledger import (
+        CUSTODY_LEDGER_ENV,
+        durable_ledger,
+        ledger_file,
+    )
+
+    custody = tmp_path / "custody"
+    custody.mkdir()
+    durable = custody / "ledger.jsonl"
+    durable.write_bytes(b'{"earlier": "record"}\n')
+    monkeypatch.setenv(CUSTODY_LEDGER_ENV, str(durable))
+    repo = _repo(tmp_path)
+    law = tmp_path / "law"
+    (law / ".specs").mkdir(parents=True)
+    (law / ".specs" / "a.md").write_text("old a\n")
+    (law / ".specs" / "gone.md").write_text("to remove\n")
+
+    outcome = service.apply_prepared(
+        _prepare(repo, tmp_path, [repo, law]),
+        approver="darek",
+        key_path=key,
+        custodian=ME,
+    )
+
+    assert outcome.ok()
+    assert durable.read_bytes() == b'{"earlier": "record"}\n' + outcome.ledger_line
+    for root in (repo, law):
+        assert (root / ".specs" / "b.md").read_text() == "new b\n"
+        assert not (root / LEDGER_REL).exists()
+    assert durable_ledger() == durable
+    assert ledger_file(repo) == durable
+
+
+def test_without_a_durable_ledger_the_repository_ledger_is_read(tmp_path: Path) -> None:
+    from body.governance.law_custody.ledger import durable_ledger, ledger_file
+
+    assert durable_ledger() is None  # conftest points at a missing directory
+    assert ledger_file(tmp_path) == tmp_path / LEDGER_REL

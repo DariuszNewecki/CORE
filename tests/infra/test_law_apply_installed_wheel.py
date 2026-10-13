@@ -200,6 +200,8 @@ def _env(w: dict[str, Path]) -> dict[str, str]:
         "HOME": str(w["tmp"]),
         "LANG": "C.UTF-8",
         "SUDO_USER": "darek",
+        # Never the host's durable custody ledger: this test owns its ledgers.
+        "CORE_CUSTODY_LEDGER": str(w["tmp"] / "no-custody" / "ledger.jsonl"),
     }
 
 
