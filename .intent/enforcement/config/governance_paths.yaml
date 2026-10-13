@@ -55,6 +55,5 @@ governed_text:
   paths:
     - ".intent/"
     - ".specs/"
-    - "CLAUDE.md"
     - ".claude/settings.json"
     - ".claude/hooks/"
