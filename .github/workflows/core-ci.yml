@@ -2,12 +2,13 @@
 name: CORE CI
 
 on:
-  # develop only. main receives fast-forwards of commits that already passed
-  # here. Check results attach to the commit SHA, so main's required checks
-  # are satisfied by the develop run, and a second run on main would re-test
-  # identical bytes (~15 min). Governor decision 2026-10-04.
+  # develop and main. On main (governor decision 2026-10-13, superseding
+  # 2026-10-04): with "require branches up to date" off, a merge commit holds
+  # code no pull-request run tested; core-pipeline deploys it only after this
+  # run on the merge commit is green. Rapid merges cancel the older main runs
+  # (concurrency below); the runner deploys the newest head.
   push:
-    branches: [develop]
+    branches: [develop, main]
   pull_request:
     branches: [main, develop]
   # Nightly full run on develop, including the release-upgrade tests that
