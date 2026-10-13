@@ -64,6 +64,11 @@ from will.audit_violation.filter import (
 )
 from will.audit_violation.normalizer import normalize_audit_findings
 from will.audit_violation.routing import _route_to
+from will.audit_violation.staleness import (
+    AuditedCommit,
+    audited_commit,
+    guard_stale_audit,
+)
 
 
 logger = getLogger(__name__)
@@ -104,6 +109,8 @@ class AuditViolationSensor(Worker):
     ) -> None:
         super().__init__(declaration_name=declaration_name, repo_root=repo_root)
         self._core_context = core_context
+        # Consecutive cycles that audited a commit behind the merge branch.
+        self._behind_cycles = 0
         self._rule_namespace = rule_namespace
         self._dry_run = dry_run
 
@@ -124,6 +131,7 @@ class AuditViolationSensor(Worker):
         violation as a finding.
         """
         await self.post_heartbeat()
+        audited = await self._check_audited_commit()
 
         # ADR-039: refresh governance and filesystem inputs before
         # resolving rules so content committed since the previous cycle
@@ -165,6 +173,7 @@ class AuditViolationSensor(Worker):
             await self.post_report(
                 subject="audit_violation_sensor.no_data",
                 payload={
+                    **audited.as_payload(),
                     "rule_namespace": self._rule_namespace,
                     "file_count": 0,
                     "artifact_type": artifact_type_id,
@@ -187,6 +196,7 @@ class AuditViolationSensor(Worker):
             await self.post_report(
                 subject="audit_violation_sensor.run.complete",
                 payload={
+                    **audited.as_payload(),
                     "rule_namespace": self._rule_namespace,
                     "rule_ids_resolved": 0,
                     "message": f"No rules found for namespace '{self._rule_namespace}'.",
@@ -256,6 +266,7 @@ class AuditViolationSensor(Worker):
             await self.post_report(
                 subject="audit_violation_sensor.run.complete",
                 payload={
+                    **audited.as_payload(),
                     "rule_namespace": self._rule_namespace,
                     "rule_ids_resolved": len(rule_ids),
                     "violations_found": len(raw_violations),
@@ -352,6 +363,7 @@ class AuditViolationSensor(Worker):
         await self.post_report(
             subject="audit_violation_sensor.run.complete",
             payload={
+                **audited.as_payload(),
                 "rule_namespace": self._rule_namespace,
                 "rule_ids_resolved": len(rule_ids),
                 "violations_found": len(raw_violations),
@@ -434,6 +446,23 @@ class AuditViolationSensor(Worker):
             ):
                 escalated += 1
         return escalated
+
+    async def _check_audited_commit(self) -> AuditedCommit:
+        """Record the commit this cycle audits and guard against stale code."""
+        from shared.config import settings
+
+        audited = audited_commit(
+            self._core_context.git_service, settings.CORE_UPSTREAM_BRANCH
+        )
+        self._behind_cycles = self._behind_cycles + 1 if audited.behind else 0
+        if audited.audited is None or audited.upstream is None:
+            return audited  # nothing to compare against: the guard stays quiet
+        try:
+            blackboard = await self._core_context.registry.get_blackboard_service()
+            await guard_stale_audit(self, blackboard, audited, self._behind_cycles)
+        except Exception as exc:  # the guard must never stop the audit
+            logger.warning("AuditViolationSensor: stale-code guard failed: %s", exc)
+        return audited
 
     def _resolve_rule_ids(self) -> list[str]:
         """

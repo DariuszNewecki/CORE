@@ -398,6 +398,27 @@ class GitService:
         )
         return self._run_command(["rev-parse", "--verify", f"{into_ref}^{{commit}}"])
 
+    # ID: 4694fb21-65e4-4a46-8258-b5757b985579
+    def resolve_ref(self, ref: str) -> str | None:
+        """The commit ``ref`` names in this clone, or None when it does not exist."""
+        result = subprocess.run(
+            [
+                "git",
+                *SAFE_GIT_OPTIONS,
+                "rev-parse",
+                "--verify",
+                "--quiet",
+                f"{ref}^{{commit}}",
+            ],
+            cwd=self.repo_path,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            return None
+        return result.stdout.strip() or None
+
     # ID: 9b0ba223-af83-4c59-990d-ca7e995e7bba
     def is_ancestor(self, ancestor: str, descendant: str) -> bool:
         """True when ``ancestor`` is reachable from ``descendant``.
