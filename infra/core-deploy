@@ -969,10 +969,9 @@ class Deployer:
             if target.is_file() and target.read_bytes() == data:
                 return False
             staged.write_bytes(data)
-            self.host.run(
-                ["install", "-m", "0644", "-o", LAW_USER, "-g", LAW_USER]
-                + [str(staged), str(target)]
-            )
+            self.host.run(["cp", "-T", str(staged), str(target)])
+            self.host.run(["chown", f"{LAW_USER}:{LAW_USER}", str(target)])
+            self.host.run(["chmod", "0644", str(target)])
         except (Refused, OSError) as exc:
             self.say(f"CLAUDE.md not updated: {exc}")
             return False

@@ -731,9 +731,12 @@ def test_claude_md_is_copied_to_the_dev_tree_not_applied_as_law(root: Path) -> N
     (dev / "CLAUDE.md").write_bytes(b"old\n")
     deployer = _deployer(root, dev)
     assert deployer.update_claude_md(SHA) is True
-    staged = str(root / ".CLAUDE.md.new")
-    install = ["install", "-m", "0644", "-o", "core-law", "-g", "core-law"]
-    assert (None, [*install, staged, str(dev / "CLAUDE.md")]) in deployer.host.calls
+    target = str(dev / "CLAUDE.md")
+    assert deployer.host.calls[-3:] == [
+        (None, ["cp", "-T", str(root / ".CLAUDE.md.new"), target]),
+        (None, ["chown", "core-law:core-law", target]),
+        (None, ["chmod", "0644", target]),
+    ]
     assert not (root / ".CLAUDE.md.new").exists()
     (dev / "CLAUDE.md").write_bytes(PYPROJECT)  # FakeHost's `git show` content
     assert deployer.update_claude_md(SHA) is False  # already equal
