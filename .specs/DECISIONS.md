@@ -7,6 +7,20 @@ ADR texts are in git history and tag `archive/pre-cleanup-2026-10`.
 "Enforced by" lists the ENFORCED rules whose rule or mapping cites the ADR;
 when none does, the src/ files that cite it; otherwise "not enforced".
 
+## Thesis and baselines (2026-10-13)
+
+Supersedes ADR-159's thresholds. Measured by `scripts/thesis_baseline.py`.  
+**Thesis:** a non-programmer governs untrusted AI through deterministic checks and ships working
+software, at a governance cost that falls over time.  
+**Measures, with the 2026-10-13 baselines:**
+- Unverified writes to main = 0 since 2026-10-12 (every write a governor-merged, CI-green PR).
+- AI authorship of commits merged into main >= 63%, never lower.
+- Waste trips per merged change = 2.0, falling month on month.
+- Convergence = findings resolved (not abandoned) / findings created >= 100%; currently 89%.
+
+**Refuted by:** an unverified write on main; waste per change rising with scale; or convergence
+below 100% for two consecutive months once it has first reached 100%.
+
 ## ADR-001 — Establish the .specs/ layer
 
 2026-04-15 · was `ADR-001-specs-layer-established.md`  
@@ -1264,6 +1278,7 @@ Enforced by: governance.passive_gate.enforced_by_must_resolve,
 D1 — The thesis, stated; D2 — Three thresholds; D3 — The containment rule; D4 — The adaptation line;
 D5 — Trial 0 is a rehearsal of the apparatus, not a proof; D6 — Trial 1 is the proof; D7 — The
 fifteen gates are subordinate; D8 — This ADR is the north star of record …  
+Thresholds superseded by "Thesis and baselines (2026-10-13)" at the top of this file.  
 Enforced by: autonomy.tracing.mandatory, governance.logic_mutation.governed,
   governance.mutation_surface.filehandler_required
 
