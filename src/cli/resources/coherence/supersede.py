@@ -5,7 +5,7 @@ canonical run. Bulk-dismisses every unreviewed candidate in the old run
 with a mandatory note, closes the old run, then recomputes the canonical
 run's denormalized ``unreviewed_count``.
 
-Governing ADR: .specs/decisions/ADR-067-constitutional-coherence-checker.md (D6).
+Governing ADR: .specs/DECISIONS.md (ADR-067) (D6).
 """
 
 from __future__ import annotations

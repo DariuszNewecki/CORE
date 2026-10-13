@@ -3,8 +3,8 @@
 """
 Fail-closed validation for binding one CORE process, one external Git
 repository, and one isolated database together (Governor ruling
-2026-09-05, recorded in .specs/decisions/ADR-159-autonomy-thesis-
-acceptance-boundary.md Notes; part of the Governor-authorized
+2026-09-05, recorded in ADR-159's Notes, now .specs/DECISIONS.md (ADR-159)
+and git history; part of the Governor-authorized
 external-target safety package).
 
 This module answers exactly one question: "is it safe to treat *target*

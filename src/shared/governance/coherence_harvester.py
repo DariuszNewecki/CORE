@@ -168,6 +168,11 @@ class GovernanceClaimHarvester:
             (specs_root_for(self._repo_root) / "papers", "paper", "*.md"),
             (specs_root_for(self._repo_root) / "northstar", "northstar", "*.md"),
         ]
+        # Accepted ADRs live in one collapsed record; .specs/decisions/ keeps
+        # only ADRs .intent/ still names (and an adopter's own ADR files).
+        decisions = specs_root_for(self._repo_root) / "DECISIONS.md"
+        if decisions.is_file():
+            yield from self._extract_markdown(decisions, "adr")
         for root, category, glob in roots:
             if not root.is_dir():
                 continue

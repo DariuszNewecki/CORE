@@ -188,3 +188,37 @@ def test_decisions_mentioning_by_path_or_module(repo: Path) -> None:
     assert mentions["docs/guide.md"][0]["status"] == "superseded"
     assert mentions["src/unrelated.py"] == []
     assert answer["limits"]
+
+
+def test_collapsed_decisions_record_answers_adr_and_mentions(repo: Path) -> None:
+    """Phase 4: accepted ADRs live as entries in .specs/DECISIONS.md. An ADR
+    with no file is answered from its entry; a file still wins for its id."""
+    (repo / ".specs" / "DECISIONS.md").write_text(
+        "# CORE decisions\n\n"
+        "## ADR-007 — Shadowed by the file\n\n2026-01-01 · was `x.md`  \n"
+        "Never read.  \nEnforced by: not enforced\n\n"
+        "## ADR-012 — Collapsed decision\n\n2026-01-02 · was `ADR-012-x.md`  \n"
+        "Workers read src/will/autonomy/proposal.py first.  \n"
+        "Enforced by: some.rule\n"
+    )
+    facts = LawFacts(repo)
+    answer = facts.adr("ADR-012").as_dict()
+    assert answer["class"] == DECISION_HISTORY
+    assert answer["answer"]["title"] == "Collapsed decision"
+    assert answer["answer"]["decisions"] == [
+        "Workers read src/will/autonomy/proposal.py first."
+    ]
+    assert answer["sources"][0]["path"] == ".specs/DECISIONS.md"
+    assert (
+        facts.adr("ADR-007")
+        .as_dict()["sources"][0]["path"]
+        .startswith(".specs/decisions/")
+    )
+    mentions = facts.decisions_mentioning(["src/will/autonomy/proposal.py"])
+    ids = [
+        m["id"]
+        for m in mentions.as_dict()["answer"]["mentions"][
+            "src/will/autonomy/proposal.py"
+        ]
+    ]
+    assert "ADR-012" in ids

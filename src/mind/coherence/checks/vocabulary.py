@@ -133,3 +133,7 @@ def _iter_governance_markdown(repo_root: Path):
     for path in sorted(universe):
         if any(path.is_relative_to(d) for d in governance_dirs):
             yield path
+    # The collapsed decision record (accepted ADRs, one entry each).
+    decisions = specs_root_for(repo_root) / "DECISIONS.md"
+    if decisions.is_file():
+        yield decisions

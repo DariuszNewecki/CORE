@@ -31,6 +31,7 @@ CONSTITUTIONAL ALIGNMENT:
 from __future__ import annotations
 
 import ast
+import re
 from collections.abc import Iterator
 from datetime import date, timedelta
 from pathlib import Path
@@ -95,6 +96,7 @@ _ENFORCEMENT_MAPPING_SCHEMA_REL_PATH = ".intent/META/enforcement_mapping.schema.
 _MAPPINGS_INTENT_REL = "enforcement/mappings"
 _ENFORCEMENT_MAPPING_SCHEMA_INTENT_REL = "META/enforcement_mapping.schema.json"
 _DECISIONS_REL_DIR = ".specs/decisions"
+_DECISIONS_RECORD_REL = ".specs/DECISIONS.md"
 _EXEMPTION_DEADLINE_GRACE_DAYS = 30
 
 
@@ -1109,8 +1111,9 @@ def _iter_governed_exclusions_entries(
 
 
 def _closure_adr_is_accepted(repo_root: Path, closure_adr: str) -> bool:
-    """True iff .specs/decisions/<closure_adr>-*.md exists and its
-    frontmatter status is 'accepted'.
+    """True iff .specs/DECISIONS.md has an entry for closure_adr (it lists
+    accepted ADRs only), or .specs/decisions/<closure_adr>-*.md exists and
+    its frontmatter status is 'accepted'.
 
     False for a missing closure_adr string, a missing file, or any status
     other than 'accepted' — fail-closed, matching ADR-152 D3 stage 2's
@@ -1120,6 +1123,12 @@ def _closure_adr_is_accepted(repo_root: Path, closure_adr: str) -> bool:
     """
     if not closure_adr:
         return False
+    # The collapsed record lists accepted ADRs only, one "## ADR-NNN — …" each.
+    record = law_path(repo_root, _DECISIONS_RECORD_REL)
+    if record.is_file() and re.search(
+        rf"^## {re.escape(closure_adr)} — ", record.read_text(encoding="utf-8"), re.M
+    ):
+        return True
     decisions_dir = law_path(repo_root, _DECISIONS_REL_DIR)
     if not decisions_dir.is_dir():
         return False
