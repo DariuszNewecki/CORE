@@ -40,14 +40,10 @@ future offline onboard):
    ruling 2026-09-07) giving the worker constitutional standing scoped
    exactly to ``package/example.py`` -- it does not touch the envelope
    above, which remains the sole source of what ``fix.format`` may do --
-   and one ``rules/will/proposal_lifecycle.json`` policy document
-   (Governor ruling 2026-09-07, second), copied byte-identical from
-   CORE's own ``.intent/rules/will/proposal_lifecycle.json``: the
-   mandatory policy dependency of the production ``claim.proposal``
-   atomic action, which ``ProposalExecutor`` invokes internally for any
-   proposal regardless of the action it carries. Its absence is why
-   ``claim.proposal`` failed its own policy validation on the prior live
-   attempt -- adding it does not widen the safe-auto-approval envelope
+   (the ``rules/will/proposal_lifecycle.json`` copy the 2026-09-07 ruling
+   added left with phase 5b: CORE retired that document and
+   ``claim.proposal`` no longer declares it as a policy) -- none of this
+   widens the safe-auto-approval envelope
    past ``fix.format`` on ``package/*.py``.
    ``rules/code/imports.json`` copied byte-identical from CORE's own tree
    (Governor ruling 2026-09-15: policies belong in the overlay, never the

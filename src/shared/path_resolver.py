@@ -65,7 +65,6 @@ class PathResolver:
     _DEFAULT_MIND_SUBDIR: ClassVar[tuple[str, ...]] = ("var", "mind")
     _DEFAULT_ROLLBACKS_SUBDIR: ClassVar[tuple[str, ...]] = ("var", "mind", "rollbacks")
     _DEFAULT_RUN_SUBDIR: ClassVar[tuple[str, ...]] = ("var", "run")
-    _DEFAULT_DRAFTS_SUBDIR: ClassVar[tuple[str, ...]] = ("var", "drafts")
 
     @classmethod
     # ID: b4295e1a-8a41-4f2f-9383-d18990179ba9
@@ -246,12 +245,6 @@ class PathResolver:
     def run_dir(self) -> Path:
         """Runtime PID and socket files (var/run/)."""
         return self._repo_root.joinpath(*self._DEFAULT_RUN_SUBDIR)
-
-    @property
-    # ID: e21d9c09-67a8-4b91-9867-99eb6b39b3aa
-    def drafts_dir(self) -> Path:
-        """Staging area for draft artifacts (var/drafts/)."""
-        return self._repo_root.joinpath(*self._DEFAULT_DRAFTS_SUBDIR)
 
     # =========================================================================
     # GOVERNANCE PATHS (V2.7)

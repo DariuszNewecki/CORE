@@ -1,13 +1,4 @@
-# .intent/enforcement/mappings/architecture/layer_separation.yaml
-#
-# Enforces the constitutional Mind/Body/Will architectural separation.
-# Based on: .intent/papers/CORE-Mind-Body-Will-Separation.md
-
 mappings:
-  # ==========================================================================
-  # RULE 0: Perimeter -- No shadow layers outside Mind/Body/Will/shared/api
-  # Moved from core_safety.yaml -- rule definition lives in layer_separation.json
-  # ==========================================================================
 
   architecture.layer_exclusivity:
     engine: glob_gate
@@ -24,10 +15,6 @@ mappings:
       applies_to:
         - "src/**/*.py"
 
-  # ==========================================================================
-  # RULE 1: Mind Never Executes - Database Access
-  # ==========================================================================
-
   architecture.mind.no_database_access:
     engine: ast_gate
     params:
@@ -41,10 +28,6 @@ mappings:
       applies_to:
         - "src/mind/**/*.py"
 
-  # ==========================================================================
-  # RULE 2: Mind Never Executes - Filesystem Writes
-  # ==========================================================================
-
   architecture.mind.no_filesystem_writes:
     engine: ast_gate
     params:
@@ -52,10 +35,6 @@ mappings:
     scope:
       applies_to:
         - "src/mind/**/*.py"
-
-  # ==========================================================================
-  # RULE 3: Mind Never Invokes Body
-  # ==========================================================================
 
   architecture.mind.no_body_invocation:
     engine: ast_gate
@@ -68,10 +47,6 @@ mappings:
       applies_to:
         - "src/mind/**/*.py"
 
-  # ==========================================================================
-  # RULE 4: Mind Never Invokes Will
-  # ==========================================================================
-
   architecture.mind.no_will_invocation:
     engine: ast_gate
     params:
@@ -82,10 +57,6 @@ mappings:
     scope:
       applies_to:
         - "src/mind/**/*.py"
-
-  # ==========================================================================
-  # RULE 5: Body Never Evaluates Rules
-  # ==========================================================================
 
   architecture.body.no_rule_evaluation:
     engine: ast_gate
@@ -98,27 +69,11 @@ mappings:
       applies_to:
         - "src/body/**/*.py"
       excludes:
-        # Body orchestration services may coordinate rule evaluation
-        # Body governance execution layer (IntentGuard infrastructure)
-        # dispatches engines at enforcement time -- same role as orchestration
         - "src/body/governance/*.py"
         - "src/body/governance/**/*.py"
-        # Atomic action proof mechanism: verify_metadata_only_diff proves
-        # a write is metadata-only before allowing it -- uses Mind utility
-        # as a validation primitive, not for governance rule evaluation
         - "src/body/atomic/metadata_ops.py"
-        # Assisted action lane uses EngineRegistry as a validation primitive
-        # (same role as metadata_ops.py); proper DI path tracked as architecture debt
         - "src/body/atomic/assisted_actions.py"
-        # GRC gap analysis service uses EngineRegistry + GRCApplicabilityGate for
-        # document-corpus rule evaluation; DI refactor deferred pending ADR-049 tightening
         - "src/body/services/grc/gap_analysis_service.py"
-        # CLI reporting tools: use Mind checks for display only,
-        # no governance decisions made
-
-  # ==========================================================================
-  # RULE 6: Will Never Accesses Database Directly
-  # ==========================================================================
 
   architecture.will.no_direct_database_access:
     engine: ast_gate
@@ -130,23 +85,6 @@ mappings:
     scope:
       applies_to:
         - "src/will/**/*.py"
-      # REMOVED: src/will/workers/*.py exemption -- no rationale was ever documented.
-      # This exemption was silently hiding 14 production violations across Will workers
-      # (external audit 2026-03-28, Finding 1.1 / Finding 1.6).
-      # Will workers must use dependency injection like all other Will components.
-      # Tracking: full remediation requires WillDatabasePort refactor (Finding 1.1).
-
-      # RESOLVED (external-review verification, 2026-07-12): the former direct
-      # write from proposal_executor.py to core.proposal_consequences was
-      # extracted into ConsequenceLogService (src/body/services/consequence_log_service.py).
-      # ProposalExecutor no longer writes raw SQL -- it delegates via
-      # proposal_execution_pipeline.record_consequence() ->
-      # service_registry.get_consequence_log_service().record(). The
-      # "consequence_log_body_extraction (pending)" tracking item is closed.
-
-  # ==========================================================================
-  # RULE 7: Will Delegates Filesystem Operations
-  # ==========================================================================
 
   architecture.will.no_filesystem_operations:
     engine: ast_gate
@@ -155,22 +93,6 @@ mappings:
     scope:
       applies_to:
         - "src/will/**/*.py"
-
-  # ==========================================================================
-  # RULE 8: Will Delegates to Body -- mapping removed (#820 Group B).
-  # architecture.will.must_delegate_to_body retired from automated
-  # enforcement as an advisory historical marker; its currently mechanically
-  # decidable portions are covered by architecture.will.no_direct_database_access
-  # and architecture.will.no_filesystem_operations (both above). The broader
-  # positive claim -- that Will actually delegates rather than merely avoiding
-  # those two bypasses -- is not exhaustively decided by CORE's current
-  # declared checks and remains a human-reviewed architectural expectation.
-  # ==========================================================================
-
-  # ==========================================================================
-  # RULE 9: API Never Bypasses Layers - Database
-  # SCOPE FIX 2026-04-19: Added "src/api/*.py" alongside "src/api/**/*.py".
-  # ==========================================================================
 
   architecture.api.no_direct_database_access:
     engine: ast_gate
@@ -184,29 +106,8 @@ mappings:
         - "src/api/**/*.py"
         - "src/api/*.py"
       excludes:
-        # FastAPI dependency injection is acceptable
         - "src/api/**/dependencies.py"
         - "src/api/dependencies.py"
-
-  # ==========================================================================
-  # RULE 10: API Routes Through Will -- mapping removed (#820 Group B).
-  # architecture.api.must_route_through_will retired from automated
-  # enforcement as an advisory historical marker; its currently mechanically
-  # decidable portions are covered by architecture.api.no_direct_database_access
-  # and architecture.api.no_body_bypass (below). The broader positive claim --
-  # that all API logic actually routes through Will rather than merely
-  # avoiding those two bypasses -- is not exhaustively decided by CORE's
-  # current declared checks and remains a human-reviewed architectural
-  # expectation (see CORE-Mind-Body-Will-Separation.md S6, ADR-049).
-  # ==========================================================================
-
-  # ==========================================================================
-  # RULE 11: API Doesn't Bypass to Body
-  # EXTENDED 2026-04-19: Widened forbidden list from "body.services" only
-  # to all of Body.
-  # SCOPE FIX 2026-04-19: Added "src/api/*.py" alongside "src/api/**/*.py".
-  # COMPOSITION-ROOT EXEMPTION 2026-04-19: Added src/api/main.py to excludes.
-  # ==========================================================================
 
   architecture.api.no_body_bypass:
     engine: ast_gate
@@ -220,26 +121,8 @@ mappings:
         - "src/api/**/*.py"
         - "src/api/*.py"
       excludes:
-        # Composition-root sanctuary -- api/main.py is the FastAPI entrypoint
-        # where lifespan must be wired at app creation. core_lifespan lives
-        # in Body because it coordinates Body services; api/main.py's import
-        # of it is the single allowed cross-layer reference by design.
         - "src/api/main.py"
-        # DI-root sanctuary -- dependencies.py is the ADR-049 D1 S6 sanctioned
-        # infrastructure site. decode_access_token is a DI root (get_current_user
-        # dependency), not a business-logic bypass. auth_routes.py Body import
-        # tracked for Will facade in #718.
         - "src/api/dependencies.py"
-
-  # ==========================================================================
-  # RULE 12: Body Never Invokes Will
-  # EXTENDED 2026-03-28: Added will.workers and will.self_healing.
-  # EXPANDED 2026-05-15 (ADR-049 D1): forbidden replaced 4 explicit sub-path
-  # entries with bare prefixes `src.will` and `will`, covering every will.*
-  # descendant via ast_gate Mode 2 prefix matching. This closes the gap
-  # between paper S5.4 ("Body -> Will constitutionally prohibited") and the
-  # previously-narrow rule scope.
-  # ==========================================================================
 
   architecture.layers.no_body_to_will:
     engine: ast_gate
@@ -251,34 +134,6 @@ mappings:
     scope:
       applies_to:
         - "src/body/**/*.py"
-
-  # ==========================================================================
-  # RULE 13: Mind Never Executes -- mapping removed (#820 Group B).
-  # architecture.layers.no_mind_execution retired from automated enforcement
-  # as an advisory historical marker; its currently mechanically decidable
-  # portions are covered by architecture.mind.no_database_access,
-  # architecture.mind.no_filesystem_writes, architecture.mind.no_body_invocation,
-  # and architecture.mind.no_will_invocation (all above). The broader claim --
-  # that Mind performs no I/O or action-invocation of any kind, including
-  # forms these four do not enumerate (e.g. network I/O) -- is not
-  # exhaustively decided by CORE's current declared checks and remains a
-  # human-reviewed architectural expectation.
-  # ==========================================================================
-
-  # ==========================================================================
-  # RULE 14: Shared Never Makes Strategic Decisions -- mapping removed
-  # (#820 Group B). architecture.shared.no_strategic_decisions is retained as
-  # advisory doctrine (not mechanically decidable -- see the rule's rationale
-  # in .intent/rules/architecture/layer_separation.json), evaluated by
-  # governor/human architecture review rather than an automated check. The
-  # mechanical half of the shared/ admission test (layer independence) is
-  # enforced separately by architecture.shared.no_layer_imports, below.
-  # ==========================================================================
-  # RULE 15: Shared Never Imports From Layers -- Blocking AST Gate
-  # Constitutional basis: CORE-Mind-Body-Will-Separation.md S7.2 Admission Test 1
-  # ADDED 2026-03-28: Implements the shared/ admission test as enforceable law.
-  # Replaces the previously advisory-only governance of src/shared/.
-  # ==========================================================================
 
   architecture.shared.no_layer_imports:
     engine: ast_gate
@@ -295,12 +150,6 @@ mappings:
       applies_to:
         - "src/shared/**/*.py"
 
-  # ==========================================================================
-  # RULE 16: Workers Never Import Other Workers
-  # Blocking AST gate -- inter-worker communication via blackboard only.
-  # Existing helper modules in will/workers/ are excluded pending extraction.
-  # ==========================================================================
-
   architecture.workers.no_direct_worker_import:
     engine: ast_gate
     params:
@@ -313,12 +162,4 @@ mappings:
       applies_to:
         - "src/will/workers/**/*.py"
         - "src/body/workers/**/*.py"
-      # ADR-153 (accepted, implemented 2026-07-17): all six original
-      # #723/#793 excludes are closed. The last, violation_executor.py, no
-      # longer imports will.workers.violation_remediator_body -- it delegates
-      # to will.remediation.RemediationCeremony instead. Zero excludes
-      # remain for this rule.
 
-# ==============================================================================
-# Meta: This mapping file restores CORE's founding architectural principle
-# ==============================================================================

@@ -20,8 +20,7 @@
             "scope": {
                 "paths": [
                     ".intent/taxonomies/filesystem_operations.yaml"
-                ],
-                "notes": "Context-level check -- the substrate is the YAML cross-referenced against runtime introspection. Per-file dispatch is never engaged; applies_to references the taxonomy itself so the check fires once per audit cycle."
+                ]
             }
         },
         {

@@ -1,51 +1,24 @@
-# Code modularity enforcement mappings
-# Source file structure enforcement -- splitting and refactoring detection
-
 mappings:
-  # LAW: Files exceeding line limit with single coherent responsibility SHOULD be split
-  # Automatable -- mechanical redistribution, no discipline boundaries crossed
   modularity.needs_split:
     engine: ast_gate
     params:
       check_type: modularity
       check_method: check_needs_split
-      # Per ADR-042: LOC is a pre-selector, not a verdict. Threshold raised
-      # from 400 to 500 to reduce false-positives on algorithm-large and
-      # barely-over-boundary classes.
       max_lines: 500
     scope:
       applies_to: ["src/**/*.py"]
-      # ADR-095 D3: per-file path exclusions retired. Facade / algorithm /
-      # catalog sanctuary is now declared in-file via `CORE_ROLE = "<value>"`
-      # module-level constant; the engine short-circuits on detection.
-      # Only universal scope filters remain here.
 
-  # LAW: Files whose dominant top-level class exceeds the line limit SHOULD be
-  # reviewed by a human. Mechanical redistribution cannot resolve these --
-  # the problem lives inside the class (see ADR-007).
   modularity.class_too_large:
     engine: ast_gate
     params:
       check_type: modularity
       check_method: check_class_too_large
-      # Per ADR-042: pre-selector threshold raised from 400 to 500 for
-      # consistency with needs_split. The verdict on whether an oversize
-      # class is genuinely poly-responsibility lives in
-      # modularity.unix_philosophy (llm_gate, currently stubbed -- see #306).
       max_lines: 500
     scope:
       applies_to: ["src/**/*.py"]
 
-
-    # ADR-095 D3: per-file exemption register retired. Facade / algorithm /
-    # catalog sanctuary is now declared in-file via `CORE_ROLE = "<value>"`
-    # module-level constant; the engine short-circuits on detection. This
-    # block is kept empty (not removed) in case a future carve-out needs the
-    # structured-register shape for some non-CORE_ROLE reason.
     governed_exclusions: []
 
-  # LAW: Files mixing distinct architectural disciplines MUST be refactored
-  # Blocking -- requires human judgment before any autonomous action
   modularity.needs_refactor:
     engine: ast_gate
     params:
@@ -54,5 +27,4 @@ mappings:
       max_concerns: 3
     scope:
       applies_to: ["src/**/*.py"]
-
 

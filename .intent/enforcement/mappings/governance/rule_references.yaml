@@ -1,25 +1,9 @@
-# .intent/enforcement/mappings/governance/rule_references.yaml
-#
-# Enforcement mapping for governance.intent_vocabulary.* rules.
-# Authority: governance -- rule IDs are constitutional vocabulary.
-#
-# Compliant pattern:
-#   from shared.infrastructure.intent.rule_registry import get_rule_registry
-#   _TARGET_RULE = get_rule_registry()["the.rule.id"]
-#
-# The registry validates at import time; KeyError surfaces renames immediately.
-
 mappings:
   governance.intent_vocabulary.no_hardcoded_rule_ids:
     engine: regex_gate
     params:
       check_type: pattern_match
       patterns:
-        # Module-level constant whose name contains "RULE" (e.g. _TARGET_RULE, _SOURCE_RULE)
-        # assigned a dotted-namespace rule ID string.
-        # Narrowed from the original broad pattern to exclude blackboard subject strings
-        # (post_finding(subject="governance.foo") uses the same namespace format but is NOT
-        # a rule ID -- false positives caused by broad match confirmed in triage 2026-07-01).
         - '^\s*[A-Z_]*RULE[A-Z_]*\s*=\s*["''](?:ai|architecture|governance|quality|purity|style|linkage|atomic_actions|async|logic|modernization|autonomy|coherence|cli|data|infrastructure|runtime|will)\.[a-z][a-z_.]+["'']'
       message: >
         Hardcoded rule ID string assigned to a *_RULE* constant. Route through

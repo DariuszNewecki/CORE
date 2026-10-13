@@ -46,11 +46,6 @@ mandate:
       - ".specs/**"
       - "infra/**"
     rule_namespace: "coherence.repo_artifacts"
-    # ADR-070 D8 writer-as-sensor pattern: the crawler walks every
-    # crawler-indexed artifact_type and posts coherence.repo_artifacts.drift
-    # findings inline when rows are removed. The artifact_type list reflects
-    # the union of crawler-indexed types per F-41 registry, declared
-    # constitutionally per #570 reclassification.
     artifact_type:
       - python
       - test
@@ -61,13 +56,6 @@ mandate:
       - intent_yaml
       - intent_json
       - spec_markdown
-      - adr
-      - paper
-      - requirement
-      - planning
-      - charter
-      - northstar
-      - architecture_bridge
     domains:
       - knowledge
       - governance

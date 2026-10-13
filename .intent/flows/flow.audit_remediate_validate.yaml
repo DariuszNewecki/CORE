@@ -34,25 +34,21 @@ flow:
     - rules/code/purity
 
   steps:
-    # Stage 1 -- AUDIT: detect violations before touching anything
     - ref_id: check.imports
       kind: action
       required: true
       consumes: []
 
-    # Stage 2 -- REMEDIATE: fix the detected violations
     - ref_id: fix.imports
       kind: action
       required: true
       consumes: [write]
 
-    # Stage 3a -- CLEAN: formatting pass after structural changes
     - ref_id: fix.format
       kind: action
       required: false
       consumes: [write]
 
-    # Stage 3b -- VALIDATE: re-audit to confirm violations are resolved
     - ref_id: check.imports
       kind: action
       required: true

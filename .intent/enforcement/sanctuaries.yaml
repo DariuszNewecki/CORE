@@ -1,28 +1,3 @@
-# .intent/enforcement/sanctuaries.yaml
-#
-# Sanctuary Registry
-# Authority: ADR-137 D2
-# Status: active
-#
-# PURPOSE:
-#   Formal registry of production code sites that write files through mechanisms
-#   the governance.mutation_surface.filehandler_required sensor cannot detect
-#   (pathlib variable-receiver pattern, detection-inert per ast_gate taxonomy).
-#
-#   Each entry is a named, reviewed exception. The registry makes the sanctuary
-#   population enumerable from .intent/ rather than requiring a grep of all
-#   SANCTUARY comments in src/.
-#
-# ADDING AN ENTRY:
-#   Requires: (a) structural evidence that FileHandler delegation is impossible,
-#   (b) a closure_adr referencing this registry, and (c) a deadline or the
-#   explicit token "open" if no closure path exists.
-#   Code comments at the site MUST be shortened to reference this file.
-#
-# CLOSING AN ENTRY:
-#   Delete the entry and the corresponding code comment when the structural
-#   constraint is resolved. File a commit note referencing the closure.
-
 sanctuaries:
   - id: action_logger_append
     site: src/shared/action_logger.py

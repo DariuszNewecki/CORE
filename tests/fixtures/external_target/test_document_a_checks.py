@@ -91,6 +91,17 @@ ENVELOPE_FILE = "enforcement/config/safe_auto_approval_envelope.yaml"
 ENVELOPE_RULE_FILE = "rules/will/safe_auto_approval_envelope.json"
 ENVELOPE_MAPPING_FILE = "enforcement/mappings/will/safe_auto_approval_envelope.yaml"
 EVALUATION_WORKFLOW_FILE = "workflows/definitions/evaluation.yaml"
+# Phase 5b of the governance-text reduction retired these documents from
+# CORE's own .intent/ (passive rules). The frozen Trial 0 overlay keeps its
+# copies; for them there is no canonical twin left to compare against.
+RETIRED_FROM_CORE = frozenset(
+    {
+        CONTAINMENT_RULE_FILE,
+        ENVELOPE_RULE_FILE,
+        ENVELOPE_MAPPING_FILE,
+        "enforcement/mappings/architecture/execution_write_containment.yaml",
+    }
+)
 
 TASK_STATEMENT = "Evaluate the package"
 DB_URL = "postgresql://x:s3cret@127.0.0.1:1/db"
@@ -703,7 +714,7 @@ def test_i5_mutation_boundary_refuses_naming_a_rule_that_exists_at_the_pin(
     overlay_rule = TRIAL0_OVERLAY / CONTAINMENT_RULE_FILE
     canonical = REPO_ROOT / ".intent" / CONTAINMENT_RULE_FILE
     assert overlay_rule.is_file(), "the rule reaches the pinned subject via the overlay"
-    assert overlay_rule.read_bytes() == canonical.read_bytes()
+    assert CONTAINMENT_RULE_FILE in RETIRED_FROM_CORE and not canonical.exists()
     (rule,) = _json(overlay_rule)["rules"]
     assert rule["id"] == probes.CONTAINMENT_RULE_ID
     assert rule["enforcement"] == "blocking"
@@ -771,7 +782,7 @@ def test_i6_authority_boundary_refuses_under_the_overlay_envelope() -> None:
         assert overlay_copy.is_file(), (
             f"{rel} must reach the pinned subject via the overlay"
         )
-        assert overlay_copy.read_bytes() == canonical.read_bytes(), rel
+        assert rel in RETIRED_FROM_CORE and not canonical.exists(), rel
     (rule,) = _json(TRIAL0_OVERLAY / ENVELOPE_RULE_FILE)["rules"]
     assert rule["id"] == ENVELOPE_RULE_ID and rule["enforcement"] == "blocking"
     mapping = yaml.safe_load((TRIAL0_OVERLAY / ENVELOPE_MAPPING_FILE).read_text())
@@ -891,6 +902,9 @@ def test_overlay_is_the_only_bridge_to_the_pinned_subject() -> None:
         if rel in overlay_owned:
             continue
         canonical = REPO_ROOT / ".intent" / rel
+        if rel in RETIRED_FROM_CORE:
+            assert not canonical.exists(), f"{rel} is back in CORE: compare it again"
+            continue
         assert canonical.is_file(), f"{rel} has no canonical twin in .intent/"
         assert (TRIAL0_OVERLAY / rel).read_bytes() == canonical.read_bytes(), rel
     assert OVERLAY_DIR.is_dir(), "the fixture overlay (tests) is a different object"

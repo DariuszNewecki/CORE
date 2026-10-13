@@ -13,7 +13,7 @@ async def test_ArtifactGateEngine_verify_context() -> None:
     context = MagicMock()
     context.repo_path = "/tmp/repo"
 
-    params = {"check_type": "vocabulary_projection_consistency"}
+    params = {"check_type": "register_casing_validation"}
 
     fake_findings = [MagicMock()]
 
@@ -24,7 +24,7 @@ async def test_ArtifactGateEngine_verify_context() -> None:
     with (
         patch(
             "mind.logic.engines.artifact_gate._VOCAB_DISPATCH",
-            {"vocabulary_projection_consistency": fake_check},
+            {"register_casing_validation": fake_check},
         ),
         patch(
             "mind.logic.engines.artifact_gate._result_to_findings",
@@ -36,7 +36,7 @@ async def test_ArtifactGateEngine_verify_context() -> None:
     assert result is fake_findings
     mock_result_to_findings.assert_called_once()
     called_args = mock_result_to_findings.call_args
-    assert called_args.args[1] == "vocabulary_projection_consistency"
+    assert called_args.args[1] == "register_casing_validation"
     assert called_args.args[2] == "artifact_gate"
 
 
@@ -71,12 +71,7 @@ def test_ArtifactGateEngine_is_context_level_for():
     assert ArtifactGateEngine.is_context_level_for(None) is False
 
     # Vocabulary check types -> True
-    for check_type in (
-        "vocabulary_projection_consistency",
-        "vocabulary_canonical_format",
-        "vocabulary_authoritative_paths",
-        "register_casing_validation",
-    ):
+    for check_type in ("register_casing_validation",):
         assert ArtifactGateEngine.is_context_level_for(check_type) is True
 
     # Governance check types -> True

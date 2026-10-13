@@ -175,7 +175,7 @@ def _check_decorator_conservation(
     action_id="fix.modularity",
     description="Mechanically split a file per a pre-validated LLM-produced plan",
     category=ActionCategory.FIX,
-    policies=["rules/architecture/modularity"],
+    policies=["rules/code/modularity"],
     remediates=[],  # ADR-095 D5: governor-invoked CLI tool only; no autonomous rule binding.
 )
 @atomic_action(

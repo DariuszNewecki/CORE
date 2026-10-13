@@ -39,9 +39,6 @@
       "description": "Map from failure-class name (per-phase, governor-authored per ADR-074 D5) to response-strategy value drawn from the failure_mode enum. Map shape, not list, so the class-to-strategy binding is declarative."
     },
 
-    "notes": {
-      "type": "string"
-    },
 
     "implementation": {
       "type": "string"

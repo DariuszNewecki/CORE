@@ -1,5 +1,4 @@
   mappings:
-    # LAW: Public symbols must have IDs
     linkage.assign_ids:
       engine: ast_gate
       params:
@@ -7,13 +6,6 @@
       scope:
         applies_to: ["src/**/*.py"]
 
-
-    # LAW: No ID collisions allowed.
-    # Stateless corpus check in ast_gate (#820 Group C) -- the prior
-    # knowledge_gate mechanism required the DB knowledge graph (skipped in the
-    # stateless --offline audit) and grouped on the capability `key`, not the
-    # `# ID:` anchor, so it never fired. ast_gate.duplicate_ids is context-level
-    # and reads source directly, so it runs in CI.
     linkage.duplicate_ids:
       engine: ast_gate
       params:
@@ -21,12 +13,6 @@
       scope:
         applies_to: ["src/**/*.py"]
 
-    # LAW: Every anchor annotates a symbol (inverse of assign_ids).
-    # Per-file, text-level, stateless -- runs in the offline CI gate. Public
-    # and private symbols alike; the question is whether the anchor is
-    # attached, not whether the symbol needed one. No auto-remediation on
-    # purpose: fix.ids would strip the anchor (identity loss), the rule wants
-    # it re-attached.
     linkage.no_orphan_ids:
       engine: ast_gate
       params:

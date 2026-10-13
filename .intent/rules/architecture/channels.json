@@ -26,13 +26,6 @@
             "rationale": "Softened to reporting: dev_sync workflow cluster (reporter, phases) violates this rule and must migrate to src/cli/. Restore to blocking once migration is complete."
         },
         {
-            "id": "architecture.channels.cli_rendering_allowed",
-            "statement": "CLI surface modules MAY use terminal-oriented rendering for user-facing output.",
-            "enforcement": "reporting",
-            "authority": "policy",
-            "phase": "runtime"
-        },
-        {
             "id": "architecture.channels.api_structured_output_only",
             "statement": "API modules MUST communicate through structured response mechanisms and MUST NOT use terminal-oriented rendering.",
             "enforcement": "blocking",
@@ -45,17 +38,6 @@
             "enforcement": "reporting",
             "authority": "policy",
             "phase": "audit"
-        },
-        {
-            "id": "architecture.api.response_must_use_declared_schema",
-            "statement": "API routes returning blackboard findings, audit data, or run results MUST declare an explicit response_model= using a type defined in api/v1/schemas.py -- relying on ORM serialisation or bare dict returns is prohibited.",
-            "enforcement": "reporting",
-            "authority": "policy",
-            "phase": "audit",
-            "rationale": "Prevents internal state leakage (worker UUIDs, DB metadata, internal paths) through unguarded API endpoints. Ramps to blocking once all /v1/lane, /v1/census, /v1/fix, /v1/audit, /v1/proposals routes are covered. Tracked in #727.",
-            "scope": {
-                "paths": ["src/api/**/*.py"]
-            }
         }
     ]
 }

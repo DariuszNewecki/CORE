@@ -11,60 +11,12 @@
     },
     "rules": [
         {
-            "id": "atomic_actions.must_return_action_result",
-            "statement": "All functions decorated with @atomic_action MUST declare ActionResult as their return type annotation and actually return ActionResult instances.",
-            "enforcement": "blocking",
-            "authority": "policy",
-            "phase": "load",
-            "rationale": "ActionResult provides the uniform contract for all Body layer operations. Without it, error handling, audit trails, and autonomous agent chaining become impossible."
-        },
-        {
-            "id": "atomic_actions.must_have_decorator",
-            "statement": "All functions registered with @register_action MUST also have the @atomic_action decorator with required metadata (action_id, intent, impact, policies).",
-            "enforcement": "blocking",
-            "authority": "policy",
-            "phase": "load",
-            "rationale": "The @atomic_action decorator ensures constitutional traceability and provides metadata for governance audits."
-        },
-        {
-            "id": "atomic_actions.result_must_be_structured",
-            "statement": "ActionResult.data MUST be a dictionary with string keys. Nested structures are permitted but the top level must be a dict.",
-            "enforcement": "blocking",
-            "authority": "policy",
-            "phase": "runtime",
-            "rationale": "Structured data enables autonomous agents to extract specific fields and make decisions based on operation outcomes."
-        },
-        {
-            "id": "atomic_actions.no_governance_bypass",
-            "statement": "No atomic action MAY return types other than ActionResult to bypass governance validation. Tuple returns (bool, str) are explicitly forbidden.",
-            "enforcement": "blocking",
-            "authority": "constitution",
-            "phase": "load",
-            "rationale": "Allowing alternative return types creates an ungovernerable shadow surface that undermines the entire constitutional framework."
-        },
-        {
-            "id": "atomic_actions.fix_action_scope",
-            "statement": "The atomic action 'fix.imports' is exclusively scoped to import ordering and sorting. It MUST NOT be interpreted as validating import correctness or module existence. A separate 'check.imports' action is the designated authority for import resolution verification.",
-            "enforcement": "blocking",
-            "authority": "policy",
-            "phase": "load",
-            "rationale": "Naming ambiguity between 'fix imports (sort)' and 'fix imports (validate)' creates a false sense of safety. A dev-sync run that includes fix.imports and reports ok=True MUST NOT imply that all imports are valid -- only that they are sorted. This rule eliminates that ambiguity constitutionally."
-        },
-        {
             "id": "atomic_actions.impact_level_must_be_governed",
             "statement": "Action impact classification MUST be declared in .intent/enforcement/config/action_risk.yaml, keyed by action_id. Embedding impact classification directly inside action registration calls in src/ is PROHIBITED.",
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "load",
             "rationale": "Impact level determines whether an action requires human approval or auto-executes -- a governance decision that belongs in .intent/, not in src/. Centralizing it in action_risk.yaml makes reclassification an auditable constitutional edit rather than a code change. See ADR-008."
-        },
-        {
-            "id": "atomic_actions.must_accept_kwargs",
-            "statement": "All functions decorated with @atomic_action MUST include a **kwargs parameter in their signature to absorb extra keyword arguments forwarded by FlowExecutor and ActionExecutor. The check fires at decoration (import) time; runtime fallback is not permitted.",
-            "enforcement": "blocking",
-            "authority": "policy",
-            "phase": "load",
-            "rationale": "After #445 inverted FlowExecutor's consumes-None default to forward-all, the next action omitting **kwargs trips a silent TypeError on its first invocation carrying unexpected keys. Declaring the requirement at registration (per ADR-008 / ADR-069 D3 / ADR-070 D8 no-runtime-fallback posture) surfaces the gap at import time rather than at the first half-built flow that probes it. Implementation lives in shared/atomic_action.py; see #448."
         }
     ]
 }

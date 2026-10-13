@@ -159,10 +159,6 @@
                             },
                             "minItems": 1,
                             "description": "Per ADR-091 D1. Array of registered artifact_type ids from .intent/artifact_types/ that this sensor observes. Single-element arrays are the common case; multi-element arrays declare joint observation (e.g. [python, test] for sensors that cross-reference instances of multiple types). Cross-validation invariant (ADR-091 D4): every element must appear in that artifact_type's supported_sensors array. The conditional `if class == sensing then required` lands in the top-level allOf block (active after #570 closed 2026-06-05)."
-                        },
-                        "notes": {
-                            "type": "string",
-                            "maxLength": 1000
                         }
                     }
                 },

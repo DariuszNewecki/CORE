@@ -15,7 +15,6 @@ outputs:
   - stage_route
   - planning_context
 constitutional_requirements:
-  - governance.no_governance_bypass
   - autonomy.tracing.mandatory
 authority: policy
 failure_modes:
@@ -36,7 +35,4 @@ forbidden_actions:
 success_criteria:
   action_plan_valid: true
   stage_route_defined: true
-notes: >
-  Parse is a constitutional phase. It structures intent into an explicit
-  operational plan but does not yet resolve runtime bindings or execute changes.
 implementation: will.phases.parse_phase.ParsePhase

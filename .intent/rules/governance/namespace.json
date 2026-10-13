@@ -21,8 +21,7 @@
                 "paths": [
                     ".intent/**",
                     ".specs/**"
-                ],
-                "notes": "Walk includes both governance trees in full. The manifest itself (.intent/governance/namespace_manifest.yaml) and the taxonomy register (.intent/taxonomies/governance_namespaces.yaml) are both classified by their own entries in the manifest -- no self-reference exemption."
+                ]
             }
         }
     ]

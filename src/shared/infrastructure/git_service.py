@@ -794,23 +794,6 @@ class GitService:
             counts[ref] = counts.get(ref, 0) + 1
         return sorted(counts, key=lambda ref: (-counts[ref], ref))
 
-    # ID: 30b6584a-2282-4d15-b9c3-704363d13c5b
-    def introducing_commit_subject(self, rel_path: str) -> str | None:
-        """The subject line of the commit that first added *rel_path*, or None.
-
-        Follows renames, like ``first_seen_date``. Used by ROW4_NAMING to read
-        which decision a law file was introduced under. Fail-soft: None on any
-        git failure.
-        """
-        try:
-            output = self._run_command(
-                ["log", "--follow", "--diff-filter=A", "--format=%s", "--", rel_path]
-            )
-        except RuntimeError:
-            return None
-        lines = output.splitlines() if output else []
-        return lines[-1] if lines else None
-
     # ID: 30850674-c7bb-4042-b2e8-1acb2a5c48ad
     def changed_since(self, rel_path: str, since: datetime) -> bool:
         """True when *rel_path* was committed after *since* or has uncommitted

@@ -37,7 +37,7 @@ logger = getLogger(__name__)
         "Atomically claim an approved proposal for execution under worker attribution"
     ),
     category=ActionCategory.STATE,
-    policies=["rules/will/proposal_lifecycle"],
+    policies=[],
     requires_db=True,
     remediates=[],
 )

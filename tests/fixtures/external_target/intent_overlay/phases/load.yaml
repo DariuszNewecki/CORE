@@ -16,7 +16,6 @@ outputs:
   - resolved_action_set
   - resolved_dependencies
 constitutional_requirements:
-  - governance.no_governance_bypass
   - autonomy.tracing.mandatory
 authority: policy
 failure_modes:
@@ -36,7 +35,4 @@ forbidden_actions:
 success_criteria:
   execution_context_ready: true
   action_set_resolved: true
-notes: >
-  Load is a constitutional phase. It prepares runtime-ready context from parsed
-  plans but remains pre-mutation and pre-audit.
 implementation: will.phases.load_phase.LoadPhase

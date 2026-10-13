@@ -21,8 +21,7 @@
                 "paths": [
                     ".intent/workers/*.yaml",
                     ".intent/artifact_types/*.yaml"
-                ],
-                "notes": "Context-level check -- substrate is the cross-product of all sensor declarations and all artifact_type declarations. Per-file dispatch is never engaged. Both glob patterns appear in scope so an edit on either side triggers re-evaluation."
+                ]
             }
         }
     ]

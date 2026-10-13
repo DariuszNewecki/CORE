@@ -20,8 +20,7 @@
             "scope": {
                 "paths": [
                     ".intent/enforcement/mappings/**/*.yaml"
-                ],
-                "notes": "Context-level check -- the substrate is every governed_exclusions entry across every mapping file, cross-referenced against enforcement_mapping.schema.json's governed_exclusions.items sub-schema and, for closure_type: deadline entries, against the current date and the referenced closure ADR's accepted/proposed status in .specs/decisions/. Per-file dispatch is never engaged."
+                ]
             }
         }
     ]

@@ -1,4 +1,3 @@
-# .intent/taxonomies/filesystem_operations.yaml
 version: "1.0.0"
 status: active
 authority: constitutional
@@ -47,28 +46,6 @@ description: >
 
 operations:
 
-  # ---------------------------------------------------------------------------
-  # pathlib.Path -- every public method classified.
-  # ADR-077 S3: "every public method must be classified. A method present in
-  # the runtime but absent from the taxonomy is a finding." The completeness
-  # check enumerates pathlib.Path public callables via inspect.getmembers and
-  # set-differences against this block; any gap fires manual_review.
-  #
-  # Per-entry match: leaf by convention. Three exceptions -- `replace`,
-  # `rename`, and `open` -- are declared qualified to avoid colliding with
-  # high-volume non-FS attribute names. Leaf-matching `replace` would fire
-  # on every `str.replace(...)` (~140 src/ sites); leaf-matching `open`
-  # would fire on `tarfile.open(mode="w:gz")`, `gzip.open(...)`, and any
-  # other module's `.open()` method. Detection of the write semantics on
-  # these names runs through the watched-block entries (`os.replace`,
-  # `os.rename`, builtin `open`); the pathlib qualified entries below
-  # exist for S3 completeness compliance but never resolve at detection
-  # time (`Path("x").replace(...)` and `Path("x").open("w")` have Call
-  # receivers, unresolvable through `resolve_qualified_name` -- the
-  # detection routes through the watched-block bare `open` and `os.*`
-  # entries instead). The variable-receiver bypass (`p.replace(...)`,
-  # `p.open("w")`) is a pre-existing, accepted gap -- see #506 follow-up.
-  # ---------------------------------------------------------------------------
   pathlib_path:
     absolute:          { op_class: neutral,  match: leaf }
     as_posix:          { op_class: neutral,  match: leaf }
@@ -99,8 +76,6 @@ operations:
     lstat:             { op_class: read,     match: leaf }
     match:             { op_class: neutral,  match: leaf }
     mkdir:             { op_class: write,    match: leaf }
-    # leaf (ADR-166 D5a): a qualified pathlib entry is never consulted by the
-    # no_direct_writes check, so Path.open("a") went undetected.
     open:              { op_class: write,    match: leaf,      predicate: write_mode }
     owner:             { op_class: read,     match: leaf }
     read_bytes:        { op_class: read,     match: leaf }
@@ -125,56 +100,25 @@ operations:
     write_bytes:       { op_class: write,    match: leaf }
     write_text:        { op_class: write,    match: leaf }
 
-  # ---------------------------------------------------------------------------
-  # Curated watched set -- qualified match.
-  # ADR-077 S3: "os, shutil, tempfile, builtin open: a curated watched set
-  # in the taxonomy. The check verifies each watched name still resolves to a
-  # callable in its module and is classified. It does not auto-discover new
-  # FS members here -- introspection cannot separate FS from non-FS in these
-  # mixed namespaces."
-  #
-  # Seeded for S6 step 1: existing no_direct_writes coverage from
-  # .intent/enforcement/mappings/architecture/governance_basics.yaml's
-  # forbidden_additional list (os/shutil writes + builtin open), plus the
-  # six S4-named gaps (mkdir/makedirs/touch/symlink/link/chmod) in their
-  # os-module form. Read-side curation deferred.
-  #
-  # aiofiles.open is NOT seeded despite appearing in the legacy
-  # forbidden_additional list: the library is not a runtime dependency and
-  # does not resolve in this venv. The completeness check (S3) requires
-  # each watched name to resolve, and the taxonomy's contract is
-  # "classified surfaces actually present in this runtime," not
-  # "speculative defensive coverage." This is precisely the kind of silent
-  # drift S3 was designed to catch -- flagged by the completeness check on
-  # first run and removed here. If aiofiles is added as a dependency, the
-  # taxonomy and the audit policy's forbidden surface are updated together.
-  # ---------------------------------------------------------------------------
   watched:
-    # builtin open -- module-qualified is the bare name. Mode predicate filters
-    # to write/append per existing _is_write_mode in purity_checks.
     open:              { op_class: write, match: qualified, predicate: write_mode }
 
-    # os filesystem-mutation family (existing no_direct_writes set)
     "os.replace":      { op_class: write, match: qualified }
     "os.rename":       { op_class: write, match: qualified }
     "os.remove":       { op_class: write, match: qualified }
     "os.unlink":       { op_class: write, match: qualified }
     "os.rmdir":        { op_class: write, match: qualified }
 
-    # os filesystem-mutation family (ADR-077 S4 gaps)
     "os.mkdir":        { op_class: write, match: qualified }
     "os.makedirs":     { op_class: write, match: qualified }
     "os.symlink":      { op_class: write, match: qualified }
     "os.link":         { op_class: write, match: qualified }
     "os.chmod":        { op_class: write, match: qualified }
 
-    # shutil filesystem-mutation family (existing no_direct_writes set)
     "shutil.copyfile": { op_class: write, match: qualified }
     "shutil.copy":     { op_class: write, match: qualified }
     "shutil.copy2":    { op_class: write, match: qualified }
     "shutil.move":     { op_class: write, match: qualified }
     "shutil.rmtree":   { op_class: write, match: qualified }
 
-    # tarfile archive creation (ADR-166 D5a): mode is the second argument, as for
-    # builtin open; write_mode reads it there.
     "tarfile.open":    { op_class: write, match: qualified, predicate: write_mode }

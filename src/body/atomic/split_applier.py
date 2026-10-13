@@ -27,7 +27,7 @@ logger = getLogger(__name__)
     action_id="refactor.apply_split",
     description="Write pre-computed deterministic split results to the filesystem",
     category=ActionCategory.FIX,
-    policies=["rules/architecture/modularity"],
+    policies=["rules/code/modularity"],
     remediates=[],
 )
 @atomic_action(

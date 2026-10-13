@@ -17,7 +17,6 @@ outputs:
 - workflow_type
 - clarification_needed
 constitutional_requirements:
-- governance.no_governance_bypass
 - autonomy.tracing.mandatory
 authority: policy
 failure_modes:
@@ -41,20 +40,4 @@ forbidden_actions:
 success_criteria:
   task_structure_valid: true
   workflow_identified: true
-notes: 'INTERPRET is the first constitutional phase. It does NOT have authority to
-  execute - only to propose task structures that will be validated in subsequent
-  phases.
-
-  Per UR-03 (CORE-USER-REQUIREMENTS S3), INTERPRET has two orthogonal failure
-  classes: ambiguity (input unclear -> CORE asks via the `clarify` strategy) and
-  contradiction (input internally inconsistent -> CORE stops via the `block`
-  strategy). These are not substitutable: ambiguity is missing-input that the
-  user can supply; contradiction is malformed-input that the user must resolve.
-  Modeling them as a single failure_mode value erases UR-03''s distinction
-  (ADR-074).
-
-  This phase completes the Mind-Body-Will architecture by giving the Will layer
-  a constitutional entry point with clear boundaries.
-
-  '
 implementation: will.phases.interpret_phase.InterpretPhase

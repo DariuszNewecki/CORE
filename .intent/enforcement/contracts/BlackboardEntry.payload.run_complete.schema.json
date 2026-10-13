@@ -20,12 +20,10 @@
     },
     "examples": [
         {
-            "comment": "audit_ingest_worker.run.complete shape (violations_found + posted)",
             "violations_found": 3,
             "posted": 2
         },
         {
-            "comment": "generic worker shape with duration",
             "duration_sec": 1.23
         }
     ]

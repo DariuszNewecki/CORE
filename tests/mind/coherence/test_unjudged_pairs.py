@@ -119,15 +119,12 @@ async def test_checker_records_partial_and_keeps_candidates() -> None:
     none = AsyncMock(return_value=[])
     structural = [
         "dispatch_parity.DispatchParityCheck",
-        "row2_grounding.Row2GroundingCheck",
         "row3_citation.Row3CitationCheck",
-        "row4_naming.Row4NamingCheck",
         "vocabulary.VocabularyCheck",
         "specgap.SpecGapCheck",
         "path_ref.PathRefCheck",
         "intent_binding.IntentBindingCheck",
         "cross_ns_direction.CrossNsDirectionCheck",
-        "r1_scoped.R1ScopedCheck",
     ]
     patches = [patch(f"mind.coherence.checks.{p}.run", new=none) for p in structural]
     patches += [

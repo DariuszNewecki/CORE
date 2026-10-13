@@ -70,8 +70,7 @@
         "required": [
           "term",
           "definition",
-          "not",
-          "authoritative_paper"
+          "not"
         ],
         "properties": {
           "term": {
@@ -85,10 +84,6 @@
           "not": {
             "type": "string",
             "description": "What this term must not be confused with. Explicit disambiguation."
-          },
-          "authoritative_paper": {
-            "type": "string",
-            "description": "Path to the governing document that is the authoritative source for this term. Must resolve to an existing file within the governed tree (.specs/ or .intent/). In case of conflict between this file and the paper, the paper wins."
           },
           "aliases": {
             "type": "array",

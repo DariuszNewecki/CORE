@@ -1,17 +1,4 @@
-# .intent/enforcement/mappings/ai/prompt_artifact_structure.yaml
-# Constitutional enforcement for PromptModel Artifact Structure Governance
-# Version: 1.1.0
-# Authority: policy
-#
-# WHAT THIS ENFORCES:
-#   Rules from .intent/rules/ai/prompt_artifact_structure.json
-#
-# THE LAW: Every model.yaml must be structurally complete, must not leak
-# infrastructure provider names, and must reference a declared cognitive role.
-
 mappings:
-  # RULE: ai.prompt.artifact.required_fields
-  # Verifies all mandatory fields are present and non-empty in model.yaml.
   ai.prompt.artifact.required_fields:
     engine: artifact_gate
     params:
@@ -20,8 +7,6 @@ mappings:
       applies_to:
         - "var/prompts/**/model.yaml"
 
-  # RULE: ai.prompt.artifact.no_provider_leak
-  # Ensures model.preference does not name an infrastructure provider.
   ai.prompt.artifact.no_provider_leak:
     engine: artifact_gate
     params:
@@ -30,8 +15,6 @@ mappings:
       applies_to:
         - "var/prompts/**/model.yaml"
 
-  # RULE: ai.prompt.artifact.role_abstraction
-  # Verifies role field is a declared cognitive role.
   ai.prompt.artifact.role_abstraction:
     engine: artifact_gate
     params:
@@ -40,11 +23,6 @@ mappings:
       applies_to:
         - "var/prompts/**/model.yaml"
 
-  # RULE: ai.prompt.governed_prompt_must_have_anchor
-  # Any prompt listed in governed_prompts.yaml MUST declare a non-empty
-  # adr_anchor field in its model.yaml. Prompts NOT listed in
-  # governed_prompts.yaml are silently skipped (the anchor is optional
-  # for ungoverned prompts).
   ai.prompt.governed_prompt_must_have_anchor:
     engine: artifact_gate
     params:

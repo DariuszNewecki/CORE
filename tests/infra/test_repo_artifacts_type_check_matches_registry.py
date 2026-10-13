@@ -48,6 +48,23 @@ def _check_constraint_artifact_types() -> set[str]:
     return set(re.findall(r"'([a-z_]+)'", m.group(1)))
 
 
+# Artifact types retired from the registry in phase 5b of the governance-text
+# reduction. The DB CHECK still accepts them so existing repo_artifacts rows
+# stay valid; the crawler no longer produces them. Narrowing the CHECK needs a
+# migration that first removes those rows.
+RETIRED_ARTIFACT_TYPES = frozenset(
+    {
+        "adr",
+        "paper",
+        "requirement",
+        "planning",
+        "charter",
+        "northstar",
+        "architecture_bridge",
+    }
+)
+
+
 def _registry_artifact_type_ids() -> set[str]:
     """The authoritative artifact_type ids from the .intent/ registry."""
     ids: set[str] = set()
@@ -70,7 +87,7 @@ def test_repo_artifacts_check_equals_artifact_type_registry() -> None:
         "update _SCHEMA above rather than letting this guard go dark (#776)."
     )
     check = _check_constraint_artifact_types()
-    registry = _registry_artifact_type_ids()
+    registry = _registry_artifact_type_ids() | RETIRED_ARTIFACT_TYPES
 
     assert check == registry, (
         "artifact_type vocabulary drift (#646/#647/#776) — schema.sql's "

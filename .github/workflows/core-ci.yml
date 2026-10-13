@@ -79,9 +79,6 @@ jobs:
       - name: Install the declared core-cli release
         run: poetry run pip install --no-deps "core-cli==$(make -s core-cli-docs-version)"
 
-      - name: Vocabulary freshness check
-        run: poetry run core-admin intent sync vocabulary --check
-
       # Constitutional audit, per push, blocking rules only. See ADR-115's
       # note on --offline: without it the CLI routes through CoreApiClient to
       # a core-api daemon that does not exist on a runner.

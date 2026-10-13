@@ -1,7 +1,3 @@
-# .intent/enforcement/mappings/code/style.yaml
-#
-# Enforces code style rules: import order and formatting.
-
 mappings:
   style.import_order:
     engine: ast_gate

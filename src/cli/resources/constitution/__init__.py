@@ -13,7 +13,7 @@ app = typer.Typer(
 )
 
 # Standard Verbs
-from . import audit, query, status, validate, verify_bind
+from . import audit, query, status, validate
 
 
 __all__ = ["app"]

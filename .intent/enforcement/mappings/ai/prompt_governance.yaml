@@ -1,36 +1,15 @@
-# .intent/enforcement/mappings/ai/prompt_governance.yaml
-# Constitutional enforcement for AI Prompt Governance
-# Version: 1.1.0
-# Authority: policy
-#
-# WHAT THIS ENFORCES:
-#   Rules from .intent/rules/ai/prompt_governance.json
-#
-# THE LAW: All AI invocations MUST route through PromptModel.
-# Direct calls to make_request_async() or make_request() are PROHIBITED
-# outside of the PromptModel implementation and LLMClient itself.
-
 mappings:
-  # RULE: ai.prompt.model_required
-  # Detects direct calls to make_request_async/make_request outside allowed files.
-  # Allowed files are excluded via scope.excludes below.
   ai.prompt.model_required:
     engine: ast_gate
     params:
       check_type: prompt_model_required
-      # These are the forbidden direct-call method names
       forbidden_calls:
         - make_request_async
         - make_request
-      # The only class allowed to call these is PromptModel itself
-      # (enforced via scope exclusion of the implementation file)
     scope:
       applies_to:
         - "src/**/*.py"
 
-  # RULE: ai.prompt.model_artifact_required
-  # Verifies that every var/prompts/ subdirectory has a model.yaml manifest.
-  # Uses glob_gate to check directory structure.
   ai.prompt.model_artifact_required:
     engine: glob_gate
     params:
@@ -44,8 +23,6 @@ mappings:
       applies_to:
         - "var/prompts/**"
 
-  # RULE: ai.prompt.system_prompt_required
-  # Verifies that no system.txt file is empty (zero-byte or whitespace only).
   ai.prompt.system_prompt_required:
     engine: glob_gate
     params:
@@ -55,8 +32,6 @@ mappings:
       applies_to:
         - "var/prompts/**"
 
-  # RULE: ai.prompt.output_validation_required
-  # Verifies PromptModel.invoke() calls output validation before returning.
   ai.prompt.output_validation_required:
     engine: ast_gate
     params:
@@ -71,32 +46,3 @@ mappings:
       applies_to:
         - "src/shared/ai/prompt_model.py"
 
-  # RULE: ai.prompt.constitutional_grounding_section
-  # Governed prompt system.txt files MUST contain a '# CONSTITUTIONAL'
-  # section declaring enforced policies and ADR clauses.
-  # No static engine check exists yet -- PromptDriftSensor does not
-  # verify section presence. passive_gate satisfies ADR-066
-  # (all_rules_mapped); a static check will be wired in a future
-  # delivery when the check is implemented.
-  ai.prompt.constitutional_grounding_section:
-    engine: passive_gate
-    params:
-      attestation_class: "D"
-    scope:
-      applies_to:
-        - "var/prompts/**/system.txt"
-
-  # RULE: ai.prompt.governed_change_requires_review
-  # A governed prompt (system.txt or user.txt) changed without
-  # ratification requires governor review. PromptDriftSensor (ADR-134 D6)
-  # is the live detector -- it posts findings to the blackboard on content
-  # change. passive_gate signals that static engine analysis does not
-  # duplicate the sensor-driven detection.
-  ai.prompt.governed_change_requires_review:
-    engine: passive_gate
-    params:
-      attestation_class: "C"
-    scope:
-      applies_to:
-        - "var/prompts/**/system.txt"
-        - "var/prompts/**/user.txt"

@@ -1,8 +1,4 @@
-# .intent/enforcement/mappings/architecture/governance.yaml
-# Add these entries to the existing file
-
 mappings:
-  # NEW: Governed Mutation Surface - FileHandler Required
   governance.mutation_surface.filehandler_required:
     engine: ast_gate
     params:
@@ -12,52 +8,18 @@ mappings:
         - "src/**/*.py"
         - "features/**/*.py"
       excludes:
-        # Bug fix 2026-05-25: existing entry was "shared/..." without the
-        # leading "src/", so it never matched. The audit's leaf-match
-        # extension for .unlink/.rmdir (ADR-071 D2.2 / #451) exposed it
-        # by surfacing remove_file's own abs_path.unlink as a violation.
         - "src/body/infrastructure/storage/file_handler.py" # IS the governed surface (moved from shared by ADR-126)
-        # Excludes mirrored from governance.logic_mutation.governed in
-        # governance_basics.yaml -- both rules use no_direct_writes and
-        # must share the same sanctuary set or one will fire spuriously.
-        # Alignment completed 2026-05-31 as Phase 1 of #489 phased re-plan
-        # (taxonomy-inert; the gain is loop-honest exclude parity, not
-        # behavioral, since the OLD check does not fire on the new write
-        # surfaces these three files contain -- that gain lands in Phase 2
-        # after the #507 drain).
         - "src/shared/infrastructure/git_service.py" # Git + ephemeral worktree sanctuary
         - "src/shared/infrastructure/context/cache.py" # Runtime cache infrastructure
         - "src/shared/path_utils.py" # Path resolution utilities
         - "src/body/services/crate_processing_service.py" # Crate generation infrastructure
         - "src/shared/infrastructure/validation/ruff_linter.py" # Linting infrastructure
-        # --- ADDED 2026-05-31 (#507 Phase 2 drain -- Tier 2 authority-scoped exclusions) ---
-        # Each entry mirrored in governance_basics.yaml's excludes set.
-        # Per-line rationale; see #507 for the full disposition table.
         - "src/shared/action_logger.py" # Bootstrap-tier: module-level singleton instantiated at import; append-mode action audit log; FileHandler has no append surface
         - "src/shared/infrastructure/storage/integrity_service.py" # Bootstrap-tier (circular): sibling of file_handler.py; SHA256 baseline writer validates governance, cannot depend on it
-        # (2026-10-02: src/will/test_generation/sandbox.py exclusion removed -- the file has no direct write; ADR-166 D6 unit 1.)
-        # --- ADDED 2026-06-29 (ADR-132 session-file + BYOR CLI out-of-repo ops) ---
-        # Each entry mirrored in governance_basics.yaml's excludes set.
         - "src/cli/logic/byor.py" # BYOR CLI: shutil.rmtree on external project staging dir (outside CORE repo root); cannot route through FileHandler
         - "src/cli/logic/scout.py" # BYOR Scout: inducted_path.unlink() on external target project's .intent/; outside CORE repo root
-        # (2026-10-02: canary_janitor.py exclusion removed -- it deletes through
-        # FileService/FileHandler now; work/ is ephemeral-scratch since #772.)
-        # --- ADDED 2026-07-23 (ADR-155 isolated consequence-chain demo, Phase 1) ---
-        # Mirrored in governance_basics.yaml's excludes set.
         - "src/cli/logic/demo/isolation.py" # ADR-155 D3: writes run-identity marker + isolation-fingerprint records under CORE_DEMO_STATE_DIR (outside any repo root); FileHandler is repo-bound and refuses out-of-repo paths
-        # --- ADDED 2026-09-15 (ADR-159 Note 2026-09-15, #894 Condition 2: materialized execution copy) ---
-        # Mirrored in governance_basics.yaml's excludes set.
         - "src/shared/infrastructure/intent/target_intent_assembly.py" # #894: assembles floor+overlay .intent/ and the execution copy under an evidence root (outside any repo root, by construction); FileHandler is repo-bound and hard-blocks the literal .intent/ prefix -- same limitation byor.py records
-        # --- ADDED 2026-10-11 (ADR-170 Stage 1, proposal 0020: the law custodian's writer) ---
-        # Mirrored in governance_basics.yaml's excludes set.
         - "src/body/governance/law_custody/writer.py" # ADR-170 D2/D3: the only code that writes governed text, and only as core-law; IntentGuard refuses every .intent/ write by design, so it cannot go through FileHandler. Writes the scratch tree, the destinations (atomic replace) and the ledger
-        # --- ADDED 2026-10-02 (ADR-119 Amendment 2026-10-02, #892: Generate bootstrap stage) ---
-        # Mirrored in governance_basics.yaml's excludes set.
         - "src/cli/logic/project_scaffold.py" # project new: delivers machinery floor + neutral skeleton into a new external target outside CORE's repo root; FileHandler is repo-bound and refuses out-of-repo paths (repository_containment) -- same limitation byor.py records
 
-
-  # This mapping connects:
-  # - Rule: .intent/rules/architecture/mutation_surface.json (rule_id: governance.mutation_surface.filehandler_required)
-  # - Engine: ast_gate
-  # - Check: no_direct_writes (already exists in purity_checks.py)
-  # - Scope: All production code except FileHandler itself
