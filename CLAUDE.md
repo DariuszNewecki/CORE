@@ -48,7 +48,11 @@ poetry run core-admin law check-tree  # validate .intent/ and .specs/
   and report afterwards. Never ask permission for these.
 - Everything the governor must act on goes in one list: at most once a day, at most 3 items.
 - Never push while CI is red.
-- A change reaches main only as a pull request that the governor merges.
+- A change reaches main only as a pull request the governor approves: the
+  governor's approval of its exact last commit, or the governor's merge.
+- Never wait for CI in the foreground. After opening a PR, turn on auto-merge
+  (`gh pr merge --auto --merge`), watch CI in the background, take the next task.
+  Report a PR only when its CI goes red.
 - Record decisions in the commit message, not in new documents.
 - Reports: outcome first, at most 5 lines, no narration.
 - Never ask the governor to approve law or CLAUDE.md text in chat: open the PR;

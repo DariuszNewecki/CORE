@@ -53,6 +53,7 @@ class FakeHost(cp.Host):
         self.ci_asked: list[str] = []
         self.ls_remote = 0
         self.api_heads = 0
+        self.reviews: list[dict] = []
 
     def run(self, cmd):
         if cmd[:2] == ["git", "ls-remote"]:
@@ -79,6 +80,8 @@ class FakeHost(cp.Host):
         if url.endswith("/pulls"):
             # As GitHub answers: the per-commit list carries no merged_by.
             return [{"number": 967, "merge_commit_sha": self.head, "merged_by": None}]
+        if "/pulls/967/reviews" in url:
+            return self.reviews
         if url.endswith("/pulls/967"):
             return {
                 "merged_by": {"login": self.merger} if self.merger else None,
@@ -298,3 +301,41 @@ def test_the_api_answers_when_git_cannot(world) -> None:
     host.head = LIVE
     assert _tick(world)["state"] == "idle"
     assert host.api_heads == 1
+
+
+def _review(login: str, state: str, commit: str = HEAD) -> dict:
+    return {"user": {"login": login}, "state": state, "commit_id": commit}
+
+
+def test_an_auto_merge_after_the_governors_approval_of_the_head_deploys(world) -> None:
+    """Governor ruling 2026-10-13: approving the exact last commit is the
+    decision; whoever then clicks merge (auto-merge) adds nothing."""
+    host, layout = world
+    host.merger = "core-claude-bot"
+    host.reviews = [_review("DariuszNewecki", "APPROVED")]
+    status = _tick(world)
+    assert status["last"]["result"] == "live"
+    deploy = _privileged(host)[0]
+    assert deploy[deploy.index("--merged-by") + 1] == "DariuszNewecki"
+    assert "core-claude-bot" in (layout.logs / f"{SHA[:12]}.log").read_text()
+
+
+@pytest.mark.parametrize(
+    "reviews",
+    [
+        [],
+        [_review("someone-with-write-access", "APPROVED")],
+        [_review("DariuszNewecki", "APPROVED", commit="e" * 40)],  # older commit
+        [
+            _review("DariuszNewecki", "APPROVED"),
+            _review("DariuszNewecki", "CHANGES_REQUESTED"),
+        ],
+        [_review("DariuszNewecki", "APPROVED"), _review("DariuszNewecki", "DISMISSED")],
+    ],
+)
+def test_no_governor_approval_of_the_head_never_deploys(world, reviews) -> None:
+    host, _ = world
+    host.merger = "core-claude-bot"
+    host.reviews = reviews
+    assert _tick(world)["last"]["result"] == "skipped"
+    assert _privileged(host) == []
