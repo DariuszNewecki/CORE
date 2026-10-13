@@ -1,357 +1,50 @@
 # CORE
 
 > **Executable constitutional governance for AI-assisted software development.**
->
-> Designed for environments where AI action traceability is not optional.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Release](https://img.shields.io/badge/Release-v2.14.2-blue)](https://github.com/DariuszNewecki/CORE/releases)
 [![Docs](https://img.shields.io/badge/Docs-online-green)](https://dariusznewecki.github.io/CORE/)
-[![Autonomy](https://img.shields.io/badge/Autonomy-A3%20unproven-orange)](https://github.com/DariuszNewecki/CORE/blob/main/.specs/attestations/production-readiness.yaml)
 
-*Versioning: SemVer with `2.x` denoting an API approaching stability (Beta on PyPI); see the [versioning policy](.specs/planning/CORE-Semver-Policy.md).*
+**Current Release:** v2.14.2 — see [CHANGELOG.md](CHANGELOG.md).
 
----
+## What CORE is
 
-## The Problem
+CORE audits a codebase against declared rules in `.intent/`, records every
+violation, proposes fixes, and logs the chain from finding to commit. AI
+assistants and CORE's own loop can propose changes; only the human governor
+approves them. What it is for, in plain words: [What CORE does](docs/what-core-does.md).
 
-AI coding tools generate code fast. Too fast to stay sane.
-
-Without enforcement, AI-assisted codebases accumulate invisible debt — layer violations, broken architectural contracts, files that grow unbounded. And agents, left unconstrained, will eventually do something like this:
-
-```
-Agent: "This rule keeps failing my change — I'll loosen the rule"
-System: Executes.
-You:    😱
-```
-
-CORE blocks what its constitution forbids — structurally, before execution, not detected after the fact. Only what the constitution actually declares is blocked, and which surfaces hard-block versus advisory-report is mapped under *Current proof status* below.
-
-```
-Agent: "This rule keeps failing my change — I'll loosen the rule"
-Constitution: BLOCKED — governance.constitution.read_only (.intent/ is never writable at runtime)
-System: Write refused before it happens. Violation logged.
-You:    😌
-```
-
-CORE is a governance runtime that constrains AI agents with machine-enforced constitutional law — enforcing architectural invariants, blocking invalid mutations automatically, and making autonomous workflows auditable and deterministic.
-
-**LLMs operate inside CORE. Never above it.**
-
----
-
-## Requirements
-
-CORE sets specific requirements rather than widening compatibility. A **fresh VM**
-(or an otherwise clean machine) is recommended for the one-command install below.
-
-| Requirement | Version / state |
-|-------------|-----------------|
-| Python      | **3.12+** — hard floor, checked by the installer |
-| Docker      | Docker Engine with **Compose v2**, daemon **running** and reachable by your user |
-| Poetry      | installed and on `PATH` |
-| PostgreSQL  | ≥ 14 — provided by Docker on the default path |
-| Qdrant      | latest — provided by Docker on the default path |
-
-On a fresh machine none of these exist except Python. Step-by-step commands for Ubuntu
-24.04, each with the check the installer runs, are in
-[prerequisites on a fresh Ubuntu 24.04](https://dariusznewecki.github.io/CORE/getting-started/#prerequisites-on-a-fresh-ubuntu-2404).
-**No LLM is needed** to install, audit, or run the demo; an LLM is needed only for
-autonomous code and test generation.
-
-Bring your own Postgres + Qdrant instead of Docker with
-`./install-core.sh --bare --db-url … --qdrant-url …` (see
-[getting started](https://dariusznewecki.github.io/CORE/getting-started/)); the
-Python and Poetry requirements are unchanged on that path.
-
----
-
-## 🎬 See it govern itself — one command
-
-You don't have to take this on faith. On a clean machine that meets the requirements above:
+## Install and first run
 
 ```bash
-git clone https://github.com/DariuszNewecki/CORE.git
-cd CORE && ./install-core.sh
+pip install core-runtime
 ```
 
-`install-core.sh` stands up CORE and finishes by **offering** the consequence-chain
-demo as an explicit, opt-in command (it never runs it for you). Run it when you're
-ready — no LLM key required, but it does need Docker:
+This gives you the `core-admin` CLI. In a repository that already has a
+`.intent/` constitution, audit it with no services running:
 
 ```bash
-poetry run core-admin demo consequence-chain
+core-admin code audit --offline
 ```
 
-It asks for one confirmation before it creates anything. In a non-interactive shell
-(CI, `ssh host cmd`, an agent-driven terminal) add `--simulate-confirmation`; the
-report records the confirmation as simulated.
+To bring CORE into an existing repository, onboard it (this uses the `core`
+CLI from `pip install core-cli` and a running CORE API):
 
-The demo runs entirely inside a **disposable clone** and **disposable, loopback-only
-Postgres + Qdrant** — it never touches your checkout, its git index, your database,
-or a running daemon. In one isolated run it:
-
-- seeds a function that violates `linkage.assign_ids` (a blocking rule) into the clone
-- lets the **real** sensor detect it, the **real** remediator propose a `fix.ids` repair,
-  and the governed risk classifier auto-approve it as *policy-safe* (not "human approved")
-- executes the proposal through the **real** proposal route + executor and commits the repair
-- reads the exact recorded chain back — finding → proposal → approval authority →
-  execution → committed change → durable consequence → resolved finding — and re-audits clean
-- fails closed: every one of those facts is asserted, and any missing link exits non-zero
-- tears down all disposable resources when it's done
-
-Every displayed fact belongs to the *same* proposal — nothing is selected by "latest".
-The wrapper `scripts/demo.sh` still works; it just delegates to the command above.
-
-Governance is executable.
-
-<!-- TODO: embed a fresh asciicast of ./install-core.sh once recorded -->
-
----
-
-## 📋 Live Audit Trail
-
-Every enforced action records its lineage. Two consequence chains, taken from the CORE database (snapshot of May 2026) — same schema, two different authorities:
-
-**Autonomous path** — risk-classified as safe, system self-approved
-
-```
-FINDING     → workflow.ruff_format_check       src/api/cli/client.py                2026-05-18 05:15:15 UTC
-PROPOSAL    → 8845dacc…   fix.format                                                2026-05-18 05:16:15 UTC
-APPROVAL    → risk_classification.safe_auto_approval                                2026-05-18 05:16:15 UTC
-EXECUTION   → completed   (1.29s)                                                   2026-05-18 05:17:18 UTC
-FILE CHANGE → +105 / -0   98da9038 → fca9a971  src/api/cli/client.py                2026-05-18 05:17:19 UTC
+```bash
+core project onboard
 ```
 
-**Human-approval path** — governor in the loop
+A new project needs no services at all:
 
-```
-FINDING     → purity.docstrings.required       src/cli/commands/audit_reporter.py   2026-05-15 08:28:29 UTC
-PROPOSAL    → a4363a81…   fix.docstrings                                            2026-05-16 13:39:34 UTC
-APPROVAL    → principal.governor  (cli_admin)                                       2026-05-16 13:53:32 UTC
-EXECUTION   → completed   (24.5s)                                                   2026-05-16 13:55:48 UTC
-FILE CHANGE → +26 / -0    5a123426 → 71fde489  src/cli/commands/audit_reporter.py   2026-05-16 13:55:49 UTC
-```
-
-Both chains are queryable end-to-end from `proposal_consequences` and `blackboard_entries`. The constitution decides which authority applies; the schema is identical. Reproduce them yourself with the [Consequence-chain query](https://dariusznewecki.github.io/CORE/proof-index/#consequence-chain-query) in the Proof Index.
-
----
-
-## Architectural Model
-
-CORE separates responsibility across four repository layers — three enforced as constitutional law, and Specs (human intent). This separation is enforced as law — not convention.
-
-### 📐 Specs — Human Intent (`.specs/`)
-
-Where humans define what the system is for and why decisions were made. Contains architectural papers, northstar documents, user requirements, architectural decision records, and planning documents. This is the entry point for anyone trying to understand CORE before reading its implementation.
-
-`.specs/` is read by humans and searchable by CORE's semantic layer. CORE's services never write it; changes land through a governor-approved law proposal, like `.intent/`.
-
-### 🧠 Mind — Law (`.intent/` + `src/mind/`)
-
-Defines what is allowed, required, or forbidden. Contains machine-readable constitutional rules, enforcement mappings, phase-aware governance models, and the authority hierarchy (`Meta → Constitution → Policy → Code`).
-
-Mind never executes. Mind never mutates. Mind defines law.
-
-### ⚖️ Will — Judgment (`src/will/`)
-
-Reads constitutional constraints, orchestrates autonomous reasoning, and records every decision with a traceable audit trail. Every operation follows a structured phase pipeline:
-
-```
-INTERPRET → PLAN → LOAD CONTEXT → GENERATE → VALIDATE (changes · canary · sandbox · style) → COMMIT
+```bash
+core-admin project new myproject --write
+cd myproject
+core-admin project adopt-pack core/starter-python --write
+core-admin code audit --offline
 ```
 
-Will never bypasses Body. Will never rewrites Mind.
-
-### 🏗️ Body — Execution (`src/body/`)
-
-Deterministic, atomic components: analyzers, evaluators, file operations, git services, test runners, CLI commands.
-
-Body performs mutations. Body does not judge. Body does not govern.
-
----
-
-## How CORE Works
-
-Every autonomous operation is governed by the same constitutional loop:
-
-```mermaid
-flowchart TD
-    A["🟢 GOAL\nHUMAN INTENT"] --> B["📂 CONTEXT\nRepo state • knowledge • history"]
-    B --> C["🔒 CONSTRAINTS\nImmutable rules\n265 rules • 17 engines"]
-    C --> D["🗺️ PLAN\nStep-by-step reasoning\nRule-aware plan"]
-    D --> E["✨ GENERATE\nCode • changes • tool calls"]
-    E --> F["✅ VALIDATE\nDeterministic checks\nAST • semantic • intent • style"]
-    F -->|Pass| G["▶️ EXECUTE\nApply compliant changes"]
-    F -->|Fail| H["🔄 REMEDIATE\nRepair violation\nAutonomy Ladder"]
-    H --> E
-    G --> I["✓ SUCCESS\nChanges committed"]
-
-    subgraph "SAFETY HALT"
-        direction TB
-        J["🚨 CONSTITUTIONAL VIOLATION\n→ HARD HALT\n+ FULL AUDIT LOG"]
-    end
-
-    E -.->|Any violation| J
-    F -.->|Any violation| J
-
-    classDef phase      fill:#f8f9fa,stroke:#495057,stroke-width:2px
-    classDef constraint fill:#d1e7ff,stroke:#0d6efd,stroke-width:2.5px
-    classDef validate   fill:#fff3cd,stroke:#ffc107,stroke-width:2.5px
-    classDef halt       fill:#ffebee,stroke:#dc3545,stroke-width:3px
-
-    class A,B,D,E,G,I phase
-    class C constraint
-    class F validate
-    class J halt
-```
-
----
-
-## System Guarantees
-
-Within CORE:
-
-- Nothing is self-approved outside the safe-auto-approval envelope (five `fix.*` actions and test generation, `.py` files under `src/` and `tests/` only) — every other change waits for a human
-- No structural rule can be bypassed silently
-- No atomic action can execute outside the governed executor (inline authorization is deferred to the audit→consequence loop)
-- Decisions are phase-aware and logged with decision traces (audit persistence is best-effort — see *Current proof status*)
-- No CORE component can change constitutional law. Whether an assistant can depends on the operation mode: in solo mode (the default) a direct edit is detected by the audit, not prevented; on a solo-separated host the law belongs to a separate account and changes only through `core-admin law apply` with the governor's approval
-
-If a *blocking* rule fails, execution halts with no partial state. Reporting and advisory rules surface findings and continue — what blocks versus what reports depends on the mode.
-
-**Who may change the law.** On CORE's own server the law (`.intent/`, `.specs/`, `CLAUDE.md`, the assistant's settings and hooks) belongs to a separate account, `core-law`. It changes only through `sudo -u core-law core-admin law apply <id> --write`: the governor's password, then the proposal id typed by hand. Each change appends a signed line to `.intent/custody/ledger.jsonl`. Adopters do not need this; without it, CORE detects changes to the law but does not prevent them.
-
-### Current proof status
-
-CORE's guarantee semantics are split across modes by design. This is the honest map of what each surface does, so a single binary claim ("CORE blocks violations") is not mistaken for the whole picture:
-
-| Surface | Mode | Behaviour |
-|---|---|---|
-| `.intent/` writes | hard invariant | blocked for every CORE service; the only writer is `core-admin law apply`, run as the `core-law` account with the governor's typed approval |
-| Constitutional rules | always-blocking | block a commit regardless of strict mode |
-| Policy rules | strict vs. default | block only when `strict_mode=True`; otherwise report |
-| Capability tier | advisory today | reports a "would-deny" signal; does not yet block (ADR-079) |
-| Stateless CI (GitHub Action) | rule subset | skips `knowledge_gate` + `llm_gate` (they need DB / LLM state) and reports the skip |
-| Action audit trail | best-effort | recorded when the DB write succeeds; a write-action failure is surfaced (`AUDIT_GAP`), not silent |
-
-The hard invariants and constitutional rules block unconditionally; the policy, capability, and stateless tiers are weaker by design and labelled here so the boundary is legible rather than implied.
-
----
-
-## Constitutional Primitives
-
-| Primitive  | Purpose                        |
-|------------|--------------------------------|
-| Document   | Persisted, validated artifact  |
-| Rule       | Atomic normative statement     |
-| Phase      | When the rule is evaluated     |
-| Authority  | Who may define or amend it     |
-
-Enforcement strengths: **Blocking** · **Reporting** · **Advisory**
-
----
-
-## Enforcement Engines
-
-| Engine            | Method                                       |
-|-------------------|----------------------------------------------|
-| `ast_gate`        | Deterministic structural analysis (AST)      |
-| `regex_gate`      | Pattern-based text enforcement               |
-| `glob_gate`       | Path and boundary enforcement                |
-| `cli_gate`        | CLI surface and command-shape enforcement    |
-| `artifact_gate`   | Declared-vs-discovered artifact completeness |
-| `workflow_gate`   | Phase-sequencing and coverage checks         |
-| `knowledge_gate`  | Responsibility and ownership validation      |
-| `action_gate`     | Atomic-action invariants                     |
-| `passive_gate`    | Substrate-enforced rules (DB/runtime marker) |
-| `taxonomy_gate`   | Capability-id ↔ atomic-action coherence (ADR-079 D9) |
-| `contracts_gate`  | Cross-cutting data-contract coherence (context-level; ADR-102) |
-| `runtime_gate`    | Runtime telemetry checks over blackboard data, not source (ADR-081/082) |
-| `reference_gate`  | Concrete `.intent/` references resolve (context-level) |
-| `exclusion_gate`  | Every `scope.excludes` entry still exempts something (context-level) |
-| `attestation_gate`| The honest third outcome: requirements no automated method can settle need a dated human attestation (ADR-113) |
-| `llm_gate`        | LLM-assisted semantic checks                 |
-| `grc_judge`       | LLM-assisted compliance assessment of GRC documents |
-| `IntentGuard`*    | Runtime write authorization (not audit)      |
-
-*Runtime Gate per `.specs/papers/CORE-Gate.md`, kept here for visibility.
-
-Deterministic when possible. LLM only when necessary.
-
-265 rules across 62 rule documents. 255 are mapped to enforcement engines; the other 10 are advisory rules that are mapping-exempt by design (#820), so every rule that requires a mapping has one. "Mapped" means engine-bound — not enforced in every mode: stateless CI skips `knowledge_gate` and `llm_gate`, which need the knowledge graph and an LLM provider.
-
----
-
-## The Autonomy Ladder
-
-CORE progresses through defined levels. Each adds capability while remaining constitutionally bounded.
-
-```
-A0 — Self-Awareness       ✅  Knows what it is and where it lives
-A1 — Self-Healing         ✅  Fixes known structural issues automatically
-A2 — Governed Generation  ✅  Natural language → constitutionally aligned code
-A3 — Governed Autonomy    ⚠️  Loop is built and governed; unattended reliability unproven  ← current
-A4 — Self-Replication     ⏸️  Conceptual. Not on active roadmap.
-```
-
-**Advancement is not declared — it is measured.** A level is complete when the system
-demonstrates it operationally, not when the capability exists. A3's mechanism is built and
-governed: the four A3 *plan* gates are closed, the loop is circuit-breaker protected, the
-consequence chain is queryable end-to-end, and every threshold lives in `.intent/`. What is
-not yet measured is unattended convergence, which is what production-readiness gate G4 asks
-for. **A3's checkmark is withheld until G4 carries signed evidence** — see the G4 row and
-the Project Status section below for the current state of that evidence.
-
----
-
-<!-- PRODUCTION-READINESS:START — generated by scripts/production_readiness.py; do not edit by hand -->
-## Production Readiness
-
-CORE does not claim a status it has not earned. The gates are defined in [URS-production-readiness](.specs/requirements/URS-production-readiness.md); the current verdict and per-gate evidence live in the [attestation manifest](.specs/attestations/production-readiness.yaml). This table is **generated** from that manifest — do not edit it by hand.
-
-**Production readiness: NOT ATTESTED.** All gates must hold simultaneously, and each `met` gate must carry dated, human-signed evidence. There is no composite score.
-
-Progress: **2/15 met** · 12 partial · 1 not demonstrated.
-
-| Gate | Status | Primary gap |
-|------|--------|-------------|
-| G1 — Fresh-install proof | ⚠️ partial | CI-automated fresh-install absent; manual cold-room only |
-| G2 — Constitutional enforcement is deterministic and regression-tested | ⚠️ partial | Every blocking rule has a violating and a compliant fixture (registry, CI-enforced); the registry's verified labels are assigned by its authors and have not been independently audited for fixture depth |
-| G3 — Layer integrity is machine-enforced and blocking | ⚠️ partial | Several layer rules at reporting severity (no_body_to_will, will.no_direct_database_access); reporting-only set not formally documented |
-| G4 — Autonomous loop reliability demonstrated in continuous operation | ❌ not demonstrated | Redefined 2026-10-09 (proposal 0008): measured continuously during normal development — catches, autonomous fixes, attribution and health over 30 consecutive days, from a daily report CORE generates itself — not by a frozen soak. Not yet instrumented: the daily Soak NG report does not exist, consequences rarely record which finding they resolved (findings_resolved, ~3% on 2026-10-03), and catches (pre-commit / change_verdict / CI blocks) are not recorded. History: two frozen 72h soaks (2026-07-23, 2026-09-22) proved continuity only, 0 completed chains each — no work, no fuel. The loop does close in normal operation (254 completed with consequence, 2026-09-26 → 10-03), unsigned. |
-| G5 — Mutation-lane equivalence and lifecycle safety | ⚠️ partial | claim.proposal not yet confirmed as the sole claim-transition entry point by formal audit; approval_authority population on every approved proposal not yet verified |
-| G6 — Risk model is governed, correct, and regression-tested | ⚠️ partial | else-branch safety net exists for future StepKinds; known set handled but exhaustive-handling not independently audited |
-| G7 — Circuit breakers operate at the correct granularity | ⚠️ partial | Flow-level and worker-level circuit breakers not formally audited |
-| G8 — Integration tests for the governed mutation chain | ✅ met | None — no G8 acceptance criterion remains outstanding. |
-| G9 — Enforcement integrity fails closed | ⚠️ partial | Skipped blocking rules not yet proven distinguishable-from-covered by CI fixture; empty-graph vacuous-pass guard not built (unmapped non-advisory PASS gap, #822, is closed) |
-| G10 — Operator observability | ⚠️ partial | Questions 4 (failure diagnosis) and 5 (rollback) not confirmed answerable by a non-author without source access; ADR-169's state records are written but no core-admin command reads them yet |
-| G11 — Upgrade and migration safety | ✅ met | None — every URS acceptance criterion is proven executable on disposable PostgreSQL for both released baselines (v2.9.1, v2.10.1); the route ships with 2.10.2. Governor ruling 2026-09-19: the declared updated_at changes during a v2.9.1 upgrade (touch triggers fired by the 20260722 backfill; #885 draft->pending) are acceptable — G11 requires preservation of governance history, not byte-identical storage. |
-| G12 — Runtime trust boundary is audited and documented | ⚠️ partial | Rate-limiting posture not fully documented; user-facing route safety not fully confirmed per-route |
-| G13 — Documentation for operators | ⚠️ partial | No operator runbook; CLAUDE.md is comprehensive for Claude Code but is not an operator document |
-| G14 — Source reversibility | ⚠️ partial | Source-restoration-after-completed-mutation not proven by test; rollback-vs-forward audit distinction not verified |
-| G15 — Release integrity | ⚠️ partial | Release-gating checks not fully enforced as a blocking pre-publish gate; release provenance (tag/SHA/check-run) not queryable |
-
-The full gate definitions and acceptance criteria are in [`URS-production-readiness.md`](.specs/requirements/URS-production-readiness.md); the evidence and blockers behind each status are in [`production-readiness.yaml`](.specs/attestations/production-readiness.yaml).
-<!-- PRODUCTION-READINESS:END -->
-
----
-
-## Quick Start
-
-> **Honest status — what works today.** CORE governs *itself* end to end (the demo above), and audits any repo that **has a `.intent/` constitution** — in CI via the [GitHub Action](https://dariusznewecki.github.io/CORE/cold-reviewer/), or locally with `core-admin code audit --offline` *inside that repo*. `pip install core-runtime` gives you the `core-admin` CLI.
->
-> **Connect your AI assistant:** `core-admin mcp run` serves CORE to Claude Code or any MCP client. The assistant can look up rules and decisions, check its change, and submit it as a proposal. Only you can approve it, by typing its id at a terminal; the commit names the assistant as author and CORE as committer. [Connect your AI assistant](https://dariusznewecki.github.io/CORE/connect-an-assistant/).
-
-> **Govern your own repo (BYOR):** getting a constitution *into* an existing repo is not a zero-infrastructure step today. `project onboard` (delivers the machinery floor) and `project scout` (proposes fitted rules — via LLM, or a curated four-rule menu without one — each of which you ratify) are `core-cli` commands (`pip install core-cli`) that talk to a **running CORE API**, which needs Postgres + Qdrant behind it (ADR-146). The [BYOR quickstart](https://dariusznewecki.github.io/CORE/byor-quickstart/) walks that path end to end. Once a repo carries a `.intent/`, everything downstream is service-free: `core-admin project adopt-pack core/starter-python --write` adds a ready-made rule pack, and `core-admin code audit --offline` enforces the rules immediately — both from a plain `pip install core-runtime` (2.11.0 or later). **Starting a new project needs no services at all:** `core-admin project new myproject --write` creates it with the machinery floor, then adopt a pack and audit — [step by step](https://dariusznewecki.github.io/CORE/start-a-project/).
->
-> **Fastest way to see CORE today: run it on itself, below.**
-
-> **Upgrading an existing database?** Supported since 2.10.2 and always operator-run — CORE never
-> migrates on its own, and the installer and every service start refuse a database that is not
-> current. Procedure: [Upgrade a CORE database](docs/upgrading.md).
-
-**Full local runtime** — one command. Clone, then run the installer:
+To run the full local runtime (Postgres + Qdrant) from a clone:
 
 ```bash
 git clone https://github.com/DariuszNewecki/CORE.git
@@ -359,90 +52,11 @@ cd CORE
 ./install-core.sh
 ```
 
-`install-core.sh` checks prerequisites, installs dependencies, starts Postgres + Qdrant, applies the schema, and finishes by **offering** the opt-in `core-admin demo consequence-chain` command — an isolated run that has CORE find, propose, approve, fix, and verify a violation and record the consequence chain. Installation never runs it for you; run it yourself when ready (needs Docker, no LLM API key).
+## More
 
-<details>
-<summary>Prefer to run the steps yourself?</summary>
-
-```bash
-poetry install
-cp .env.example .env
-docker compose up -d
-docker compose exec -T postgres psql -U postgres -d core < schema.sql
-poetry run core-admin code audit --offline   # offline mode needs no running services
-```
-</details>
-
-Full setup — services, schema, vector sync, first audit — is in [Getting Started](https://dariusznewecki.github.io/CORE/getting-started/).
-
----
-
-## Documentation
-
-Full documentation, architecture deep-dive, and governance reference:
-[dariusznewecki.github.io/CORE](https://dariusznewecki.github.io/CORE/)
-
-To understand what CORE is for before reading its implementation, start here:
-[`.specs/northstar/CORE-What-It-Does.md`](.specs/northstar/CORE%20-%20What%20It%20Does.md)
-
-**Who builds CORE and how:** one human governor and one AI agent, using separate accounts; a third account, `core-law`, owns the law and changes it only on the governor's approval. `main` is stable and protected; work lands on `develop` first. The details are in [CONTRIBUTING.md](CONTRIBUTING.md#2-how-core-is-developed-branches-and-people). None of this changes anything for someone trying CORE: install it or clone `main` as above.
-
----
-
-## Issue Tracker Guide
-
-CORE's tracker mixes governance-internal bookkeeping with ordinary engineering work, so labels do double duty. `type:*`, `priority:*`, `status:*`, `band:*`, and the `*-debt` labels are CORE's own governed taxonomy — they say what kind of work an issue is and where it sits relative to the roadmap (`roadmap` marks epics on a named milestone; `technical-debt`/`governance-debt` mark known gaps CORE is carrying forward deliberately, not bugs; `band:E` marks outward-facing/adoption work). Two standard labels tell you where to actually start: `good-first-issue` is scoped enough to attempt without deep repo context, and `help-wanted` is open to outside contribution but assumes you've read the ADR(s) it links. If an issue carries neither — and especially if it carries `type:question` — it's a live design question awaiting a maintainer decision, not something to open a PR against yet.
-
----
-
-## Project Status
-
-**Current Release:** v2.14.2 — law apply completes against the release law; an assistant can propose a change and only the governor can let it land
-
-Active work: A3 Governed Autonomy. The mechanism is built — the daemon runs continuously,
-finds constitutional violations in its own codebase, proposes fixes, routes them through the
-governed proposal lifecycle, executes approved fixes, and verifies the result. Each of those
-steps is demonstrable on demand: `core-admin demo consequence-chain` exercises the full
-finding → proposal → approval → execution → consequence → re-audit path in an isolated run,
-and both chains in the Live Audit Trail above came out of the real database.
-
-What is *not* yet demonstrated is that the same loop holds up in continuous operation. That
-is gate G4. Since 2026-10-09 it is measured during normal development, not by a frozen soak:
-over 30 consecutive days, a report CORE generates itself must show what CORE caught in the
-work being done, what it fixed on its own — finding → proposal → commit → a consequence
-record naming the finding — who produced every commit, and that the loop stayed healthy.
-
-**Why not a soak:** two frozen 72-hour soaks (2026-07-23, baseline `f7430b25`; 2026-09-22)
-ran clean at the process level — no restarts, all workers live — and each produced **zero**
-completed chains. With development frozen there was little to catch or fix, and what fuel
-existed had inherited a remediation attempt count at the circuit-breaker cap (fixed since).
-A test that needs CORE to sit idle cannot tell a broken loop from an idle one. Both runs are
-retained as evidence of continuity, not of G4.
-
-"Demonstrable on demand" and "reliable unattended" are different claims, and CORE only makes
-the first one today.
-
-All four A3 integrity gates were closed in May 2026. No enforcement logic or operational threshold lives in `src/` — governance is declared in `.intent/` and enforced from there. The autonomous loop is circuit-breaker protected; systematic errors surface as signals rather than unbounded churn.
-
-These are the **A3 plan's closure gates** ([`CORE-A3-plan.md`](.specs/decisions/CORE-A3-plan.md), closed 2026-05), a different vocabulary from the fifteen production-readiness gates above — the A3 gates say the autonomous loop *exists and is governed*; the readiness gates say whether it is *proven fit to ship*, and today it is not. A3 plan gates closed is why the ladder still reads "A3 ← current"; G4 unmet is why it reads ⚠️ rather than ✅.
-
-| A3 gate | Meaning | Status |
-|---------|---------|--------|
-| A3-G1 — Loop closure | Round-trip autonomous fix demonstrated | ✅ |
-| A3-G2 — Convergence | Circuit-breaker; resolution rate > creation rate | ✅ at closure (2026-05) — **not holding on 2026-10-02**: 513 findings created vs 426 resolved in 24h, 185 open, 134 abandoned |
-| A3-G3 — Consequence chain | Causality queryable end-to-end | ✅ |
-| A3-G4 — Governance in `.intent/` | No enforcement logic or thresholds in `src/` | ✅ |
-
----
+- Decisions: [.specs/DECISIONS.md](.specs/DECISIONS.md)
+- Documentation: [docs/](docs/index.md), published at [dariusznewecki.github.io/CORE](https://dariusznewecki.github.io/CORE/)
 
 ## License
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
----
-
-<div align="center">
-
-**Build fast with AI. Stay constitutionally aligned.**
-
-</div>
+MIT — see [LICENSE](LICENSE).
