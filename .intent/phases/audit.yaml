@@ -34,7 +34,4 @@ forbidden_actions:
 success_criteria:
   audit_result_explicit: true
   rule_evaluation_complete: true
-notes: >
-  Audit is the sole constitutional phase for rule evaluation. It may approve or
-  reject candidate outputs, but it may not repair or execute them.
 implementation: will.phases.audit_phase.AuditPhase

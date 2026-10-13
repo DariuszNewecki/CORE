@@ -15,7 +15,6 @@ outputs:
   - repaired_artifacts
   - runtime_results
 constitutional_requirements:
-  - governance.no_governance_bypass
   - autonomy.tracing.mandatory
 authority: policy
 failure_modes:
@@ -34,8 +33,4 @@ forbidden_actions:
   - mutate_phase_boundaries
 success_criteria:
   candidate_outputs_produced: true
-notes: >
-  Runtime is the constitutional phase where candidate work is performed. It may
-  generate or repair outputs, but compliance decisions remain exclusive to Audit
-  and final mutation remains exclusive to Execution.
 implementation: will.phases.runtime_phase.RuntimePhase

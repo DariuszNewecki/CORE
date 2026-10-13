@@ -1,4 +1,4 @@
-"""first_seen_date / introducing_commit_subject follow renames (real git).
+"""first_seen_date follows renames (real git).
 
 `.intent/workers/audit_sensor_cli.yaml` was added 2026-03-13 and renamed
 2026-05-29; without `--follow` ROW4 dated it to the rename and flagged it as
@@ -44,4 +44,3 @@ def test_first_seen_and_introducing_subject_follow_a_rename(tmp_path: Path) -> N
     git = GitService(tmp_path)
 
     assert git.first_seen_date("new.yaml") == date(2026, 3, 13)
-    assert git.introducing_commit_subject("new.yaml") == "feat: ADR-012 add worker"

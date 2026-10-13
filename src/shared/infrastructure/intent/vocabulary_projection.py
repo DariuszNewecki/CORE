@@ -14,7 +14,6 @@ instrument failure and callers must enter governance-DEGRADED mode.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -33,8 +32,6 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
-CANONICAL_HEADING = "## Canonical Vocabulary (Machine Section)"
-VOCABULARY_PAPER_REL = ".specs/papers/CORE-Vocabulary.md"
 VOCABULARY_JSON_REL = ".intent/META/vocabulary.json"
 VOCABULARY_SCHEMA_REL = ".intent/META/vocabulary.schema.json"
 
@@ -47,7 +44,6 @@ class VocabularyTerm:
     term: str
     definition: str
     not_: str
-    authoritative_paper: str
     aliases: tuple[str, ...] = ()
     see_also: tuple[str, ...] = ()
 
@@ -70,77 +66,6 @@ class VocabularyProjectionError:
 
     state: Literal["broken"]
     reason: str
-
-
-# ID: fcc64fd7-f36e-41b8-be7a-2b1062946287
-def normalize_vocabulary_cell(value: str) -> str:
-    """
-    Produce the identity form of a canonical-vocabulary-table cell.
-
-    The canonical section in CORE-Vocabulary.md is a markdown table; cells
-    routinely carry presentation decoration that is not part of the value's
-    identity. Today the only such decoration is a surrounding pair of
-    backticks (markdown inline-code formatting) around path-shaped cells, plus
-    leading/trailing whitespace. Both the sync writer (producing
-    vocabulary.json) and the audit gate (validating canonical paths) must
-    parse the same identity, so this normalization is the single shared
-    contract.
-
-    Behavior: strip leading/trailing whitespace; if the trimmed value is
-    wrapped in a single pair of backticks, drop them and strip again.
-    """
-    v = value.strip()
-    if v.startswith("`") and v.endswith("`") and len(v) >= 2:
-        return v[1:-1].strip()
-    return v
-
-
-# ID: 3f8c1b4a-7d2e-4f9b-a6c1-9d3e2b5f8a09
-def locate_canonical_section(text: str) -> tuple[int, int] | None:
-    """
-    Return (start_idx, end_idx) of the canonical-section line range, or None.
-
-    The slice text.splitlines()[start_idx:end_idx] spans the heading line
-    through the last line before the terminating '---' separator or next
-    '## ' heading.
-    """
-    lines = text.splitlines()
-    start = next(
-        (i for i, line in enumerate(lines) if line.rstrip() == CANONICAL_HEADING),
-        None,
-    )
-    if start is None:
-        return None
-    end = len(lines)
-    for i in range(start + 1, len(lines)):
-        if lines[i].strip() == "---" or lines[i].startswith("## "):
-            end = i
-            break
-    return start, end
-
-
-# ID: 2c9e1f7b-4d8a-4e3c-b9f2-6a8c3e1d4b0a
-def compute_canonical_section_hash(repo_root: Path) -> str | None:
-    """
-    SHA-256 hex of the canonical section in CORE-Vocabulary.md.
-
-    Returns None if the paper is missing or the section heading cannot be
-    located. Bytes hashed are exactly text.splitlines()[start:end] joined
-    by '\\n', matching the regen command (core-admin intent sync vocabulary --stage).
-    """
-    paper = law_path(repo_root, VOCABULARY_PAPER_REL)
-    if not paper.is_file():
-        return None
-    try:
-        text = paper.read_text(encoding="utf-8")
-    except OSError:
-        return None
-    rng = locate_canonical_section(text)
-    if rng is None:
-        return None
-    start, end = rng
-    section = "\n".join(text.splitlines()[start:end])
-    return hashlib.sha256(section.encode("utf-8")).hexdigest()
 
 
 # ID: 9d3a5c1e-7b2f-4a8d-b1c3-4e7f8a2d5c0b
@@ -227,23 +152,16 @@ def load_vocabulary_projection(
     if schema_error is not None:
         return VocabularyProjectionError(state="broken", reason=schema_error)
 
-    recomputed_hash = compute_canonical_section_hash(root)
-    if recomputed_hash is None:
-        # Paper absent (wheel install / BYOR environment without .specs/).
-        # The vocabulary.json is authoritative — no canonical source to drift from.
-        # Treat as healthy rather than broken; drift comparison requires both sides.
-        drift = False
-        stored_hash = instance["metadata"].get("source_hash", "")
-    else:
-        stored_hash = instance["metadata"].get("source_hash", "")
-        drift = stored_hash != recomputed_hash
+    # vocabulary.json is the only vocabulary source (phase 5b retired the
+    # canonical paper it was generated from), so there is nothing to drift from.
+    drift = False
+    stored_hash = instance["metadata"].get("source_hash", "")
 
     terms = tuple(
         VocabularyTerm(
             term=t["term"],
             definition=t["definition"],
             not_=t["not"],
-            authoritative_paper=t["authoritative_paper"],
             aliases=tuple(t.get("aliases") or ()),
             see_also=tuple(t.get("see_also") or ()),
         )

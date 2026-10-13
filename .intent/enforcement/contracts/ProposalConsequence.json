@@ -12,7 +12,6 @@
     "source": "src/will/autonomy/proposal.py",
     "adr": "ADR-056 Wave 1",
     "boundary": "consequence-chain + persistence",
-    "notes": "Mirrors core.proposal_consequences table. Written by ConsequenceLogService.record(). Governs the ADR-015 D5 attribution read path (find_cause_for_file). Deferred from Wave 1 authoring until Python class existed.",
     "version": "1.0.0"
   },
   "type": "object",

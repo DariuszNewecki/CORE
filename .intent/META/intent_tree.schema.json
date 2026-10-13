@@ -67,9 +67,6 @@
                     }
                 }
             }
-        },
-        "notes": {
-            "type": "string"
         }
     },
     "default": {
@@ -80,7 +77,6 @@
         ],
         "optional_directories": [
             "papers"
-        ],
-        "notes": "Authoritative inputs: META, constitution, rules. Non-authoritative: papers. Everything else is out of scope for enforcement."
+        ]
     }
 }

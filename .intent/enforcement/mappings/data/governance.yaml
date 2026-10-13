@@ -1,6 +1,4 @@
-# .intent/enforcement/mappings/data/governance.yaml
 mappings:
-  # LAW: Operational knowledge MUST NOT be hardcoded
   data.ssot.database_primacy:
     engine: ast_gate
     params:
@@ -10,7 +8,6 @@ mappings:
       applies_to:
         - "src/**/*.py"
 
-  # LAW: Source code, logs, and prompts MUST NOT contain raw secrets
   data.security.no_raw_secrets:
     engine: regex_gate
     params:
@@ -31,25 +28,6 @@ mappings:
     scope:
       applies_to: [ "src/**/*.py", "var/logs/*.jsonl" ]
 
-  # LAW: Every symbol in DB must have a vector in memory
-  data.integrity.vector_sync:
-    engine: knowledge_gate
-    params:
-      check_type: table_has_records
-      table: "core.symbol_vector_links"
-    scope:
-      applies_to:
-        - "src/**/*.py"
-
-  # -- Wave 1 -----------------------------------------------------------------
-
-  # ADR-102 (#612): cross-cutting check that catches the class of bind
-  # error ADR-099 spent three revision passes trying to honor. Fires when
-  # a contract requiring worker_uuid binds a class whose instantiation
-  # sites live exclusively in a layer forbidden from blackboard
-  # attribution (Mind, today). Context-level dispatch; applies_to is
-  # intentionally empty because the check iterates contracts and src/
-  # globally.
   data.contracts.layer_scope_coherence:
     engine: contracts_gate
     params:
@@ -57,13 +35,6 @@ mappings:
     scope:
       applies_to: []
 
-  # ADR-102 (#613): empirical counterpart to layer_scope_coherence.
-  # Queries core.audit_findings for finding counts per schema_conformance
-  # rule over the lookback window; for classes governed by >=2 rules with
-  # asymmetric counts (some 0, some >0), the high-firing rule's binding
-  # is suspect. Catches the canonical ADR-102 case directly (Finding.json
-  # firing against AuditFinding while AuditFinding.json fires 0).
-  # Skip-silently semantics when db_session is not injected.
   data.contracts.asymmetric_contract_findings:
     engine: contracts_gate
     params:
@@ -72,13 +43,6 @@ mappings:
     scope:
       applies_to: []
 
-  # ADR-102 (#614): iceberg-shape detector. Fires on schema_conformance
-  # rules where finding_count >= min_findings AND distinct file_paths
-  # <= max_distinct_files in the lookback window -- the cluster shape
-  # itself signals the rule's binding is suspect. Catches the canonical
-  # case even when only one contract is involved (asymmetric_contract_findings
-  # needs >=2 contracts to fire; this one doesn't). Skip-silently when
-  # db_session is not injected.
   data.contracts.rule_binding_iceberg:
     engine: contracts_gate
     params:
@@ -89,11 +53,6 @@ mappings:
     scope:
       applies_to: []
 
-  # Issue #619: dataflow-based complement to layer_scope_coherence.
-  # Fires when a governed class (with worker_uuid required) never co-occurs
-  # with a Worker persistence write method in any src/ function scope.
-  # AST-based; no DB access. Catches the AuditFinding case that #612 misses
-  # (multi-layer instantiation but zero persistence reach). See ADR-102.
   data.contracts.persistence_reach_coherence:
     engine: contracts_gate
     params:
@@ -254,8 +213,6 @@ mappings:
       applies_to:
         - "src/shared/models/embedding_payload.py"
 
-  # -- Wave 2 Session 1 -------------------------------------------------------
-
   data.contracts.governance_decision_conforms:
     engine: ast_gate
     params:
@@ -309,8 +266,6 @@ mappings:
     scope:
       applies_to:
         - "src/body/flows/registry.py"
-
-  # -- Wave 2 Session 2 -------------------------------------------------------
 
   data.contracts.remediation_result_conforms:
     engine: ast_gate
@@ -393,10 +348,6 @@ mappings:
       applies_to:
         - "src/shared/models/validation_result.py"
 
-  # -- Wave 3 Session 1 -- Workflow, vector, observability ---------------------
-
-  # WorkflowResult and PhaseWorkflowResult both live in workflow_models.py.
-  # Legacy and constitutional shapes coexist; both governed separately.
   data.contracts.workflow_result_conforms:
     engine: ast_gate
     params:
@@ -415,7 +366,6 @@ mappings:
       applies_to:
         - "src/shared/models/workflow_models.py"
 
-  # DetailedPlanStep and DetailedPlan both live in workflow_models.py.
   data.contracts.detailed_plan_step_conforms:
     engine: ast_gate
     params:
@@ -452,8 +402,6 @@ mappings:
       applies_to:
         - "src/shared/models/drift_models.py"
 
-  # AgentDecision: ORM class. __tablename__ and __table_args__ ClassVar annotations
-  # are in contract properties to suppress false positives (issue #368).
   data.contracts.agent_decision_conforms:
     engine: ast_gate
     params:
@@ -463,8 +411,6 @@ mappings:
       applies_to:
         - "src/shared/infrastructure/database/models/learning.py"
 
-  # PolicyEvaluation and RepoCensus both live in cim/models.py.
-  # CheckResult and finding_nucleus_conforms also point to this file.
   data.contracts.policy_evaluation_conforms:
     engine: ast_gate
     params:
@@ -482,8 +428,6 @@ mappings:
     scope:
       applies_to:
         - "src/body/services/cim/models.py"
-
-  # Wave 3 API DTO request shapes -- ADR-056 Wave 3
 
   data.contracts.create_audit_run_request_conforms:
     engine: ast_gate

@@ -11,14 +11,6 @@
     },
     "rules": [
         {
-            "id": "autonomy.lanes.boundary_enforcement",
-            "statement": "RETIRED from automated enforcement (#853). Its GlobGate mechanism (patterns vs. this rule's own scope.applies_to) was structurally disjoint: the paths this rule's scope could ever hand to the engine could never overlap with the paths named in its own forbidden-patterns list, so the rule could never fire regardless of file content -- confirmed empirically, not merely suspected. The real, load-bearing lane-boundary control CORE actually runs is autonomy.proposals.safe_auto_approval_envelope (its own document, rules/will/safe_auto_approval_envelope.json, since ADR-159 Note 2026-09-17 M1), which governs a narrower and more precise claim: not 'agents cannot write outside a lane' in the abstract, but exactly which atomic actions and which repository-relative paths a proposal may target for AUTONOMOUS (non-human) approval. This rule no longer dispatches to a mapping. Historical marker only -- see rationale.",
-            "enforcement": "advisory",
-            "authority": "policy",
-            "phase": "runtime",
-            "rationale": "Found during #842 Unit E (G2 fixture-coverage program), filed as #853: GlobGateEngine.verify()'s generic pattern-matcher does read `patterns` and does flag a match as a violation -- this was not a missing-dispatch defect like #852's rules. The defect was that the rule's own `scope.applies_to` (src/will/agents/**/*.py) and its `patterns` list (src/body/cli/logic/**, src/features/introspection/**, src/features/self_healing/**) are two disjoint directory trees: no file the audit engine would ever hand to verify() under this rule's scope could ever match a pattern in the forbidden list, and no file matching a pattern in the list falls within this rule's own scope, so the rule always reported clean regardless of actual agent write behavior. The mapping's own comment described `patterns` as the *allowed* lanes ('Only allow agents to modify non-core directories autonomously'), while the engine's semantics treat anything in `patterns` as *forbidden* -- a second, independent contradiction on top of the disjoint-scope defect. Retired rather than repaired: 'agents must not write outside their lane' in the abstract has no single mechanically decidable definition (which lane, whose lane, checked how), whereas the concrete, governor-decided claim this system actually needs enforced -- the safe-auto-approval action-and-path envelope -- is precise, real, and now genuinely running. Retired rather than deleted so the prior declaration stays traceable. Its mapping entry is removed."
-        },
-        {
             "id": "autonomy.tracing.mandatory",
             "statement": "All non-trivial autonomous decisions MUST produce an inspectable trace in the Decision Log.",
             "authority": "policy",
@@ -33,21 +25,13 @@
             "enforcement": "blocking"
         },
         {
-            "id": "autonomy.conservation.min_preservation_ratio",
-            "statement": "The ConservationGate MUST reject any LLM-produced code whose logical token preservation ratio falls below 0.50 of the original, unless the invoking Proposal explicitly declares deletions_authorized=True.",
-            "authority": "policy",
-            "phase": "runtime",
-            "enforcement": "blocking"
-        },
-        {
             "id": "autonomy.reasoning.policy_alignment",
             "statement": "The PlannerAgent MUST explicitly reference its governing quality assurance policy.",
             "authority": "policy",
             "phase": "runtime",
             "enforcement": "reporting",
             "scope": {
-                "paths": ["src/will/agents/planner_agent.py"],
-                "notes": "Scoped to PlannerAgent only -- the sole autonomous component responsible for policy-aligned planning decisions."
+                "paths": ["src/will/agents/planner_agent.py"]
             }
         }
     ]

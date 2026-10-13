@@ -232,61 +232,6 @@ async def test_role_abstraction_fires_on_unknown_role(tmp_path: Path) -> None:
     assert findings, "role_abstraction produced no findings on a violation fixture"
 
 
-# ---------------------------------------------------------------------------
-# Vocabulary artifact_gate check_types (3) — fire through verify_context
-# ---------------------------------------------------------------------------
-
-
-async def test_vocabulary_projection_consistency_fires_when_paper_missing(
-    tmp_path: Path,
-) -> None:
-    """Missing canonical paper makes the projection-vs-paper consistency
-    check fail. The check_type dispatches via verify_context."""
-    repo = _scaffold_repo(tmp_path)
-    # No paper, no projection — the loader reports projection broken.
-    ctx = AuditorContext(repo)
-    rule = _build_context_level_rule(
-        "governance.vocabulary.projection_must_match_canonical",
-        "vocabulary_projection_consistency",
-        repo,
-    )
-    findings = await execute_rule(rule, ctx)
-    assert findings, "vocabulary_projection_consistency did not fire on missing paper"
-
-
-async def test_vocabulary_canonical_format_fires_when_paper_missing(
-    tmp_path: Path,
-) -> None:
-    repo = _scaffold_repo(tmp_path)
-    ctx = AuditorContext(repo)
-    rule = _build_context_level_rule(
-        "governance.vocabulary.canonical_format_must_validate",
-        "vocabulary_canonical_format",
-        repo,
-    )
-    findings = await execute_rule(rule, ctx)
-    assert findings, "vocabulary_canonical_format did not fire on missing paper"
-
-
-async def test_vocabulary_authoritative_paths_fires_when_paper_missing(
-    tmp_path: Path,
-) -> None:
-    repo = _scaffold_repo(tmp_path)
-    ctx = AuditorContext(repo)
-    rule = _build_context_level_rule(
-        "governance.vocabulary.authoritative_source_must_be_paper",
-        "vocabulary_authoritative_paths",
-        repo,
-    )
-    findings = await execute_rule(rule, ctx)
-    assert findings, "vocabulary_authoritative_paths did not fire on missing paper"
-
-
-# ---------------------------------------------------------------------------
-# Governance artifact_gate check_types (3) — fire through verify_context
-# ---------------------------------------------------------------------------
-
-
 def _seed_auto_remediation_yaml(repo: Path, mapped_ids: list[str]) -> None:
     """Write auto_remediation.yaml with the given mapping keys."""
     path = repo / ".intent" / "enforcement" / "remediation" / "auto_remediation.yaml"

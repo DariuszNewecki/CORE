@@ -41,22 +41,6 @@
             "rationale": "Exact duplicates indicate DRY violations and increase maintenance burden."
         },
         {
-            "id": "purity.no_semantic_duplication",
-            "statement": "Code SHOULD NOT contain semantic duplicates (functionally similar implementations).",
-            "authority": "policy",
-            "phase": "audit",
-            "enforcement": "reporting",
-            "rationale": "Semantic duplicates suggest opportunities for consolidation and abstraction."
-        },
-        {
-            "id": "purity.logic_conservation",
-            "statement": "Refactored code MUST NOT result in a character count reduction of >50% compared to original source unless explicitly authorized.",
-            "authority": "constitution",
-            "phase": "audit",
-            "enforcement": "reporting",
-            "rationale": "Pillar III: Functional Governance. Prevents 'Logic Evaporation' where AI deletes complex code to pass simple tests. Downgraded to reporting because LLM gates should not be blocking authorities."
-        },
-        {
             "id": "purity.no_dead_code",
             "statement": "Production code MUST NOT contain unreachable or dead symbols as identified by static analysis.",
             "authority": "policy",

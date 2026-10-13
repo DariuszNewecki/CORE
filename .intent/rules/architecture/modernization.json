@@ -19,14 +19,6 @@
       "rationale": "Per ADR-043 D7: LOC-style fan-out across 872 files at ~17s per LLM call exceeds the 600s sensor SLA. A regex pre-selector reduces the LLM verdict scope to files that contain at least one structural marker (legacy import, shim comment, deprecated parameter name)."
     },
     {
-      "id": "modernization.legacy_scars",
-      "statement": "Source code SHOULD be free of obsolete structural shims, unused parameters from prior iterations, and internal logic wrappers that bypass the Universal Workflow Pattern.",
-      "enforcement": "advisory",
-      "authority": "policy",
-      "phase": "audit",
-      "rationale": "To visualize the gap between the Historical Body and the Future Truth defined in REBIRTH v0.1."
-    },
-    {
       "id": "modernization.dead_shim",
       "statement": "A public symbol that self-declares as deprecated (a '.. deprecated::' directive, a DeprecationWarning in its body, or a first-line docstring self-declaration, including module-level attribution) AND has zero inbound call edges in the knowledge graph outside tests/ MUST be flagged as a dead shim. Properties are excluded (attribute reads are not call edges); the published __all__ extension contract and runtime-dispatch surfaces are graced (their callers are invisible to the static graph). Resolution is governed verify-then-delete: confirm no dynamic or string-keyed dispatch or config reference before removal.",
       "enforcement": "reporting",

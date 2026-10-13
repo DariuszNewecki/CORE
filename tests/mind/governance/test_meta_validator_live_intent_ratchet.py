@@ -122,7 +122,7 @@ EXPECTED_VALIDATED_DIRECTORIES: tuple[str, ...] = (
 # same change is not caught by the count alone — the directory pin above and
 # test_known_errors_table_is_well_formed (every KNOWN_ERRORS document must
 # still exist) narrow that gap; they do not close it completely.
-MIN_DOCUMENTS_CHECKED = 147
+MIN_DOCUMENTS_CHECKED = 139  # 5b retired 8 .intent documents deliberately (veto list)
 
 # Normalised identity of one validator error: (document, field path, message).
 ErrorKey = tuple[str, str, str]

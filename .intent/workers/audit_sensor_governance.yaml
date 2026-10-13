@@ -12,13 +12,6 @@ identity:
   uuid: "9b3e7d4a-2c81-4f56-8e3b-1d5f9a7c4b28"
   class: sensing
 
-# Closes the namespace-dispatch gap discovered during ADR-091 D2 commit-1c
-# engine landing (#575): the taxonomy_gate engine hosts three context-level
-# checks under the governance.taxonomy.* namespace
-# (operational_capabilities_decorator_backing, sensor_supported_by_declaration,
-# self_resolve_resolver_owned), but no sensor was claiming the governance
-# namespace. All three rules were declared and mapped but silently inert.
-
 mandate:
   responsibility: >
     Run the constitutional auditor scoped to all governance.* rules and post
@@ -35,22 +28,12 @@ mandate:
       - compliance
   approval_required: false
   schedule:
-    # 2026-06-15 (ADR-039 rev. d): the derived-walk fix (49bf4c0d) cut an audit
-    # cycle from ~90s to ~seconds, so max_interval is now a detection-latency
-    # knob, not a CPU defense. Set to 300s -- remediators poll every 60s, so the
-    # sensor interval is the bottleneck on time-to-detect; 300s is ~30x the
-    # cycle time (no back-to-back overlap) and ~30% of one core fleet-wide.
     max_interval: 300
 
 implementation:
   module: will.workers.audit_violation_sensor
   class: AuditViolationSensor
   requires_core_context: true
-  # ADR-081 D2(2) -- the dispatched checks include taxonomy_gate's context-
-  # level sweeps over src/ + tests/ (self_resolve_resolver_owned walks both
-  # surfaces; operational_capabilities_decorator_backing walks src/ and the
-  # full operational_capabilities.yaml). Dedicated process matches the
-  # other audit_sensor_* workers' classification.
   requires_dedicated_process: true
   params:
     dry_run: false

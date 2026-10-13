@@ -113,10 +113,6 @@
                                 "items": {
                                     "type": "string"
                                 }
-                            },
-                            "notes": {
-                                "type": "string",
-                                "maxLength": 1000
                             }
                         }
                     },

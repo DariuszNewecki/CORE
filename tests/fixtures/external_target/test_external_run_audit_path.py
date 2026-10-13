@@ -79,11 +79,10 @@ def test_overlay_rules_are_only_the_enumerated_dependencies() -> None:
     # Prior rulings (materialize.py inventory): purity.json (fixture-owned
     # authority, 2026-09-05), capability_taxonomy_governance.json
     # (project.cognitive_roles / seed.external_run_resources, seeding unit),
-    # proposal_lifecycle.json (claim.proposal, ruling 2026-09-07).
+    # (proposal_lifecycle.json left with phase 5b: claim.proposal declares no policy.)
     needed |= {
         "rules/code/purity.json",
         "rules/ai/capability_taxonomy_governance.json",
-        "rules/will/proposal_lifecycle.json",
     }
     overlay_rules = {
         p.relative_to(OVERLAY_DIR).as_posix()

@@ -1,26 +1,3 @@
-# .intent/taxonomies/substrate_enforcement.yaml
-#
-# Substrate-Enforcement Taxonomy
-# Authority: ADR-136 D1
-# Status: active
-#
-# PURPOSE:
-#   Declares which governance engine names delegate enforcement to a runtime
-#   substrate (MyPy, Pydantic, Python runtime) rather than to a CORE audit-time
-#   engine. Entries in this taxonomy are resolved to passive_gate by
-#   EngineRegistry.get() -- they structurally cannot fail at audit time because
-#   enforcement happens outside CORE's scan.
-#
-#   Every passive-routed enforcement mapping MUST reference an entry from this
-#   taxonomy. The taxonomy is the governance source of truth; the Python constant
-#   PASSIVE_ALIASES in registry.py is a cache populated from this file at
-#   EngineRegistry.initialize() time.
-#
-# ADDING AN ENTRY:
-#   Requires a companion closure-ADR stating (a) which substrate surface enforces
-#   the rule and (b) how the enforcement claim has been verified. Substrate
-#   enforcement is not a catch-all for "we don't have a check yet."
-
 version: "1.0.0"
 status: active
 title: CORE Substrate-Enforcement Taxonomy

@@ -85,18 +85,11 @@ class TestFileManifest:
         worker_decl = yaml.safe_load(overlay_worker.read_text("utf-8"))
         assert worker_decl["mandate"]["scope"]["paths"] == ["package/example.py"]
 
-        overlay_proposal_lifecycle = (
+        # claim.proposal declares no policy since phase 5b retired
+        # rules/will/proposal_lifecycle.json, so the overlay carries none.
+        assert not (
             target.intent_root / "rules" / "will" / "proposal_lifecycle.json"
-        )
-        canonical_proposal_lifecycle = (
-            REPO_ROOT / ".intent" / "rules" / "will" / "proposal_lifecycle.json"
-        )
-        assert (
-            overlay_proposal_lifecycle.read_bytes()
-            == canonical_proposal_lifecycle.read_bytes()
-        ), (
-            "fixture overlay must carry claim.proposal's policy dependency byte-identical to CORE's own"
-        )
+        ).exists()
 
         # The envelope lives in its own overlay-owned file (D-a), never in
         # the floor's action_risk.yaml.

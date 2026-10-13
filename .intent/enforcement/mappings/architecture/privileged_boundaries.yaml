@@ -1,20 +1,4 @@
-# .intent/enforcement/mappings/architecture/privileged_boundaries.yaml
-#
-# Enforces constitutional infrastructure primitive access boundaries.
-# Implements hard gates that prevent architectural drift at import time.
-#
-# LAW HYGIENE 2026-04-19: Removed stale "core.*" forbidden patterns across
-# all four rules. These referenced a src/core/ top-level namespace that
-# was migrated out years ago and no longer exists. No behavior change
-# (no files matched), pure law clarity.
-
 mappings:
-  # ==========================================================================
-  # DATABASE SESSION PRIMITIVE ACCESS
-  # Rule: architecture.boundary.database_session_access
-  # ==========================================================================
-  # Only infrastructure/Body/shared may import get_session directly
-  # Mind and Will layers MUST use dependency injection
 
   architecture.boundary.database_session_access:
     engine: ast_gate
@@ -27,13 +11,6 @@ mappings:
       applies_to:
         - "src/mind/**/*.py"
         - "src/will/**/*.py"
-
-        # ==========================================================================
-        # SETTINGS PRIMITIVE ACCESS
-        # Rule: architecture.boundary.settings_access
-        # ==========================================================================
-        # Only infrastructure and bootstrap may import Settings directly
-        # All other components MUST receive configuration through abstraction
 
   architecture.boundary.settings_access:
     engine: ast_gate
@@ -48,18 +25,9 @@ mappings:
         - "src/mind/**/*.py"
         - "src/will/**/*.py"
       excludes:
-        # The Bootstrap Sanctuary: Converts Config -> Context
         - "src/body/infrastructure/bootstrap.py"
-        # General infrastructure patterns
         - "src/body/infrastructure/*.py"
         - "src/body/infrastructure/**/*.py"
-
-  # ==========================================================================
-  # FILE HANDLER ACCESS
-  # Rule: architecture.boundary.file_handler_access
-  # ==========================================================================
-  # Only Body and infrastructure may instantiate FileHandler
-  # Mind (law) and Will (decision) must delegate I/O to Body
 
   architecture.boundary.file_handler_access:
     engine: ast_gate
@@ -72,13 +40,6 @@ mappings:
         - "src/mind/**/*.py"
         - "src/will/**/*.py"
 
-  # ==========================================================================
-  # LLM CLIENT ACCESS
-  # Rule: architecture.boundary.llm_client_access
-  # ==========================================================================
-  # Only Will layer may invoke LLM infrastructure
-  # Body (execution) and Mind (law) must not make AI decisions
-
   architecture.boundary.llm_client_access:
     engine: ast_gate
     params:
@@ -90,14 +51,6 @@ mappings:
       applies_to:
         - "src/body/**/*.py"
         - "src/mind/**/*.py"
-
-  # ==========================================================================
-  # EMBEDDING ACCESS
-  # Rule: architecture.boundary.embedding_access
-  # ==========================================================================
-  # Embedding capability must go through CognitiveEmbedderAdapter (Vectorizer role).
-  # Direct import of EmbeddingService or build_embedder_from_env bypasses the
-  # DB-backed resource registry and decouples config from governance.
 
   architecture.boundary.embedding_access:
     engine: ast_gate
@@ -113,19 +66,6 @@ mappings:
         - "src/will/**/*.py"
         - "src/cli/**/*.py"
 
-  # ==========================================================================
-  # REMEDIATION WRITE ACCESS (ADR-154 D4)
-  # Rule: architecture.boundary.remediation_write_access
-  # ==========================================================================
-  # Candidate-only remediation must not gain a fresh direct-import route to
-  # Git-commit authority. CrateProcessingService is NOT listed here -- it is
-  # legitimately imported by crate_canary.py for validate_crate_by_id(); the
-  # companion call-site boundary test
-  # (tests/will/remediation/test_no_live_mutation_call_sites.py) is what
-  # actually forbids apply_and_finalize_crate()/commit_paths() call sites,
-  # since import-boundary scanning cannot see DI/attribute-based access
-  # (self._ctx.git_service.commit_paths(...) has no import to detect).
-
   architecture.boundary.remediation_write_access:
     engine: ast_gate
     params:
@@ -136,8 +76,3 @@ mappings:
       applies_to:
         - "src/will/remediation/**/*.py"
 
-# ==============================================================================
-# Meta: This mapping enforces constitutional boundaries by preventing
-# direct infrastructure primitive imports. Violations indicate architectural
-# drift from Mind/Body/Will separation.
-# ==============================================================================

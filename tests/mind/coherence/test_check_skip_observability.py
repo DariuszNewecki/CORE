@@ -64,39 +64,6 @@ async def test_sameconcern_raises_checkskipped_when_not_seeded() -> None:
     assert str(exc_info.value) == "seed_gap"
 
 
-# ── R1ScopedCheck raises CheckSkipped when not seeded ────────────────────────
-
-
-# ID: 087bdb23-aa00-40f6-9302-ba9645692ef8
-@pytest.mark.asyncio
-async def test_r1scoped_raises_checkskipped_when_not_seeded() -> None:
-    """R1ScopedCheck.run() raises CheckSkipped('seed_gap') when not seeded.
-
-    We need at least one declared pair (otherwise run() returns [] before
-    reaching the is_seeded() gate). We patch _declared_pairs() to return one.
-    """
-    from mind.coherence.checks.r1_scoped import R1ScopedCheck
-
-    claims_service = AsyncMock()
-    claims_service.is_seeded.return_value = False
-
-    check = R1ScopedCheck(
-        repo_root=Path("/tmp/fake"),
-        register=MagicMock(),
-        claims_service=claims_service,
-        cognitive_service=MagicMock(),
-    )
-    # Inject a fake pair so we reach the is_seeded gate.
-    check._declared_pairs = MagicMock(
-        return_value=[(".specs/decisions/ADR-001.md", ".specs/decisions/ADR-002.md")]
-    )
-
-    with pytest.raises(CheckSkipped) as exc_info:
-        await check.run()
-
-    assert str(exc_info.value) == "seed_gap"
-
-
 # ── Checker records explicit skipped status when claims_service is None ───────
 
 
@@ -130,15 +97,7 @@ async def test_checker_records_skipped_when_claims_service_none() -> None:
             new=_no_candidates,
         ),
         patch(
-            "mind.coherence.checks.row2_grounding.Row2GroundingCheck.run",
-            new=_no_candidates,
-        ),
-        patch(
             "mind.coherence.checks.row3_citation.Row3CitationCheck.run",
-            new=_no_candidates,
-        ),
-        patch(
-            "mind.coherence.checks.row4_naming.Row4NamingCheck.run",
             new=_no_candidates,
         ),
         patch(
@@ -161,13 +120,9 @@ async def test_checker_records_skipped_when_claims_service_none() -> None:
         status = await checker._dispatch_checks(run_id="test-run-id")
 
     assert "SAMECONCERN" in status, "SAMECONCERN must appear in status"
-    assert "R1_SCOPED" in status, "R1_SCOPED must appear in status"
     assert status["SAMECONCERN"]["status"] == "skipped"
-    assert status["R1_SCOPED"]["status"] == "skipped"
     assert status["SAMECONCERN"]["reason"] == "claims_service_not_injected"
-    assert status["R1_SCOPED"]["reason"] == "claims_service_not_injected"
     assert status["SAMECONCERN"]["emitted"] == 0
-    assert status["R1_SCOPED"]["emitted"] == 0
 
 
 # ── Checker records skipped (not error) when check raises CheckSkipped ────────
@@ -205,15 +160,7 @@ async def test_checker_records_skipped_not_error_for_checkskipped() -> None:
             new=_no_candidates,
         ),
         patch(
-            "mind.coherence.checks.row2_grounding.Row2GroundingCheck.run",
-            new=_no_candidates,
-        ),
-        patch(
             "mind.coherence.checks.row3_citation.Row3CitationCheck.run",
-            new=_no_candidates,
-        ),
-        patch(
-            "mind.coherence.checks.row4_naming.Row4NamingCheck.run",
             new=_no_candidates,
         ),
         patch(
@@ -229,10 +176,6 @@ async def test_checker_records_skipped_not_error_for_checkskipped() -> None:
             new=_raise_seed_gap,
         ),
         patch(
-            "mind.coherence.checks.r1_scoped.R1ScopedCheck.run",
-            new=_raise_seed_gap,
-        ),
-        patch(
             "shared.infrastructure.intent.intent_repository.get_intent_repository",
             return_value=MagicMock(),
         ),
@@ -244,9 +187,6 @@ async def test_checker_records_skipped_not_error_for_checkskipped() -> None:
         status = await checker._dispatch_checks(run_id="test-run-id")
 
     assert status["SAMECONCERN"]["status"] == "skipped"
-    assert status["R1_SCOPED"]["status"] == "skipped"
     assert status["SAMECONCERN"]["reason"] == "seed_gap"
-    assert status["R1_SCOPED"]["reason"] == "seed_gap"
     # Must not be recorded as 'error'.
     assert "error" not in status["SAMECONCERN"]
-    assert "error" not in status["R1_SCOPED"]

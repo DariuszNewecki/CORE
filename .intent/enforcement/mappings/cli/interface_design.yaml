@@ -1,27 +1,4 @@
-# .intent/enforcement/mappings/cli/interface_design.yaml
-#
-# Enforcement mappings for CLI interface design rules.
-# Based on: .intent/rules/cli/interface_design.json
-#
-# ENFORCEMENT NOTE:
-#   These rules are enforced at AUDIT time by the cli_gate engine
-#   (src/mind/logic/engines/cli_gate.py), which imports the Typer app
-#   once per audit and introspects the command registry, then dispatches
-#   the check_types below.
-#
-#   All cli_gate check_types are CONTEXT-LEVEL (is_context_level_for ->
-#   True): they inspect the command registry / loader as a whole, not
-#   individual files. SCOPE_INERT (ADR-076 D6) therefore skips per-file
-#   scope matching for them, so the `applies_to` glob is documentary --
-#   it names the surface examined, not a per-file trigger.
-#
-#   Engine binding lives HERE, not in the rule JSON. The previous
-#   inline `check` blocks on cli.no_layer_exposure / cli.standard_verbs
-#   were removed (they were the only inline check blocks in the rule
-#   corpus); their data now lives in this file's params.
-
 mappings:
-  # LAW: Command paths MUST be depth 2-3; depth MUST NOT exceed 3.
   cli.resource_first:
     engine: cli_gate
     params:
@@ -31,7 +8,6 @@ mappings:
     scope:
       applies_to: ["src/cli/**/*.py"]
 
-  # LAW: Resource names MUST NOT expose internal architecture layers
   cli.no_layer_exposure:
     engine: cli_gate
     params:
@@ -40,41 +16,10 @@ mappings:
     scope:
       applies_to: ["src/cli/**/*.py"]
 
-  # LAW: Action names SHOULD use standard verbs from approved vocabulary
   cli.standard_verbs:
     engine: cli_gate
     params:
       check_type: standard_verbs
-      # 2026-06-06 vocabulary expansion: 20 standard CLI idioms added
-      # (bootstrap, build, check, dashboard, down, explain, health, import,
-      # purge, remediate, repair-counts, report, resolve, restart, run,
-      # start, supersede, sync-env, triage, up) covering systemd-style
-      # daemon control, healthchecks, dashboards, and other idioms the
-      # rule was flagging on legitimate uses. Noun-shaped command names
-      # (blackboard, capabilities, commands, search.search) are not
-      # added -- they are genuine drift and remain architectural-judgment
-      # per ADR-095 D1 posture.
-      # 2026-06-23 vocabulary expansion: 9 domain verbs added
-      # (accept, claim, gap-analysis, ingest, next, promote, propose,
-      # scout, search) covering Lane workflow, GRC operations, and Project
-      # lifecycle idioms that were absent from the list.
-      # 2026-07-03 vocabulary expansion: 4 auth/admin idioms added
-      # (accessibility, login, logout, whoami) covering UAC CLI surface
-      # (ADR-124) that postdated the prior expansions.
-      # 2026-08-26 vocabulary expansion: 2 hyphenated domain verbs added
-      # (adopt-pack, consequence-chain) -- governor-inbox findings for
-      # project.adopt-pack and demo.consequence-chain, same shape as prior
-      # additions (audit-duplicates, check-imports, fix-atomic, ...).
-      # 2026-09-15 vocabulary expansion: 3 verbs added (author, export-run,
-      # project) -- governor-inbox cli.standard_verbs findings for
-      # llm-resources.author (#821 Unit 2), workers.export-run (#893, same
-      # shape as export-context) and cognitive-roles.project (#821 Unit 2:
-      # the command *projects* cognitive-role capabilities). Same shape as
-      # the 2026-08-26 additions.
-      # 2026-10-02: `project` removed -- cognitive-roles.project/diff renamed to
-      # the standard `sync --write` (old names kept as hidden deprecated
-      # aliases; hidden commands are not vocabulary). First removal: the list
-      # had only grown, and a full cleanup is scheduled separately.
       allowed_verbs:
         - accept
         - accessibility
@@ -183,10 +128,6 @@ mappings:
     scope:
       applies_to: ["src/cli/**/*.py"]
 
-  # LAW: Mutating commands MUST be declared dangerous and require --write.
-  # Confirmation MAY be added as an additional safeguard but MUST NOT
-  # replace --write (#824 -- corrects the earlier "or confirmation" prose,
-  # which the gate below never actually accepted as an alternative).
   cli.dangerous_explicit:
     engine: cli_gate
     params:
@@ -194,7 +135,6 @@ mappings:
     scope:
       applies_to: ["src/cli/**/*.py"]
 
-  # LAW: Async commands MUST be wrapped with @core_command decorator
   cli.async_execution:
     engine: cli_gate
     params:
@@ -203,9 +143,6 @@ mappings:
     scope:
       applies_to: ["src/cli/**/*.py"]
 
-  # LAW: CLI module imports MUST be fail-fast at process start
-  # (restated per ADR-076 D6 -- see rule JSON. Structural check: static
-  #  imports, no error-swallowing around the CLI loader.)
   cli.discovery_strict:
     engine: cli_gate
     params:
@@ -214,7 +151,6 @@ mappings:
     scope:
       applies_to: ["src/cli/**/*.py"]
 
-  # LAW: Every command MUST provide help text
   cli.help_required:
     engine: cli_gate
     params:

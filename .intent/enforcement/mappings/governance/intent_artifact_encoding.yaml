@@ -1,26 +1,7 @@
-# .intent/enforcement/mappings/governance/intent_artifact_encoding.yaml
-#
-# Enforcement mapping for governance.intent_artifact_encoding rules.
-#
-# This binding connects the declared law to the regex_gate engine.
-# The regex detects any byte outside printable ASCII + standard whitespace.
-# Violation at parse phase blocks the artifact from being loaded into the
-# constitutional index, preventing downstream runtime failures.
-
 mappings:
   governance.intent_artifact_encoding.ascii_only:
     engine: regex_gate
     params:
-      # Match any character outside: tab (0x09), LF (0x0A), CR (0x0D),
-      # space through tilde (0x20-0x7E).
-      # Common violations: em dash (U+2014), curly quotes (U+2018/2019/201C/201D),
-      # ellipsis (U+2026), non-breaking space (U+00A0).
-      #
-      # #851: was `pattern`/`match_means`, param names RegexGateEngine.verify()
-      # never reads (it only reads naming_pattern / forbidden_patterns /
-      # required_patterns) -- the rule fired on nothing regardless of content.
-      # forbidden_patterns is the real schema for a "this pattern must not
-      # appear" check.
       forbidden_patterns:
         - "[^\\x09\\x0A\\x0D\\x20-\\x7E]"
       message: >

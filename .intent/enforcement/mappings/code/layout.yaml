@@ -1,7 +1,3 @@
-# .intent/enforcement/mappings/code/layout.yaml
-#
-# Enforces code layout rules: module headers.
-
 mappings:
   layout.src_module_header:
     engine: ast_gate

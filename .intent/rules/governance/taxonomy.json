@@ -21,8 +21,7 @@
                 "paths": [
                     "src/**/*.py",
                     ".intent/taxonomies/operational_capabilities.yaml"
-                ],
-                "notes": "Context-level check -- the substrate is the whole YAML cross-referenced against AST decorations across src/. Per-file dispatch is never engaged. The taxonomy file appears in scope so a YAML edit triggers re-evaluation; the src/ glob ensures the same on any decoration change."
+                ]
             }
         },
         {
@@ -36,8 +35,7 @@
                 "paths": [
                     "src/**/*.py",
                     "tests/**/*.py"
-                ],
-                "notes": "Context-level check -- the substrate is every self_resolve post_finding call site cross-referenced against the emitting module's docstring and tests/. Per-file dispatch is never engaged. The src/ glob ensures the check re-fires on any new call site; the tests/ glob ensures it re-fires when a covering test is added or removed."
+                ]
             }
         }
     ]

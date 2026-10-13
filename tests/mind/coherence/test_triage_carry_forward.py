@@ -92,9 +92,7 @@ async def test_checker_counts_carried_forward_and_raises_the_rest() -> None:
     none = AsyncMock(return_value=[])
     others = [
         "dispatch_parity.DispatchParityCheck",
-        "row2_grounding.Row2GroundingCheck",
         "row3_citation.Row3CitationCheck",
-        "row4_naming.Row4NamingCheck",
         "vocabulary.VocabularyCheck",
         "specgap.SpecGapCheck",
         "intent_binding.IntentBindingCheck",

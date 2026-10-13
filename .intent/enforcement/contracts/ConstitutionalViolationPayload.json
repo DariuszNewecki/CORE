@@ -9,8 +9,7 @@
         "status": "active",
         "source": "src/mind/governance/violation_report.py",
         "adr": "ADR-056 Wave 1",
-        "boundary": "consequence-chain + persistence",
-        "notes": "Governs the shape of ConstitutionalViolationError.to_dict() as persisted into proposal.execution_results. The top-level 'error' key preserves the legacy flat-string for older readers; 'violations' carries the structured list for diagnostic triage without live daemon probes."
+        "boundary": "consequence-chain + persistence"
     },
     "governed_classes": [
         "ConstitutionalViolationPayload"

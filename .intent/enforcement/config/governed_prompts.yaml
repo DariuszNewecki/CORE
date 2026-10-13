@@ -1,9 +1,3 @@
-# .intent/enforcement/config/governed_prompts.yaml
-# Prompts whose behavioural contract is defined by an ADR clause.
-# Changes to any listed prompt's content require governor review (ADR-134 D5).
-# Each entry must have adr_anchor in its model.yaml (ADR-134 D1/D2).
-# PromptDriftSensor (ADR-134 D6) posts prompt::drift::<name> findings on content change.
-
 governed_prompts:
   - name: code_generation_task_step_prompt
     anchors: ["ADR-003"]
@@ -28,10 +22,6 @@ governed_prompts:
   - name: constitutional_coherence_analyst
     anchors: ["ADR-027"]
     rationale: CCC coherence checking; must reflect live coherence ruleset. No verdicts, candidates only.
-
-  # Self-healing write-feeder group (ADR-134:D8).
-  # These prompts produce source or test artifacts written to disk via
-  # ActionExecutor or FileHandler.write_runtime_text.
 
   - name: violation_remediator
     anchors: ["ADR-134:D8"]
@@ -77,10 +67,3 @@ governed_prompts:
     anchors: ["ADR-003"]
     rationale: File-level test generation path. Used by CodeGenerator when task_type="test_generation" (build.tests action). Parallel to context_aware_test_gen (symbol-level, ADR-133:D6); both retained.
 
-# Explicit exclusions -- active in src/ but out of scope for governed_prompts.yaml (ADR-134:D8).
-# These are intermediate correction passes whose output feeds a governed prompt downstream;
-# they do not themselves produce the write artifact.
-#
-#   pattern_correction                    -- intermediate pass inside CorrectionEngine
-#   self_correction_engine_correction_prompt -- self-correction refinement in generation loop
-#   test_generation_test_executor         -- validates test output before write decision; advisory

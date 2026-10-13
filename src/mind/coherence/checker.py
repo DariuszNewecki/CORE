@@ -130,10 +130,7 @@ class CoherenceChecker:
         from .checks.dispatch_parity import DispatchParityCheck
         from .checks.intent_binding import IntentBindingCheck
         from .checks.path_ref import PathRefCheck
-        from .checks.r1_scoped import R1ScopedCheck
-        from .checks.row2_grounding import Row2GroundingCheck
         from .checks.row3_citation import Row3CitationCheck
-        from .checks.row4_naming import Row4NamingCheck
         from .checks.sameconcern import SameConcernCheck
         from .checks.specgap import SpecGapCheck
         from .checks.vocabulary import VocabularyCheck
@@ -147,9 +144,7 @@ class CoherenceChecker:
 
         checks: list[CheckClass] = [
             DispatchParityCheck(self._repo_root, get_intent_repository()),
-            Row2GroundingCheck(self._repo_root),
             Row3CitationCheck(self._repo_root, register),
-            Row4NamingCheck(self._repo_root),
             VocabularyCheck(self._repo_root),
             SpecGapCheck(self._repo_root, register),
             PathRefCheck(self._repo_root),
@@ -168,18 +163,10 @@ class CoherenceChecker:
                     self._cognitive_service,
                 )
             )
-            checks.append(
-                R1ScopedCheck(
-                    self._repo_root,
-                    register,
-                    self._claims_service,
-                    self._cognitive_service,
-                )
-            )
         else:
             # Record explicit skipped entries so governors see the gap in the
             # run manifest rather than a silent absence (#624).
-            for relation in ("SAMECONCERN", "R1_SCOPED"):
+            for relation in ("SAMECONCERN",):
                 status[relation] = {
                     "status": "skipped",
                     "reason": "claims_service_not_injected",

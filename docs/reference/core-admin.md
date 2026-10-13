@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-106 commands.
+104 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -14,7 +14,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`cognitive-roles`](#cognitive-roles) | 1 | Cognitive-role capability projection (#821 Unit 2). |
 | [`coherence`](#coherence) | 8 | Constitutional Coherence Checker — scan ADRs, rule domains, and northstar documents for candidate contradictions, gaps, and drift. Governing ADR: ADR-067. |
 | [`commands`](#commands) | 1 | Search and inspect registered CLI commands. |
-| [`constitution`](#constitution) | 5 | Operations for the system mind: policies, schemas, and rule coverage. |
+| [`constitution`](#constitution) | 4 | Operations for the system mind: policies, schemas, and rule coverage. |
 | [`context`](#context) | 3 | Build and explore context packages for LLM assistance. |
 | [`daemon`](#daemon) | 5 | Background worker daemon management. |
 | [`database`](#database) | 6 | PostgreSQL state and operational data management. |
@@ -23,7 +23,6 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`dev`](#dev) | 11 | High-level developer workflows: synchronization, refactor, and stability tools. |
 | [`docs`](#docs) | 1 | Reader-facing documentation generated from live sources (the CLI trees). |
 | [`grc`](#grc) | 2 | Compliance gap-analysis: check a document corpus against a requirements catalog. |
-| [`intent`](#intent) | 1 | Constitutional intent operations (.intent/ projections). |
 | [`interactive-test`](#interactive-test) | 2 | Interactive test generation with step-by-step approval |
 | [`law`](#law) | 7 | Grounded answers about this repository's law, with sources (ADR-168). |
 | [`llm-resources`](#llm-resources) | 2 | core.llm_resources authoring/validation surface (#821 Unit 3). |
@@ -528,25 +527,6 @@ Validate .intent/ artifacts and .specs/ document headers against their schemas.
 
 MetaValidator checks structural conformance of .intent/ YAML/JSON documents.
 SpecsDocValidator checks frontmatter headers on modeled .specs/ documents (ADR-105 D6).
-
-### `core-admin constitution verify` {#constitution-verify}
-
-```
-core-admin constitution verify ADR_PATH
-```
-
-Pre-flight: verify an ADR's supersession inheritance chain has valid grounding.
-
-When an ADR claims to supersede a predecessor it inherits the predecessor's
-grounding. This command verifies the inherited bind is sound — the predecessor
-must carry either a grounding paper citation or its own Supersedes declaration.
-Run this before accepting an ADR that uses a Supersedes clause.
-
-Exit 0 on pass. Exit 1 on any broken link or missing predecessor.
-
-| Argument / option | Default | Description |
-|---|---|---|
-| `ADR_PATH` | required | Path to the ADR .md file to check (e.g. .specs/decisions/ADR-141-my-decision.md). |
 
 ---
 
@@ -1185,30 +1165,6 @@ Writes a provenance record (licence.yaml) on completion.
 | `FRAMEWORK_ID` | required | Framework identifier from inventory.yaml (e.g. nist_800_171, gdpr). |
 | `--text-dir` |  | Directory of section text files to ingest. Defaults to grc-catalogs/internal/&lt;framework_id>/text/. |
 | `--write` | off | Perform the ingestion (default: dry-run shows what would be ingested). |
-
----
-
-## `core-admin intent` {#intent}
-
-Constitutional intent operations (.intent/ projections).
-
-### `core-admin intent sync` {#intent-sync}
-
-```
-core-admin intent sync TARGET [OPTIONS]
-```
-
-Regenerate a .intent/ projection from its canonical source paper.
-
-Target 'vocabulary' parses the canonical section of
-.specs/papers/CORE-Vocabulary.md and stages the result to
-var/drafts/META/vocabulary.json (ADR-130 D2). The governor applies it.
-
-| Argument / option | Default | Description |
-|---|---|---|
-| `TARGET` | required | Projection target. Currently supported: 'vocabulary'. |
-| `--write` | off | Write the regenerated projection to var/drafts/META/vocabulary.json for governor review. Apply with: cp var/drafts/META/vocabulary.json .intent/META/vocabulary.json |
-| `--check` | off | Verify the projection is fresh (CI gate per ADR-023 D6). Exits 0 if healthy, 1 if drift or broken. Mutually exclusive with --write. |
 
 ---
 

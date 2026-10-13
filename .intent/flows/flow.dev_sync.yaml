@@ -17,7 +17,6 @@ flow:
     - rules/code/purity
 
   steps:
-    # Fix phase must complete before sync -- DB requires stable IDs and clean code
     - ref_id: flow.fix_code
       kind: flow
       required: true

@@ -1,21 +1,9 @@
-# .intent/enforcement/mappings/ai/cognitive_role_governance.yaml
-# Enforcement mappings for Cognitive Role Invocation Governance
-# Rule document: .intent/rules/ai/cognitive_role_governance.json
-
 mappings:
 
   ai.cognitive_role.no_hardcoded_string:
     engine: regex_gate
     params:
       forbidden_patterns:
-        # Pattern widened 2026-04-18:
-        # - "\\s*" between "(" and quote catches multi-line calls that
-        #   auto-formatters split across lines (9 real violations missed
-        #   by the original single-line-only pattern).
-        # - "[\"']" covers both quote styles.
-        # Variables, attribute access, and manifest-derived expressions
-        # (model.manifest.role, self._cognitive_role) do NOT start with
-        # a quote, so compliant calls still pass.
         - "aget_client_for_role\\(\\s*[\"'][A-Za-z]"
     scope:
       applies_to:

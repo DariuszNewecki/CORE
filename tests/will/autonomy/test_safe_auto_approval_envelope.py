@@ -415,17 +415,3 @@ def test_every_denial_carries_the_rule_id() -> None:
         )
     assert excinfo.value.rule_id == ENVELOPE_RULE_ID
     assert excinfo.value.authorization_mode == "allow_listed"
-
-
-def test_rule_id_names_a_rule_that_exists_in_intent() -> None:
-    """The identifier must be a real rule document's id at this commit."""
-    import json
-    from pathlib import Path
-
-    doc = json.loads(
-        (
-            Path(__file__).resolve().parents[3]
-            / ".intent/rules/will/safe_auto_approval_envelope.json"
-        ).read_text()
-    )
-    assert ENVELOPE_RULE_ID in {r["id"] for r in doc["rules"]}

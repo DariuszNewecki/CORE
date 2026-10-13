@@ -1,42 +1,4 @@
-# .intent/enforcement/config/action_risk.yaml
-# Authority: policy
-# Phase: n/a (configuration, not a runtime phase)
-# Status: active
-#
-# PURPOSE:
-#   Single source of truth for action impact classification.
-#   Governs which actions auto-execute (safe) versus which require
-#   human approval (moderate) or are blocked unless explicitly
-#   authorized (dangerous).
-#
-#   Consumed by src/body/atomic/executor.py via the helper
-#   shared.infrastructure.intent.action_risk.
-#
-# RULE: impact_level for every registered action MUST be declared
-#   here. No impact_level literals permitted in @register_action
-#   decorators in src/. See ADR-008.
-#
-#   ADR-078 amendment (2026-05-30): risk values declared here are
-#   cross-referenced by .intent/taxonomies/operational_capabilities.yaml
-#   per ADR-078 D3. Any operational capability whose risk field does
-#   not resolve to a defined entry here is a load-time failure of
-#   src/shared/infrastructure/intent/operational_capabilities.py.
-#
-# VALUES: safe | moderate | dangerous
-#
-# FORMAT (ADR-120 D1): entries may be a plain impact_level string (unconstrained
-# actions) or a mapping with impact_level + artifact_types (type-constrained).
-#
-#   fix.format: safe                          # unconstrained -- old format, still valid
-#   fix.format:                               # constrained -- new dict format
-#     impact_level: safe
-#     artifact_types: [python]
-#
-# artifact_types values are F-41 artifact_type IDs. Actions whose artifact_types
-# is absent or empty are unconstrained and may be dispatched for any artifact type.
-
 actions:
-  # -- Infrastructure / state machine / cross-artifact (unconstrained) ---------
   action.execute: moderate
   assisted.apply_diff: moderate
   assisted.validate_diff: safe
@@ -55,10 +17,6 @@ actions:
   logging.reconfigure: safe
   project.cognitive_roles: moderate
   remediate.cognitive_role: moderate
-  # #894 seeding unit (Governor ruling D, 2026-09-15): the one governed writer for an
-  # isolated external-run database (llm_resources, role_resource_assignments,
-  # system_config from a seed document); refuses any other database. Never in the
-  # safe-auto-approval envelope.
   seed.external_run_resources: moderate
   sync.db: moderate
   sync.knowledge_graph: moderate
@@ -66,20 +24,13 @@ actions:
   sync.vectors_constitution: moderate
   test.system: safe
 
-  # -- Document corpus actions (artifact_types: [document_corpus]) -------------
   document.gap_analysis:
     impact_level: safe
     artifact_types: [document_corpus]
 
-  # -- Python-specific actions (artifact_types: [python]) ----------------------
-  # Primary autonomous path (ADR-133 D3): per-symbol generation via
-  # context_aware_test_gen. Prompt: context_aware_test_gen (ADR-134 governed).
   build.test_for_symbol:
     impact_level: safe
     artifact_types: [python]
-  # File-level generation path (ADR-133 D3: retained, not primary).
-  # Caller: CoderAgent (task_type="test_generation").
-  # Prompt: test_gen_prompt (ADR-134 governed, ADR-003 anchor).
   build.tests:
     impact_level: safe
     artifact_types: [python]

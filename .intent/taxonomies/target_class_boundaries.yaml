@@ -1,4 +1,3 @@
-# .intent/taxonomies/target_class_boundaries.yaml
 version: "1.0.0"
 status: active
 authority: constitutional
@@ -32,54 +31,19 @@ description: >
   src/shared/infrastructure/intent/target_class.py.
 
 # Boundaries are matched top-to-bottom; first prefix match wins.
-# Each entry: a path prefix (string) -> target_class value.
-# Trailing slash is required on directory prefixes.
 boundaries:
 
-  # ---------------------------------------------------------------------------
-  # governed-artifact -- checked first so .intent/ and .specs/ never fall
-  # through to repo-source. Hard invariant: no code path may write here
-  # (ADR-130 D1 closes ADR-097 step 6 as will-not-implement).
-  # ---------------------------------------------------------------------------
   - prefix: ".intent/"
     target_class: governed-artifact
   - prefix: ".specs/"
     target_class: governed-artifact
 
-  # ---------------------------------------------------------------------------
-  # ephemeral-scratch -- checked BEFORE other var/ prefixes. The shadow_kg
-  # materializer (ADR-096 D3) and pytest sandbox runner write under
-  # var/tmp/<uuid>/ with arbitrary sub-paths that may contain "src/"
-  # as a sub-segment. Ordering here forecloses the substring bug that
-  # ADR-097 D2 names as the load-bearing motivation for path-aware
-  # dispatch.
-  # ---------------------------------------------------------------------------
   - prefix: "var/tmp/"
     target_class: ephemeral-scratch
 
-  # work/ is autonomous-workspace scratch (.gitignore: "ephemeral by
-  # definition") written by ~8 subsystems -- canary sandbox snapshots
-  # (ADR-147 D4, work/canary/sandbox_<crate_id>/), context cache,
-  # test-generation artifacts, code-generation work dirs, interactive
-  # sessions, the vulture healer, and BYOR staging. ADR-147 D4 already
-  # named the correct classification ("the wrong tier for a directory
-  # that is pure ephemeral trial scratch... work/ should be ephemeral-
-  # scratch") and deferred only this taxonomy transcription as a
-  # follow-up. Broad work/ prefix, not narrow work/canary/ -- all
-  # subdirectories share the same ephemeral, gitignored, never-committed
-  # shape; narrowing would leave the other ~7 subsystems misclassified.
   - prefix: "work/"
     target_class: ephemeral-scratch
 
-  # ---------------------------------------------------------------------------
-  # runtime-output -- operational output that persists across runs but is
-  # not commit-bearing. reports/ is the audit/remediation evidence
-  # sink; var/cache/ holds derived caches; var/logs/ holds operational
-  # logs; var/workflows/pending_writes/ is the staging area for
-  # add_pending_write (proposal candidates not yet executed);
-  # var/drafts/ holds governor-review staging content for derived
-  # constitutional artifacts (ADR-130 D2/D5).
-  # ---------------------------------------------------------------------------
   - prefix: "reports/"
     target_class: runtime-output
   - prefix: "var/cache/"
@@ -91,17 +55,9 @@ boundaries:
   - prefix: "var/workflows/"
     target_class: runtime-output
 
-  # ---------------------------------------------------------------------------
-  # repo-source -- commit-bearing source. The default also lands here
-  # (see `default` below) so top-level repo files like pyproject.toml,
-  # README.md, CLAUDE.md, .gitignore classify correctly without
-  # enumerating every top-level file.
-  # ---------------------------------------------------------------------------
   - prefix: "src/"
     target_class: repo-source
   - prefix: "tests/"
     target_class: repo-source
 
-# Fallback for paths matching no prefix above. ADR-097 D2 third rule:
-# fail-safe toward the strictest validation set.
 default: repo-source

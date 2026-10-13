@@ -1,22 +1,5 @@
 mappings:
-    # ==========================================================================
-    # autonomy.lanes.boundary_enforcement -- mapping removed (#853). RETIRED
-    # from automated enforcement: its GlobGate check_type (path_restriction)
-    # compared this rule's own scope.applies_to (src/will/agents/**/*.py)
-    # against a forbidden-patterns list naming disjoint directory trees
-    # (src/body/cli/logic/**, src/features/introspection/**,
-    # src/features/self_healing/**) -- no file the engine could ever be
-    # handed under this rule's scope could ever match a forbidden pattern,
-    # so the check always reported clean regardless of actual agent write
-    # behavior. Confirmed empirically (#853). The real, load-bearing
-    # replacement is autonomy.proposals.safe_auto_approval_envelope, mapped in
-    # mappings/will/safe_auto_approval_envelope.yaml (own document since
-    # ADR-159 Note 2026-09-17 M1). See .intent/rules/will/autonomy.json.
-    # Historical marker only.
-    # ==========================================================================
 
-    # LAW: Every autonomous decision MUST produce a trace
-    # Check: Ensures TracedAgentMixin subclasses call self.tracer.record
     autonomy.tracing.mandatory:
       engine: ast_gate
       params:
@@ -29,45 +12,14 @@ mappings:
       scope:
         applies_to: ["src/will/agents/**/*.py"]
 
-    # LAW: Planning MUST include a check against Quality Assurance policy
     autonomy.reasoning.policy_alignment:
       engine: regex_gate
       params:
-        # Verifies the PlannerAgent explicitly mentions its governing policy
         required_patterns:
           - "quality_assurance"
       scope:
         applies_to: ["src/will/agents/planner_agent.py"]
 
-    # LAW: ConservationGate MUST reject code below 0.50 preservation ratio
-    # ENFORCEMENT: Runtime check -- not statically checkable.
-    # Threshold is read from this rule's declaration at runtime.
-    autonomy.conservation.min_preservation_ratio:
-      engine: passive_gate
-      params:
-        attestation_class: "A"
-        enforced_by: "body.validators.logic_conservation_validator.LogicConservationValidator"
-        enforcement_note: >
-          Runtime check -- LogicConservationValidator (body) measures the
-          proposed-code / original-code mass ratio and returns ok=False with
-          verdict=logic_evaporation when below 0.50. GovernanceDecider treats
-          this verdict as a CRITICAL block that no risk tier can override;
-          local callers (e.g. ComplexityRemediationService) honour the same
-          ok=False signal inline. Bypassed only when callers pass
-          deletions_authorized=True. Cannot be checked statically; enforced
-          on every LLM-produced code proposal that routes through either path.
-      scope:
-        applies_to:
-          - "src/body/validators/logic_conservation_validator.py"
-
-    # LAW: RemediationMap MUST NOT dispatch entries below confidence 0.80
-    # ENFORCEMENT (#964): checked where the decision is written. Every
-    # auto_remediation.yaml entry declares status ACTIVE / DELEGATE / PENDING,
-    # and every ACTIVE entry (the only status that produces Proposals)
-    # declares a confidence at or above remediation.min_confidence in
-    # governance_paths.yaml. Runtime backstop: _load_remediation_map (the
-    # loader the live remediator and RemediationCeremony read) drops any
-    # below-floor ACTIVE entry and any entry without a valid status.
     autonomy.remediation.min_confidence_floor:
       engine: artifact_gate
       params:

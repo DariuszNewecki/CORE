@@ -1,18 +1,10 @@
-# .intent/enforcement/mappings/architecture/path_access.yaml
-#
-# Enforces canonical runtime path resolution through PathResolver.
-# Companion to governance.artifact_mutation.traceable (advisory).
-# See ADR-031, ADR-032.
-
 mappings:
   architecture.path_access.no_hardcoded_runtime_dirs:
     engine: regex_gate
     params:
       check_type: pattern_match
       patterns:
-        # Full var/ path in string literal -- "var/reports", "var/prompts/foo", etc.
         - '["'']var/(?:reports|logs|prompts|exports|workflows|build|tmp|mind|run|drafts|context)[/"'']'
-        # Directory name as standalone or prefixed path-division operand -- base / "reports"
         - '/\s*["''](?:reports|logs|prompts|exports|workflows|build|context|mind)["''/]'
       message: >
         Runtime directory name used in path construction expression. Route through
@@ -26,11 +18,6 @@ mappings:
       applies_to:
         - "src/**/*.py"
       excludes:
-        # Canonical surfaces -- these ARE the abstraction
         - "src/shared/path_resolver.py"
-        # Tests construct paths against tmp_path directly
-        # Glob/exclude pattern strings -- not path construction expressions
-        # Display string in console.print() message -- not a path construction expression
         - "src/cli/logic/scout.py"
-        # "mind" token navigates to src/mind/ source directory, not var/mind/ runtime dir
         - "src/mind/coherence/checks/dispatch_parity.py"

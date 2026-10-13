@@ -15,7 +15,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from mind.coherence.checks.r1_scoped import R1ScopedCheck
 from mind.coherence.checks.sameconcern import SameConcernCheck
 from shared.governance.coherence_harvester import Claim
 
@@ -103,99 +102,6 @@ async def test_sameconcern_batch_fail_is_an_error_not_empty() -> None:
         mh.return_value.harvest.return_value = iter(claims)
         mock_adapter = AsyncMock()
         mock_adapter.get_embeddings_batch.side_effect = RuntimeError("embed down")
-        ma.return_value = mock_adapter
-
-        with pytest.raises(RuntimeError, match="batch embed failed"):
-            await check.run()
-
-
-# ---------------------------------------------------------------------------
-# R1ScopedCheck — batch embed
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_r1scoped_uses_batch_embed_not_serial() -> None:
-    """run() collects all claims across declared pairs, then calls get_embeddings_batch once."""
-    # Two ADRs with a Relates: link; each has one claim.
-    claim_a = _make_claim("claim from A", path=".specs/decisions/ADR-001.md", sha="a1")
-    claim_b = _make_claim("claim from B", path=".specs/decisions/ADR-002.md", sha="b1")
-    fake_vectors = [[1.0, 0.0], [0.0, 1.0]]
-
-    claims_service = AsyncMock()
-    claims_service.is_seeded.return_value = True
-    claims_service.search.return_value = []
-
-    check = R1ScopedCheck(
-        repo_root=Path("/tmp"),
-        register=MagicMock(),
-        claims_service=claims_service,
-        cognitive_service=MagicMock(),
-    )
-
-    declared_pairs = [
-        (".specs/decisions/ADR-001.md", ".specs/decisions/ADR-002.md"),
-        (".specs/decisions/ADR-002.md", ".specs/decisions/ADR-001.md"),
-    ]
-    claims_by_path = {
-        ".specs/decisions/ADR-001.md": [claim_a],
-        ".specs/decisions/ADR-002.md": [claim_b],
-    }
-
-    with (
-        patch.object(check, "_declared_pairs", return_value=declared_pairs),
-        patch(
-            "shared.governance.coherence_harvester.GovernanceClaimHarvester"
-        ) as mock_harvester_cls,
-        patch(
-            "shared.infrastructure.vector.cognitive_adapter.CognitiveEmbedderAdapter"
-        ) as mock_adapter_cls,
-    ):
-        mock_harvester_cls.return_value.harvest.return_value = iter([claim_a, claim_b])
-        mock_adapter = AsyncMock()
-        mock_adapter.get_embeddings_batch.return_value = fake_vectors
-        mock_adapter_cls.return_value = mock_adapter
-
-        await check.run()
-
-        # Batch called exactly once with all claim texts.
-        mock_adapter.get_embeddings_batch.assert_called_once()
-        batch_texts = mock_adapter.get_embeddings_batch.call_args[0][0]
-        assert len(batch_texts) == 2
-        mock_adapter.get_embedding.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_r1scoped_batch_fail_is_an_error_not_empty() -> None:
-    """If batch embed raises, run() fails instead of returning []."""
-    claim_a = _make_claim("claim A", path=".specs/decisions/ADR-001.md", sha="a1")
-
-    claims_service = AsyncMock()
-    claims_service.is_seeded.return_value = True
-
-    check = R1ScopedCheck(
-        repo_root=Path("/tmp"),
-        register=MagicMock(),
-        claims_service=claims_service,
-        cognitive_service=MagicMock(),
-    )
-
-    with (
-        patch.object(
-            check,
-            "_declared_pairs",
-            return_value=[
-                (".specs/decisions/ADR-001.md", ".specs/decisions/ADR-002.md")
-            ],
-        ),
-        patch("shared.governance.coherence_harvester.GovernanceClaimHarvester") as mh,
-        patch(
-            "shared.infrastructure.vector.cognitive_adapter.CognitiveEmbedderAdapter"
-        ) as ma,
-    ):
-        mh.return_value.harvest.return_value = iter([claim_a])
-        mock_adapter = AsyncMock()
-        mock_adapter.get_embeddings_batch.side_effect = RuntimeError("timeout")
         ma.return_value = mock_adapter
 
         with pytest.raises(RuntimeError, match="batch embed failed"):

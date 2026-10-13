@@ -1,11 +1,4 @@
-    # .intent/enforcement/mappings/architecture/modernization.yaml
-    # Visualization mapping for Evolutionary Purity
-
     mappings:
-      # Pre-selector for modernization.legacy_scars (ADR-043 D7.2 / #310).
-      # Cheap regex sweep flags files with structural markers of legacy code.
-      # The LLM verdict in legacy_scars only fires on files this rule has
-      # already touched.
       modernization.legacy_signal:
         engine: regex_gate
         params:
@@ -19,35 +12,6 @@
           excludes:
             - "**/__init__.py"
 
-      modernization.legacy_scars:
-        engine: llm_gate
-        params:
-          instruction: >
-            Analyze the provided code for 'Fidelity Scars' from Iterations 1 or 2.
-            Identify:
-            1. Function signatures with unused variables (e.g., 'output_mode', 'silent').
-            2. 'Shim' modules that simply wrap V2 logic to support legacy imports.
-            3. Hard-coded logic that violates the 'Everything is Reasoned' vision.
-
-            Provide a concise 'Judicial Opinion' for each finding.
-          rationale: "Evolutionary visualization: identifying the ghosts of the past."
-        scope:
-          applies_to:
-            - "src/**/*.py"
-        # ADR-043 D7.2 / #310: LLM verdict gated by structural pre-selector.
-        # Without this, the rule fans out to 872 files and saturates the LLM
-        # provider, blocking the architecture sensor from completing its SLA.
-        requires_findings_from:
-          - modernization.legacy_signal
-
-      # RULE: modernization.dead_shim (ADR-151, #807)
-      # Sensor-based detection via DeadShimSensor: the D1 conjunction
-      # (state='deprecated' attributed by the sync visitor AND zero inbound
-      # symbol_calls edges outside tests/) is a cross-file, DB-backed join
-      # that cannot run in file-scoped commit-gate engines. passive_gate
-      # signals the audit engine does not duplicate the sensor's runtime
-      # check -- same shape as governance.proposal_finalization_integrity
-      # (finalization_integrity.yaml). Satisfies ADR-066 all-rules-mapped.
       modernization.dead_shim:
         engine: passive_gate
         params:

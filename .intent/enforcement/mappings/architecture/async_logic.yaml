@@ -1,25 +1,4 @@
-# .intent/enforcement/mappings/architecture/async_logic.yaml
 mappings:
-  # RETIRED: logic.di.no_global_session -- superseded by
-  # architecture.boundary.database_session_access (issue #512, direction 2).
-  # Rule retained in async_logic.json as advisory historical record.
-  # passive_gate satisfies the all_rules_mapped invariant (ADR-066) while
-  # dispatching zero findings -- consistent with "no findings are dispatched"
-  # intent in the rule rationale.
-  logic.di.no_global_session:
-    engine: passive_gate
-    params:
-      attestation_class: "D"
-    scope:
-      applies_to:
-        - "src/**/*.py"
-
-  # LAW: Logic modules MUST NOT hijack the event loop
-  #
-  # EXCLUSIONS RATIONALE (Mind-Body-Will Architecture):
-  # - CLI entry points MUST call asyncio.run() to bootstrap async runtime
-  # - CLI helper utilities provide @async_command decorator (legitimate use)
-  # - Internal logic/engines/tools MUST NOT call asyncio.run() (they run INSIDE the runtime)
   async.no_manual_loop_run:
     engine: ast_gate
     params:
@@ -28,13 +7,8 @@ mappings:
     scope:
       applies_to: ["src/**/*.py"]
       excludes:
-        # CLI Entry Points - Bootstrap async runtime
-        # CLI Helpers - Provide @async_command decorator
-        # Maintenance Scripts - Standalone entry points
         - "src/body/maintenance/scripts/**"
-        # Tests
 
-  # LAW: Operational logs MUST use standard getLogger
   logic.logging.standard_only:
     engine: ast_gate
     params:

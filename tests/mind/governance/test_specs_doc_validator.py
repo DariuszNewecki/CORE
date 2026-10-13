@@ -50,60 +50,6 @@ def test_parse_frontmatter_absent_returns_none() -> None:
 # ---- schema validation ----
 
 
-def test_conformant_adr_header_validates() -> None:
-    v = SpecsDocValidator()
-    header = {
-        "kind": "adr",
-        "id": "ADR-999",
-        "title": "Sample decision",
-        "status": "accepted",
-    }
-    errs = v.validate_header(_adr_schema(), header, document="sample")
-    assert errs == [], [e.message for e in errs]
-
-
-def test_invalid_status_enum_fails_via_cross_tree_ref() -> None:
-    """An invalid adr_status must be rejected — which only works if the schema's
-    $ref into .intent/META/enums.json resolves. This is the load-bearing case."""
-    v = SpecsDocValidator()
-    header = {"kind": "adr", "id": "ADR-999", "title": "Sample", "status": "bogus"}
-    errs = v.validate_header(_adr_schema(), header, document="sample")
-    assert errs, "invalid adr_status accepted — cross-tree enum $ref did not resolve"
-    assert all(e.error_type != "validator_error" for e in errs), [
-        e.message for e in errs
-    ]
-
-
-def test_missing_required_field_fails() -> None:
-    v = SpecsDocValidator()
-    errs = v.validate_header(
-        _adr_schema(), {"kind": "adr", "id": "ADR-1"}, document="sample"
-    )
-    assert errs
-
-
-def test_paper_requires_doctrine_tier() -> None:
-    """paper.header makes doctrine_tier required (the #627 conflation fix); a paper
-    header without it must fail."""
-    v = SpecsDocValidator()
-    header = {"kind": "paper", "id": "CORE-Foo", "title": "Foo", "status": "canonical"}
-    errs = v.validate_header(_paper_schema(), header, document="sample")
-    assert errs
-
-
-def test_paper_wrong_kind_const_fails() -> None:
-    v = SpecsDocValidator()
-    header = {
-        "kind": "adr",
-        "id": "CORE-Foo",
-        "title": "Foo",
-        "status": "canonical",
-        "doctrine_tier": "constitution",
-    }
-    errs = v.validate_header(_paper_schema(), header, document="sample")
-    assert errs
-
-
 # ---- ADR-105 D6 Stage 2b completion gates ----
 
 

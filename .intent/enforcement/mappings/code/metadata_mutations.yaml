@@ -1,19 +1,4 @@
-# .intent/enforcement/mappings/code/metadata_mutations.yaml
-#
-# Enforcement mappings for metadata mutation governance.
-# Based on: .intent/rules/code/metadata_mutations.json
-#
-# CONSTITUTIONAL NOTE: WRITE_METADATA actions bypass governance.logic_mutation.governed
-# because they are governed by a stricter, proof-based invariant:
-# the normalized AST must be identical before and after.
-#
-# Rules below marked engine: advisory are permissive declarations -- they
-# authorize WRITE_METADATA actions, they do not detect violations.
-# Mapped here explicitly to remove them from the declared_only count.
-
 mappings:
-  # LAW: Executable semantics must be preserved across metadata mutations
-  # Check type: ast_gate (Normalized AST comparison before/after)
   metadata.semantic_preservation:
     engine: ast_gate
     params:
@@ -22,22 +7,6 @@ mappings:
       applies_to:
         - "src/**/*.py"
 
-  # LAW: A new/replacement comment line must not exceed the configured length
-  # ceiling. Split out from comment_insert/comment_replace (#842 truth
-  # correction) -- GATE 2 of verify_metadata_only_diff (the same check_type
-  # metadata_only_diff invoked above) is a single mechanism keyed on
-  # max_comment_length that does not itself distinguish insert from replace,
-  # so one rule maps to it rather than two mirrored ones. Value must match
-  # operational_config.yaml's metadata_max_comment_length (SSOT for the
-  # actual default consumed by body.atomic.metadata_ops.action_tag_metadata).
-  #
-  # NOTE (#842): ast_gate.verify()'s check_type=="metadata_only_diff" branch
-  # is a deliberate audit-time no-op ("enforced at action execution time, not
-  # audit time") -- the real proof is GATE 1/GATE 2 inside
-  # verify_metadata_only_diff, invoked directly by action_tag_metadata at the
-  # point of mutation. As of this mapping, that mechanism has zero test
-  # coverage (no fixture pair exists for either gate) -- flagged for #842's
-  # fixture-filling phase, not yet closed.
   metadata.operations.comment_length_limit:
     engine: ast_gate
     params:
@@ -47,71 +16,3 @@ mappings:
       applies_to:
         - "src/**/*.py"
 
-  # ===========================================================================
-  # ADVISORY DECLARATIONS
-  # Permissive rules -- they grant permission, not restrict.
-  # No automated check is possible or needed.
-  # ===========================================================================
-
-  metadata.operations.comment_insert:
-    engine: advisory
-    params:
-      note: >
-        Permissive declaration. WRITE_METADATA actions MAY insert comment
-        lines. The length ceiling on new comments is a separate rule,
-        metadata.operations.comment_length_limit -- not this permission.
-    scope:
-      applies_to:
-        - "src/**/*.py"
-
-  metadata.operations.comment_replace:
-    engine: advisory
-    params:
-      note: >
-        Permissive declaration. WRITE_METADATA actions MAY replace comment
-        lines. The length ceiling on replacement comments is a separate rule,
-        metadata.operations.comment_length_limit -- not this permission.
-    scope:
-      applies_to:
-        - "src/**/*.py"
-
-  metadata.operations.comment_delete:
-    engine: advisory
-    params:
-      note: >
-        Permissive declaration. WRITE_METADATA actions MAY delete comment lines.
-        Enforced at action-layer by convention, not by engine.
-    scope:
-      applies_to:
-        - "src/**/*.py"
-
-  metadata.operations.docstring_insert:
-    engine: advisory
-    params:
-      note: >
-        Permissive declaration. WRITE_METADATA actions MAY insert docstrings.
-        Enforced at action-layer by convention, not by engine.
-    scope:
-      applies_to:
-        - "src/**/*.py"
-
-  metadata.operations.docstring_replace:
-    engine: advisory
-    params:
-      note: >
-        Permissive declaration. WRITE_METADATA actions MAY replace docstrings.
-        Enforced at action-layer by convention, not by engine.
-    scope:
-      applies_to:
-        - "src/**/*.py"
-
-  metadata.scope.universal:
-    engine: advisory
-    params:
-      note: >
-        Constitutional declaration. WRITE_METADATA is permitted on all
-        src/**/*.py without exclusion. Grants universal scope; no violation
-        detection needed.
-    scope:
-      applies_to:
-        - "src/**/*.py"

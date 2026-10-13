@@ -1,15 +1,3 @@
-# .intent/enforcement/mappings/architecture/intent_access.yaml
-#
-# Enforces canonical access to .intent governance memory.
-#
-# Rule ID renamed under #490 (ADR-077 cleanup):
-#   old: architecture.intent.non_gateway_no_direct_resolution
-#   new: architecture.namespace.no_direct_protected_access
-# The check_type was renamed simultaneously from `direct_intent_access`
-# to `protected_namespace_access`. The check still hardcodes `.intent/`
-# semantics; promoting markers/gateway to rule-supplied parameters is
-# follow-up generalisation work tracked separately.
-
 mappings:
   architecture.namespace.no_direct_protected_access:
     engine: ast_gate
@@ -21,13 +9,6 @@ mappings:
       excludes:
         - "src/mind/governance/meta_validator.py"
         - "src/cli/commands/daemon.py"
-        # 2026-06-06 expansion: auditor / coherence-checker exemptions.
-        # Same pattern as meta_validator
-        # already excluded above -- these files audit .intent/ structure
-        # for coherence, which requires seeing raw paths/contents the
-        # gateway normalizes away. Adding via flat list rather than
-        # introducing a new CORE_ROLE for "auditor" -- that's an
-        # ADR-095 D3 amendment, not warranted by 6 entries today.
         - "src/mind/coherence/**/*.py"            # CCC checks + checker (ADR-067)
         - "src/mind/logic/engines/artifact_gate.py"   # F-41 registry walker
         - "src/mind/logic/engines/runtime_gate.py"    # ADR-077 runtime access checker
@@ -35,39 +16,6 @@ mappings:
         - "src/cli/logic/byor.py"                        # External repo delivery -- reads starter-intent template and work/staged/ external dirs, not CORE's governance namespace; writes via ActionExecutor
         - "src/mind/logic/engines/contracts_gate.py"     # Mind engine auditing .intent/enforcement/contracts/ coherence -- same exemption as artifact_gate.py and runtime_gate.py
 
-  # ADVISORY DECLARATIONS -- architectural guidance, not engine-checkable.
-  # These rules describe how .intent/ should be structured and accessed.
-  # They are constitutionally binding guidance for human architects.
-
-  architecture.intent.gateway_is_shared_infrastructure:
-    engine: advisory
-    params:
-      note: >
-        Architectural guidance. The .intent/ gateway is shared infrastructure
-        owned by no single layer. All layers access .intent/ through the
-        canonical gateway, never by direct path construction. Enforced by
-        architectural review and PathResolver usage convention.
-    scope:
-      applies_to:
-        - "src/**/*.py"
-
-  architecture.intent.no_legacy_root_assumptions:
-    engine: advisory
-    params:
-      note: >
-        Architectural guidance. No code may assume .intent/ lives at the
-        repository root via hardcoded relative paths. All .intent/ access
-        must use PathResolver. Enforced by convention and code review.
-    scope:
-      applies_to:
-        - "src/**/*.py"
-
-  # Context-level sweep (reference_gate engine): every concrete reference
-  # .intent/ declares -- flow action steps, test_coverage include_files,
-  # mapping entry_points, worker implementation module/class, namespace
-  # manifest .intent/ paths, remediation-map ACTIVE/DELEGATE targets (#935)
-  # -- must resolve. applies_to anchors at .intent/
-  # so an edit to any declaring file re-evaluates the sweep.
   architecture.intent.references_resolve:
     engine: reference_gate
     params:
@@ -76,11 +24,6 @@ mappings:
       applies_to:
         - ".intent/**/*.yaml"
 
-  # Context-level sweep (exclusion_gate engine): every scope.excludes entry
-  # of every mapping must still exempt something -- match a file inside its
-  # rule's applies_to and, for deterministic per-file engines, cover at least
-  # one file that would violate without it. applies_to anchors at the
-  # mappings so an edit to any exclude list re-evaluates the sweep.
   architecture.intent.excludes_exempt_something:
     engine: exclusion_gate
     params:

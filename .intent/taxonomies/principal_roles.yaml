@@ -45,11 +45,6 @@ roles:
     read_access: operational
     write_access: operational
 
-# ADR-068 amendment 2026-10-11 A1 superseded D4's single_governor_local
-# topology: "local" no longer means "the governor". The role set is the same
-# in every mode; a mode decides how principals are bound (Layer 2) and so
-# what CORE may honestly claim. A mode never changes silently: a deployment
-# whose machine does not match its declared mode is a finding (A6.3).
 operation_modes:
   solo:
     description: >
@@ -75,8 +70,5 @@ operation_modes:
     binding: platform_identity
     claim: prevents_and_separates_duties
 
-# The mode this deployment declares (A6.1). The default for an adopter is
-# solo. CORE's own server is solo-separated (A7); until the check (A6.3) is
-# built, the declaration is not yet compared with the machine.
 deployment:
   mode: solo-separated

@@ -35,28 +35,12 @@
             "rationale": "A Flow executes a declared step sequence under explicit instruction. A Flow that creates Proposals would be deciding when and why to act -- that is Worker responsibility. Conflating the two collapses the Worker/Flow boundary and creates ungoverned autonomy at the composition layer."
         },
         {
-            "id": "architecture.flows.flow_must_propagate_write_false",
-            "statement": "FlowExecutor MUST propagate write=False to every step without exception. A step MUST NOT escalate to write=True even if its static params declare write=True. The write flag is caller-supplied and immutable for the duration of a Flow execution.",
-            "enforcement": "blocking",
-            "authority": "policy",
-            "phase": "runtime",
-            "rationale": "write=False is the dry-run guarantee. If any step could escalate write mode, the entire governance surface of dry-run testing collapses. The FlowExecutor is the single enforcement point; it must be unconditional."
-        },
-        {
             "id": "architecture.flows.flow_declared_in_intent",
             "statement": "Every Flow referenced by a Proposal or invoked by a Worker MUST be declared in .intent/flows/*.yaml and registered in FlowRegistry. Flows MUST NOT be declared as Python data structures in src/. The .intent/flows/ directory is the sole source of constitutional standing for a Flow.",
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "load",
             "rationale": "Governance-relevant declarations -- step sequences, step ordering, required/optional semantics -- are governance decisions, not implementation details. They belong in .intent/, not in src/. A Flow not in .intent/flows/ is invisible to audit, cannot be governed, and cannot be referenced in a Proposal without constitutional standing."
-        },
-        {
-            "id": "architecture.flows.worker_must_not_hardwire_sequence",
-            "statement": "A Worker's run() method MUST NOT contain an explicit ordered sequence of ActionExecutor.execute() calls that could be extracted into a named Flow. Workers invoke Flows by flow_id or invoke single AtomicActions. Hardwired step sequences in Workers are Flows without constitutional standing.",
-            "enforcement": "advisory",
-            "authority": "policy",
-            "phase": "load",
-            "rationale": "A Worker that hardwires its pipeline is carrying work that belongs in a Flow. This makes the pipeline invisible to governance, prevents reuse across Workers, and prevents the FlowExecutor from applying required/optional semantics and write=False propagation. Advisory enforcement until existing Workers are migrated."
         }
     ]
 }
