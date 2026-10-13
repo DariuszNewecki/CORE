@@ -218,3 +218,42 @@ def test_pending_entry_is_exempt(repo: Path) -> None:
         repo, "  rule.later: {action: fix.someday, status: PENDING}\n"
     )
     assert _refs(repo) == set()
+
+
+@pytest.fixture
+def law_beside(repo: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """ADR-132 D2: the clone is code only; the law is kept beside it."""
+    import shutil
+
+    from shared.config import Settings
+
+    law = repo.with_name(repo.name + "-law")
+    law.mkdir()
+    shutil.move(str(repo / ".intent"), str(law / ".intent"))
+    monkeypatch.setattr(
+        "shared.config.settings",
+        Settings(REPO_PATH=repo, MIND=law / ".intent", SPECS=law / ".specs"),
+    )
+    return law
+
+
+def test_law_beside_the_clone_resolves_intent_references(
+    repo: Path, law_beside: Path
+) -> None:
+    """2026-10-12 cutover: every manifest path was looked up inside the
+    code-only clone and reported as dangling (378 false findings)."""
+    assert _refs(repo) == set()
+
+
+def test_law_beside_the_clone_names_the_declaring_file_as_the_repository_does(
+    repo: Path, law_beside: Path
+) -> None:
+    """Findings keep their ``.intent/...`` subject, not /opt/core/law/..."""
+    _write(
+        law_beside,
+        ".intent/governance/namespace_manifest.yaml",
+        "classifications:\n  - {path: .intent/packs/gone.yaml}\n",
+    )
+    (finding,) = find_dangling_references(repo)
+    assert finding.file_path == ".intent/governance/namespace_manifest.yaml"
+    assert finding.context["reference"] == ".intent/packs/gone.yaml"

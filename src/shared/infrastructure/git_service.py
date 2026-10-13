@@ -891,6 +891,17 @@ class GitService:
         assert proc.returncode is not None  # guaranteed after communicate()
         return proc.returncode, stdout.decode(), stderr.decode()
 
+    # ID: 8aa5e389-085c-4504-9893-886df100198e
+    async def has_commit(self, sha: str) -> bool:
+        """Return True if this clone's object store holds commit ``sha``.
+
+        Runs ``git cat-file -e <sha>^{commit}``. A clone that never fetched
+        a commit cannot say whether it is reachable: absence here is not
+        evidence of an orphan. Used by CommitReachabilityAuditor.
+        """
+        rc, _, _ = await self._run_async(["cat-file", "-e", f"{sha}^{{commit}}"])
+        return rc == 0
+
     # ID: 2ac7d7ba-e892-4858-b4ef-8f5f1c8094e5
     async def is_commit_on_branch(self, sha: str) -> bool:
         """Return True if sha is reachable from at least one branch.

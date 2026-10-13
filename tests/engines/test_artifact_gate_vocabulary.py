@@ -240,3 +240,32 @@ def test_authoritative_paths_nonexistent(repo_paths_nonexistent: Path) -> None:
     assert not result.ok
     assert len(result.violations) >= 1
     assert any("NONEXISTENT.md" in v for v in result.violations)
+
+
+def test_authoritative_paths_found_in_the_law_beside_the_clone(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ADR-132 D2: papers live beside the code-only clone. 2026-10-12 cutover:
+    every term's paper was looked up inside the clone and reported missing
+    (112 false findings)."""
+    from mind.logic.engines.artifact_gate import _check_authoritative_paths
+    from shared.config import Settings
+
+    md = _md(
+        [("Foo", "the foo concept", "not bar", ".specs/papers/CORE-Vocabulary.md")]
+    )
+    law = _build_repo(
+        tmp_path / "law", md, _vocab_json([_FOO_TERM], _hash_canonical(md))
+    )
+    clone = tmp_path / "repo"
+    clone.mkdir()
+    monkeypatch.setattr(
+        "shared.config.settings",
+        Settings(REPO_PATH=clone, MIND=law / ".intent", SPECS=law / ".specs"),
+    )
+    run = tmp_path / "run"
+    run.mkdir()
+    monkeypatch.chdir(run)
+
+    result = _check_authoritative_paths(clone, "vocabulary_authoritative_paths")
+    assert result.ok, result.violations
