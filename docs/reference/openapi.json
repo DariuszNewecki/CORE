@@ -3506,6 +3506,28 @@
         }
       }
     },
+    "/v1/thesis": {
+      "get": {
+        "tags": [
+          "Thesis"
+        ],
+        "summary": "Latest thesis measures",
+        "description": "The thesis sensor's latest daily report: unverified writes to main, AI authorship, waste trips per merged change and finding convergence, with the rules they broke. 404 before the first measurement.",
+        "operationId": "get_thesis_v1_thesis_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThesisResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -5732,6 +5754,86 @@
         ],
         "title": "SubmitChangeResponse",
         "description": "POST /v1/proposals/submit response (201): the pending proposal and the\nstep-0 report shown to the approver (ADR-168 Amendment 2026-10-10)."
+      },
+      "ThesisResponse": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "title": "Day"
+          },
+          "line": {
+            "type": "string",
+            "title": "Line"
+          },
+          "unverified_writes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unverified Writes"
+          },
+          "ai_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Share"
+          },
+          "waste_per_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waste Per Change"
+          },
+          "convergence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Convergence"
+          },
+          "breaches": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Breaches",
+            "default": []
+          },
+          "unavailable": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unavailable",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "line"
+        ],
+        "title": "ThesisResponse",
+        "description": "One day's thesis measures."
       },
       "ValidationError": {
         "properties": {

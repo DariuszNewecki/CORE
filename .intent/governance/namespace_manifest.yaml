@@ -263,6 +263,8 @@ classifications:
     governance_namespace: project::core
   - path: .intent/workers/repo_embedder.yaml
     governance_namespace: project::core
+  - path: .intent/workers/thesis_sensor.yaml
+    governance_namespace: project::core
   - path: .intent/workers/test_coverage_sensor.yaml
     governance_namespace: project::core
   - path: .intent/workers/test_remediator.yaml

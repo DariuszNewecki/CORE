@@ -61,4 +61,26 @@ def test_unreachable_sources_say_so(
     )
     assert result.exit_code == 0, result.output
     assert "no status file" in result.output
-    assert result.output.count("unavailable") == 3
+    assert result.output.count("unavailable") == 4  # PRs, proposals, lane, thesis
+
+
+def test_shows_the_thesis_line_and_what_broke(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _answers(
+        monkeypatch,
+        {
+            "/v1/thesis": {
+                "line": "thesis 2026-10-14: unverified writes 1",
+                "breaches": [{"measure": "unverified_writes", "message": "x"}],
+                "unavailable": [],
+            }
+        },
+    )
+    result = CliRunner().invoke(
+        app, ["status", "--status-file", str(tmp_path / "missing.json")]
+    )
+    assert result.exit_code == 0, result.output
+    flat = " ".join(result.output.split())
+    assert "thesis 2026-10-14" in flat
+    assert "BROKEN: unverified_writes" in flat.replace("│ ", "").replace(" │", "")
