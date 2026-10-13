@@ -42,13 +42,9 @@ nav:
               - core-admin: reference/core-admin.md
               - core: reference/core.md
               - API contract: reference/api.md
-              - Vocabulary: vocabulary.md
       - Explanation:
-              - How it works: how-it-works.md
-              - Autonomy ladder: autonomy-ladder.md
-              - Proof index: proof-index.md
+              - What CORE does: what-core-does.md
       - Project:
-              - Contributing: contributing.md
               - Release process: release.md
 
 markdown_extensions:

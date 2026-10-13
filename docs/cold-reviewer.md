@@ -31,8 +31,6 @@ Already have a `.intent/`? A ready-made rule pack needs no API: `pip install cor
 
 To run the full loop locally on CORE itself in one command, see [Getting Started](getting-started.md) (`./install-core.sh`).
 
-For verifying CORE's claims *about itself* (single gateway, no bypass, no untracked mutation), see the [Proof Index](proof-index.md) instead — that page assumes a running CORE.
-
 ---
 
 ## What you'll see
@@ -129,4 +127,4 @@ A successful CORE audit on your repo demonstrates three structural claims simult
 2. Findings, if any, name the rule that produced them — not a generic linter category.
 3. The exit code is deterministic from the result: severity threshold met → fail; a blocking rule not evaluated → degraded (never reported as pass); no findings and full blocking coverage → pass; internal failure → error. No silent passes.
 
-This is the same evaluation path the [Proof Index](proof-index.md) claims hold for; this page just lets you observe it without standing up the full runtime.
+This page lets you observe that evaluation path without standing up the full runtime.

@@ -116,9 +116,6 @@ KEEP: dict[str, str] = {
     ".specs/META/requirement.header.schema.json": (
         "header schema loaded by specs_doc_validator via an artifact type's schema_ref; law check-tree refuses without it"
     ),
-    ".specs/northstar/CORE - What It Does.md": (
-        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
-    ),
     ".specs/papers/CORE-Action.md": (
         "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
     ),

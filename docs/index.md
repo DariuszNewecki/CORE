@@ -16,12 +16,12 @@ CORE is a governance runtime. When an AI agent proposes a change, CORE:
 
 1. Validates it against constitutional rules before execution
 2. Blocks what a *blocking* rule forbids — the change halts before it is applied; reporting and advisory rules surface findings and let it continue
-3. Records decisions and the finding → proposal → approval → execution chain (recording is best-effort: a database failure does not stop execution — see the [Proof Index](proof-index.md))
+3. Records decisions and the finding → proposal → approval → execution chain (recording is best-effort: a database failure does not stop execution)
 4. Remediates automatically where rules permit; anything outside the narrow safe-auto-approval envelope waits for a human
 
 The aim: AI-assisted development that is auditable and governed. It is **not yet proven safe to leave unattended** — CORE's own [production-readiness verdict](https://github.com/DariuszNewecki/CORE/blob/main/.specs/attestations/production-readiness.yaml) is NOT ATTESTED, and unattended reliability (gate G4) is not demonstrated.
 
-The goal at A3 (Governed Autonomy) is that the governor's job shrinks to two things: check the dashboard (`core-admin runtime dashboard`), and write constitutional intent. That is the design target, not today's measured state — see the [Autonomy Ladder](autonomy-ladder.md).
+The goal is that the governor's job shrinks to two things: check the dashboard (`core-admin runtime dashboard`), and write constitutional intent. That is the design target, not today's measured state.
 
 ---
 
@@ -76,8 +76,5 @@ small client for a running CORE: proposals, the remediation lane, onboarding. Se
 
 ## Understand it
 
-- [**What It Does**](https://github.com/DariuszNewecki/CORE/blob/main/.specs/northstar/CORE%20-%20What%20It%20Does.md) — what CORE is for, in plain language
-- [How It Works](how-it-works.md) — the constitutional model and enforcement loop
-- [Autonomy Ladder](autonomy-ladder.md) — current capability level (A3, unproven unattended)
-- [Proof Index](proof-index.md) — each claim CORE makes, with its evidence and limits
-- [Vocabulary](vocabulary.md) — every term CORE uses, defined precisely
+- [**What CORE does**](what-core-does.md) — what CORE is for, in plain language
+- [Decisions](https://github.com/DariuszNewecki/CORE/blob/main/.specs/DECISIONS.md) — every accepted decision and what enforces it

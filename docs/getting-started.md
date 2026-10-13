@@ -304,13 +304,11 @@ poetry run core-admin workers remediate <rule>            # sensor → LLM propo
 poetry run core-admin workers remediate <rule> --write    # ... and apply + commit the fix
 ```
 
-This is governed generation under the same constitutional loop — the A2/A3
-capability on the [Autonomy Ladder](autonomy-ladder.md).
+This is governed generation under the same constitutional loop.
 
 ---
 
 ## Next Steps
 
-- [How It Works](how-it-works.md) — understand the constitutional model before making changes
+- [What CORE does](what-core-does.md) — what CORE is for, before making changes
 - [CLI Reference](cli-reference.md) — full command reference
-- [Contributing](contributing.md) — if you want to engage with the project
