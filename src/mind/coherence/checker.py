@@ -4,7 +4,7 @@
 CoherenceChecker — Mind-layer orchestrator for the Constitutional Coherence Checker.
 
 Governing paper: .specs/papers/CORE-Governance-Topology.md (the directional grid)
-Governing ADR:   .specs/decisions/ADR-073-ccc-scanner-redesign.md
+Governing ADR:   .specs/DECISIONS.md (ADR-073)
 Preserves:       ADR-067 D1 (storage), D2 (CLI), D4 (scheduling), D5 (dashboard).
 
 Per ADR-073 D3, the scanner dispatches to seven check classes covering the

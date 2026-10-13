@@ -1,7 +1,7 @@
 """Materializes the neutral external-target fixture as a real disposable
 Git repository (Unit C, Governor-authorized external-target safety
 package; Governor ruling 2026-09-06, recorded in
-.specs/decisions/ADR-159-autonomy-thesis-acceptance-boundary.md Notes).
+.specs/DECISIONS.md (ADR-159) Notes).
 
 Assembles a target-local ``.intent/`` from two layers, per the Governor's
 instruction, via the production builder

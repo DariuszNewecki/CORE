@@ -3,7 +3,7 @@
 """
 RepresentationCoherenceService — Body layer service for ADR-070 D6 verdict line.
 
-Governing ADR: .specs/decisions/ADR-070-source-projection-coherence.md
+Governing ADR: .specs/DECISIONS.md (ADR-070)
 
 Constitutional Compliance:
 - Body layer service: provides DB access without making decisions.

@@ -313,7 +313,7 @@ class ModularityChecker:
         "single coherent responsibility" is measured by
         _detect_responsibilities (content-based), the same signal
         check_refactor_score uses for its responsibility term. See
-        ADR-006 (.specs/decisions/ADR-006-align-needs-split-with-statement.md).
+        ADR-006 (.specs/DECISIONS.md (ADR-006)).
         """
         max_lines = int(params.get("max_lines", 400))
 

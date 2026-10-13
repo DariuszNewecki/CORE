@@ -40,7 +40,9 @@ DECISION_HISTORY = "decision_history"
 UNKNOWN = "unknown"
 
 _ADR_DIR = Path(".specs") / "decisions"
+_DECISIONS_FILE = Path(".specs") / "DECISIONS.md"
 _ADR_FILE = re.compile(r"^ADR-(\d+)[-.].*\.md$")
+_DECISIONS_ENTRY = re.compile(r"^## ADR-(\d+) — (.*)$", re.MULTILINE)
 _FRONTMATTER = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 _INTENT_GUARD = "IntentGuard"
 _FLOOR_VERDICT_POLICY = "enforcement/config/audit_verdict.yaml"
@@ -208,12 +210,13 @@ class LawFacts:
             return Answer(
                 question, UNKNOWN, {"adr": adr_id}, limits=("Not an ADR id.",)
             )
-        for path, meta in self._adr_files():
+        for path, meta, text in self._adr_records():
             if meta.get("number") == number:
                 return Answer(
                     question,
                     DECISION_HISTORY,
-                    meta | {"decisions": _decision_headings(path)},
+                    meta
+                    | {"decisions": _decision_headings(text) or _entry_decision(text)},
                     (Source(self._rel(path), meta.get("id")),),
                 )
         return Answer(
@@ -229,24 +232,28 @@ class LawFacts:
         begins with ``status`` (for example ``accepted``)."""
         question = "Which ADRs exist" + (f" with status {status}?" if status else "?")
         rows = []
-        for path, meta in self._adr_files():
+        records = self._adr_records()
+        for path, meta, _text in records:
             if status and not str(meta.get("status", "")).lower().startswith(
                 status.lower()
             ):
                 continue
             rows.append(meta | {"path": self._rel(path)})
-        if not self._adr_dir().is_dir():
+        if not records:
             return Answer(
                 question,
                 UNKNOWN,
                 {"adrs": []},
-                limits=("This repository has no .specs/decisions/ directory.",),
+                limits=(
+                    "This repository has no .specs/DECISIONS.md and no "
+                    ".specs/decisions/ directory.",
+                ),
             )
         return Answer(
             question,
             DECISION_HISTORY,
             {"adrs": rows, "count": len(rows)},
-            (Source(_ADR_DIR.as_posix()),),
+            self._decision_sources(),
         )
 
     # ID: 0d35ad3c-ceaa-497f-aaf1-8c4094a7f7a1
@@ -260,10 +267,7 @@ class LawFacts:
         visible as such.
         """
         question = "Which decisions mention these files?"
-        adrs = [
-            (meta, path.read_text(encoding="utf-8", errors="replace"))
-            for path, meta in self._adr_files()
-        ]
+        adrs = [(meta, text) for _path, meta, text in self._adr_records()]
         rows: dict[str, list[dict[str, Any]]] = {}
         for rel in paths:
             needles = _mention_needles(rel)
@@ -284,7 +288,7 @@ class LawFacts:
             question,
             DECISION_HISTORY,
             {"mentions": rows},
-            (Source(_ADR_DIR.as_posix()),),
+            self._decision_sources(),
             limits,
         )
 
@@ -353,6 +357,43 @@ class LawFacts:
     def _adr_dir(self) -> Path:
         return specs_root_for(self._root) / "decisions"
 
+    def _decision_sources(self) -> tuple[Source, ...]:
+        sources = []
+        if (self._root / _DECISIONS_FILE).is_file() or (
+            specs_root_for(self._root) / "DECISIONS.md"
+        ).is_file():
+            sources.append(Source(_DECISIONS_FILE.as_posix()))
+        if self._adr_dir().is_dir():
+            sources.append(Source(_ADR_DIR.as_posix()))
+        return tuple(sources)
+
+    def _adr_records(self) -> list[tuple[Path, dict[str, Any], str]]:
+        """Every ADR: one file per ADR under .specs/decisions/, then the
+        entries of .specs/DECISIONS.md (the collapsed record) for any number
+        no file covers. Each is (source path, identity, text)."""
+        records = [
+            (path, meta, path.read_text(encoding="utf-8", errors="replace"))
+            for path, meta in self._adr_files()
+        ]
+        seen = {meta["number"] for _path, meta, _text in records}
+        decisions = specs_root_for(self._root) / "DECISIONS.md"
+        if decisions.is_file():
+            text = decisions.read_text(encoding="utf-8", errors="replace")
+            heads = list(_DECISIONS_ENTRY.finditer(text))
+            for i, head in enumerate(heads):
+                number = int(head.group(1))
+                if number in seen:
+                    continue
+                end = heads[i + 1].start() if i + 1 < len(heads) else len(text)
+                meta = {
+                    "number": number,
+                    "id": f"ADR-{head.group(1)}",
+                    "title": head.group(2).strip(),
+                    "status": "accepted",
+                }
+                records.append((decisions, meta, text[head.start() : end]))
+        return sorted(records, key=lambda r: r[1]["number"])
+
     def _adr_files(self) -> list[tuple[Path, dict[str, Any]]]:
         base = self._adr_dir()
         if not base.is_dir():
@@ -407,14 +448,26 @@ def _adr_number(adr_id: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
-def _decision_headings(path: Path) -> list[str]:
+def _decision_headings(text: str) -> list[str]:
     """The ADR's decision headings (``### D1 — …``), in order."""
-    text = path.read_text(encoding="utf-8", errors="replace")
     return [
         line.lstrip("#").strip()
         for line in text.splitlines()
         if re.match(r"^#{2,3} D\d+", line)
     ]
+
+
+def _entry_decision(text: str) -> list[str]:
+    """A DECISIONS.md entry's decision text: the lines between its date line
+    and its "Enforced by" line, joined."""
+    body: list[str] = []
+    for line in text.splitlines()[1:]:
+        line = line.strip()
+        if line.startswith("Enforced by:"):
+            break
+        if line and " · was `" not in line:
+            body.append(line)
+    return [" ".join(body)] if body else []
 
 
 def _squash(value: Any) -> str | None:

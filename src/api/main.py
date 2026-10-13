@@ -62,10 +62,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-_ADR_087_URL = (
-    "https://github.com/DariuszNewecki/CORE/blob/main/.specs/decisions/"
-    "ADR-087-oem-api-versioning-and-stability-policy.md"
-)
+_ADR_087_URL = "https://github.com/DariuszNewecki/CORE/blob/main/.specs/DECISIONS.md"
 _OEM_API_PAPER_URL = (
     "https://github.com/DariuszNewecki/CORE/blob/main/.specs/papers/CORE-OEM-API.md"
 )

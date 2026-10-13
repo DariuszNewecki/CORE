@@ -3,7 +3,7 @@
 `core-admin coherence repair-counts` — recompute the denormalized
 ``unreviewed_count`` on every open coherence run from live candidate state.
 
-Governing ADR: .specs/decisions/ADR-067-constitutional-coherence-checker.md (D6).
+Governing ADR: .specs/DECISIONS.md (ADR-067) (D6).
 """
 
 from __future__ import annotations

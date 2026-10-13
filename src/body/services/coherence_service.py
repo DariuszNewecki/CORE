@@ -3,7 +3,7 @@
 """
 CoherenceService — Body layer service for Constitutional Coherence Checker storage.
 
-Governing ADR: .specs/decisions/ADR-067-constitutional-coherence-checker.md
+Governing ADR: .specs/DECISIONS.md (ADR-067)
 
 Constitutional Compliance:
 - Body layer service: provides DB access without making decisions.

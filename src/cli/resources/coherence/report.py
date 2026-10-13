@@ -2,7 +2,7 @@
 """
 `core-admin coherence report` — display a Constitutional Coherence Report.
 
-Governing ADR: .specs/decisions/ADR-067-constitutional-coherence-checker.md (D2).
+Governing ADR: .specs/DECISIONS.md (ADR-067) (D2).
 """
 
 from __future__ import annotations

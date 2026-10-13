@@ -297,6 +297,40 @@ async def test_deadline_closed_past_deadline_accepted_adr_is_not_escalated(
     assert findings[0].context["closure_adr_accepted"] is True
 
 
+async def test_closure_adr_listed_in_decisions_record_counts_as_accepted(
+    tmp_path: Path,
+) -> None:
+    """Phase 4: accepted ADRs collapse into .specs/DECISIONS.md; an entry there
+    is an accepted closure ADR even with no file under .specs/decisions/."""
+    _write_schema(tmp_path)
+    record = tmp_path / ".specs" / "DECISIONS.md"
+    record.parent.mkdir(parents=True, exist_ok=True)
+    record.write_text("# CORE decisions\n\n## ADR-904 — Fixture\n\nBody.\n")
+    forty_days_ago = (date.today() - timedelta(days=40)).isoformat()
+    _write_mapping(
+        tmp_path,
+        "architecture/example.yaml",
+        "mappings:\n"
+        "  architecture.example.rule:\n"
+        "    engine: ast_gate\n"
+        "    params: {}\n"
+        '    scope: {applies_to: ["src/**"]}\n'
+        "    governed_exclusions:\n"
+        "      - file: src/y.py\n"
+        "        closure_type: deadline\n"
+        "        rationale: temporary bypass pending refactor\n"
+        f'        deadline: "{forty_days_ago}"\n'
+        "        closure_adr: ADR-904\n"
+        '        tracking_issue: "#1"\n',
+    )
+
+    findings = await _engine(tmp_path).verify_context(
+        _fake_context(tmp_path), {"check_type": _EXEMPTION_DEBT_CHECK}
+    )
+    assert len(findings) == 1
+    assert findings[0].context["closure_adr_accepted"] is True
+
+
 async def test_unknown_check_type_in_verify_context_returns_block(
     tmp_path: Path,
 ) -> None:
