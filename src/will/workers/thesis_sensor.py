@@ -7,7 +7,8 @@ The thesis and its rules: .specs/DECISIONS.md, "Thesis and baselines
 
 Once per day (the sensor wakes hourly; a day already recorded is skipped):
 measure the four numbers, store them as the day's report
-(``thesis.measures::<date>``, with the governor's line), and raise one
+(``thesis.measures::<date>``, with the governor's line and every
+unverified write ever found, so none is lost to a window), and raise one
 blocking finding per broken measure (``thesis.broken::<measure>``), resolved
 on the first day the measure holds again. On Mondays: append the week that
 just ended to the GitHub branch ``evidence`` (append-only, never main).
@@ -29,10 +30,12 @@ from shared.thesis_rules import (
     EVIDENCE_SUBJECT,
     MEASURES,
     MEASURES_SUBJECT,
+    UNVERIFIED_KEY,
     Breach,
     ThesisMeasures,
     breaches,
     report_line,
+    stored_unverified,
     week_label,
 )
 from shared.workers.base import Worker
@@ -114,7 +117,9 @@ class ThesisSensor(Worker):
     async def _measure(self, today: date, records: list[dict[str, Any]]) -> dict:
         from body.services.thesis import runtime
 
-        taken = await runtime.measure_today(today, self._core_context.git_service)
+        taken = await runtime.measure_today(
+            today, self._core_context.git_service, stored_unverified(records)
+        )
         history = [ThesisMeasures.from_payload(r) for r in records]
         found = breaches(taken.measures, history)
         payload = {
@@ -123,6 +128,7 @@ class ThesisSensor(Worker):
             "breaches": [{"measure": b.measure, "message": b.message} for b in found],
             "unavailable": taken.unavailable,
             "detail": taken.detail,
+            UNVERIFIED_KEY: taken.unverified_breaches,
         }
         await self.post_report(subject=f"{MEASURES_SUBJECT}{today}", payload=payload)
         blackboard = await self._core_context.registry.get_blackboard_service()

@@ -252,6 +252,15 @@ class Settings(BaseSettings):
         Path("/home/core-claude/.claude/projects/-opt-dev-CORE"),
         validation_alias="CORE_CLAUDE_TRANSCRIPTS",
     )
+    # The governor's GitHub login, as the runner reads it: GOVERNOR_GITHUB in
+    # the runner's pipeline.conf (infra/core-pipeline). CORE_GOVERNOR_GITHUB
+    # overrides it where CORE cannot read that file.
+    CORE_PIPELINE_CONF: Path = Field(
+        Path("/etc/core/pipeline.conf"), validation_alias="CORE_PIPELINE_CONF"
+    )
+    CORE_GOVERNOR_GITHUB: str | None = Field(
+        None, validation_alias="CORE_GOVERNOR_GITHUB"
+    )
 
     REDIS_RATE_LIMIT_URL: str | None = Field(
         None, validation_alias="REDIS_RATE_LIMIT_URL"
