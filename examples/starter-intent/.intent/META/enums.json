@@ -216,7 +216,10 @@
         "prompt.extraction",
         "prompt.artifact",
         "prompt.rewrite.complete",
-        "prompt.rewrite.failed"
+        "prompt.rewrite.failed",
+        "thesis.measures",
+        "thesis.evidence",
+        "thesis.broken"
       ]
     },
     "action_impact": {

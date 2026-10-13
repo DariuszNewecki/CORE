@@ -240,6 +240,19 @@ class Settings(BaseSettings):
     # develop until the one-path flow moved merges to main (2026-10-12).
     CORE_UPSTREAM_BRANCH: str = Field("main", validation_alias="CORE_UPSTREAM_BRANCH")
 
+    # The thesis sensor (DECISIONS.md, "Thesis and baselines"): the GitHub
+    # repository it measures, a token (read the repository; write only the
+    # `evidence` branch's contents) and Claude Code's transcripts for this
+    # project. Without the token the GitHub measures read as unavailable.
+    CORE_GITHUB_REPO: str = Field(
+        "DariuszNewecki/CORE", validation_alias="CORE_GITHUB_REPO"
+    )
+    CORE_GITHUB_TOKEN: str | None = Field(None, validation_alias="CORE_GITHUB_TOKEN")
+    CORE_CLAUDE_TRANSCRIPTS: Path = Field(
+        Path("/home/core-claude/.claude/projects/-opt-dev-CORE"),
+        validation_alias="CORE_CLAUDE_TRANSCRIPTS",
+    )
+
     REDIS_RATE_LIMIT_URL: str | None = Field(
         None, validation_alias="REDIS_RATE_LIMIT_URL"
     )

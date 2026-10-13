@@ -378,6 +378,26 @@ class GitService:
             commits.append((sha.strip(), author.strip(), paths))
         return commits
 
+    # ID: 1c309e35-1982-4931-8de2-be044b34baf3
+    def authors_since(self, ref: str, since: str) -> list[tuple[str, str]]:
+        """Non-merge commits on *ref* since *since* (a date), as ``(author
+        name, Co-Authored-By values joined by ';')``. Git metadata, asserted
+        by whoever committed (the thesis sensor's authorship measure)."""
+        out = self._run_raw(
+            [
+                "log",
+                ref,
+                "--no-merges",
+                f"--since={since}",
+                "--format=%an%x09%(trailers:key=Co-Authored-By,valueonly,separator=;)",
+            ]
+        )
+        rows: list[tuple[str, str]] = []
+        for line in out.splitlines():
+            author, _, coauthors = line.partition("\t")
+            rows.append((author, coauthors))
+        return rows
+
     # ID: cc385744-2593-49a1-ba4c-833ca76a830d
     def fetch_branch(self, url: str, branch: str, into_ref: str) -> str:
         """Fetch ``branch`` from ``url`` into ``into_ref``; return its SHA.

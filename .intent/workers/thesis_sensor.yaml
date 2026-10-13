@@ -1,0 +1,41 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.thesis_sensor
+  title: Thesis Sensor
+  version: "1.0.0"
+  authority: policy
+  status: active
+  rationale: >
+    Governor ruling 2026-10-13 (.specs/DECISIONS.md, "Thesis and baselines").
+    The thesis is measured every day by CORE itself, a breach reaches the
+    governor the same day as a blocking finding, and each week's numbers are
+    kept on an append-only GitHub branch. Deterministic; no LLM dependency.
+
+identity:
+  uuid: "b74921a8-142a-40c6-b020-ccdf5cfac3df"
+  class: governance
+
+mandate:
+  responsibility: >
+    Once a day, measure unverified writes to main, AI authorship, waste trips
+    per merged change and finding convergence; store them as the day's report
+    (thesis.measures::<date>) with the governor's line; post one blocking
+    finding per measure that breaks its rule (thesis.broken::<measure>),
+    resolved when it holds again. On Mondays, append the week that ended to
+    the GitHub branch evidence (never main).
+  phase: audit
+  permitted_tools: []
+  approval_required: false
+  scope:
+    domains:
+      - governance
+      - compliance
+  schedule:
+    max_interval: 3600
+
+implementation:
+  module: will.workers.thesis_sensor
+  class: ThesisSensor
+  requires_core_context: true

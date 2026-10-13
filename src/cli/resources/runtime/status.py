@@ -5,8 +5,9 @@ waits on the governor (one-path flow, governor ruling 2026-10-12).
 
 Reads the post-merge runner's status file (written by core-pipeline as
 core-runner, world-readable), GitHub's open pull requests into main, and
-CORE's own API for what needs the governor. Read-only; any source that cannot
-be reached is shown as unavailable, never guessed.
+CORE's own API for what needs the governor and the day's thesis line.
+Read-only; any source that cannot be reached is shown as unavailable, never
+guessed.
 """
 
 from __future__ import annotations
@@ -45,6 +46,19 @@ def _short(sha: object) -> str:
     return str(sha)[:12] if sha else "-"
 
 
+def _thesis_line(thesis: Any) -> str:
+    """The governor's daily line, with any broken rule after it."""
+    if not isinstance(thesis, dict):
+        return "not measured yet, or unavailable"
+    line = str(thesis.get("line", ""))
+    broken = [b.get("measure") for b in thesis.get("breaches") or []]
+    if broken:
+        line += " — BROKEN: " + ", ".join(str(b) for b in broken)
+    if thesis.get("unavailable"):
+        line += f" ({len(thesis['unavailable'])} source(s) unreadable)"
+    return line
+
+
 @runtime_app.command("status")
 @async_command
 # ID: 3bfc24c0-725d-4389-8603-68920c3bce58
@@ -63,6 +77,7 @@ async def status_cmd(
         )
         proposals = await _get(client, f"{api}/v1/proposals?limit=500")
         lane = await _get(client, f"{api}/v1/lane?limit=10000")
+        thesis = await _get(client, f"{api}/v1/thesis")
 
     last = pipeline.get("last") or {}
     table = Table(title="CORE", show_header=False)
@@ -94,6 +109,8 @@ async def status_cmd(
         "findings waiting for you",
         str(lane.get("count", 0)) if isinstance(lane, dict) else "unavailable",
     )
+    table.add_section()
+    table.add_row("thesis", _thesis_line(thesis))
     console.print(table)
     if isinstance(prs, list):
         for pr in prs[:10]:

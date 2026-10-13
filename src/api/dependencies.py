@@ -190,3 +190,15 @@ def get_finding_resolver() -> FindingResolver:
 
 
 FindingResolverDep = Annotated[FindingResolver, Depends(get_finding_resolver)]
+
+
+# ID: e66b7e95-1d7b-46e9-b047-87623121ada0
+async def get_thesis_latest() -> dict[str, Any] | None:
+    """FastAPI dependency: the thesis sensor's latest daily report, or None."""
+    from body.services.thesis.record import daily_records
+
+    records = await daily_records()
+    return records[-1] if records else None
+
+
+ThesisLatestDep = Annotated[dict[str, Any] | None, Depends(get_thesis_latest)]

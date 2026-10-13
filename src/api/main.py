@@ -52,6 +52,7 @@ from api.v1 import (
     secrets_routes,
     symbols_routes,
     sync_routes,
+    thesis_routes,
     vectors_routes,
 )
 from body.infrastructure.lifespan import core_lifespan
@@ -203,6 +204,7 @@ def create_app(lifespan=None) -> FastAPI:
     v1.include_router(llm_resource_routes.router, tags=["LlmResources"])
     v1.include_router(integrity_routes.router, tags=["Integrity"])
     v1.include_router(daemon_routes.router, tags=["Daemon"])
+    v1.include_router(thesis_routes.router, tags=["Thesis"])
     app.include_router(v1)
     register_exception_handlers(app)
 
