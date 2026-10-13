@@ -37,7 +37,17 @@ poetry run core-admin law check-tree  # validate .intent/ and .specs/
 ## Working here
 
 - Ask before editing `.intent/` or `.specs/`.
-- Ask before pushing, running the full test suite, or anything touching the live DB or daemon.
+- Ask before running the full test suite, or anything touching the live DB or daemon.
 - Change tests together with the code they cover.
 - Stage files by name; don't commit other people's uncommitted work.
 - Temporary files go in `var/tmp/`.
+
+## Working rules
+
+- Fixes on a branch that touch only `src/`, `tests/` or `infra/` scripts: do them
+  and report afterwards. Never ask permission for these.
+- Everything the governor must act on goes in one list: at most once a day, at most 3 items.
+- Never push while CI is red.
+- A change reaches main only as a pull request that the governor merges.
+- Record decisions in the commit message, not in new documents.
+- Reports: outcome first, at most 5 lines, no narration.
