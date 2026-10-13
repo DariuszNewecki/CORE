@@ -224,6 +224,28 @@ def test_a_known_other_merger_is_logged_once(world) -> None:
     assert log.count("skipped") == 1
 
 
+def test_the_retry_never_deploys_a_head_no_governor_merged(world) -> None:
+    """main's 34a314ee was pushed with no pull request. The runner looks at a
+    skipped head again on every tick (so a merge read too early is not lost),
+    and that retry must never turn into a deploy for anything but a merge by
+    the governor."""
+    host, layout = world
+    host.http = lambda url, payload=None: (  # type: ignore[method-assign]
+        [] if url.endswith("/pulls") else FakeHost.http(host, url, payload)
+    )
+    for _ in range(5):
+        status = _tick(world)
+        assert status["last"]["result"] == "skipped"
+    assert _privileged(host) == []
+    host.merger = "core-claude-bot"
+    host.http = lambda url, payload=None: FakeHost.http(host, url, payload)  # type: ignore[method-assign]
+    for _ in range(3):
+        assert _tick(world)["last"]["result"] == "skipped"
+    assert _privileged(host) == []
+    log = (layout.logs / f"{SHA[:12]}.log").read_text()
+    assert log.count("skipped") == 2  # once per distinct reason, not per tick
+
+
 def test_a_pr_behind_main_waits_for_ci_on_the_merge_commit(world) -> None:
     """'Require branches up to date' is off (governor 2026-10-13): the merge
     then holds code no PR run tested, so the runner waits for CI's run on the
