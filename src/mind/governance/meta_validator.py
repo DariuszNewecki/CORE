@@ -257,7 +257,7 @@ class MetaValidator:
 
         try:
             validator_cls = validator_for(schema)
-            # referencing.Registry replaces the legacy jsonschema.RefResolver
+            # referencing.Registry replaces jsonschema.RefResolver (removed upstream)
             # store — same underlying schema index, retrieve callback wires
             # bare-filename and schema_id lookups.
             registry = self._build_registry()

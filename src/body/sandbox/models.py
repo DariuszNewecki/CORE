@@ -24,6 +24,8 @@ import re
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
+from shared.utils.dataclass_dict import DataclassDict
+
 
 JobKind = Literal["pytest"]
 Status = Literal["passed", "failed", "error", "timeout", "not_run"]
@@ -128,7 +130,7 @@ def validate_target(target: str) -> None:
 
 @dataclass
 # ID: 9becc29b-d8f6-4d09-beaf-1c183c53d723
-class SandboxResult:
+class SandboxResult(DataclassDict):
     """What a job did. ``status`` and ``completeness`` are separate facts."""
 
     status: str
@@ -154,10 +156,6 @@ class SandboxResult:
     def ok(self) -> bool:
         """True only for a full pass. ``partial`` and ``not_run`` are never ok."""
         return self.status == "passed" and self.completeness == "full"
-
-    # ID: 29cffb85-3a0a-4b90-9171-dced4eab874d
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
 
     @classmethod
     # ID: c5557f66-88e8-49fe-bd30-7824007816c9

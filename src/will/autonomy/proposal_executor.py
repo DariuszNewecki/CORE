@@ -105,15 +105,7 @@ class ProposalExecutor:
     ) -> dict[str, Any]:
         start_time = time.time()
 
-        # DEGRADED pre-check (ADR-023 D4): refuse to execute proposals while
-        # the vocabulary projection is broken. Caller (ProposalConsumerWorker)
-        # should treat this as blocked, not failed — re-queue when restored.
-        projection = load_vocabulary_projection()
-        if isinstance(projection, VocabularyProjectionError):
-            raise GovernanceInstrumentError(
-                instrument="vocabulary_projection",
-                reason=projection.reason,
-            )
+        _refuse_when_vocabulary_broken()
 
         async with service_registry.session() as session:
             repo = ProposalRepository(session)
@@ -125,12 +117,7 @@ class ProposalExecutor:
             if not proposal:
                 error = f"Proposal not found: {proposal_id}"
                 logger.error(error)
-                return {
-                    "ok": False,
-                    "lifecycle_status": "failed",
-                    "error": error,
-                    "duration_sec": time.time() - start_time,
-                }
+                return _failed(error, start_time)
 
             logger.info(
                 "Loaded proposal: %s (status=%s, actions=%d)",
@@ -148,14 +135,12 @@ class ProposalExecutor:
             if not runnable:
                 error = f"Proposal not approved (status={proposal.status.value})"
                 logger.error(error)
-                return {
-                    "ok": False,
-                    "lifecycle_status": "failed",
-                    "error": error,
-                    "proposal_id": proposal.proposal_id,
-                    "status": proposal.status.value,
-                    "duration_sec": time.time() - start_time,
-                }
+                return _failed(
+                    error,
+                    start_time,
+                    proposal_id=proposal.proposal_id,
+                    status=proposal.status.value,
+                )
 
             # ADR-101 D4: pre-claim scope-collision check (ADR-021 D5) is
             # retired. Content scope is enforced by construction in
@@ -174,16 +159,12 @@ class ProposalExecutor:
                     write=write,
                 )
                 if not claim_result.ok:
-                    return {
-                        "ok": False,
-                        "lifecycle_status": "failed",
-                        "error": (
-                            f"claim.proposal failed: "
-                            f"{claim_result.data.get('error', 'rowcount=0')}"
-                        ),
-                        "proposal_id": proposal.proposal_id,
-                        "duration_sec": time.time() - start_time,
-                    }
+                    return _failed(
+                        "claim.proposal failed: "
+                        f"{claim_result.data.get('error', 'rowcount=0')}",
+                        start_time,
+                        proposal_id=proposal.proposal_id,
+                    )
             else:
                 logger.info("DRY-RUN mode - not updating proposal status")
 
@@ -259,7 +240,7 @@ class ProposalExecutor:
                             )
                         )
                         try:
-                            cognitive_delegate = self._build_cognitive_delegate(
+                            cognitive_delegate = _build_cognitive_delegate(
                                 ref_id, scoped_context
                             )
                             flow_executor = FlowExecutor(
@@ -566,36 +547,59 @@ class ProposalExecutor:
                 "duration_sec": total_duration,
             }
 
-    def _build_cognitive_delegate(
-        self,
-        flow_id: str,
-        scoped_context: Any,
-    ) -> CognitiveFlowDelegate | None:
-        """
-        Return the appropriate CognitiveFlowDelegate for this flow, or None.
 
-        Routes by cognitive_capability declared in the flow manifest (ADR-140 D9).
-        generation_mode governs strategy inside the delegate, not which delegate
-        to construct.
-        """
-        from will.agents.test_gen_cognitive_delegate import TestGenCognitiveDelegate
+def _build_cognitive_delegate(
+    flow_id: str,
+    scoped_context: Any,
+) -> CognitiveFlowDelegate | None:
+    """
+    Return the appropriate CognitiveFlowDelegate for this flow, or None.
 
-        flow_def = flow_registry.get(flow_id)
-        if not flow_def:
-            return None
+    Routes by cognitive_capability declared in the flow manifest (ADR-140 D9).
+    generation_mode governs strategy inside the delegate, not which delegate
+    to construct.
+    """
+    from will.agents.test_gen_cognitive_delegate import TestGenCognitiveDelegate
 
-        has_cognitive = any(s.kind == StepKind.COGNITIVE for s in flow_def.steps)
-        if not has_cognitive:
-            return None
-
-        cap = flow_def.cognitive_capability
-        if cap == "test_generation":
-            return TestGenCognitiveDelegate(scoped_context)
-
-        logger.error(
-            "ProposalExecutor: no delegate registered for cognitive_capability=%r "
-            "in flow %r — cognitive steps will fail at runtime",
-            cap,
-            flow_id,
-        )
+    flow_def = flow_registry.get(flow_id)
+    if not flow_def:
         return None
+
+    has_cognitive = any(s.kind == StepKind.COGNITIVE for s in flow_def.steps)
+    if not has_cognitive:
+        return None
+
+    cap = flow_def.cognitive_capability
+    if cap == "test_generation":
+        return TestGenCognitiveDelegate(scoped_context)
+
+    logger.error(
+        "ProposalExecutor: no delegate registered for cognitive_capability=%r "
+        "in flow %r — cognitive steps will fail at runtime",
+        cap,
+        flow_id,
+    )
+    return None
+
+
+def _refuse_when_vocabulary_broken() -> None:
+    """DEGRADED pre-check (ADR-023 D4): refuse to execute proposals while the
+    vocabulary projection is broken. The caller (ProposalConsumerWorker)
+    treats this as blocked, not failed, and re-queues when it is restored."""
+    projection = load_vocabulary_projection()
+    if isinstance(projection, VocabularyProjectionError):
+        raise GovernanceInstrumentError(
+            instrument="vocabulary_projection",
+            reason=projection.reason,
+        )
+
+
+def _failed(error: str, start_time: float, **extra: Any) -> dict[str, Any]:
+    """The result of a run that stopped before any action ran."""
+    return {
+        "ok": False,
+        "lifecycle_status": "failed",
+        "error": error,
+        **extra,
+        "duration_sec": time.time() - start_time,
+    }

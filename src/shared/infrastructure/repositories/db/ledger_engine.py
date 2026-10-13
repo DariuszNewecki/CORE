@@ -66,7 +66,7 @@ LEDGER_LOCK_KEY = 0x434F52454D494752
 
 LEDGER_TABLE = "core._migrations"
 
-# Legacy shape only: every later column is a ledgered migration's business.
+# The original table shape only: every later column is a ledgered migration's business.
 _LEDGER_DDL = """
 create table if not exists core._migrations (
   id text primary key,
