@@ -99,6 +99,346 @@ _SUBJECT_REPEATED_FAILURE = "proposal.repeated_failure"
 _CFG = load_operational_config().workers.proposal_pipeline_shop
 
 
+async def _retire_stuck_proposal(worker, proposal_id: str, seconds_stuck: int) -> bool:
+    """
+    Terminate a stuck-executing proposal and revive its deferred findings.
+
+    Issues a status-guarded UPDATE (AND status = 'executing') so that a
+    concurrent ProposalConsumerWorker completion is a safe no-op — if the
+    proposal transitioned away from 'executing' between fetch_stuck_executing
+    and this call, rowcount=0 and revival is skipped.
+
+    Called every cycle the proposal appears in fetch_stuck_executing; retries
+    are harmless because the status guard makes the UPDATE idempotent. Once
+    termination succeeds the proposal leaves 'executing' and won't appear in
+    fetch_stuck_executing next cycle, causing the finding to worker-resolve.
+
+    Returns True if this call actually terminated the proposal (rowcount=1),
+    False for no-op or error (caller uses this for the cycle counter only).
+    """
+    from sqlalchemy import text
+
+    from body.services.service_registry import service_registry
+    from will.autonomy.proposal_consumer_revival import revive_and_report
+
+    reason = (
+        f"stuck_executing: terminated by ProposalPipelineShopManager "
+        f"after {seconds_stuck}s (sla={_CFG.stuck_executing_sla_sec}s)"
+    )
+
+    terminated = False
+    try:
+        async with service_registry.session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.autonomous_proposals
+                        SET status = 'failed',
+                            execution_completed_at = now(),
+                            failure_reason = :reason
+                        WHERE proposal_id = :proposal_id
+                          AND status = 'executing'
+                        """
+                    ),
+                    {"proposal_id": proposal_id, "reason": reason},
+                )
+                terminated = result.rowcount > 0
+    except Exception as term_err:
+        logger.error(
+            "ProposalPipelineShopManager: failed to terminate proposal %s: %s",
+            proposal_id,
+            term_err,
+        )
+        return False
+
+    if not terminated:
+        logger.debug(
+            "ProposalPipelineShopManager: proposal %s no longer executing "
+            "— skipping revival (already completed or failed)",
+            proposal_id,
+        )
+        return False
+
+    logger.warning(
+        "ProposalPipelineShopManager: terminated stuck-executing proposal %s after %ds",
+        proposal_id,
+        seconds_stuck,
+    )
+    await revive_and_report(worker, proposal_id, reason)
+    return True
+
+
+async def _roll_forward_finalizing(
+    worker: ProposalPipelineShopManager, row: dict[str, Any]
+) -> bool:
+    """
+    Roll a stuck-finalizing proposal FORWARD to completed (ADR-148 D4).
+
+    Re-drives the idempotent finalization steps the executor gates on:
+    1. If no consequence record exists, record a best-effort one from the
+       persisted proposal data (declared_production recomputed from
+       execution_results; the SHAs are unavailable to the reaper and are
+       omitted — the git commit already exists, and this record satisfies
+       the D1 "consequence chain recorded" obligation). Marked
+       consequence_source='reaper_reconstructed' (ADR-148 D7, #790) so
+       the row is honestly distinguishable from one captured at
+       execution time and surfaced to the governor rather than passing
+       silently as equivalent evidence. If a record already exists
+       (findings/complete failed but consequence succeeded), it is
+       left untouched.
+    2. Adjudicate the proposal's deferred findings: resolve them, or —
+       when the recorded consequence proves a no-op commit
+       (``nothing_to_commit``, ADR-104 D9 / #901) — revive them on the
+       capped remediation-attempt path exactly as the executor would
+       have, and post that record through this Worker.
+    3. mark_completed (finalizing -> completed), status-guarded.
+
+    Fail-soft: any step failing leaves the proposal finalizing and the
+    finding open; the next cycle retries. Returns True when this call
+    advanced the proposal to completed.
+    """
+    from body.services.service_registry import service_registry
+    from will.autonomy.proposal_consumer_revival import report_revival
+    from will.autonomy.proposal_execution_pipeline import (
+        compute_production_set,
+        consequence_finding_ids,
+        record_consequence,
+        resolve_deferred_findings,
+        revive_deferred_findings_for_noop,
+    )
+    from will.autonomy.proposal_state_manager import (
+        ProposalNotFoundError,
+        ProposalStateManager,
+    )
+
+    proposal_id = row["proposal_id"]
+    try:
+        if not row.get("has_consequence"):
+            declared = compute_production_set(row.get("execution_results") or {})
+            consequence_ok = await record_consequence(
+                proposal_id=proposal_id,
+                pre_sha=None,
+                post_sha=None,
+                changed_files=[],
+                # Same link the executor records: deferred findings plus
+                # evidence-only addressed findings (consequence_finding_ids).
+                finding_ids=consequence_finding_ids(
+                    {
+                        "finding_ids": row.get("finding_ids"),
+                        "addressed_finding_ids": row.get("addressed_finding_ids"),
+                    }
+                ),
+                policies=list(row.get("policies") or []),
+                declared_production=declared,
+                source="reaper_reconstructed",
+            )
+            if not consequence_ok:
+                return False
+
+        if row.get("nothing_to_commit"):
+            findings_ok, revival = await revive_deferred_findings_for_noop(proposal_id)
+            if not findings_ok:
+                return False
+            if revival:
+                await report_revival(
+                    worker,
+                    proposal_id,
+                    revival,
+                    report_subject_family="proposal.noop.revival",
+                )
+        elif not await resolve_deferred_findings(proposal_id):
+            return False
+
+        async with service_registry.session() as session:
+            try:
+                await ProposalStateManager(session).mark_completed(proposal_id)
+            except ProposalNotFoundError:
+                # Concurrently completed or no longer finalizing — safe no-op.
+                return False
+
+        logger.warning(
+            "ProposalPipelineShopManager: rolled forward stuck-finalizing "
+            "proposal %s to completed",
+            proposal_id,
+        )
+        return True
+    except Exception as roll_err:
+        logger.error(
+            "ProposalPipelineShopManager: failed to roll forward proposal %s: %s",
+            proposal_id,
+            roll_err,
+        )
+        return False
+
+
+async def _reconcile_stuck_deferred_terminal(
+    worker: ProposalPipelineShopManager, row: dict[str, Any]
+) -> bool:
+    """
+    Move findings stranded in ``deferred_to_proposal`` on a proposal that
+    has already ended to where the proposal's own terminating actor would
+    have put them (G4 P2 pre-condition; terminate-side twin of #764/#886).
+
+    Routing, by the proposal's terminal state — every destination is a
+    decision already made elsewhere; this method chooses none:
+
+    - ``failed``  → the execution-failure revival (`revive_and_report`,
+      lineage-aware, ADR-104 D9 cap; posts the cap observations and the
+      revival report through this Worker).
+    - ``rejected`` → the governor inbox: ``indeterminate`` + ``human``
+      (`revive_ceremony_findings_for_rejected_proposal`; assisted-lane
+      rows through their own predicate, same destination). Deliberately
+      NOT the live reject routing ``proposal_service.reject`` uses, which
+      sends autonomous-lineage findings back to ``awaiting_reaudit`` and
+      so to a fresh proposal: this branch runs with no human present,
+      weeks after a human said no, and cannot know why (nothing records
+      the reason) — re-proposing is the only outcome that can contradict
+      a decision already on record, delegating cannot. Same judgment as
+      ADR-104 D10 one loop over: ``indeterminate`` + ``human`` where the
+      daemon cannot know what should happen. A stranded rejection goes to
+      the human; that stays true whatever the live path later learns
+      about rejection reasons, because it turns on absent authority.
+    - ``completed``, real commit → resolve (`resolve_deferred_findings`).
+    - ``completed``, no-op (pre SHA == post SHA) → the ADR-104 D10
+      revival (`revive_deferred_findings_for_noop`) + its report.
+    - ``missing`` (no proposal row for the deferred id) → as ``failed``:
+      the revival predicates key on ``payload.proposal_id`` and do not
+      need the proposal row; the dangling id is named in the finding
+      this pass posts.
+
+    Fail-soft: any error leaves the findings where they are and the
+    next cycle retries. Returns True when a revival/resolution ran.
+    """
+    from body.services.service_registry import service_registry
+    from will.autonomy.proposal_consumer_revival import (
+        report_revival,
+        revive_and_report,
+    )
+    from will.autonomy.proposal_execution_pipeline import (
+        resolve_deferred_findings,
+        revive_deferred_findings_for_noop,
+    )
+    from will.autonomy.proposal_lineage import proposal_lineage
+
+    proposal_id = row.get("proposal_id")
+    status = row.get("proposal_status")
+    if not proposal_id:
+        logger.warning(
+            "ProposalPipelineShopManager: %d finding(s) deferred with no "
+            "proposal_id in payload — cannot route; left for the governor",
+            len(row.get("finding_ids") or []),
+        )
+        return False
+    try:
+        if status in ("failed", "missing"):
+            await revive_and_report(
+                worker,
+                proposal_id,
+                f"stuck_deferred_terminal: proposal {status}, revival never ran",
+            )
+            return True
+        if status == "rejected":
+            reason = (
+                "stuck_deferred_terminal: proposal rejected by the governor, "
+                "aftermath never ran — delegated back to the governor"
+            )
+            bb_service = await service_registry.get_blackboard_service()
+            lineage = proposal_lineage(row.get("constitutional_constraints") or None)
+            if lineage == "assisted_lane":
+                revival = (
+                    await bb_service.revive_delegated_findings_for_rejected_proposal(
+                        proposal_id=proposal_id, reason=reason
+                    )
+                )
+            else:
+                revival = (
+                    await bb_service.revive_ceremony_findings_for_rejected_proposal(
+                        proposal_id=proposal_id, reason=reason
+                    )
+                )
+            if revival:
+                await report_revival(
+                    worker,
+                    proposal_id,
+                    revival,
+                    report_subject_family="proposal.stuck_deferred_terminal.delegated",
+                )
+            return True
+        if status == "completed":
+            if row.get("nothing_to_commit"):
+                ok, revival = await revive_deferred_findings_for_noop(proposal_id)
+                if ok and revival:
+                    await report_revival(
+                        worker,
+                        proposal_id,
+                        revival,
+                        report_subject_family="proposal.noop.revival",
+                    )
+                return ok
+            return await resolve_deferred_findings(proposal_id)
+        logger.warning(
+            "ProposalPipelineShopManager: proposal %s in unexpected terminal "
+            "state %r — not reconciled",
+            proposal_id,
+            status,
+        )
+        return False
+    except Exception as rec_err:
+        logger.error(
+            "ProposalPipelineShopManager: failed to reconcile findings deferred "
+            "to %s proposal %s: %s",
+            status,
+            proposal_id,
+            rec_err,
+        )
+        return False
+
+
+async def _redrive_undeferred_findings(
+    worker: ProposalPipelineShopManager, row: dict[str, Any]
+) -> bool:
+    """
+    Re-attempt defer_entries_to_proposal for a proposal's undeferred
+    findings (#764 — creation-side outbox).
+
+    Idempotent: defer_entries_to_proposal's own status guard (WHERE
+    status IN ('open','claimed')) means findings a prior partial
+    attempt already deferred are left untouched — only the genuinely
+    stuck ones transition. Returns True if at least one finding was
+    deferred by this call.
+    """
+    from body.services.service_registry import service_registry
+
+    proposal_id = row["proposal_id"]
+    finding_ids = row.get("finding_ids") or []
+    if not finding_ids:
+        return False
+
+    try:
+        blackboard_svc = await service_registry.get_blackboard_service()
+        deferred_count = await blackboard_svc.defer_entries_to_proposal(
+            finding_ids, proposal_id
+        )
+    except Exception as defer_err:
+        logger.error(
+            "ProposalPipelineShopManager: failed to redrive undeferred "
+            "findings for proposal %s: %s",
+            proposal_id,
+            defer_err,
+        )
+        return False
+
+    if deferred_count:
+        logger.warning(
+            "ProposalPipelineShopManager: redrove %d undeferred finding(s) "
+            "for proposal %s",
+            deferred_count,
+            proposal_id,
+        )
+    return deferred_count > 0
+
+
 # ID: fc948532-8f3a-40d2-991e-a7156a22bb91
 class ProposalPipelineShopManager(ScheduledWorker):
     """
@@ -451,340 +791,12 @@ class ProposalPipelineShopManager(ScheduledWorker):
             reconciled_proposals,
         )
 
-    async def _retire_stuck_proposal(
-        self, proposal_id: str, seconds_stuck: int
-    ) -> bool:
-        """
-        Terminate a stuck-executing proposal and revive its deferred findings.
-
-        Issues a status-guarded UPDATE (AND status = 'executing') so that a
-        concurrent ProposalConsumerWorker completion is a safe no-op — if the
-        proposal transitioned away from 'executing' between fetch_stuck_executing
-        and this call, rowcount=0 and revival is skipped.
-
-        Called every cycle the proposal appears in fetch_stuck_executing; retries
-        are harmless because the status guard makes the UPDATE idempotent. Once
-        termination succeeds the proposal leaves 'executing' and won't appear in
-        fetch_stuck_executing next cycle, causing the finding to self-resolve.
-
-        Returns True if this call actually terminated the proposal (rowcount=1),
-        False for no-op or error (caller uses this for the cycle counter only).
-        """
-        from sqlalchemy import text
-
-        from body.services.service_registry import service_registry
-        from will.autonomy.proposal_consumer_revival import revive_and_report
-
-        reason = (
-            f"stuck_executing: terminated by ProposalPipelineShopManager "
-            f"after {seconds_stuck}s (sla={_CFG.stuck_executing_sla_sec}s)"
-        )
-
-        terminated = False
-        try:
-            async with service_registry.session() as session:
-                async with session.begin():
-                    result = await session.execute(
-                        text(
-                            """
-                            UPDATE core.autonomous_proposals
-                            SET status = 'failed',
-                                execution_completed_at = now(),
-                                failure_reason = :reason
-                            WHERE proposal_id = :proposal_id
-                              AND status = 'executing'
-                            """
-                        ),
-                        {"proposal_id": proposal_id, "reason": reason},
-                    )
-                    terminated = result.rowcount > 0
-        except Exception as term_err:
-            logger.error(
-                "ProposalPipelineShopManager: failed to terminate proposal %s: %s",
-                proposal_id,
-                term_err,
-            )
-            return False
-
-        if not terminated:
-            logger.debug(
-                "ProposalPipelineShopManager: proposal %s no longer executing "
-                "— skipping revival (already completed or failed)",
-                proposal_id,
-            )
-            return False
-
-        logger.warning(
-            "ProposalPipelineShopManager: terminated stuck-executing proposal %s "
-            "after %ds",
-            proposal_id,
-            seconds_stuck,
-        )
-        await revive_and_report(self, proposal_id, reason)
-        return True
-
-    async def _roll_forward_finalizing(self, row: dict[str, Any]) -> bool:
-        """
-        Roll a stuck-finalizing proposal FORWARD to completed (ADR-148 D4).
-
-        Re-drives the idempotent finalization steps the executor gates on:
-        1. If no consequence record exists, record a best-effort one from the
-           persisted proposal data (declared_production recomputed from
-           execution_results; the SHAs are unavailable to the reaper and are
-           omitted — the git commit already exists, and this record satisfies
-           the D1 "consequence chain recorded" obligation). Marked
-           consequence_source='reaper_reconstructed' (ADR-148 D7, #790) so
-           the row is honestly distinguishable from one captured at
-           execution time and surfaced to the governor rather than passing
-           silently as equivalent evidence. If a record already exists
-           (findings/complete failed but consequence succeeded), it is
-           left untouched.
-        2. Adjudicate the proposal's deferred findings: resolve them, or —
-           when the recorded consequence proves a no-op commit
-           (``nothing_to_commit``, ADR-104 D9 / #901) — revive them on the
-           capped remediation-attempt path exactly as the executor would
-           have, and post that record through this Worker.
-        3. mark_completed (finalizing -> completed), status-guarded.
-
-        Fail-soft: any step failing leaves the proposal finalizing and the
-        finding open; the next cycle retries. Returns True when this call
-        advanced the proposal to completed.
-        """
-        from body.services.service_registry import service_registry
-        from will.autonomy.proposal_consumer_revival import report_revival
-        from will.autonomy.proposal_execution_pipeline import (
-            compute_production_set,
-            consequence_finding_ids,
-            record_consequence,
-            resolve_deferred_findings,
-            revive_deferred_findings_for_noop,
-        )
-        from will.autonomy.proposal_state_manager import (
-            ProposalNotFoundError,
-            ProposalStateManager,
-        )
-
-        proposal_id = row["proposal_id"]
-        try:
-            if not row.get("has_consequence"):
-                declared = compute_production_set(row.get("execution_results") or {})
-                consequence_ok = await record_consequence(
-                    proposal_id=proposal_id,
-                    pre_sha=None,
-                    post_sha=None,
-                    changed_files=[],
-                    # Same link the executor records: deferred findings plus
-                    # evidence-only addressed findings (consequence_finding_ids).
-                    finding_ids=consequence_finding_ids(
-                        {
-                            "finding_ids": row.get("finding_ids"),
-                            "addressed_finding_ids": row.get("addressed_finding_ids"),
-                        }
-                    ),
-                    policies=list(row.get("policies") or []),
-                    declared_production=declared,
-                    source="reaper_reconstructed",
-                )
-                if not consequence_ok:
-                    return False
-
-            if row.get("nothing_to_commit"):
-                findings_ok, revival = await revive_deferred_findings_for_noop(
-                    proposal_id
-                )
-                if not findings_ok:
-                    return False
-                if revival:
-                    await report_revival(
-                        self,
-                        proposal_id,
-                        revival,
-                        report_subject_family="proposal.noop.revival",
-                    )
-            elif not await resolve_deferred_findings(proposal_id):
-                return False
-
-            async with service_registry.session() as session:
-                try:
-                    await ProposalStateManager(session).mark_completed(proposal_id)
-                except ProposalNotFoundError:
-                    # Concurrently completed or no longer finalizing — safe no-op.
-                    return False
-
-            logger.warning(
-                "ProposalPipelineShopManager: rolled forward stuck-finalizing "
-                "proposal %s to completed",
-                proposal_id,
-            )
-            return True
-        except Exception as roll_err:
-            logger.error(
-                "ProposalPipelineShopManager: failed to roll forward proposal %s: %s",
-                proposal_id,
-                roll_err,
-            )
-            return False
-
-    async def _reconcile_stuck_deferred_terminal(self, row: dict[str, Any]) -> bool:
-        """
-        Move findings stranded in ``deferred_to_proposal`` on a proposal that
-        has already ended to where the proposal's own terminating actor would
-        have put them (G4 P2 pre-condition; terminate-side twin of #764/#886).
-
-        Routing, by the proposal's terminal state — every destination is a
-        decision already made elsewhere; this method chooses none:
-
-        - ``failed``  → the execution-failure revival (`revive_and_report`,
-          lineage-aware, ADR-104 D9 cap; posts the cap observations and the
-          revival report through this Worker).
-        - ``rejected`` → the governor inbox: ``indeterminate`` + ``human``
-          (`revive_ceremony_findings_for_rejected_proposal`; assisted-lane
-          rows through their own predicate, same destination). Deliberately
-          NOT the live reject routing ``proposal_service.reject`` uses, which
-          sends autonomous-lineage findings back to ``awaiting_reaudit`` and
-          so to a fresh proposal: this branch runs with no human present,
-          weeks after a human said no, and cannot know why (nothing records
-          the reason) — re-proposing is the only outcome that can contradict
-          a decision already on record, delegating cannot. Same judgment as
-          ADR-104 D10 one loop over: ``indeterminate`` + ``human`` where the
-          daemon cannot know what should happen. A stranded rejection goes to
-          the human; that stays true whatever the live path later learns
-          about rejection reasons, because it turns on absent authority.
-        - ``completed``, real commit → resolve (`resolve_deferred_findings`).
-        - ``completed``, no-op (pre SHA == post SHA) → the ADR-104 D10
-          revival (`revive_deferred_findings_for_noop`) + its report.
-        - ``missing`` (no proposal row for the deferred id) → as ``failed``:
-          the revival predicates key on ``payload.proposal_id`` and do not
-          need the proposal row; the dangling id is named in the finding
-          this pass posts.
-
-        Fail-soft: any error leaves the findings where they are and the
-        next cycle retries. Returns True when a revival/resolution ran.
-        """
-        from body.services.service_registry import service_registry
-        from will.autonomy.proposal_consumer_revival import (
-            report_revival,
-            revive_and_report,
-        )
-        from will.autonomy.proposal_execution_pipeline import (
-            resolve_deferred_findings,
-            revive_deferred_findings_for_noop,
-        )
-        from will.autonomy.proposal_lineage import proposal_lineage
-
-        proposal_id = row.get("proposal_id")
-        status = row.get("proposal_status")
-        if not proposal_id:
-            logger.warning(
-                "ProposalPipelineShopManager: %d finding(s) deferred with no "
-                "proposal_id in payload — cannot route; left for the governor",
-                len(row.get("finding_ids") or []),
-            )
-            return False
-        try:
-            if status in ("failed", "missing"):
-                await revive_and_report(
-                    self,
-                    proposal_id,
-                    f"stuck_deferred_terminal: proposal {status}, revival never ran",
-                )
-                return True
-            if status == "rejected":
-                reason = (
-                    "stuck_deferred_terminal: proposal rejected by the governor, "
-                    "aftermath never ran — delegated back to the governor"
-                )
-                bb_service = await service_registry.get_blackboard_service()
-                lineage = proposal_lineage(
-                    row.get("constitutional_constraints") or None
-                )
-                if lineage == "assisted_lane":
-                    revival = await bb_service.revive_delegated_findings_for_rejected_proposal(
-                        proposal_id=proposal_id, reason=reason
-                    )
-                else:
-                    revival = (
-                        await bb_service.revive_ceremony_findings_for_rejected_proposal(
-                            proposal_id=proposal_id, reason=reason
-                        )
-                    )
-                if revival:
-                    await report_revival(
-                        self,
-                        proposal_id,
-                        revival,
-                        report_subject_family="proposal.stuck_deferred_terminal.delegated",
-                    )
-                return True
-            if status == "completed":
-                if row.get("nothing_to_commit"):
-                    ok, revival = await revive_deferred_findings_for_noop(proposal_id)
-                    if ok and revival:
-                        await report_revival(
-                            self,
-                            proposal_id,
-                            revival,
-                            report_subject_family="proposal.noop.revival",
-                        )
-                    return ok
-                return await resolve_deferred_findings(proposal_id)
-            logger.warning(
-                "ProposalPipelineShopManager: proposal %s in unexpected terminal "
-                "state %r — not reconciled",
-                proposal_id,
-                status,
-            )
-            return False
-        except Exception as rec_err:
-            logger.error(
-                "ProposalPipelineShopManager: failed to reconcile findings deferred "
-                "to %s proposal %s: %s",
-                status,
-                proposal_id,
-                rec_err,
-            )
-            return False
-
-    async def _redrive_undeferred_findings(self, row: dict[str, Any]) -> bool:
-        """
-        Re-attempt defer_entries_to_proposal for a proposal's undeferred
-        findings (#764 — creation-side outbox).
-
-        Idempotent: defer_entries_to_proposal's own status guard (WHERE
-        status IN ('open','claimed')) means findings a prior partial
-        attempt already deferred are left untouched — only the genuinely
-        stuck ones transition. Returns True if at least one finding was
-        deferred by this call.
-        """
-        from body.services.service_registry import service_registry
-
-        proposal_id = row["proposal_id"]
-        finding_ids = row.get("finding_ids") or []
-        if not finding_ids:
-            return False
-
-        try:
-            blackboard_svc = await service_registry.get_blackboard_service()
-            deferred_count = await blackboard_svc.defer_entries_to_proposal(
-                finding_ids, proposal_id
-            )
-        except Exception as defer_err:
-            logger.error(
-                "ProposalPipelineShopManager: failed to redrive undeferred "
-                "findings for proposal %s: %s",
-                proposal_id,
-                defer_err,
-            )
-            return False
-
-        if deferred_count:
-            logger.warning(
-                "ProposalPipelineShopManager: redrove %d undeferred finding(s) "
-                "for proposal %s",
-                deferred_count,
-                proposal_id,
-            )
-        return deferred_count > 0
+    # Repair steps live at module level; bound here so tests and callers
+    # keep using worker._name(...).
+    _retire_stuck_proposal = _retire_stuck_proposal
+    _roll_forward_finalizing = _roll_forward_finalizing
+    _reconcile_stuck_deferred_terminal = _reconcile_stuck_deferred_terminal
+    _redrive_undeferred_findings = _redrive_undeferred_findings
 
     async def _fetch_existing_findings(self, blackboard_svc: Any) -> dict[str, str]:
         """

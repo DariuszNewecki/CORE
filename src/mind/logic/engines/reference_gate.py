@@ -81,11 +81,7 @@ class ReferenceGateEngine(BaseEngine):
     engine_id = "reference_gate"
     evidence_class = EvidenceClass.PROVEN
 
-    @classmethod
-    # ID: 65edc072-dd91-4a6c-a503-370e70550576
-    def is_context_level_for(cls, check_type: str | None) -> bool:
-        """The single check is a cross-artifact sweep, not per-file."""
-        return check_type == _CHECK
+    _context_check_types = frozenset({_CHECK})
 
     def __init__(self, path_resolver: PathResolver) -> None:
         self._path_resolver = path_resolver

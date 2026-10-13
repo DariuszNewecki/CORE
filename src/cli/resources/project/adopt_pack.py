@@ -336,7 +336,9 @@ def _upsert_pack_in_tree(
 
     import yaml as _yaml
 
-    data = _yaml.safe_load(tree_yaml.read_text("utf-8")) or {}
+    from shared.processors.yaml_processor import strict_yaml_processor
+
+    data = strict_yaml_processor.load(tree_yaml) or {}
     packs: list[dict] = data.get("packs") or []
 
     # Remove existing entry for this pack_id (re-add below)
