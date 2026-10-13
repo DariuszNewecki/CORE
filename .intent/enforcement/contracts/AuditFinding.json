@@ -41,6 +41,10 @@
         "context": {
             "type": "object",
             "description": "Structured finding data. Single source of truth; the details property is a backward-compat alias. Populated from both context= and details= constructor kwargs."
+        },
+        "evidence_class": {
+            "type": "string",
+            "description": "How the verdict was established (ADR-113). Defaults to attested; the rule executor sets the producing engine's declared class for genuine verdicts."
         }
     }
 }

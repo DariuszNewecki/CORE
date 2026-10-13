@@ -38,6 +38,17 @@
         "source_path": {
             "type": "string",
             "description": "Path to the .intent/flows/*.yaml source file (Path | None). Runtime-only field; not JSON-serializable. Included in properties to suppress AST gate false positives."
+        },
+        "generation_mode": {
+            "type": "string",
+            "description": "Generation strategy for the flow (ADR-135 D5): single_shot (default) or iterative. Read by the cognitive delegate."
+        },
+        "cognitive_capability": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "Capability that selects the cognitive delegate for the flow (ADR-140 D9); null when the flow has no cognitive step."
         }
     }
 }

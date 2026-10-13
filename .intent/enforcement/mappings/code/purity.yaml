@@ -75,6 +75,7 @@
           - "clear_eval_cache"
           - "dispose_all_engines_for_current_loop_only"
           - "formatTime"
+          - "pytest_*"
         baseline: "enforcement/config/dead_code_baseline.yaml"
       scope:
         applies_to:
@@ -100,6 +101,8 @@
           - "src/body/evaluators/"                # discover_components
           - "src/will/strategists/"               # discover_components
           - "infra/scripts/render_ledger_seed.py" # test-DB reset (infra/scripts/reset_test_db.sh)
+          - "src/body/sandbox/server.py"          # systemd: python -m body.sandbox.server
+          - "src/body/sandbox/bootstrap.py"       # run inside the sandbox: python -m body.sandbox.bootstrap
         excludes:
           - "src/**/__init__.py"
           - "src/**/__main__.py"

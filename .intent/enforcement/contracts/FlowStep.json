@@ -36,6 +36,16 @@
         "consumes": {
             "type": "array",
             "description": "Parameter routing whitelist (tuple[str, ...] | None). Declared per ADR-033: only keys in consumes may be passed from the enclosing flow context to this step. None means no routing filter. Governs step parameter isolation."
+        },
+        "produces": {
+            "type": [
+                "array",
+                "null"
+            ],
+            "items": {
+                "type": "string"
+            },
+            "description": "Output keys this step places into the accumulated params for downstream steps; null when it declares none."
         }
     }
 }

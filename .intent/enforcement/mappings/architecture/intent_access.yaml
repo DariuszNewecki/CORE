@@ -8,10 +8,7 @@ mappings:
         - "src/**/*.py"
       excludes:
         - "src/mind/governance/meta_validator.py"
-        - "src/cli/commands/daemon.py"
-        - "src/mind/coherence/**/*.py"            # CCC checks + checker (ADR-067)
         - "src/mind/logic/engines/artifact_gate.py"   # F-41 registry walker
-        - "src/mind/logic/engines/runtime_gate.py"    # ADR-077 runtime access checker
         - "src/body/services/representation_coherence_service.py"  # coherence service body counterpart
         - "src/cli/logic/byor.py"                        # External repo delivery -- reads starter-intent template and work/staged/ external dirs, not CORE's governance namespace; writes via ActionExecutor
         - "src/mind/logic/engines/contracts_gate.py"     # Mind engine auditing .intent/enforcement/contracts/ coherence -- same exemption as artifact_gate.py and runtime_gate.py
