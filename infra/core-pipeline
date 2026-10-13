@@ -153,6 +153,22 @@ class Runner:
     # -- GitHub --------------------------------------------------------------
 
     def head(self) -> str:
+        """The branch head. Read with git ls-remote, which is not rate limited:
+        this runs every tick, and the unauthenticated API allows only 60 calls
+        an hour (2026-10-13: a day of merges ran out and stalled the deploy).
+        The API is the fallback when git cannot answer."""
+        done = self.host.run(
+            [
+                "git",
+                "ls-remote",
+                "--heads",
+                f"https://github.com/{self.repo}.git",
+                f"refs/heads/{self.branch}",
+            ]
+        )
+        words = done.stdout.decode(errors="replace").split()
+        if done.returncode == 0 and words and len(words[0]) == 40:
+            return words[0]
         data = self.host.http(f"{self.api}/repos/{self.repo}/branches/{self.branch}")
         assert isinstance(data, dict)
         return str(data["commit"]["sha"])
