@@ -96,3 +96,22 @@ async def test_is_commit_on_branch_false_for_orphan(tmp_path: Path) -> None:
     _run(["git", "reset", "--hard", "HEAD~1"], tmp_path)
 
     assert await GitService(tmp_path).is_commit_on_branch(orphan_sha) is False
+
+
+async def test_has_commit_tells_a_dangling_commit_from_an_absent_one(
+    tmp_path: Path,
+) -> None:
+    """A dangling commit is still in the store (a real orphan); a sha the
+    clone never fetched is not (no verdict possible)."""
+    _init_repo(tmp_path)
+    (tmp_path / "f.py").write_text("# v1\n")
+    _run(["git", "add", "-A"], tmp_path)
+    _run(["git", "commit", "-m", "initial"], tmp_path)
+    (tmp_path / "f.py").write_text("# v2\n")
+    _run(["git", "commit", "-am", "second"], tmp_path)
+    dangling = _run(["git", "rev-parse", "HEAD"], tmp_path)
+    _run(["git", "reset", "--hard", "HEAD~1"], tmp_path)
+
+    git = GitService(tmp_path)
+    assert await git.has_commit(dangling) is True
+    assert await git.has_commit("1" * 40) is False

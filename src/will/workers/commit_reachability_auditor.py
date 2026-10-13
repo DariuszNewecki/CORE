@@ -84,10 +84,19 @@ class CommitReachabilityAuditor(Worker):
         orphans = 0
         suppressed = 0
         no_commit = 0
+        not_in_store = 0
 
         for proposal_id, pre_sha, sha, proposal_status in rows:
             if pre_sha == sha:
                 no_commit += 1
+                continue
+            # A commit this clone has never held says nothing about
+            # reachability: under ADR-132 D2 the services run on their own
+            # clone, which lacks commits made elsewhere until it fetches
+            # them. Unreachable objects survive gc for two weeks and this
+            # runs hourly, so a real orphan is seen while still in store.
+            if not await git_service.has_commit(sha):
+                not_in_store += 1
                 continue
             checked += 1
             is_reachable = await git_service.is_commit_on_branch(sha)
@@ -134,13 +143,15 @@ class CommitReachabilityAuditor(Worker):
                 "orphans_detected": orphans,
                 "suppressed": suppressed,
                 "no_commit_skipped": no_commit,
+                "not_in_store_skipped": not_in_store,
             },
         )
         logger.info(
             "CommitReachabilityAuditor: checked=%d orphans=%d suppressed=%d "
-            "no_commit_skipped=%d",
+            "no_commit_skipped=%d not_in_store_skipped=%d",
             checked,
             orphans,
             suppressed,
             no_commit,
+            not_in_store,
         )
