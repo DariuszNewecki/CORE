@@ -49,6 +49,8 @@ class FakeHost(cp.Host):
         self.rc: dict[str, int] = {}
         self.calls: list[list[str]] = []
         self.issues: list[dict] = []
+        self.same_tree = True
+        self.ci_asked: list[str] = []
 
     def run(self, cmd):
         self.calls.append(list(cmd))
@@ -75,7 +77,11 @@ class FakeHost(cp.Host):
                 "merged_by": {"login": self.merger} if self.merger else None,
                 "head": {"sha": HEAD},
             }
+        if "/git/commits/" in url:
+            sha = url.rsplit("/", 1)[1]
+            return {"tree": {"sha": "t" if self.same_tree else f"t-{sha}"}}
         if "check-runs" in url:
+            self.ci_asked.append(url.split("/commits/")[1].split("/")[0])
             return {"check_runs": self.runs}
         raise AssertionError(url)
 
@@ -216,3 +222,23 @@ def test_a_known_other_merger_is_logged_once(world) -> None:
     assert _privileged(host) == []
     log = (layout.logs / f"{SHA[:12]}.log").read_text()
     assert log.count("skipped") == 1
+
+
+def test_a_pr_behind_main_waits_for_ci_on_the_merge_commit(world) -> None:
+    """'Require branches up to date' is off (governor 2026-10-13): the merge
+    then holds code no PR run tested, so the runner waits for CI's run on the
+    merge commit itself and deploys without --tested-as."""
+    host, _ = world
+    host.same_tree = False
+    status = _tick(world)
+    assert host.ci_asked == [SHA]
+    deploy = _privileged(host)[0]
+    assert "--tested-as" not in deploy
+    assert status["last"]["result"] == "live"
+
+
+def test_an_up_to_date_pr_is_covered_by_its_own_ci_run(world) -> None:
+    host, _ = world
+    _tick(world)
+    assert host.ci_asked == [HEAD]
+    assert _privileged(host)[0][-2:] == ["--tested-as", HEAD]

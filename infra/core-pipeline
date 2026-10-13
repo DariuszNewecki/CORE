@@ -10,8 +10,9 @@ GitHub. This runner, on a timer, as the account ``core-runner``:
  1. reads main's head from GitHub; nothing new -> it only refreshes status;
  2. acts only on a commit the governor's GitHub account merged
     (``GOVERNOR_GITHUB``); anything else is skipped and logged;
- 3. waits until every CI check run on it has completed; a red main is
-    reported once (a GitHub issue) and skipped;
+ 3. waits until every CI check run has completed: on the pull-request head
+    when the merge has its exact tree, else on the merge commit itself (CI
+    runs on pushes to main); a red result is reported once and skipped;
  4. runs ``sudo -n core-deploy <sha> --migrate --merged-by <login>``.
     core-deploy builds, applies the merged law through core-law (the merge is
     the approval), migrates only when something is pending, switches,
@@ -168,6 +169,10 @@ class Runner:
             return "red"
         return "green"
 
+    def tree(self, sha: str) -> str | None:
+        data = self.host.http(f"{self.api}/repos/{self.repo}/git/commits/{sha}")
+        return str(data["tree"]["sha"]) if isinstance(data, dict) else None
+
     def merge(self, sha: str) -> tuple[str | None, str | None]:
         """(merger login, tested head sha) of the pull request merged as *sha*."""
         pulls = self.host.http(f"{self.api}/repos/{self.repo}/commits/{sha}/pulls")
@@ -254,9 +259,13 @@ class Runner:
             self.save()
             self.write_status(state="idle")
             return
-        # CI runs on the pull request; core-deploy checks the merge has the
-        # tested head's exact tree (--tested-as).
-        ci = self.ci(tested)
+        # When the merge has the pull-request head's exact tree, CI's run on
+        # the PR covers it (core-deploy re-checks: --tested-as). Otherwise the
+        # PR was behind main, and CI's own run on the merge commit (CI runs on
+        # pushes to main) is the one that counts.
+        same_tree = self.tree(head) == self.tree(tested)
+        ci_sha = tested if same_tree else head
+        ci = self.ci(ci_sha)
         if ci == "pending":
             self.save()
             self.write_status(state="waiting for CI", waiting_on=head)
@@ -281,8 +290,7 @@ class Runner:
                 "--migrate",
                 "--merged-by",
                 merger,
-                "--tested-as",
-                tested,
+                *(["--tested-as", tested] if same_tree else []),
             ],
         )
         if rc == EX_DEPLOY_GOVERNOR:
