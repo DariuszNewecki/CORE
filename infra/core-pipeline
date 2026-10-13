@@ -2,14 +2,19 @@
 # infra/core-pipeline — installed as /usr/local/sbin/core-pipeline (root:root 0755); run by
 # core-pipeline.timer as core-runner (one-path flow, governor ruling 2026-10-12).
 """
-core-pipeline — after the governor merges into main, make it live.
+core-pipeline — after the governor's change lands on main, make it live.
 
-The governor's one action for a change is merging a pull request into main on
-GitHub. This runner, on a timer, as the account ``core-runner``:
+The governor's one action for a change is approving a pull request's last
+commit, or merging it, on GitHub. This runner, on a timer, as the account
+``core-runner``:
 
  1. reads main's head from GitHub; nothing new -> it only refreshes status;
- 2. acts only on a commit the governor's GitHub account merged
-    (``GOVERNOR_GITHUB``); anything else is skipped and logged;
+ 2. acts only on a commit the governor's GitHub account (``GOVERNOR_GITHUB``)
+    merged, or whose pull request someone else merged (auto-merge) after the
+    governor's account approved its exact last commit (governor ruling
+    2026-10-13: the approval is the decision; a new commit dismisses it).
+    An approval by any other account never counts. Anything else is skipped
+    and logged;
  3. waits until every CI check run has completed: on the pull-request head
     when the merge has its exact tree, else on the merge commit itself (CI
     runs on pushes to main); a red result is reported once and skipped;
@@ -205,8 +210,30 @@ class Runner:
             if not isinstance(detail, dict) or not detail.get("merged_by"):
                 return None, None
             head = (detail.get("head") or {}).get("sha")
-            return str(detail["merged_by"]["login"]), str(head) if head else None
+            merger = str(detail["merged_by"]["login"])
+            if merger != self.governor and head and self.approved(pull["number"], head):
+                self.log(
+                    sha, f"merged by {merger} on {self.governor}'s approval of {head}"
+                )
+                merger = self.governor
+            return merger, str(head) if head else None
         return None, None
+
+    def approved(self, number: int, head: str) -> bool:
+        """True when the governor's account approved *head*, the pull
+        request's exact last commit, and did not ask for changes after."""
+        reviews = self.host.http(
+            f"{self.api}/repos/{self.repo}/pulls/{number}/reviews?per_page=100"
+        )
+        if not isinstance(reviews, list):
+            return False
+        verdict = None
+        for review in reviews:  # chronological
+            if (review.get("user") or {}).get("login") != self.governor:
+                continue
+            if review.get("state") in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED"):
+                verdict = (review.get("state"), review.get("commit_id"))
+        return verdict == ("APPROVED", head)
 
     def issue(self, title: str, body: str) -> str | None:
         if not self.host.token:
