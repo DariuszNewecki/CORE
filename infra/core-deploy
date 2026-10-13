@@ -53,7 +53,13 @@ Order (ADR-132 D10 · D2):
  7. switch ``current``, restart every unit, require all active and every
     worker that was alive before to heartbeat again; without a migration a
     failure switches back;
- 8. append a ledger line.
+ 8. self-update: the installed core-deploy, core-pipeline and
+    core-sandbox-check become the deployed commit's ``infra/`` copies;
+ 9. append a ledger line.
+
+A merge that changes the host setup (``infra/systemd/``, the setup scripts:
+sudoers, accounts, units) is refused before anything is built, with the exact
+commands for the governor (``--host-setup-applied`` after applying it).
 
 ``--rollback`` returns to the release the current one replaced, refusing
 when a migration lies between them (a symlink does not roll back a database).
@@ -93,6 +99,16 @@ SERVICE_USER = "core"
 BUILD_USER = "core-build"
 SAFE_GIT = ("-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false")
 LAW_USER = "core-law"
+# Host scripts core-deploy keeps equal to the deployed commit (self-update).
+HOST_SCRIPTS = ("core-deploy", "core-pipeline", "core-sandbox-check")
+# Host setup: sudoers, accounts and units. A merge that changes these is not
+# deployed automatically; the governor applies the setup, then deploys.
+HOST_SETUP_PATHS = (
+    "infra/systemd",
+    "infra/core-runtime-setup",
+    "infra/core-law-setup",
+    "infra/core-one-path-setup",
+)
 DEV_REPO = Path("/opt/dev/CORE")
 # Governed text (CLAUDE.md "Governed text"); custody is written by law apply
 # itself and is never carried by a merge.
@@ -122,6 +138,7 @@ class GovernorDecision(Exception):
 @dataclass(frozen=True)
 class Layout:
     root: Path = Path("/opt/core")
+    sbin: Path = Path("/usr/local/sbin")
 
     @property
     def repo(self) -> Path:
@@ -169,6 +186,7 @@ class Options:
     migrate: bool = False
     merged_by: str | None = None
     tested_as: str | None = None
+    host_setup_applied: bool = False
     dev_repo: Path = DEV_REPO
     readiness_port: int = 8765
     api_base: str = "http://127.0.0.1:8000"
@@ -884,6 +902,58 @@ class Deployer:
         )
         return True
 
+    # -- host scripts and host setup -------------------------------------------
+
+    def refuse_host_setup_changes(self, previous: str | None, sha: str) -> None:
+        """Refuse a merge that changes sudoers, accounts or units (the
+        governor's to apply), unless --host-setup-applied says it is done."""
+        if previous is None or self.options.host_setup_applied:
+            return
+        changed = [
+            line
+            for line in self.git(
+                "diff", "--name-only", previous, sha, "--", *HOST_SETUP_PATHS
+            )
+            .decode()
+            .splitlines()
+            if line
+        ]
+        if changed:
+            raise Refused(
+                "this merge changes the host setup (sudoers, accounts or units): "
+                + ", ".join(changed)
+                + ". Nothing was deployed. Apply it yourself: "
+                f"sudo bash infra/core-one-path-setup --ref {sha} (or the setup "
+                f"script named above), then: sudo core-deploy {sha} "
+                "--migrate --host-setup-applied"
+            )
+
+    def update_host_scripts(self, sha: str) -> list[str]:
+        """Make the installed host scripts equal to the deployed commit's.
+
+        Runs after a verified switch. A failure here never undoes the deploy;
+        it is reported and the old script stays.
+        """
+        updated: list[str] = []
+        for name in HOST_SCRIPTS:
+            try:
+                data = self.git("show", f"{sha}:infra/{name}")
+            except Refused as exc:
+                self.say(f"host script {name} not updated: {exc}")
+                continue
+            target = self.layout.sbin / name
+            if target.is_file() and target.read_bytes() == data:
+                continue
+            staged = target.with_name(f".{name}.new")
+            staged.write_bytes(data)
+            os.chmod(staged, 0o755)
+            self.host.chown(staged, "root")
+            os.replace(staged, target)
+            updated.append(name)
+        if updated:
+            self.say(f"host scripts updated from {sha[:12]}: {', '.join(updated)}")
+        return updated
+
     # -- entry points ---------------------------------------------------------
 
     def deploy(self, ref: str) -> int:
@@ -899,6 +969,7 @@ class Deployer:
                 f"release {sha[:12]} already exists; use --rollback or a new commit"
             )
         previous = self.current_sha()
+        self.refuse_host_setup_changes(previous, sha)
         units = self.units()
         expect = self.alive_workers()
 
@@ -941,11 +1012,13 @@ class Deployer:
                 raise Refused(f"{failure}; switched back to {previous[:12]}")
             raise Refused(f"{failure}; no previous release to switch back to")
 
+        scripts = self.update_host_scripts(sha)
         self.ledger(
             {
                 "action": "deploy",
                 "sha": sha,
                 "ref": ref,
+                "host_scripts_updated": scripts,
                 "wheel_sha256": wheel_sha,
                 "previous": previous,
                 "migrations_applied": migrated,
@@ -1024,11 +1097,19 @@ def main(argv: list[str] | None = None, host: Host | None = None) -> int:
         help="who merged the commit on GitHub (the post-merge runner passes it)",
     )
     parser.add_argument(
+        "--host-setup-applied",
+        action="store_true",
+        help="the governor applied this commit's host setup; deploy it anyway",
+    )
+    parser.add_argument(
         "--tested-as",
         help="the pull-request head CI tested; the commit's tree must equal it",
     )
     parser.add_argument(
         "--root", type=Path, default=Path("/opt/core"), help=argparse.SUPPRESS
+    )
+    parser.add_argument(
+        "--sbin", type=Path, default=Path("/usr/local/sbin"), help=argparse.SUPPRESS
     )
     args = parser.parse_args(argv)
     if bool(args.ref) == bool(args.rollback):
@@ -1037,12 +1118,15 @@ def main(argv: list[str] | None = None, host: Host | None = None) -> int:
         print("core-deploy: must run as root (sudo core-deploy ...)", file=sys.stderr)
         return EX_REFUSED
 
-    layout = Layout(args.root)
+    layout = Layout(args.root, args.sbin)
     deployer = Deployer(
         host or Host(),
         layout,
         Options(
-            migrate=args.migrate, merged_by=args.merged_by, tested_as=args.tested_as
+            migrate=args.migrate,
+            merged_by=args.merged_by,
+            tested_as=args.tested_as,
+            host_setup_applied=args.host_setup_applied,
         ),
     )
     layout.root.mkdir(parents=True, exist_ok=True)

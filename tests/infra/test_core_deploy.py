@@ -130,6 +130,7 @@ class FakeHost(cd.Host):
         self.beats_after_switch = True
         self.clock = T0
         self.same_tree = True
+        self.setup_diff = b""
         self.law_diff = b""  # git diff --name-status -z output for governed text
         self.law_rc = 0
         self.law_runs: list[dict] = []
@@ -150,8 +151,12 @@ class FakeHost(cd.Host):
                 out = SHA.encode() + b"\n"
             elif "archive" in cmd:
                 out = _archive(SOURCE)
+            elif "diff" in cmd and "--name-only" in cmd:
+                out = self.setup_diff
             elif "diff" in cmd:
                 out = self.law_diff
+            elif "show" in cmd and cmd[-1].split(":", 1)[-1].startswith("infra/core-"):
+                out = b"#!/bin/sh\n# " + cmd[-1].encode() + b"\n"
             elif "show" in cmd and cmd[-1].split(":", 1)[-1].startswith(
                 (".intent", ".specs")
             ):
@@ -280,7 +285,9 @@ def _with_previous(root: Path) -> None:
 
 
 def _deploy(root: Path, host: FakeHost, *extra: str) -> int:
-    return cd.main([SHA, "--root", str(root), *extra], host=host)
+    sbin = root / "sbin"
+    sbin.mkdir(exist_ok=True)
+    return cd.main([SHA, "--root", str(root), "--sbin", str(sbin), *extra], host=host)
 
 
 def _current(root: Path) -> str | None:
@@ -683,3 +690,57 @@ def test_tested_as_with_a_different_tree_is_refused(root: Path) -> None:
     host.same_tree = False
     assert _deploy(root, host, "--tested-as", TESTED) == 1
     assert not (root / "releases" / SHA).exists()
+
+
+# -- self-update and host setup (one-path flow) -----------------------------
+
+
+def _mode(path: Path) -> int:
+    return path.stat().st_mode & 0o777
+
+
+def test_a_deploy_updates_the_host_scripts_from_the_deployed_commit(
+    root: Path,
+) -> None:
+    _with_previous(root)
+    (root / "sbin").mkdir()
+    (root / "sbin" / "core-pipeline").write_bytes(
+        f"#!/bin/sh\n# {SHA}:infra/core-pipeline\n".encode()
+    )
+    host = FakeHost(root)
+    assert _deploy(root, host) == 0
+    for name in ("core-deploy", "core-sandbox-check"):
+        target = root / "sbin" / name
+        assert target.read_bytes() == f"#!/bin/sh\n# {SHA}:infra/{name}\n".encode()
+        assert _mode(target) == 0o755
+    entry = json.loads((root / "deploy-ledger.jsonl").read_text().splitlines()[-1])
+    assert entry["host_scripts_updated"] == ["core-deploy", "core-sandbox-check"]
+
+
+def test_a_switched_back_deploy_updates_no_host_script(root: Path) -> None:
+    _with_previous(root)
+    host = FakeHost(root)
+    host.inactive = {"core-api.service"}
+    assert _deploy(root, host) == 1
+    assert not list((root / "sbin").iterdir())
+
+
+def test_a_merge_changing_host_setup_is_refused_with_the_commands(
+    root: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _with_previous(root)
+    host = FakeHost(root)
+    host.setup_diff = b"infra/systemd/d2/core-api.service\n"
+    assert _deploy(root, host) == 1
+    err = capsys.readouterr().err
+    assert "host setup" in err and "infra/systemd/d2/core-api.service" in err
+    assert f"sudo core-deploy {SHA} --migrate --host-setup-applied" in err
+    assert not (root / "releases" / SHA).exists()
+    assert _current(root) == OLD
+
+
+def test_host_setup_applied_lets_it_deploy(root: Path) -> None:
+    _with_previous(root)
+    host = FakeHost(root)
+    host.setup_diff = b"infra/systemd/d2/core-api.service\n"
+    assert _deploy(root, host, "--host-setup-applied") == 0
