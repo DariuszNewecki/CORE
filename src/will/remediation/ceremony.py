@@ -575,7 +575,7 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
 
         # The atomic submission already transitioned every finding
         # claimed -> deferred_to_proposal in SQL — no mark_findings call
-        # here would be correct (the legacy 'abandoned'/'resolved' terminal
+        # here would be correct (the older 'abandoned'/'resolved' terminal
         # statuses do not apply to a deferred finding).
         await self._blackboard.post_report(
             subject=f"{_DRAFT_SUBJECT}::{file_path}",

@@ -27,13 +27,14 @@ Read-only: runs git through GitService, writes nothing.
 from __future__ import annotations
 
 import hashlib
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 from shared.infrastructure.git_service import GitService
 from shared.logger import getLogger
 from shared.models.audit_models import AuditFinding, AuditSeverity
+from shared.utils.dataclass_dict import DataclassDict
 
 
 logger = getLogger(__name__)
@@ -48,7 +49,7 @@ LAW_DRIFT_CHECK_ID = "governance.law_drift"
 
 @dataclass(frozen=True)
 # ID: 054f82aa-e96d-4ba6-8c16-bd84ed8e0d5f
-class LawState:
+class LawState(DataclassDict):
     """The evaluated law, the law of record, and their relationship."""
 
     relationship: LawRelationship
@@ -57,11 +58,6 @@ class LawState:
     evaluated_digest: str | None = None
     drift_paths: list[str] = field(default_factory=list)
     reason: str | None = None
-
-    # ID: d16209ba-c642-4746-b2f0-02f087c551d7
-    def to_dict(self) -> dict[str, Any]:
-        """JSON-ready form, for audit results and the state ledger."""
-        return asdict(self)
 
 
 # ID: 23a4f3fe-2a5d-4c1a-99f7-644bd06e38ad

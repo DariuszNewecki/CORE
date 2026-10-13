@@ -88,11 +88,7 @@ class ExclusionGateEngine(BaseEngine):
     engine_id = "exclusion_gate"
     evidence_class = EvidenceClass.PROVEN
 
-    @classmethod
-    # ID: ee99cc3f-b3fc-4a15-999c-3681843427d8
-    def is_context_level_for(cls, check_type: str | None) -> bool:
-        """The single check sweeps every mapping, not one file."""
-        return check_type == _CHECK
+    _context_check_types = frozenset({_CHECK})
 
     # ID: fa7e10ec-f50a-4fb3-94b6-5ad3e804c08f
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:

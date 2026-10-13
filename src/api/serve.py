@@ -74,6 +74,7 @@ class PeerCredH11Protocol(H11Protocol):
 
     # ID: 964d2ddf-9787-443b-bca2-efb6bff9e1fe
     def connection_made(self, transport: asyncio.Transport) -> None:  # type: ignore[override]
+        """Read the peer's kernel credentials once and hand them to the app."""
         peer_cred = read_peer_cred(transport.get_extra_info("socket"))
         self.app = _WithPeerCred(self.app, peer_cred)
         super().connection_made(transport)
