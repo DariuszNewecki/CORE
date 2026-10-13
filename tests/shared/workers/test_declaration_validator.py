@@ -187,12 +187,10 @@ def test_daemon_launch_with_schedule_and_dedicated_still_accepted() -> None:
 def test_frozen_adr159_trial0_overlay_declaration_still_validates() -> None:
     """The hash-pinned Trial 0 overlay copy declares no launch key and must
     keep validating unchanged (absent means daemon)."""
-    repo = get_intent_repository()
     path = (
-        repo.resolve_rel("workers").parents[1]
-        / ".specs"
-        / "planning"
-        / "adr-159-trial0-apparatus"
+        Path(__file__).resolve().parents[2]
+        / "fixtures"
+        / "adr159_trial0"
         / "intent_overlay"
         / "workers"
         / "goal_execution_worker.yaml"

@@ -11,7 +11,7 @@ for end-to-end proof through both autonomous proposal creators).
 
 This file is also the G2 fixture-pair source for the blocking rule
 autonomy.proposals.safe_auto_approval_envelope
-(.specs/verification/g2_blocking_rule_registry.yaml).
+(tests/mind/governance/g2_blocking_rule_registry.yaml).
 """
 
 from __future__ import annotations

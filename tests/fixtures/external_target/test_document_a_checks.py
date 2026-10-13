@@ -85,9 +85,7 @@ from will.orchestration.goal_run_records import (
 )
 
 
-TRIAL0_OVERLAY = (
-    REPO_ROOT / ".specs" / "planning" / "adr-159-trial0-apparatus" / "intent_overlay"
-)
+TRIAL0_OVERLAY = REPO_ROOT / "tests" / "fixtures" / "adr159_trial0" / "intent_overlay"
 CONTAINMENT_RULE_FILE = "rules/architecture/execution_write_containment.json"
 ENVELOPE_FILE = "enforcement/config/safe_auto_approval_envelope.yaml"
 ENVELOPE_RULE_FILE = "rules/will/safe_auto_approval_envelope.json"
