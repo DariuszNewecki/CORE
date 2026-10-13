@@ -26,7 +26,7 @@ import typer
 from rich.console import Console
 
 from body.governance.law_custody.checks import CheckRunError, run_data_checks
-from body.governance.law_custody.ledger import LEDGER_REL, LedgerSignError
+from body.governance.law_custody.ledger import LedgerSignError, ledger_file
 from body.governance.law_custody.proposal import ProposalError
 from body.governance.law_custody.service import (
     AUTO_APPROVER,
@@ -254,7 +254,7 @@ async def law_apply(
 
 
 def _applied_ids(repo_root: Path) -> set[str]:
-    ledger = repo_root / LEDGER_REL
+    ledger = ledger_file(repo_root)
     if not ledger.is_file():
         return set()
     ids: set[str] = set()
@@ -377,7 +377,7 @@ async def law_digest(
     from datetime import UTC, datetime, timedelta
 
     repo_root = (repo or get_repo_root(Path.cwd())).resolve()
-    ledger = repo_root / LEDGER_REL
+    ledger = ledger_file(repo_root)
     since = datetime.now(UTC) - timedelta(hours=hours)
     rows = []
     if ledger.is_file():
