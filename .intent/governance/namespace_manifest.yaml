@@ -323,21 +323,10 @@ classifications:
   # ---------------------------------------------------------------------
   # .specs/META/** -- handoff schema.
   # ---------------------------------------------------------------------
-  - path: .specs/META/handoff.schema.json
-    governance_namespace: framework
-    notes: >
-      Handoff schema concept is framework. Governor confirm -- if CORE
-      handoffs include CORE-specific fields, this may belong under
-      project::core.
 
   # ---------------------------------------------------------------------
   # .specs/CORE-CHARTER.md -- founding charter of CORE-the-framework.
   # ---------------------------------------------------------------------
-  - path: .specs/CORE-CHARTER.md
-    governance_namespace: framework
-    notes: >
-      Names CORE but declares the framework's founding principles.
-      Governor confirm.
 
   # ---------------------------------------------------------------------
   # .specs/northstar/** -- framework vision.
@@ -350,12 +339,8 @@ classifications:
       Could plausibly be project::core (URS for CORE-the-product) or
       framework (framework's user-facing requirements). Defaulted to
       framework on directory placement. Governor decide.
-  - path: .specs/essays/core_northstar.md
-    governance_namespace: framework
 
   # .specs/ root -- project::core contributor documents
-  - path: .specs/CONTRIBUTOR-MINDSET.md
-    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .specs/papers/** -- framework subset.
@@ -367,8 +352,6 @@ classifications:
     governance_namespace: framework
   - path: .specs/papers/CORE-Adaptive-Workflow-Pattern.md
     governance_namespace: framework
-  - path: .specs/papers/CORE-As-a-Legal-System.md
-    governance_namespace: framework
   - path: .specs/papers/CORE-Authority-Without-Registries.md
     governance_namespace: framework
   - path: .specs/papers/CORE-Blackboard.md
@@ -377,26 +360,8 @@ classifications:
     governance_namespace: framework
   - path: .specs/papers/CORE-Canary.md
     governance_namespace: framework
-  - path: .specs/papers/CORE-Capability-Taxonomy.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-Cognitive-Role-Capability-Resource-Taxonomy.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-Cognitive-Routing-and-Resource-Selection.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-Common-Governance-Failure-Modes.md
-    governance_namespace: framework
   - path: .specs/papers/CORE-ConservationGate.md
     governance_namespace: framework
-  - path: .specs/papers/CORE-Constitution-Read-Only-Contract.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-Constitutional-Foundations.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-ConstitutionalCoherenceChecker.md
-    governance_namespace: framework
-    notes: >
-      CCC concept paper. Could plausibly be project::core (the CCC is
-      CORE-specific machinery). Defaulted framework on the pattern
-      interpretation. Governor decide.
   - path: .specs/papers/CORE-ConstitutionalEnvelope.md
     governance_namespace: framework
   - path: .specs/papers/CORE-Context-Packet-Doctrine.md
@@ -404,25 +369,11 @@ classifications:
   - path: .specs/papers/CORE-Crate.md
     governance_namespace: framework
     notes: Governor confirm -- concept paper, abstract noun.
-  - path: .specs/papers/CORE-DataContracts.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-DocumentationPipeline.md
-    governance_namespace: framework
-    notes: >
-      Documentation pipeline as a pattern. Could plausibly be
-      project::core if it describes CORE-specific stages. Governor
-      decide.
-  - path: .specs/papers/CORE-Emergency-and-Exception-Stance.md
-    governance_namespace: framework
   - path: .specs/papers/CORE-Evidence-as-Input.md
     governance_namespace: framework
   - path: .specs/papers/CORE-Finding.md
     governance_namespace: framework
-  - path: .specs/papers/CORE-Flow.md
-    governance_namespace: framework
   - path: .specs/papers/CORE-Gate.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-Governance-Topology.md
     governance_namespace: framework
   - path: .specs/papers/CORE-Infrastructure-Definition.md
     governance_namespace: framework
@@ -432,12 +383,6 @@ classifications:
   - path: .specs/papers/CORE-IntentRepository.md
     governance_namespace: framework
   - path: .specs/papers/CORE-Mind-Body-Will-Separation.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-Minimal-Derivable-Artifacts.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-Phases-as-Governance-Boundaries.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-PromptGovernancePipeline.md
     governance_namespace: framework
   - path: .specs/papers/CORE-Proposal.md
     governance_namespace: framework
@@ -449,15 +394,6 @@ classifications:
       Pattern paper. Could plausibly be project::core if it describes
       CORE's specific remediation routing rather than the pattern.
       Governor decide.
-  - path: .specs/papers/CORE-RepositoryIndexing.md
-    governance_namespace: framework
-    notes: Governor confirm -- indexing model paper.
-  - path: .specs/papers/CORE-Rule-Authoring-Discipline.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-Rule-Canonical-Form.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-Rule-Conflict-Semantics.md
-    governance_namespace: framework
   - path: .specs/papers/CORE-Rule-Evaluation-Semantics.md
     governance_namespace: framework
   - path: .specs/papers/CORE-ShopManager.md
@@ -465,35 +401,21 @@ classifications:
     notes: >
       Pattern paper for shop-manager workers. Could plausibly be
       project::core. Governor decide.
-  - path: .specs/papers/CORE-TestGovernance.md
-    governance_namespace: framework
   - path: .specs/papers/CORE-The-Octopus-UNIX-Synthesis.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-Vocabulary-Registers.md
     governance_namespace: framework
   - path: .specs/papers/CORE-Vocabulary.md
     governance_namespace: framework
   - path: .specs/papers/CORE-Workers-and-Governance-Model.md
     governance_namespace: framework
-  - path: .specs/papers/CORE-Workflow-Papers-First.md
-    governance_namespace: framework
   - path: .specs/papers/CORE-Workflow-Stages.md
     governance_namespace: framework
-  - path: .specs/papers/CORE-Capability-Scoped-Filesystem-Authority.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-Enforcement-Completeness.md
-    governance_namespace: framework
   - path: .specs/papers/CORE-OEM-API.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-URS-Verifier.md
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
   # .specs/concepts/** -- framework concept papers.
   # Exploratory framework-shape thinking; promoted to papers when stable.
   # ---------------------------------------------------------------------
-  - path: .specs/concepts/CORE-URS-Intake-Concept.md
-    governance_namespace: framework
 
   # ---------------------------------------------------------------------
   # .specs/contracts/** -- published framework contracts (OEM API etc.).
@@ -506,60 +428,6 @@ classifications:
   # here is binding for current CORE unless explicitly promoted. Framework:
   # the content describes CORE-the-framework, not this deployment.
   # ---------------------------------------------------------------------
-  - path: .specs/core-ng/README.md
-    governance_namespace: framework
-  - path: .specs/core-ng/conformance/README.md
-    governance_namespace: framework
-  - path: .specs/core-ng/conformance/declaration-sufficiency-checklist.md
-    governance_namespace: framework
-  - path: .specs/core-ng/conformance/invalid-system-examples.md
-    governance_namespace: framework
-  - path: .specs/core-ng/conformance/minimal-conformance-scenarios.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarations/README.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarations/00-purpose-declarations.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarations/01-concept-declarations.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarations/02-authority-declarations.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarations/03-constraint-declarations.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarations/04-transformation-declarations.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarations/05-validation-declarations.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarations/06-evidence-declarations.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarations/07-refusal-declarations.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarations/08-equivalence-declarations.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarative-reconstruction/README.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarative-reconstruction/00-conversation-gist.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarative-reconstruction/01-thesis.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarative-reconstruction/02-rewrite-protocol.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarative-reconstruction/03-anti-contamination-rules.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarative-reconstruction/04-declaration-pack-outline.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarative-reconstruction/05-first-experiment.md
-    governance_namespace: framework
-  - path: .specs/core-ng/declarative-reconstruction/06-open-questions.md
-    governance_namespace: framework
-  - path: .specs/core-ng/reference-mapping/README.md
-    governance_namespace: framework
-  - path: .specs/core-ng/reference-mapping/current-core-mapping.md
-    governance_namespace: framework
-  - path: .specs/core-ng/reference-mapping/known-implementation-biases.md
-    governance_namespace: framework
-  - path: .specs/core-ng/reference-mapping/non-binding-reference-observations.md
-    governance_namespace: framework
 
   # ---------------------------------------------------------------------
   # .specs/decisions/** -- framework subset.
@@ -570,6 +438,8 @@ classifications:
   # ---------------------------------------------------------------------
   - path: .specs/decisions/ADR-001-specs-layer-established.md
     governance_namespace: framework
+  - path: .specs/DECISIONS.md
+    governance_namespace: project::core
   - path: .specs/decisions/ADR-005-govern-audit-verdict-policy.md
     governance_namespace: framework
   - path: .specs/decisions/ADR-008-constitutionalize-action-impact-level.md
@@ -586,8 +456,6 @@ classifications:
     governance_namespace: framework
   - path: .specs/decisions/ADR-020-worker-liveness-derived-from-heartbeat.md
     governance_namespace: framework
-  - path: .specs/decisions/ADR-021-scoped-autonomous-git-operations.md
-    governance_namespace: framework
   - path: .specs/decisions/ADR-023-vocabulary-canonical-store.md
     governance_namespace: framework
   - path: .specs/decisions/ADR-024-local-llm-cognitive-role-assignments.md
@@ -603,8 +471,6 @@ classifications:
   - path: .specs/decisions/ADR-033-flow-step-parameter-routing-contract.md
     governance_namespace: framework
   - path: .specs/decisions/ADR-035-one-finding-one-proposal.md
-    governance_namespace: framework
-  - path: .specs/decisions/ADR-037-flow-scope-exception.md
     governance_namespace: framework
   - path: .specs/decisions/ADR-038-circuit-breaker-on-repeated-proposal-failures.md
     governance_namespace: framework
@@ -665,8 +531,6 @@ classifications:
   - path: .specs/decisions/ADR-093-feature-extension-class-split-and-urs-line-discipline.md
     governance_namespace: framework
   - path: .specs/decisions/ADR-094-urs-satisfaction-sensor-implementation.md
-    governance_namespace: framework
-  - path: .specs/decisions/ADR-095-modularity-as-architectural-judgment.md
     governance_namespace: framework
   - path: .specs/decisions/ADR-096-shadow-kg-sensation-primitive.md
     governance_namespace: framework
@@ -1277,71 +1141,27 @@ classifications:
   # ---------------------------------------------------------------------
   # .specs/decisions/** -- newly added milestone records (continued).
   # ---------------------------------------------------------------------
-  - path: .specs/decisions/CORE-A3-plan.md
-    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .specs/requirements/** -- newly added planning inputs (continued).
   # ---------------------------------------------------------------------
-  - path: .specs/planning/archive/CORE-band-E-planning-input-2026-05-16.md
-    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .specs/papers/** -- newly added OSS architectural papers (continued).
   # ---------------------------------------------------------------------
-  - path: .specs/papers/CORE-Repo-Split-Plan.md
-    governance_namespace: project::core
-  - path: .specs/papers/commercial-project-isolation.md
-    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .specs/planning/** -- CORE's own roadmaps and planning notes.
   # ---------------------------------------------------------------------
-  - path: .specs/planning/INTERACTION-CONTRACT.md
-    governance_namespace: project::core
-    notes: >
-      Governor confirm -- interaction contract may be a framework
-      pattern. Defaulted project::core on directory placement.
-  - path: .specs/planning/SESSION-PROTOCOL.md
-    governance_namespace: project::core
-    notes: Governor confirm -- same gray-zone reasoning as above.
-  - path: .specs/planning/CORE-Feature-Dependency-Graph.md
-    governance_namespace: project::core
-  - path: .specs/planning/CORE-Operational-Completeness.md
-    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .specs/requirements/** -- URS for specific CORE features.
   # ---------------------------------------------------------------------
-  - path: .specs/requirements/CORE-Ask-URS.md
-    governance_namespace: project::core
-  - path: .specs/requirements/CORE-Governor-Ask-URS.md
-    governance_namespace: project::core
-  - path: .specs/requirements/CORE-Governor-Dashboard-URS.md
-    governance_namespace: project::core
-  - path: .specs/requirements/URS-consequence-chain.md
-    governance_namespace: project::core
-  - path: .specs/requirements/URS-mechanism-coherence.md
-    governance_namespace: project::core
-  - path: .specs/planning/data-contracts-inventory.md
-    governance_namespace: project::core
-  - path: .specs/requirements/URS-requirement-fulfillment-verification.md
-    governance_namespace: project::core
-  - path: .specs/requirements/URS-production-readiness.md
-    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .specs/verification/** -- F-feature verification documents.
   # project::core: verification is deployment-specific.
   # ---------------------------------------------------------------------
-  - path: .specs/verification/F-40-sidecar-walk.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/CORE-Maturity-Audit-Actions.md
-    governance_namespace: project::core
-  - path: .specs/verification/CORE-Scout-External-Validation-click.md
-    governance_namespace: project::core
-  - path: .specs/verification/g2_blocking_rule_registry.yaml
-    governance_namespace: project::core
 
   # ---------------------------------------------------------------------
   # .specs/state/** -- CORE recon, diagnostics, handoffs, snapshots.
@@ -1351,41 +1171,11 @@ classifications:
   # .specs/papers/** -- project::core subset.
   # Papers naming specific CORE workers / components / market posture.
   # ---------------------------------------------------------------------
-  - path: .specs/papers/CORE-Blackboard-State-Machine.md
-    governance_namespace: project::core
-  - path: .specs/papers/CORE-Deployment-Readiness.md
-    governance_namespace: project::core
-  - path: .specs/papers/CORE-CapabilityTagger.md
-    governance_namespace: project::core
-  - path: .specs/papers/CORE-CoherenceSensor.md
-    governance_namespace: project::core
-  - path: .specs/papers/CORE-CommitReachabilityAuditor.md
-    governance_namespace: project::core
   - path: .specs/papers/CORE-ConsumerWorker.md
-    governance_namespace: project::core
-  - path: .specs/papers/CORE-DbSyncWorker.md
-    governance_namespace: project::core
-  - path: .specs/papers/CORE-Deliberate-Non-Goals.md
-    governance_namespace: project::core
-  - path: .specs/papers/CORE-Features.md
-    governance_namespace: project::core
-  - path: .specs/papers/CORE-IntentInspector.md
-    governance_namespace: project::core
-  - path: .specs/papers/CORE-ModularizationLessons.md
-    governance_namespace: project::core
-  - path: .specs/papers/CORE-ObserverWorker.md
-    governance_namespace: project::core
-  - path: .specs/papers/CORE-Product-Tiers.md
     governance_namespace: project::core
   - path: .specs/papers/CORE-RemediatorWorker.md
     governance_namespace: project::core
-  - path: .specs/papers/CORE-Roadmap.md
-    governance_namespace: project::core
-  - path: .specs/papers/CORE-V2-Command-Pattern-Reference.md
-    governance_namespace: project::core
   - path: .specs/papers/CORE-ViolationExecutor.md
-    governance_namespace: project::core
-  - path: .specs/papers/CORE-ViolationRemediatorBody.md
     governance_namespace: project::core
   - path: .specs/papers/CORE-ViolationSensor.md
     governance_namespace: project::core
@@ -1403,8 +1193,6 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-006-align-needs-split-with-statement.md
     governance_namespace: project::core
-  - path: .specs/decisions/ADR-007-modularity-class-too-large-rule.md
-    governance_namespace: project::core
   - path: .specs/decisions/ADR-009-cli-depth-block-passive-instrumentation.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-012-centralize-globstar-pattern-matching.md
@@ -1419,11 +1207,7 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-022-contextbuilder-vector-evidence-scope.md
     governance_namespace: project::core
-  - path: .specs/decisions/ADR-025-architectural-context-builder-wiring.md
-    governance_namespace: project::core
   - path: .specs/decisions/ADR-030-daemon-stale-code-detection-posture.md
-    governance_namespace: project::core
-  - path: .specs/decisions/ADR-031-no-hardcoded-runtime-dir-paths.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-032-tighten-no-hardcoded-runtime-dirs-regex.md
     governance_namespace: project::core
@@ -1442,8 +1226,6 @@ classifications:
   - path: .specs/decisions/ADR-048-fix-docstrings-ast-walk.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-050-cli-positioning.md
-    governance_namespace: project::core
-  - path: .specs/decisions/ADR-051-file-handler-shared-excludes-closure.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-054-api-phase-1-audit-proposals.md
     governance_namespace: project::core
@@ -1476,8 +1258,6 @@ classifications:
   - path: .specs/decisions/ADR-082-writer-as-sensor-retention-policy.md
     governance_namespace: project::core
     # notes: gray -- generalizes the writer-as-sensor pattern (ADR-070 D8) with a retention policy; mechanisms are CORE-specific but the principle could lift to framework; governor review
-  - path: .specs/decisions/ADR-082-d7-detection-window-sparse-loop-hold.md
-    governance_namespace: project::core
   - path: .specs/decisions/ADR-083-commercial-add-on-stamping-f44-f47.md
     governance_namespace: project::core
     notes: >
@@ -1487,11 +1267,6 @@ classifications:
     governance_namespace: project::core
     notes: >
       Commercial surface taxonomy for this CORE deployment.
-  - path: .specs/decisions/ADR-085-open-operational-completeness-as-engineering-sole-goal.md
-    governance_namespace: project::core
-    notes: >
-      This deployment's engineering-posture decision (operational
-      completeness gates commercial work).
   - path: .specs/decisions/ADR-088-pypi-version-alignment.md
     governance_namespace: project::core
     notes: This deployment's PyPI release-versioning policy.
@@ -1504,8 +1279,6 @@ classifications:
 
   # ADR-098 through ADR-130 -- added in the ADR-075 D7 backfill (2026-06-28)
   - path: .specs/decisions/ADR-098-aggregate-quality-gate-finding-shape.md
-    governance_namespace: project::core
-  - path: .specs/decisions/ADR-099-finding-nucleus-migration.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-100-export-evidence-class-enum.md
     governance_namespace: project::core
@@ -1530,8 +1303,6 @@ classifications:
   - path: .specs/decisions/ADR-110-exposure-trust-boundary.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-111-onboard-delivers-authored-starter.md
-    governance_namespace: project::core
-  - path: .specs/decisions/ADR-112-framework-floor-mirrors-registry.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-113-per-finding-evidence-class.md
     governance_namespace: project::core
@@ -1565,8 +1336,6 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-128-corecontext-di-typing-posture.md
     governance_namespace: project::core
-  - path: .specs/decisions/ADR-129-commit-authorship-integrity.md
-    governance_namespace: project::core
   - path: .specs/decisions/ADR-130-constitutional-artifact-regeneration-staging.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-131-governance-application-data-model.md
@@ -1574,8 +1343,6 @@ classifications:
   - path: .specs/decisions/ADR-132-governor-authentication-boundary.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-133-test-gap-evaluator.md
-    governance_namespace: project::core
-  - path: .specs/decisions/ADR-133.phases.yaml
     governance_namespace: project::core
   - path: .specs/decisions/ADR-134-prompt-content-governance.md
     governance_namespace: project::core
@@ -1671,27 +1438,8 @@ classifications:
     governance_namespace: framework
 
   # .specs/papers/ -- new governance papers
-  - path: .specs/essays/CORE-Disposition-Governance-Seed.md
-    governance_namespace: framework
-  - path: .specs/essays/CORE-Disposition-Governance.md
-    governance_namespace: framework
-  - path: .specs/essays/CORE-USER-REQUIREMENTS-founder-vision.md
-    governance_namespace: framework
-    notes: >
-      Companion founder-vision statement to .specs/northstar/CORE-USER-REQUIREMENTS.md
-      (also framework). Describes what CORE must deliver as a framework capability.
-  - path: .specs/papers/CORE-Instrument-Attestation.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-Internal-Truthfulness.md
-    governance_namespace: framework
-  - path: .specs/papers/CORE-Specification-as-Source.md
-    governance_namespace: framework
 
   # .specs/planning/ -- project::core (planning and roadmap documents)
-  - path: .specs/planning/CORE-Semver-Policy.md
-    governance_namespace: project::core
-  - path: .specs/planning/CORE-Repo-Branch-History.md
-    governance_namespace: project::core
 
   # =====================================================================
   # ADDED 2026-07-13 (#780) -- governance.namespace.classification_complete
@@ -1720,8 +1468,6 @@ classifications:
   - path: .intent/rules/governance/consequence_evidence_degraded.json
     governance_namespace: framework
   - path: .intent/rules/governance/proposal_finalization_integrity.json
-    governance_namespace: framework
-  - path: .specs/META/architecture_bridge.schema.json
     governance_namespace: framework
   - path: .specs/META/charter.header.schema.json
     governance_namespace: framework
@@ -1803,8 +1549,6 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-147-canary-sandbox-janitor-worker.md
     governance_namespace: project::core
-  - path: .specs/decisions/ADR-148-proposal-finalization-barrier.md
-    governance_namespace: project::core
   - path: .specs/decisions/ADR-149-governance-packs-live-outside-self-law-root.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-150-finalizing-redrive-cap.md
@@ -1829,8 +1573,6 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-160-risk-maturity-and-authorization-boundary.md
     governance_namespace: project::core
-  - path: .specs/decisions/ADR-161-repository-layout.md
-    governance_namespace: project::core
   - path: .specs/decisions/ADR-162-database-upgrade-remediation-ruling.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-166-two-governed-write-surfaces.md
@@ -1842,80 +1584,4 @@ classifications:
   - path: .specs/decisions/ADR-169-core-knows-its-own-state.md
     governance_namespace: project::core
   - path: .specs/decisions/ADR-170-law-custodian.md
-    governance_namespace: project::core
-  - path: .specs/attestations/proof-index.yaml
-    governance_namespace: project::core
-  - path: .specs/attestations/production-readiness.yaml
-    governance_namespace: project::core
-  - path: .specs/attestations/adr-155-final-acceptance-report-20260726.md
-    governance_namespace: project::core
-  - path: .specs/attestations/e15-coldroom-3cbe0be0-20260726.md
-    governance_namespace: project::core
-  - path: .specs/attestations/soak-closure-f7430b25-20260726.md
-    governance_namespace: project::core
-  - path: .specs/attestations/soak-f7430b25-findings-to-outcome-20260914.md
-    governance_namespace: project::core
-  - path: .specs/attestations/adr-159-blind-author-raw-claude-opus-5-20260910.md
-    governance_namespace: project::core
-  - path: .specs/attestations/adr-159-phase1-seal-digest-20260918.md
-    governance_namespace: project::core
-  - path: .specs/attestations/adr-159-trial0-result-20260918.md
-    governance_namespace: project::core
-  - path: .specs/attestations/soak-g4-predeclaration-2026Q4.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/CORE-CLI-2.9.0-Followups.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/CORE-Isolated-Consequence-Chain-Demo-Spec.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/CORE-CLI-Release-Smoke-Test.md
-    governance_namespace: project::core
-  - path: .specs/planning/CORE-CLI-VM-Test-Access-Runbook.md
-    governance_namespace: project::core
-  - path: .specs/planning/CORE-Cleanroom-Rebuild-Runbook.md
-    governance_namespace: project::core
-  - path: .specs/planning/CORE-Isolated-Consequence-Chain-Demo-Phase1-Map.md
-    governance_namespace: project::core
-  - path: .specs/planning/CORE-D9-Trial0-Apparatus-Design.md
-    governance_namespace: project::core
-  - path: .specs/planning/governor-rail-2026Q4.md
-    governance_namespace: project::core
-  - path: .specs/planning/CORE-Autonomy-Trials-Blind-Author-Brief.md
-    governance_namespace: project::core
-  - path: .specs/planning/CORE-Autonomy-Trial-Runner-Interface-Appendix.md
-    governance_namespace: project::core
-  - path: .specs/planning/adr-159-trial0-apparatus/README.md
-    governance_namespace: project::core
-  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/enforcement/config/safe_auto_approval_envelope.yaml
-    governance_namespace: project::core
-  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/enforcement/mappings/architecture/execution_write_containment.yaml
-    governance_namespace: project::core
-  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/enforcement/mappings/will/safe_auto_approval_envelope.yaml
-    governance_namespace: project::core
-  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/rules/architecture/execution_write_containment.json
-    governance_namespace: project::core
-  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/rules/will/safe_auto_approval_envelope.json
-    governance_namespace: project::core
-  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/workers/goal_execution_worker.yaml
-    governance_namespace: project::core
-  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/workflows/definitions/evaluation.yaml
-    governance_namespace: project::core
-  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/workflows/stages/parse.plan_investigation.yaml
-    governance_namespace: project::core
-  - path: .specs/planning/adr-159-trial0-apparatus/intent_overlay/workflows/stages/runtime.investigate.yaml
-    governance_namespace: project::core
-  - path: .specs/planning/adr-159-trial0-apparatus/seed/assignments.yaml
-    governance_namespace: project::core
-  - path: .specs/planning/adr-159-trial0-apparatus/seed/llm_resources/ollama_qwen_coder_3b_trial.yaml
-    governance_namespace: project::core
-  - path: .specs/planning/adr-159-trial0-apparatus/seed/system_config.yaml
-    governance_namespace: project::core
-  - path: .specs/planning/CORE-Autonomy-Mission-Runner-Reconnaissance.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/CORE-External-Adoption-Plan.md
-    governance_namespace: project::core
-  - path: .specs/planning/archive/external-review-2026-07-todo.md
-    governance_namespace: project::core
-  - path: .specs/registers/lessons-register.md
-    governance_namespace: project::core
-  - path: .specs/registers/g4-action-register.md
     governance_namespace: project::core
