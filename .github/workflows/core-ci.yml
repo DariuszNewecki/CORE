@@ -116,6 +116,7 @@ jobs:
           ACCEPTED = {"PASS", "DEGRADED"}
           BLOCK_SEVERITIES = {"block", "blocking"}
 
+
           def summary(text: str) -> None:
               path = os.environ.get("GITHUB_STEP_SUMMARY")
               if path:
@@ -123,10 +124,12 @@ jobs:
                       fh.write(text + "\n")
               print(text)
 
+
           def fail(msg: str) -> None:
               print(f"::error title=CORE offline audit gate::{msg}")
               summary(f"## CORE offline audit: FAILED CLOSED\n\n{msg} (raw exit {raw_exit})")
               sys.exit(1)
+
 
           try:
               with open(result_path, encoding="utf-8") as fh:
