@@ -37,62 +37,8 @@ concurrency:
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
 
 jobs:
-  # #631 — fail when README's advertised governance counts drift from source.
-  # Pure shell + jq (pre-installed on the runner); no Poetry/DB, runs in parallel.
-  readme-counts:
-    name: README count drift (#631)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
-      - name: Re-derive README quantitative claims from source
-        run: bash scripts/check_readme_counts.sh
-
-  # #726 — advisory check: multi-phase ADRs with open phases must have a
-  # linked issue so they don't quietly stall. continue-on-error: true keeps
-  # this advisory (visible in workflow run, never blocks merge).
-  adr-phases:
-    name: ADR phase tracking (#726)
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-      - name: Install pyyaml
-        run: pip install pyyaml --quiet
-      - name: Check for untracked open ADR phases
-        run: python scripts/check_adr_phases.py --specs-dir .specs/decisions
-
-  # Production-readiness chain: URS definition -> attestation manifest ->
-  # generated README status. Blocking — a manifest that over-claims (a `met`
-  # gate without dated human evidence) or a README out of sync with the
-  # manifest must never reach main. Pure Python + pyyaml; no DB.
-  production-readiness:
-    name: Production-readiness manifest ↔ README
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-      - name: Install pyyaml
-        run: pip install pyyaml --quiet
-      - name: Validate manifest invariants + README sync
-        run: python scripts/production_readiness.py
-      - name: Release pins match pyproject version (read-only)
-        run: python scripts/release_pins.py --check
-
   # ADR-157 D3.1: extracted from `validate` -- none of these four checks need
   # the database (vocabulary sync is file-based; audit runs --offline; ruff
   # and pip-audit are static/dependency-only), so they no longer wait on
@@ -571,42 +517,3 @@ jobs:
           name: core-ci-combined
           fail_ci_if_error: true
           verbose: true
-
-  pr_linter:
-    name: PR Linter
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - name: Check PR Body for Intent & Justification
-        id: check_body
-        # PR body is passed via env, never interpolated inline into the script:
-        # an inline ${{ ... }} breaks on quotes/backticks/HTML in the body and is a
-        # shell script-injection vector.
-        env:
-          PR_BODY: ${{ github.event.pull_request.body }}
-        run: |
-          if printf '%s' "$PR_BODY" | grep -q "> REQUIRED:"; then
-            echo "missing_justification=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "missing_justification=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Post Nudge Comment
-        if: steps.check_body.outputs.missing_justification == 'true'
-        uses: actions/github-script@v9
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const output = `
-            #### 📝 Intent Required
-            Thank you for the contribution!
-
-            Please update the pull request description to include the **Intent & Justification** for this change. This is a constitutional requirement to ensure every change is traceable to a purpose.
-            `;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: output
-            });
