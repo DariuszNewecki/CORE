@@ -96,7 +96,128 @@ COLUMNS = [
     "adr_status",
     "superseded_by_later_adr",
     "evidence",
+    "strict_use",
+    "keep_reason",
 ]
+
+# .specs/ files that have no strict use but whose deletion broke runtime
+# behaviour (phase 2). Path -> what breaks without it.
+KEEP: dict[str, str] = {
+    ".specs/META/charter.header.schema.json": (
+        "header schema loaded by specs_doc_validator via an artifact type's schema_ref; law check-tree refuses without it"
+    ),
+    ".specs/META/northstar.header.schema.json": (
+        "header schema loaded by specs_doc_validator via an artifact type's schema_ref; law check-tree refuses without it"
+    ),
+    ".specs/META/planning.header.schema.json": (
+        "header schema loaded by specs_doc_validator via an artifact type's schema_ref; law check-tree refuses without it"
+    ),
+    ".specs/META/requirement.header.schema.json": (
+        "header schema loaded by specs_doc_validator via an artifact type's schema_ref; law check-tree refuses without it"
+    ),
+    ".specs/northstar/CORE - What It Does.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-Action.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-Adaptive-Workflow-Pattern.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-Authority-Without-Registries.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-Blackboard.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-Canary.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-ConservationGate.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-ConstitutionalEnvelope.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-ConsumerWorker.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-Context-Packet-Doctrine.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-Crate.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-Evidence-as-Input.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-Finding.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-Gate.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-IntentGuard.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-IntentRepository.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-Proposal.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-Remediation.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-RemediationMap.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-RemediatorWorker.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-Rule-Evaluation-Semantics.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-ShopManager.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-The-Octopus-UNIX-Synthesis.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-ViolationExecutor.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-ViolationSensor.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-Workers-and-Governance-Model.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/papers/CORE-Workflow-Stages.md": (
+        "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
+    ),
+    ".specs/planning/adr-159-trial0-apparatus/intent_overlay/enforcement/mappings/architecture/execution_write_containment.yaml": (
+        "ADR-159 Trial 0 overlay: tests/fixtures/external_target read it via a constant joined to the overlay dir, which STRICT_USE does not see"
+    ),
+    ".specs/planning/adr-159-trial0-apparatus/intent_overlay/rules/architecture/execution_write_containment.json": (
+        "ADR-159 Trial 0 overlay: tests/fixtures/external_target read it via a constant joined to the overlay dir, which STRICT_USE does not see"
+    ),
+    ".specs/planning/adr-159-trial0-apparatus/intent_overlay/rules/will/safe_auto_approval_envelope.json": (
+        "ADR-159 Trial 0 overlay: tests/fixtures/external_target read it via a constant joined to the overlay dir, which STRICT_USE does not see"
+    ),
+    ".specs/planning/adr-159-trial0-apparatus/intent_overlay/workflows/definitions/evaluation.yaml": (
+        "ADR-159 Trial 0 overlay: tests/fixtures/external_target read it via a constant joined to the overlay dir, which STRICT_USE does not see"
+    ),
+    ".specs/planning/adr-159-trial0-apparatus/intent_overlay/workflows/stages/parse.plan_investigation.yaml": (
+        "ADR-159 Trial 0 overlay: tests/fixtures/external_target read it via a constant joined to the overlay dir, which STRICT_USE does not see"
+    ),
+    ".specs/planning/adr-159-trial0-apparatus/intent_overlay/workflows/stages/runtime.investigate.yaml": (
+        "ADR-159 Trial 0 overlay: tests/fixtures/external_target read it via a constant joined to the overlay dir, which STRICT_USE does not see"
+    ),
+    ".specs/planning/adr-159-trial0-apparatus/seed/llm_resources/ollama_qwen_coder_3b_trial.yaml": (
+        "ADR-159 Trial 0 overlay: tests/fixtures/external_target read it via a constant joined to the overlay dir, which STRICT_USE does not see"
+    ),
+}
 
 
 # --------------------------------------------------------------------------
@@ -316,6 +437,23 @@ def references_to(rel_in_tree: str, tree: str, refs: dict[str, set[str]]) -> set
         elif cand == rel_in_tree or rel_in_tree.startswith(cand + "/"):
             hits |= users
         elif cand == name and len(name) > 12:
+            hits |= users
+    return hits
+
+
+def named_references(
+    rel_in_tree: str, tree: str, refs: dict[str, set[str]]
+) -> set[str]:
+    """Files that name ``tree/rel_in_tree`` itself: its exact path, or its
+    distinctive file name. Directory sweeps, globs and parametrised joins
+    (``decisions / f"{adr}.md"``) are not a reference to this file."""
+    hits: set[str] = set()
+    name = Path(rel_in_tree).name
+    for literal, users in refs.items():
+        if "*" in literal or literal.endswith(PARAM):
+            continue
+        cand = _norm(literal, tree)
+        if cand == rel_in_tree or (cand == name and len(name) > 12):
             hits |= users
     return hits
 
@@ -613,6 +751,8 @@ def build(root: Path, audit: dict, findings: dict[str, int] | None) -> list[list
                 "",
                 "",
                 mapping[0] if mapping else "",
+                "",
+                "",
             ]
         )
 
@@ -635,6 +775,8 @@ def build(root: Path, audit: dict, findings: dict[str, int] | None) -> list[list
                 "",
                 "",
                 ";".join(sorted(users)),
+                "",
+                "",
             ]
         )
 
@@ -652,6 +794,13 @@ def build(root: Path, audit: dict, findings: dict[str, int] | None) -> list[list
         key = adr["key"] if adr else None
         by_intent = citations(rel, intent_texts, key)
         by_specs = citations(rel, spec_texts, key)
+        # STRICT_USE: a specific src/ or tests/ file reads this file by name.
+        # Not use: the namespace manifest (it lists every file), folder
+        # sweeps, and citations from .intent/ or other .specs/ files.
+        strict = sorted(
+            named_references(inner, ".specs", src_refs)
+            | named_references(inner, ".specs", test_refs)
+        )
         detail = ""
         if by_intent == {MANIFEST}:
             # The namespace manifest registers every .specs/ file by path; it
@@ -685,6 +834,8 @@ def build(root: Path, audit: dict, findings: dict[str, int] | None) -> list[list
                 adr["status"] if adr else "",
                 ";".join(sorted(adr["superseded_by"])) if adr else "",
                 ";".join(sorted(ev)),
+                "true" if strict else "false",
+                KEEP.get(rel, ""),
             ]
         )
 
@@ -758,7 +909,58 @@ def _cut_mapping(root: Path, mapping_file: str, rule_id: str) -> None:
     path.write_text("".join(lines), encoding="utf-8")
 
 
+def _strict(root: Path, rel: str) -> bool:
+    inner = rel[len(".specs/") :]
+    return bool(
+        named_references(inner, ".specs", python_references(root, "src")[0])
+        | named_references(inner, ".specs", python_references(root, "tests")[0])
+    )
+
+
+def self_test_strict(root: Path) -> None:
+    """The three exclusions do not make STRICT_USE true; a named read does."""
+    manifest = _read(root / MANIFEST)
+    target = next(
+        f".specs/papers/{p.name}"
+        for p in sorted((root / ".specs" / "papers").glob("CORE-*.md"))
+        if f".specs/papers/{p.name}" in manifest
+        and not _strict(root, f".specs/papers/{p.name}")
+    )
+    other = next(r for r in _files(root, ".specs") if r.endswith(".md") and r != target)
+    with tempfile.TemporaryDirectory(dir=root / "var" / "tmp") as tmp:
+        copy = Path(tmp) / "tree"
+        for top in ("src", "tests", ".specs", ".intent"):
+            shutil.copytree(root / top, copy / top)
+        checks = []
+        # 1. the register lists it (already true in the real tree)
+        checks.append(("listed in the namespace manifest", target in manifest))
+        checks.append(("register: strict stays false", not _strict(copy, target)))
+        # 2. a folder sweep reads every paper, this one included
+        (copy / "src" / "zz_selftest_sweep.py").write_text(
+            "from pathlib import Path\n\n\n"
+            "def sweep(root: Path) -> list[str]:\n"
+            '    return [p.read_text() for p in (root / ".specs" / "papers").glob("*.md")]\n'
+        )
+        checks.append(("sweep: strict stays false", not _strict(copy, target)))
+        # 3. another .specs file cites it
+        cited = copy / other
+        cited.write_text(_read(cited) + f"\nSee {target}.\n")
+        checks.append(("citation: strict stays false", not _strict(copy, target)))
+        # control: a named read makes it true
+        (copy / "src" / "zz_selftest_named.py").write_text(
+            "from pathlib import Path\n\n\n"
+            "def read() -> str:\n"
+            f'    return Path("{target}").read_text()\n'
+        )
+        checks.append(("named read: strict becomes true", _strict(copy, target)))
+    for label, ok in checks:
+        print(f"strict {target}: {label}: {'ok' if ok else 'FAILED'}")
+    if not all(ok for _label, ok in checks):
+        sys.exit("SELF-TEST FAILED: STRICT_USE exclusions")
+
+
 def self_test(root: Path) -> None:
+    self_test_strict(root)
     audit = run_audit(root)
     before = {(r[0], r[1]): r for r in build(root, audit, None)}
     rule = next(
