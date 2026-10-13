@@ -60,6 +60,85 @@ def _mkdir_keeping_group(path: Path, mode: int) -> None:
         os.chmod(path, mode | (current & stat.S_ISGID))
 
 
+def _normalize_rel_dir(handler: FileHandler, rel_dir: str) -> str:
+    """Normalize a directory argument to its canonical repo-relative form.
+
+    #908 refused absolute paths outside the bound root (they used to be
+    re-rooted under it); #949 extends the same canonicalisation to
+    relative paths, so ``..`` segments and symlinks are resolved before
+    IntentGuard and target-class resolution see the path. See
+    ``_canonical_rel``.
+    """
+    return handler._canonical_rel(rel_dir)
+
+
+# ID: 17a94846-a86c-44c2-a74b-54da3718b707
+def _canonical_rel(handler: FileHandler, rel_path: str | Path) -> str:
+    """The canonical repo-relative destination of ``rel_path`` (#949).
+
+    Every guarded entry point classifies and guards THIS form, never the
+    caller's spelling. ``..`` segments and symlinks are resolved first,
+    so a path that merely *starts* in scratch (``var/tmp/../../.intent/x``)
+    is classified, guarded and written as what it is (``.intent/x``) —
+    ADR-097 D2 defines a target class by where a path *resolves*.
+
+    Absolute paths inside the bound root are rewritten to their relative
+    form; any destination outside it is refused under
+    ``architecture.execution_write.repository_containment`` with the
+    caller's original string as ``attempted_path`` (#908). The root
+    itself canonicalises to ``""``. A trailing slash is not preserved;
+    directory callers append their own.
+
+    Canonicalisation decides the destination at call time; it is not a
+    defence against a concurrent actor swapping a symlink afterwards.
+    """
+    cleaned = str(rel_path).strip().removeprefix("./")
+    candidate = (
+        Path(cleaned) if Path(cleaned).is_absolute() else handler.repo_path / cleaned
+    ).resolve()
+    if not candidate.is_relative_to(handler.repo_path):
+        raise RepositoryBoundaryViolationError(
+            attempted_path=str(rel_path), bound_root=str(handler.repo_path)
+        )
+    rel = candidate.relative_to(handler.repo_path).as_posix()
+    return "" if rel == "." else rel
+
+
+def _derive_op_classes(
+    handler: FileHandler, cleaned_paths: list[str], op_class_hint: str
+) -> dict[str, str]:
+    """Resolve per-path op-class for the chokepoint tier (ADR-079 D3).
+
+    For the ``"write"`` hint, stat each path: ``"modify"`` if the
+    target exists, ``"create"`` otherwise. For ``"create"`` and
+    ``"delete"`` hints the op-class is structurally fixed by the
+    calling method's intent and is returned verbatim. The
+    stat-before-decide carries a TOCTOU caveat (ADR-079 D3) that is
+    benign under CORE's single-trust-boundary threat model.
+    """
+    if op_class_hint == "write":
+        resolved: dict[str, str] = {}
+        for p in cleaned_paths:
+            abs_p = handler.repo_path / p.rstrip("/")
+            resolved[p] = "modify" if abs_p.exists() else "create"
+        return resolved
+    return {p: op_class_hint for p in cleaned_paths}
+
+
+def _atomic_write_text(handler: FileHandler, abs_path: Path, content: str) -> None:
+    abs_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = abs_path.with_suffix(abs_path.suffix + ".tmp")
+    tmp.write_text(content, encoding="utf-8")
+    tmp.replace(abs_path)
+
+
+def _atomic_write_bytes(handler: FileHandler, abs_path: Path, content: bytes) -> None:
+    abs_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = abs_path.with_suffix(abs_path.suffix + ".tmp")
+    tmp.write_bytes(content)
+    tmp.replace(abs_path)
+
+
 # ID: 4684ec9b-095a-428b-95bc-60e5003dc7f7
 class FileHandler:
     """Central class for safe, auditable file operations in CORE."""
@@ -464,47 +543,13 @@ class FileHandler:
     # Path + Guard Helpers
     # ---------------------------------------------------------------------
 
-    def _normalize_rel_dir(self, rel_dir: str) -> str:
-        """Normalize a directory argument to its canonical repo-relative form.
-
-        #908 refused absolute paths outside the bound root (they used to be
-        re-rooted under it); #949 extends the same canonicalisation to
-        relative paths, so ``..`` segments and symlinks are resolved before
-        IntentGuard and target-class resolution see the path. See
-        ``_canonical_rel``.
-        """
-        return self._canonical_rel(rel_dir)
-
-    # ID: 17a94846-a86c-44c2-a74b-54da3718b707
-    def _canonical_rel(self, rel_path: str | Path) -> str:
-        """The canonical repo-relative destination of ``rel_path`` (#949).
-
-        Every guarded entry point classifies and guards THIS form, never the
-        caller's spelling. ``..`` segments and symlinks are resolved first,
-        so a path that merely *starts* in scratch (``var/tmp/../../.intent/x``)
-        is classified, guarded and written as what it is (``.intent/x``) —
-        ADR-097 D2 defines a target class by where a path *resolves*.
-
-        Absolute paths inside the bound root are rewritten to their relative
-        form; any destination outside it is refused under
-        ``architecture.execution_write.repository_containment`` with the
-        caller's original string as ``attempted_path`` (#908). The root
-        itself canonicalises to ``""``. A trailing slash is not preserved;
-        directory callers append their own.
-
-        Canonicalisation decides the destination at call time; it is not a
-        defence against a concurrent actor swapping a symlink afterwards.
-        """
-        cleaned = str(rel_path).strip().removeprefix("./")
-        candidate = (
-            Path(cleaned) if Path(cleaned).is_absolute() else self.repo_path / cleaned
-        ).resolve()
-        if not candidate.is_relative_to(self.repo_path):
-            raise RepositoryBoundaryViolationError(
-                attempted_path=str(rel_path), bound_root=str(self.repo_path)
-            )
-        rel = candidate.relative_to(self.repo_path).as_posix()
-        return "" if rel == "." else rel
+    # Helpers that need no instance state of their own live at module level;
+    # bound here so callers keep using self._name(...).
+    _normalize_rel_dir = _normalize_rel_dir
+    _canonical_rel = _canonical_rel
+    _derive_op_classes = _derive_op_classes
+    _atomic_write_text = _atomic_write_text
+    _atomic_write_bytes = _atomic_write_bytes
 
     def _resolve_repo_path(self, rel_path: str) -> Path:
         """Resolve a repo-relative path to an absolute path, refusing escapes.
@@ -576,35 +621,3 @@ class FileHandler:
         if result.is_valid:
             return
         raise ConstitutionalViolationError(result.violations)
-
-    def _derive_op_classes(
-        self, cleaned_paths: list[str], op_class_hint: str
-    ) -> dict[str, str]:
-        """Resolve per-path op-class for the chokepoint tier (ADR-079 D3).
-
-        For the ``"write"`` hint, stat each path: ``"modify"`` if the
-        target exists, ``"create"`` otherwise. For ``"create"`` and
-        ``"delete"`` hints the op-class is structurally fixed by the
-        calling method's intent and is returned verbatim. The
-        stat-before-decide carries a TOCTOU caveat (ADR-079 D3) that is
-        benign under CORE's single-trust-boundary threat model.
-        """
-        if op_class_hint == "write":
-            resolved: dict[str, str] = {}
-            for p in cleaned_paths:
-                abs_p = self.repo_path / p.rstrip("/")
-                resolved[p] = "modify" if abs_p.exists() else "create"
-            return resolved
-        return {p: op_class_hint for p in cleaned_paths}
-
-    def _atomic_write_text(self, abs_path: Path, content: str) -> None:
-        abs_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = abs_path.with_suffix(abs_path.suffix + ".tmp")
-        tmp.write_text(content, encoding="utf-8")
-        tmp.replace(abs_path)
-
-    def _atomic_write_bytes(self, abs_path: Path, content: bytes) -> None:
-        abs_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = abs_path.with_suffix(abs_path.suffix + ".tmp")
-        tmp.write_bytes(content)
-        tmp.replace(abs_path)
