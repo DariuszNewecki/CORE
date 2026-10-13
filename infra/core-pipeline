@@ -19,7 +19,7 @@ GitHub. This runner, on a timer, as the account ``core-runner``:
     verifies, and switches back itself when the new release fails;
  5. after a deploy, runs the sandbox check as core; when it fails, rolls back
     (``sudo -n core-deploy --rollback``) and opens an issue;
- 6. writes ``status.json`` for ``core-admin pipeline status``.
+ 6. writes ``status.json`` for ``core-admin runtime status``.
 
 Privileges (sudoers from one-path-setup.sh): core-runner may run exactly
 ``/usr/local/sbin/core-deploy`` as root and ``/usr/local/sbin/core-sandbox-check``
