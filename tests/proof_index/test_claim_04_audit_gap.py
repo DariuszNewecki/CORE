@@ -6,7 +6,7 @@ claim 4 (#798). When the ActionExecutor's audit step (`ActionAuditRecorder.recor
 moved from `ActionExecutor._audit_log` per ADR-095) exhausts its INSERT retries for a
 `write=True` action, it MUST log an `AUDIT_GAP` error — the mutation already
 landed, so the gap is surfaced loudly, never swallowed. The live-trail half (rows
-actually accumulating) is attestation-only; see .specs/attestations/proof-index.yaml.
+actually accumulating) is attestation-only; see tests/proof_index/proof-index.yaml.
 """
 
 from __future__ import annotations

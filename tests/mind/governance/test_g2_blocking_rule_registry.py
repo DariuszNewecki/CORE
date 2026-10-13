@@ -2,7 +2,7 @@
 
 """G2 blocking-rule census ratchet (#842 Unit A).
 
-The registry at ``.specs/verification/g2_blocking_rule_registry.yaml`` is the
+The registry at ``tests/mind/governance/g2_blocking_rule_registry.yaml`` is the
 source-derived instrument for URS-production-readiness.md's G2 requirement:
 one row per blocking rule, carrying its mapped engine, mechanism class, and
 (once depth-verified) violating/compliant fixture references.
@@ -41,9 +41,7 @@ from shared.infrastructure.intent.rule_registry import get_rule_enforcement_map
 
 
 _REPO_ROOT = Path(__file__).parent.parent.parent.parent
-_REGISTRY_PATH = (
-    _REPO_ROOT / ".specs" / "verification" / "g2_blocking_rule_registry.yaml"
-)
+_REGISTRY_PATH = Path(__file__).resolve().parent / "g2_blocking_rule_registry.yaml"
 
 _CONVENTIONAL_ENGINES = {
     "ast_gate",

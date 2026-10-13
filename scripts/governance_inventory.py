@@ -98,6 +98,7 @@ COLUMNS = [
     "evidence",
     "strict_use",
     "keep_reason",
+    "intent_requires",
 ]
 
 # .specs/ files that have no strict use but whose deletion broke runtime
@@ -196,27 +197,6 @@ KEEP: dict[str, str] = {
     ".specs/papers/CORE-Workflow-Stages.md": (
         "named as authoritative_paper in .intent/META/vocabulary.json; blocking rule governance.vocabulary.authoritative_source_must_be_paper fails without it"
     ),
-    ".specs/planning/adr-159-trial0-apparatus/intent_overlay/enforcement/mappings/architecture/execution_write_containment.yaml": (
-        "ADR-159 Trial 0 overlay: tests/fixtures/external_target read it via a constant joined to the overlay dir, which STRICT_USE does not see"
-    ),
-    ".specs/planning/adr-159-trial0-apparatus/intent_overlay/rules/architecture/execution_write_containment.json": (
-        "ADR-159 Trial 0 overlay: tests/fixtures/external_target read it via a constant joined to the overlay dir, which STRICT_USE does not see"
-    ),
-    ".specs/planning/adr-159-trial0-apparatus/intent_overlay/rules/will/safe_auto_approval_envelope.json": (
-        "ADR-159 Trial 0 overlay: tests/fixtures/external_target read it via a constant joined to the overlay dir, which STRICT_USE does not see"
-    ),
-    ".specs/planning/adr-159-trial0-apparatus/intent_overlay/workflows/definitions/evaluation.yaml": (
-        "ADR-159 Trial 0 overlay: tests/fixtures/external_target read it via a constant joined to the overlay dir, which STRICT_USE does not see"
-    ),
-    ".specs/planning/adr-159-trial0-apparatus/intent_overlay/workflows/stages/parse.plan_investigation.yaml": (
-        "ADR-159 Trial 0 overlay: tests/fixtures/external_target read it via a constant joined to the overlay dir, which STRICT_USE does not see"
-    ),
-    ".specs/planning/adr-159-trial0-apparatus/intent_overlay/workflows/stages/runtime.investigate.yaml": (
-        "ADR-159 Trial 0 overlay: tests/fixtures/external_target read it via a constant joined to the overlay dir, which STRICT_USE does not see"
-    ),
-    ".specs/planning/adr-159-trial0-apparatus/seed/llm_resources/ollama_qwen_coder_3b_trial.yaml": (
-        "ADR-159 Trial 0 overlay: tests/fixtures/external_target read it via a constant joined to the overlay dir, which STRICT_USE does not see"
-    ),
 }
 
 
@@ -264,30 +244,62 @@ def _docstring_ids(tree: ast.AST) -> set[int]:
     return ids
 
 
-def _div_chain(node: ast.AST) -> list[str] | None:
-    """String parts of ``a / "x" / "y"`` in order; None if none are strings."""
-    parts: list[str] = []
+def _name_env(tree: ast.AST) -> dict[str, list[str]]:
+    """Names bound to path strings in this file: module- and function-level
+    ``NAME = "x"`` / ``NAME = a / "x"`` and ``for NAME in ("x", Y)``. Unknown
+    parts are NUL (see _div_chain); a name bound twice keeps every value."""
+    env: dict[str, list[str]] = defaultdict(list)
+    for _ in range(2):  # a second pass resolves names defined from names
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+            ):
+                values = _values(node.value, env)
+                if values and any(v != "\0" for v in values):
+                    env[node.targets[0].id] = sorted(set(values))
+            elif (
+                isinstance(node, ast.For)
+                and isinstance(node.target, ast.Name)
+                and isinstance(node.iter, (ast.Tuple, ast.List, ast.Set))
+            ):
+                values = [v for el in node.iter.elts for v in _values(el, env)]
+                if values and all(v != "\0" for v in values):
+                    env[node.target.id] = sorted(set(values))
+    return env
 
-    def walk(n: ast.AST) -> None:
-        if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Div):
-            walk(n.left)
-            walk(n.right)
-        elif isinstance(n, ast.Constant) and isinstance(n.value, str):
-            parts.append(n.value)
-        else:
-            parts.append("\0")  # a non-literal segment breaks the chain
 
-    walk(node)
-    joined = "/".join(parts)
-    pieces = joined.split("\0")
+def _values(node: ast.AST, env: dict[str, list[str]]) -> list[str]:
+    """Possible string values of a path expression; NUL for unknown parts."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return [node.value]
+    if isinstance(node, ast.Name) and node.id in env:
+        return env[node.id]
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+        return [
+            f"{a}/{b}"
+            for a in _values(node.left, env)
+            for b in _values(node.right, env)
+        ]
+    return ["\0"]
+
+
+def _div_chain(
+    node: ast.AST, env: dict[str, list[str]] | None = None
+) -> list[str] | None:
+    """Path strings of ``a / "x" / NAME``, names resolved through ``env``;
+    None if no part is known."""
     out = []
-    for i, piece in enumerate(pieces):
-        seg = piece.strip("/")
-        if not seg:
-            continue
-        # ``base / "dir" / name``: the code reads one child of dir, not the
-        # whole subtree. PARAM marks "one level below, name unknown".
-        out.append(seg + "/" + PARAM if i < len(pieces) - 1 else seg)
+    for joined in _values(node, env or {}):
+        pieces = joined.split("\0")
+        for i, piece in enumerate(pieces):
+            seg = re.sub(r"/{2,}", "/", piece).strip("/")
+            if not seg:
+                continue
+            # ``base / "dir" / name``: the code reads one child of dir, not the
+            # whole subtree. PARAM marks "one level below, name unknown".
+            out.append(seg + "/" + PARAM if i < len(pieces) - 1 else seg)
     return out or None
 
 
@@ -324,14 +336,18 @@ def _call_name(node: ast.Call) -> str:
     return f.attr if isinstance(f, ast.Attribute) else getattr(f, "id", "")
 
 
-def python_references(root: Path, top: str) -> tuple[dict[str, set[str]], set[str]]:
-    """Path-like literals {literal: {files}} and dict keys read via [..]/.get(..).
+def python_references(
+    root: Path, top: str
+) -> tuple[dict[str, set[str]], set[str], dict[str, set[str]]]:
+    """Path-like literals {literal: {files}}, dict keys read via [..]/.get(..),
+    and the literals that reach a path operation {literal: {files}}.
 
     A literal is path-like when it contains "/", ends with a data suffix, is a
     segment of an ``a / "b"`` chain, or is an argument of a path call
     (``iter_documents(under="workers")``, ``resolve_rel("x.yaml")``).
     """
     refs: dict[str, set[str]] = defaultdict(set)
+    path_refs: dict[str, set[str]] = defaultdict(set)
     read_keys: set[str] = set()
     for rel in _files(root, top):
         if not rel.endswith(".py"):
@@ -341,6 +357,7 @@ def python_references(root: Path, top: str) -> tuple[dict[str, set[str]], set[st
         except SyntaxError:
             continue
         docs = _docstring_ids(tree)
+        env = _name_env(tree)
         path_context: set[int] = set()
         inner_div = {
             id(child)
@@ -355,12 +372,16 @@ def python_references(root: Path, top: str) -> tuple[dict[str, set[str]], set[st
                 and isinstance(node.op, ast.Div)
                 and id(node) not in inner_div
             ):
-                for seg in _div_chain(node) or []:
+                for seg in _div_chain(node, env) or []:
                     refs[seg].add(rel)
+                    path_refs[seg].add(rel)
             elif isinstance(node, ast.Call) and _call_name(node) in PATH_CALLS:
                 for arg in [*node.args, *(k.value for k in node.keywords)]:
                     if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                         path_context.add(id(arg))
+                    if isinstance(arg, (ast.Constant, ast.Name, ast.BinOp)):
+                        for seg in _div_chain(arg, env) or []:
+                            path_refs[seg].add(rel)
             if isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Constant):
                 if isinstance(node.slice.value, str):
                     read_keys.add(node.slice.value)
@@ -385,7 +406,7 @@ def python_references(root: Path, top: str) -> tuple[dict[str, set[str]], set[st
                 v = node.value
                 if "/" in v or v.endswith(DATA_SUFFIXES) or id(node) in path_context:
                     refs[v].add(rel)
-    return refs, read_keys
+    return refs, read_keys, path_refs
 
 
 def _norm(literal: str, tree: str) -> str:
@@ -444,16 +465,16 @@ def references_to(rel_in_tree: str, tree: str, refs: dict[str, set[str]]) -> set
 def named_references(
     rel_in_tree: str, tree: str, refs: dict[str, set[str]]
 ) -> set[str]:
-    """Files that name ``tree/rel_in_tree`` itself: its exact path, or its
-    distinctive file name. Directory sweeps, globs and parametrised joins
+    """Files that name ``tree/rel_in_tree`` itself: its full path. Directory sweeps, globs and parametrised joins
     (``decisions / f"{adr}.md"``) are not a reference to this file."""
     hits: set[str] = set()
-    name = Path(rel_in_tree).name
     for literal, users in refs.items():
         if "*" in literal or literal.endswith(PARAM):
             continue
         cand = _norm(literal, tree)
-        if cand == rel_in_tree or (cand == name and len(name) > 12):
+        # The full tree-relative path, not a bare file name: ``seed_dir /
+        # "assignments.yaml"`` reads that name in whatever directory it is given.
+        if cand == rel_in_tree and ("/" in cand or "/" not in rel_in_tree):
             hits |= users
     return hits
 
@@ -702,8 +723,8 @@ def prose_lines(text: str, rel: str, prose_keys: set[str], loaded: bool) -> int:
 
 def build(root: Path, audit: dict, findings: dict[str, int] | None) -> list[list[str]]:
     rows: list[list[str]] = []
-    src_refs, read_keys = python_references(root, "src")
-    test_refs, _ = python_references(root, "tests")
+    src_refs, read_keys, src_paths = python_references(root, "src")
+    test_refs, _, test_paths = python_references(root, "tests")
     prose_keys = {k for k in PROSE_KEY_CANDIDATES if k not in read_keys}
 
     # rules
@@ -753,6 +774,7 @@ def build(root: Path, audit: dict, findings: dict[str, int] | None) -> list[list
                 mapping[0] if mapping else "",
                 "",
                 "",
+                "",
             ]
         )
 
@@ -777,6 +799,7 @@ def build(root: Path, audit: dict, findings: dict[str, int] | None) -> list[list
                 ";".join(sorted(users)),
                 "",
                 "",
+                "",
             ]
         )
 
@@ -794,12 +817,26 @@ def build(root: Path, audit: dict, findings: dict[str, int] | None) -> list[list
         key = adr["key"] if adr else None
         by_intent = citations(rel, intent_texts, key)
         by_specs = citations(rel, spec_texts, key)
-        # STRICT_USE: a specific src/ or tests/ file reads this file by name.
+        # STRICT_USE: a specific src/ or tests/ file opens this file by its
+        # full path (the literal reaches a path operation, not just a string).
         # Not use: the namespace manifest (it lists every file), folder
         # sweeps, and citations from .intent/ or other .specs/ files.
         strict = sorted(
-            named_references(inner, ".specs", src_refs)
-            | named_references(inner, ".specs", test_refs)
+            named_references(inner, ".specs", src_paths)
+            | named_references(inner, ".specs", test_paths)
+        )
+        # .intent/ files that need this file: its full path in law data (not
+        # the register MANIFEST, the append-only ledger or prose .md), or its
+        # file name in a rule (a rule citing it as the doctrine it retains).
+        requires = sorted(
+            f
+            for f, body in intent_texts.items()
+            if f != MANIFEST
+            and f.endswith((".yaml", ".yml", ".json"))
+            and (
+                rel in body
+                or (f.startswith(".intent/rules/") and Path(rel).name in body)
+            )
         )
         detail = ""
         if by_intent == {MANIFEST}:
@@ -836,6 +873,7 @@ def build(root: Path, audit: dict, findings: dict[str, int] | None) -> list[list
                 ";".join(sorted(ev)),
                 "true" if strict else "false",
                 KEEP.get(rel, ""),
+                ";".join(requires),
             ]
         )
 
@@ -912,8 +950,8 @@ def _cut_mapping(root: Path, mapping_file: str, rule_id: str) -> None:
 def _strict(root: Path, rel: str) -> bool:
     inner = rel[len(".specs/") :]
     return bool(
-        named_references(inner, ".specs", python_references(root, "src")[0])
-        | named_references(inner, ".specs", python_references(root, "tests")[0])
+        named_references(inner, ".specs", python_references(root, "src")[2])
+        | named_references(inner, ".specs", python_references(root, "tests")[2])
     )
 
 
@@ -953,6 +991,19 @@ def self_test_strict(root: Path) -> None:
             f'    return Path("{target}").read_text()\n'
         )
         checks.append(("named read: strict becomes true", _strict(copy, target)))
+        # a read through named constants joined later (the Trial 0 pattern)
+        (copy / "src" / "zz_selftest_named.py").unlink()
+        inner = target[len(".specs/") :]
+        head, _, tail = inner.rpartition("/")
+        (copy / "tests" / "test_zz_selftest_joined.py").write_text(
+            "from pathlib import Path\n\n"
+            f'BASE = Path("root") / ".specs" / "{head}"\n'
+            f'NAME = "{tail}"\n\n\n'
+            "def test_read() -> None:\n"
+            "    for rel in (NAME,):\n"
+            "        assert (BASE / rel).read_text()\n"
+        )
+        checks.append(("joined constants: strict becomes true", _strict(copy, target)))
     for label, ok in checks:
         print(f"strict {target}: {label}: {'ok' if ok else 'FAILED'}")
     if not all(ok for _label, ok in checks):

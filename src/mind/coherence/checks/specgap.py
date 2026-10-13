@@ -28,8 +28,6 @@ import yaml
 
 from shared.infrastructure.intent.law_roots import (
     intent_root_for,
-    law_relpath,
-    specs_root_for,
 )
 
 from .base import CoherenceCandidate
@@ -39,6 +37,7 @@ if TYPE_CHECKING:
     from shared.governance.coherence_harvester import NormativeMarkerRegister
 
 
+_UR_FILE = "CORE-USER-REQUIREMENTS.md"
 _UR_HEADING = re.compile(r"^###\s+(UR-\d{2}):\s*(.+?)\s*$", re.MULTILINE)
 
 
@@ -160,13 +159,13 @@ class SpecGapCheck:
         return data.get("phases", {}) or {}
 
     def _extract_ur_paragraphs(self) -> list[tuple[str, str, str]]:
-        path = (
-            specs_root_for(self._repo_root) / "northstar" / "CORE-USER-REQUIREMENTS.md"
-        )
+        # Package data: the requirements are read by this check, so they ship
+        # with it rather than living in the human record under .specs/.
+        path = Path(__file__).resolve().parents[1] / "data" / _UR_FILE
         if not path.exists():
             return []
         content = path.read_text(encoding="utf-8")
-        rel = law_relpath(self._repo_root, path)
+        rel = f"src/mind/coherence/data/{_UR_FILE}"
         matches = list(_UR_HEADING.finditer(content))
         result: list[tuple[str, str, str]] = []
         for i, m in enumerate(matches):

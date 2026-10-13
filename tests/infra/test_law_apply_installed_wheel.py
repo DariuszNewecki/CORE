@@ -47,6 +47,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DIST_DIR = REPO_ROOT / "dist"
 PROPOSAL_ID = "0001-wheel-test"
 TARGET = ".specs/registers/lessons-register.md"
+# The governed file the proposal changes; placed into the scratch copy so the
+# test does not depend on any particular .specs/ file in the repository.
+TARGET_SOURCE = Path(__file__).resolve().parent / "fixtures" / "lessons-register.md"
 COPIED = (".intent", ".specs", "CLAUDE.md")
 # Linked like law apply's scratch tree links them; never var/, .git, secrets.
 NOT_LINKED = {".git", ".claude", ".venv", "var", ".secrets", "dist", "work", "reports"}
@@ -152,6 +155,8 @@ def world(tmp_path: Path, installed: Path) -> dict[str, Path]:
             and not entry.name.startswith((".env", ".mypy", ".pytest", ".ruff", ".cov"))
         ):
             (repo / entry.name).symlink_to(entry)
+    (repo / TARGET).parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(TARGET_SOURCE, repo / TARGET)
     (repo / ".env").write_text("DATABASE_URL=postgresql://nobody@nowhere/none\n")
     (repo / ".env").chmod(0)
     proposal = repo / "var" / "law-proposals" / PROPOSAL_ID
@@ -224,7 +229,7 @@ def _stubbed(w: dict[str, Path]) -> list[str]:
 
 
 def _assert_untouched(w: dict[str, Path]) -> None:
-    assert (w["repo"] / TARGET).read_bytes() == (REPO_ROOT / TARGET).read_bytes()
+    assert (w["repo"] / TARGET).read_bytes() == TARGET_SOURCE.read_bytes()
     # The repository's own ledger (law 0024 onward) is copied in; untouched means
     # byte-identical to it, or still absent where the copy has none.
     ledger = w["repo"] / ".intent" / "custody" / "ledger.jsonl"

@@ -1,5 +1,5 @@
 # tests/proof_index/test_attestation_index_integrity.py
-"""Integrity + freshness meta-check for .specs/attestations/proof-index.yaml (#798).
+"""Integrity + freshness meta-check for tests/proof_index/proof-index.yaml (#798).
 
 Runs without PostgreSQL. FAIL (blocking) on structural defects: malformed YAML,
 unknown evidence mode, a referenced test file that does not exist, or an
@@ -17,7 +17,7 @@ import yaml
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_INDEX = _REPO_ROOT / ".specs/attestations/proof-index.yaml"
+_INDEX = Path(__file__).resolve().parent / "proof-index.yaml"
 _VALID_MODES = {"ci-test", "attestation-only", "split"}
 _ATTESTATION_FIELDS = {"reason", "status", "last_attested", "attested_by", "result"}
 
