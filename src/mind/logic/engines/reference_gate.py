@@ -42,7 +42,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from shared.infrastructure.intent.intent_repository import IntentRepository
-from shared.infrastructure.intent.law_roots import intent_root_for
+from shared.infrastructure.intent.law_roots import (
+    intent_root_for,
+    law_path,
+    law_relpath,
+)
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 from shared.path_resolver import PathResolver
@@ -147,10 +151,10 @@ def find_dangling_references(repo_root: Path) -> list[AuditFinding]:
 
 
 def _rel(path: Path, repo_root: Path) -> str:
-    try:
-        return str(path.resolve().relative_to(repo_root.resolve()))
-    except ValueError:
-        return str(path)
+    # Under D2 the declaring file lives beside the clone, not inside it; name
+    # it the way the repository does (``.intent/...``) so a finding keeps its
+    # subject across the cutover instead of reappearing under /opt/core/law.
+    return law_relpath(repo_root, path)
 
 
 def _flow_action_refs(
@@ -181,7 +185,7 @@ def _test_coverage_files(
     return [
         (path, "include_files", f, "does not exist")
         for f in doc.get("include_files") or []
-        if isinstance(f, str) and not (repo_root / f).exists()
+        if isinstance(f, str) and not law_path(repo_root, f).exists()
     ]
 
 
@@ -196,7 +200,7 @@ def _mapping_entry_points(
         for rule_id, mapping in mappings.items():
             params = (mapping or {}).get("params") or {}
             for ep in params.get("entry_points") or []:
-                if isinstance(ep, str) and not (repo_root / ep).exists():
+                if isinstance(ep, str) and not law_path(repo_root, ep).exists():
                     out.append(
                         (path, f"{rule_id}.params.entry_points", ep, "does not exist")
                     )
@@ -257,7 +261,7 @@ def _namespace_manifest_paths(
         if isinstance(entry, dict)
         and isinstance(entry.get("path"), str)
         and entry["path"].startswith(".intent/")
-        and not (repo_root / entry["path"]).exists()
+        and not law_path(repo_root, entry["path"]).exists()
     ]
 
 

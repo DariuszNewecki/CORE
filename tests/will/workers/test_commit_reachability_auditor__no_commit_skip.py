@@ -36,6 +36,7 @@ def _make_worker(
     git_service = AsyncMock()
     # Every sha is unreachable in this fixture -- the only thing that decides
     # whether a finding is posted is the pre == post exemption.
+    git_service.has_commit = AsyncMock(return_value=True)
     git_service.is_commit_on_branch = AsyncMock(return_value=False)
     git_service.get_commit_meta = AsyncMock(return_value={"commit_subject": "x"})
 
@@ -88,6 +89,7 @@ async def test_run_skips_nothing_to_commit_rows_and_reports_count() -> None:
         "orphans_detected": 1,
         "suppressed": 0,
         "no_commit_skipped": 2,
+        "not_in_store_skipped": 0,
     }
 
 

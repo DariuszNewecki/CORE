@@ -253,7 +253,7 @@ def _validate_authoritative_path(
             f"{source} term '{term}': authoritative_paper '{path}' must "
             f"start with one of {list(_GOVERNED_ROOTS)} followed by '/'."
         ]
-    if not (repo_root / path).is_file():
+    if not law_path(repo_root, path).is_file():
         return [
             f"{source} term '{term}': authoritative_paper '{path}' does not "
             "resolve to an existing file."
