@@ -51,3 +51,11 @@ poetry run core-admin law check-tree  # validate .intent/ and .specs/
 - A change reaches main only as a pull request that the governor merges.
 - Record decisions in the commit message, not in new documents.
 - Reports: outcome first, at most 5 lines, no narration.
+- Never ask the governor to approve law or CLAUDE.md text in chat: open the PR;
+  the merge is the approval.
+- Never ask whether to proceed with work the governor asked for, or whether to push
+  your own branch: run the offline audit, push, open the PR. Fix red CI before reporting.
+- Branch work happens in a worktree under `var/tmp/wt-*`. Read-only git, `gh` and
+  `core-admin` status queries need no permission.
+- The governor decides only: design and policy choices, pushes or releases outside a PR,
+  credentials, live-database writes, and stopping running processes.
