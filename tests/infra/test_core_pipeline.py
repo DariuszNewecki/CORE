@@ -51,8 +51,14 @@ class FakeHost(cp.Host):
         self.issues: list[dict] = []
         self.same_tree = True
         self.ci_asked: list[str] = []
+        self.ls_remote = 0
+        self.api_heads = 0
 
     def run(self, cmd):
+        if cmd[:2] == ["git", "ls-remote"]:
+            self.ls_remote += 1
+            out = f"{self.head}\trefs/heads/main\n".encode() if self.head else b""
+            return subprocess.CompletedProcess(cmd, 0, out, b"")
         self.calls.append(list(cmd))
         key = (
             "rollback"
@@ -68,6 +74,7 @@ class FakeHost(cp.Host):
             self.issues.append(payload)
             return {"html_url": "https://github.com/x/issues/1"}
         if url.endswith("/branches/main"):
+            self.api_heads += 1
             return {"commit": {"sha": self.head}}
         if url.endswith("/pulls"):
             # As GitHub answers: the per-commit list carries no merged_by.
@@ -264,3 +271,30 @@ def test_an_up_to_date_pr_is_covered_by_its_own_ci_run(world) -> None:
     _tick(world)
     assert host.ci_asked == [HEAD]
     assert _privileged(host)[0][-2:] == ["--tested-as", HEAD]
+
+
+def test_the_head_check_costs_no_api_call(world) -> None:
+    """Every tick reads the branch head; the unauthenticated API allows 60
+    calls an hour, and on 2026-10-13 a day of merges ran out of them and
+    stalled a deploy. git ls-remote has no such limit."""
+    host, _ = world
+    host.head = LIVE  # nothing new: an idle tick
+    status = _tick(world)
+    assert status["state"] == "idle"
+    assert host.ls_remote == 1
+    assert host.api_heads == 0
+
+
+def test_the_api_answers_when_git_cannot(world) -> None:
+    host, _ = world
+    real_run = host.run
+
+    def failing_ls_remote(cmd):
+        if cmd[:2] == ["git", "ls-remote"]:
+            return subprocess.CompletedProcess(cmd, 128, b"", b"fatal")
+        return real_run(cmd)
+
+    host.run = failing_ls_remote  # type: ignore[method-assign]
+    host.head = LIVE
+    assert _tick(world)["state"] == "idle"
+    assert host.api_heads == 1
