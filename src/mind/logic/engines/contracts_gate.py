@@ -705,6 +705,12 @@ def _find_persistence_reach(classes: set[str], src_root: Path) -> set[str]:
     that the class is USED in a write-capable function scope, not that an instance
     of the class is literally passed to the method. Sufficient for the first-pass
     heuristic; full dataflow is deferred per issue #619.
+
+    A write method that persists through SQL rather than the ORM class also
+    counts: when a method named post_finding / post_report / post_heartbeat, or
+    a ``self.`` helper it calls in the same class, inserts into the class's
+    table (``__tablename__``, with or without its schema), the class is
+    reached. That is how the Worker blackboard publisher writes worker_uuid.
     """
     reached: set[str] = set()
     if not classes or not src_root.is_dir():
@@ -743,6 +749,101 @@ def _find_persistence_reach(classes: set[str], src_root: Path) -> set[str]:
             if reached >= classes:
                 return reached  # All found — short-circuit
 
+    missing = classes - reached
+    if missing:
+        reached |= _reached_through_sql(_table_names(missing, src_root), src_root)
+    return reached
+
+
+def _table_names(classes: set[str], src_root: Path) -> dict[str, set[str]]:
+    """{table name (bare and schema-qualified): {governed classes mapped to it}}."""
+    tables: dict[str, set[str]] = {}
+    for py_file in src_root.rglob("*.py"):
+        try:
+            source = py_file.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if "__tablename__" not in source or not any(c in source for c in classes):
+            continue
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            continue
+        for cls in ast.walk(tree):
+            if not isinstance(cls, ast.ClassDef) or cls.name not in classes:
+                continue
+            name, schema = None, None
+            for stmt in cls.body:
+                if not isinstance(stmt, ast.Assign) or len(stmt.targets) != 1:
+                    continue
+                target = stmt.targets[0]
+                if not isinstance(target, ast.Name):
+                    continue
+                if target.id == "__tablename__" and isinstance(
+                    stmt.value, ast.Constant
+                ):
+                    name = stmt.value.value
+                elif target.id == "__table_args__":
+                    for node in ast.walk(stmt.value):
+                        if isinstance(node, ast.Dict):
+                            for k, v in zip(node.keys, node.values):
+                                if (
+                                    isinstance(k, ast.Constant)
+                                    and k.value == "schema"
+                                    and isinstance(v, ast.Constant)
+                                ):
+                                    schema = v.value
+            if isinstance(name, str):
+                tables.setdefault(name.lower(), set()).add(cls.name)
+                if isinstance(schema, str):
+                    tables.setdefault(f"{schema}.{name}".lower(), set()).add(cls.name)
+    return tables
+
+
+def _reached_through_sql(tables: dict[str, set[str]], src_root: Path) -> set[str]:
+    """Classes whose table a persistence write method inserts into by SQL."""
+    reached: set[str] = set()
+    if not tables:
+        return reached
+    insert = re.compile(r"\binsert\s+into\s+([\w.]+)", re.IGNORECASE)
+    for py_file in src_root.rglob("*.py"):
+        try:
+            source = py_file.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if not any(m in source for m in _PERSISTENCE_WRITE_METHODS):
+            continue
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            continue
+        for cls in ast.walk(tree):
+            if not isinstance(cls, ast.ClassDef):
+                continue
+            methods = {
+                n.name: n
+                for n in cls.body
+                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+            }
+            todo = [m for m in methods if m in _PERSISTENCE_WRITE_METHODS]
+            seen: set[str] = set()
+            while todo:
+                name = todo.pop()
+                if name in seen:
+                    continue
+                seen.add(name)
+                for n in ast.walk(methods[name]):
+                    if (
+                        isinstance(n, ast.Call)
+                        and isinstance(n.func, ast.Attribute)
+                        and isinstance(n.func.value, ast.Name)
+                        and n.func.value.id == "self"
+                        and n.func.attr in methods
+                    ):
+                        todo.append(n.func.attr)
+                    elif isinstance(n, ast.Constant) and isinstance(n.value, str):
+                        for table in insert.findall(n.value):
+                            reached |= tables.get(table.lower(), set())
     return reached
 
 
