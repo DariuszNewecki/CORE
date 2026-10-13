@@ -57,4 +57,7 @@
           - "src/body/atomic/tool_runner.py" # git/ruff tool invocation (ADR-109 D2)
 
           - "src/cli/pre_bootstrap_git.py"
+          - "src/body/governance/law_custody/checks.py" # law checks run the release CLI as core-law
+          - "src/body/governance/law_custody/ledger.py" # ssh-keygen signs the custody ledger line
+          - "src/body/sandbox/runner.py" # starts the sandboxed test process
 

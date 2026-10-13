@@ -11,6 +11,13 @@
             - "src/**/*.py"
           excludes:
             - "**/__init__.py"
+            - "src/body/introspection/sync/visitor.py"           # detects deprecation markers
+            - "src/body/introspection/sync/engine.py"            # tracks the deprecated status
+            - "src/will/workers/dead_shim_sensor.py"             # detects dead shims
+            - "src/mind/logic/engines/cli_gate/checks/standard_verbs.py"  # skips hidden deprecated aliases
+            - "src/shared/cli/app_introspection.py"              # skips hidden deprecated aliases
+            - "src/api/v1/project_routes.py"                     # POST /project/docs deprecation, sunset 2027-04-03 (ADR-087)
+            - "src/body/services/grc/gap_analysis_service.py"    # GRCGapAnalysisService alias kept by ADR-121 D7
 
       modernization.dead_shim:
         engine: passive_gate

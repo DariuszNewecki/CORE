@@ -26,10 +26,13 @@ mappings:
         - actions
         - adopt-pack
         - analyze
+        - apply
+        - apply-merge
         - approve
         - audit
         - audit-duplicates
         - author
+        - auto-apply
         - baseline
         - bootstrap
         - build
@@ -37,6 +40,7 @@ mappings:
         - chat
         - check
         - check-imports
+        - check-tree
         - check-ui
         - claim
         - clarity
@@ -47,6 +51,7 @@ mappings:
         - create
         - dashboard
         - delete
+        - digest
         - docs
         - docstrings
         - down
@@ -70,11 +75,11 @@ mappings:
         - ingest
         - inspect
         - legacy
-        - login
-        - logout
         - lint
         - list
         - logging
+        - login
+        - logout
         - migrate
         - new
         - next
@@ -98,6 +103,7 @@ mappings:
         - rewire
         - rewire-imports
         - run
+        - sandbox-check
         - score
         - scout
         - search

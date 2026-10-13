@@ -69,6 +69,10 @@
         "include_runtime": {
             "type": "boolean",
             "description": "Whether to include runtime state context. Default True."
+        },
+        "task_type": {
+            "type": "string",
+            "description": "The caller's task type (e.g. test_generation), used to tailor provider selection. Empty by default."
         }
     }
 }
