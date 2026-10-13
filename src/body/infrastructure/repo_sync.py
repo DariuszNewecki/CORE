@@ -3,7 +3,8 @@
 RepoSync — CORE's clone follows the upstream line (ADR-132 D10 · D2, C2).
 
 Under D2 the services work in their own clone. Commits made elsewhere (the
-governor, the assistant) reach it from the upstream URL — GitHub ``develop``,
+governor, the assistant) reach it from the upstream URL — the branch merges
+land on (``CORE_UPSTREAM_BRANCH``, default ``main``),
 fetched over https, so nothing runs on the upstream's behalf — and only by
 fast-forward:
 
@@ -56,7 +57,7 @@ SyncState = Literal[
     "disabled", "busy", "up_to_date", "fast_forwarded", "ahead", "diverged", "failed"
 ]
 
-UPSTREAM_REF = "refs/remotes/upstream/develop"
+UPSTREAM_BRANCH = "main"
 _JOURNAL_NAME = "repo-sync.json"
 _LOCK_NAME = "repo-sync.lock"
 
@@ -171,6 +172,7 @@ def repo_sync_for(core_context: Any) -> RepoSync:
         core_context.git_service,
         core_context.file_handler,
         settings.CORE_UPSTREAM_URL,
+        settings.CORE_UPSTREAM_BRANCH,
     )
 
 
@@ -183,7 +185,7 @@ class RepoSync:
         git: GitService,
         file_handler: FileHandler,
         upstream_url: str | None,
-        branch: str = "develop",
+        branch: str = UPSTREAM_BRANCH,
     ) -> None:
         self._git = git
         self._fh = file_handler
@@ -242,7 +244,9 @@ class RepoSync:
         try:
             recovered = self.recover()
             head = self._git.get_current_commit()
-            upstream = self._git.fetch_branch(self._url, self._branch, UPSTREAM_REF)
+            upstream = self._git.fetch_branch(
+                self._url, self._branch, f"refs/remotes/upstream/{self._branch}"
+            )
         except SyncRecoveryRefused:
             raise
         except Exception as exc:
