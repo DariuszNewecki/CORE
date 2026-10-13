@@ -64,6 +64,7 @@ from will.audit_violation.filter import (
 )
 from will.audit_violation.normalizer import normalize_audit_findings
 from will.audit_violation.routing import _route_to
+from will.audit_violation.staleness import check_audited_commit
 
 
 logger = getLogger(__name__)
@@ -104,6 +105,8 @@ class AuditViolationSensor(Worker):
     ) -> None:
         super().__init__(declaration_name=declaration_name, repo_root=repo_root)
         self._core_context = core_context
+        # Consecutive cycles that audited a commit behind the merge branch.
+        self._behind_cycles = 0
         self._rule_namespace = rule_namespace
         self._dry_run = dry_run
 
@@ -124,6 +127,9 @@ class AuditViolationSensor(Worker):
         violation as a finding.
         """
         await self.post_heartbeat()
+        audited, self._behind_cycles = await check_audited_commit(
+            self, self._core_context, self._behind_cycles
+        )
 
         # ADR-039: refresh governance and filesystem inputs before
         # resolving rules so content committed since the previous cycle
@@ -165,6 +171,7 @@ class AuditViolationSensor(Worker):
             await self.post_report(
                 subject="audit_violation_sensor.no_data",
                 payload={
+                    **audited.as_payload(),
                     "rule_namespace": self._rule_namespace,
                     "file_count": 0,
                     "artifact_type": artifact_type_id,
@@ -187,6 +194,7 @@ class AuditViolationSensor(Worker):
             await self.post_report(
                 subject="audit_violation_sensor.run.complete",
                 payload={
+                    **audited.as_payload(),
                     "rule_namespace": self._rule_namespace,
                     "rule_ids_resolved": 0,
                     "message": f"No rules found for namespace '{self._rule_namespace}'.",
@@ -256,6 +264,7 @@ class AuditViolationSensor(Worker):
             await self.post_report(
                 subject="audit_violation_sensor.run.complete",
                 payload={
+                    **audited.as_payload(),
                     "rule_namespace": self._rule_namespace,
                     "rule_ids_resolved": len(rule_ids),
                     "violations_found": len(raw_violations),
@@ -352,6 +361,7 @@ class AuditViolationSensor(Worker):
         await self.post_report(
             subject="audit_violation_sensor.run.complete",
             payload={
+                **audited.as_payload(),
                 "rule_namespace": self._rule_namespace,
                 "rule_ids_resolved": len(rule_ids),
                 "violations_found": len(raw_violations),
