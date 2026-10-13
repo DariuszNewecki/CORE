@@ -717,6 +717,36 @@ def test_a_deploy_updates_the_host_scripts_from_the_deployed_commit(
     assert entry["host_scripts_updated"] == ["core-deploy", "core-sandbox-check"]
 
 
+def _deployer(root: Path, dev: Path) -> cd.Deployer:
+    return cd.Deployer(
+        FakeHost(root), cd.Layout(root, root / "sbin"), cd.Options(dev_repo=dev)
+    )
+
+
+# ID: 12677f45-5c87-4150-887e-938cf48f9440
+def test_claude_md_is_copied_to_the_dev_tree_not_applied_as_law(root: Path) -> None:
+    assert "CLAUDE.md" not in cd.GOVERNED_PATHSPECS
+    dev = root / "dev"
+    dev.mkdir()
+    (dev / "CLAUDE.md").write_bytes(b"old\n")
+    deployer = _deployer(root, dev)
+    assert deployer.update_claude_md(SHA) is True
+    target = str(dev / "CLAUDE.md")
+    assert deployer.host.calls[-3:] == [
+        (None, ["cp", "-T", str(root / ".CLAUDE.md.new"), target]),
+        (None, ["chown", "core-law:core-law", target]),
+        (None, ["chmod", "0644", target]),
+    ]
+    assert not (root / ".CLAUDE.md.new").exists()
+    (dev / "CLAUDE.md").write_bytes(PYPROJECT)  # FakeHost's `git show` content
+    assert deployer.update_claude_md(SHA) is False  # already equal
+
+
+# ID: 50de6d93-8c03-454e-92e8-88c5711b0f8d
+def test_claude_md_is_skipped_without_a_dev_tree(root: Path) -> None:
+    assert _deployer(root, root / "absent").update_claude_md(SHA) is False
+
+
 def test_a_switched_back_deploy_updates_no_host_script(root: Path) -> None:
     _with_previous(root)
     host = FakeHost(root)
