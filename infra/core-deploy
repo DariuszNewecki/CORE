@@ -36,8 +36,8 @@ Order (ADR-132 D10 · D2):
  3. build (core-build) and install (root) into releases/<sha>/venv, then
     write core-release.json {sha, wheel_sha256} (the C4 contract);
  3a. law: governed text that changed between the live commit and <sha>
-    (``.intent/`` except custody, ``.specs/``, ``CLAUDE.md``, ``.claude/``
-    settings and hooks) is applied by core-law running the NEW release's
+    (``.intent/`` except custody, ``.specs/``, ``.claude/`` settings and
+    hooks) is applied by core-law running the NEW release's
     ``core-admin law apply-merge`` (no PyPI release involved): the merge on
     GitHub is the approval, recorded in core-law's signed ledger. A refusal
     stops the deploy before anything switched. If the deploy later switches
@@ -110,12 +110,11 @@ HOST_SETUP_PATHS = (
     "infra/core-one-path-setup",
 )
 DEV_REPO = Path("/opt/dev/CORE")
-# Governed text (CLAUDE.md "Governed text"); custody is written by law apply
-# itself and is never carried by a merge.
+# Governed text (governance_paths.yaml governed_text); custody is written by
+# law apply itself and is never carried by a merge.
 GOVERNED_PATHSPECS = (
     ".intent",
     ".specs",
-    "CLAUDE.md",
     ".claude/settings.json",
     ".claude/hooks",
     ":(exclude).intent/custody",
@@ -954,6 +953,34 @@ class Deployer:
             self.say(f"host scripts updated from {sha[:12]}: {', '.join(updated)}")
         return updated
 
+    def update_claude_md(self, sha: str) -> bool:
+        """Make the dev tree's CLAUDE.md equal to the deployed commit's.
+
+        CLAUDE.md is no longer governed text, but core-law-setup still gives it
+        to core-law, so nothing else can write it. Runs after a verified switch;
+        a failure is reported and never undoes the deploy.
+        """
+        target = self.options.dev_repo / "CLAUDE.md"
+        if not self.options.dev_repo.is_dir():
+            return False
+        staged = self.layout.root / ".CLAUDE.md.new"
+        try:
+            data = self.git("show", f"{sha}:CLAUDE.md")
+            if target.is_file() and target.read_bytes() == data:
+                return False
+            staged.write_bytes(data)
+            self.host.run(
+                ["install", "-m", "0644", "-o", LAW_USER, "-g", LAW_USER]
+                + [str(staged), str(target)]
+            )
+        except (Refused, OSError) as exc:
+            self.say(f"CLAUDE.md not updated: {exc}")
+            return False
+        finally:
+            staged.unlink(missing_ok=True)
+        self.say(f"CLAUDE.md updated from {sha[:12]}")
+        return True
+
     # -- entry points ---------------------------------------------------------
 
     def deploy(self, ref: str) -> int:
@@ -1013,12 +1040,14 @@ class Deployer:
             raise Refused(f"{failure}; no previous release to switch back to")
 
         scripts = self.update_host_scripts(sha)
+        claude_md = self.update_claude_md(sha)
         self.ledger(
             {
                 "action": "deploy",
                 "sha": sha,
                 "ref": ref,
                 "host_scripts_updated": scripts,
+                "claude_md_updated": claude_md,
                 "wheel_sha256": wheel_sha,
                 "previous": previous,
                 "migrations_applied": migrated,
