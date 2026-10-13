@@ -1,0 +1,210 @@
+#!/bin/bash
+# infra/core-one-path-setup — host setup for the one-path flow (governor ruling 2026-10-12).
+#
+# After this, a change goes live when the governor merges its pull request into main on GitHub:
+# the runner (account core-runner, on a 2-minute timer) deploys it with core-deploy, which also
+# applies merged law through core-law using the deployed commit's own code.
+#
+# Usage, as darek, from /opt/dev/CORE:
+#   sudo bash infra/core-one-path-setup --ref <sha on GitHub> --dry-run
+#   sudo bash infra/core-one-path-setup --ref <sha on GitHub>
+#
+# The installed scripts update themselves after each deploy (core-deploy's
+# self-update). Run this again only when a merge changes it, infra/systemd/ or the
+# other setup scripts: core-deploy then refuses that merge and names this command.
+#
+# What it changes on the host (each step is skipped when already right):
+#  1. installs /usr/local/sbin/{core-deploy,core-pipeline,core-sandbox-check} from GitHub at <sha>
+#     (never from the development tree), root:root 0755, printing each sha256;
+#  2. creates the system account core-runner (no login shell, locked password, own group only);
+#  3. /var/lib/core-pipeline (core-runner 0755): the runner's state, logs and status.json;
+#  4. /etc/core/pipeline.conf (root:core-runner 0640): repository, the governor's GitHub login,
+#     branch main; and, if you paste one, a GitHub token that may open issues
+#     (/etc/core/pipeline-github-token, root:core-runner 0640);
+#  5. /opt/core/etc/deploy.conf: DEPLOY_BRANCH=main (core-deploy then deploys only commits on main),
+#     and BACKUP_COMMAND when missing (the dump core-deploy takes before a migration);
+#  6. /etc/sudoers.d/core-runner, checked with visudo: core-runner may run exactly
+#     /usr/local/sbin/core-deploy as root and /usr/local/sbin/core-sandbox-check (no arguments)
+#     as core, without a password. Nothing else, no shell;
+#  7. /etc/sudoers.d/core-law: your manual `law apply` now runs the deployed release's core-admin
+#     (/opt/core/current/venv) instead of the PyPI venv; still your password and the typed id;
+#  8. core-pipeline.service + core-pipeline.timer (every 2 minutes), enabled and started;
+#  9. probes: what core-runner may run with sudo, and that it cannot read /opt/core/etc.
+set -euo pipefail
+
+REPO="DariuszNewecki/CORE"
+GOVERNOR_GITHUB="DariuszNewecki"
+REF=""
+DRY=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --ref) REF="$2"; shift 2 ;;
+    --governor-github) GOVERNOR_GITHUB="$2"; shift 2 ;;
+    --dry-run) DRY=1; shift ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+[[ $EUID -eq 0 ]] || { echo "run it as root (sudo)" >&2; exit 1; }
+[[ "$REF" =~ ^[0-9a-f]{40}$ ]] || { echo "--ref must be a full 40-character sha" >&2; exit 1; }
+
+say() { echo "$*"; }
+do_() { if [[ $DRY -eq 1 ]]; then echo "  would: $*"; else echo "  do: $*"; "$@"; fi; }
+write_file() {  # path owner group mode  (content on stdin)
+  local path="$1" owner="$2" group="$3" mode="$4" tmp
+  tmp="$(mktemp)"; cat > "$tmp"
+  if [[ -f "$path" ]] && cmp -s "$tmp" "$path"; then
+    say "  ok: $path"
+  elif [[ $DRY -eq 1 ]]; then
+    say "  would write: $path ($owner:$group $mode, sha256 $(sha256sum "$tmp" | cut -c1-16))"
+  else
+    install -o "$owner" -g "$group" -m "$mode" "$tmp" "$path"
+    say "  wrote: $path"
+  fi
+  rm -f "$tmp"
+}
+
+say "1. scripts from GitHub at $REF"
+for name in core-deploy core-pipeline core-sandbox-check; do
+  url="https://raw.githubusercontent.com/$REPO/$REF/infra/$name"
+  body="$(mktemp)"
+  curl -fsSL "$url" -o "$body"
+  say "  $name sha256 $(sha256sum "$body" | cut -d' ' -f1)"
+  write_file "/usr/local/sbin/$name" root root 0755 < "$body"
+  rm -f "$body"
+done
+
+say "2. account core-runner"
+if id core-runner >/dev/null 2>&1; then
+  extra="$(id -nG core-runner | tr ' ' '\n' | grep -vx core-runner || true)"
+  [[ -z "$extra" ]] || { echo "core-runner is in other groups: $extra" >&2; exit 1; }
+  say "  ok: exists, own group only"
+else
+  do_ useradd --system --user-group --no-create-home --home-dir /var/lib/core-pipeline \
+      --shell /usr/sbin/nologin core-runner
+  do_ passwd --lock core-runner
+fi
+
+say "3. /var/lib/core-pipeline"
+do_ install -d -o core-runner -g core-runner -m 0755 /var/lib/core-pipeline
+
+say "4. /etc/core/pipeline.conf"
+do_ install -d -o root -g root -m 0755 /etc/core
+write_file /etc/core/pipeline.conf root core-runner 0640 <<EOF
+# one-path flow (governor ruling 2026-10-12); read by core-pipeline as core-runner
+GITHUB_REPO=$REPO
+GOVERNOR_GITHUB=$GOVERNOR_GITHUB
+BRANCH=main
+TOKEN_FILE=/etc/core/pipeline-github-token
+EOF
+if [[ -f /etc/core/pipeline-github-token ]]; then
+  say "  ok: GitHub token present"
+elif [[ $DRY -eq 1 ]]; then
+  say "  would ask for a GitHub token (issues: write) for failure reports; Enter skips"
+else
+  read -r -s -p "  GitHub token that may open issues (Enter to skip): " token; echo
+  if [[ -n "$token" ]]; then
+    printf '%s\n' "$token" | write_file /etc/core/pipeline-github-token root core-runner 0640
+  else
+    say "  skipped: failures will be written to status.json only"
+  fi
+fi
+
+say "5. /opt/core/etc/deploy.conf: DEPLOY_BRANCH=main"
+if grep -qx 'DEPLOY_BRANCH=main' /opt/core/etc/deploy.conf 2>/dev/null; then
+  say "  ok"
+elif [[ $DRY -eq 1 ]]; then
+  say "  would set DEPLOY_BRANCH=main"
+else
+  sed -i '/^DEPLOY_BRANCH=/d' /opt/core/etc/deploy.conf
+  echo 'DEPLOY_BRANCH=main' >> /opt/core/etc/deploy.conf
+  say "  set"
+fi
+if grep -q '^BACKUP_COMMAND=.*{out}' /opt/core/etc/deploy.conf 2>/dev/null; then
+  say "  ok: BACKUP_COMMAND present"
+else
+  # The database dump core-deploy takes before a migration. Built from the
+  # services' own DATABASE_URL (values never printed); the server's own
+  # pg_dump (in its container) when there is one, so versions always match.
+  url="$(grep -E '^DATABASE_URL=' /opt/core/etc/secrets.env | head -1 | cut -d= -f2- | tr -d '"')"
+  url="${url/postgresql+asyncpg:/postgresql:}"
+  read -r db_user db_name < <(python3 -c 'import sys,urllib.parse as u; p=u.urlsplit(sys.argv[1]); print(p.username, p.path.lstrip("/"))' "$url")
+  if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx core_postgres_db; then
+    backup="docker exec core_postgres_db pg_dump -U $db_user -Fc $db_name > {out}"
+    how="pg_dump inside the core_postgres_db container"
+  else
+    backup="pg_dump -Fc --dbname=$url > {out}"
+    how="the host's pg_dump"
+  fi
+  if [[ $DRY -eq 1 ]]; then
+    say "  would add BACKUP_COMMAND ($how, database $db_name)"
+  else
+    printf 'BACKUP_COMMAND=%s\n' "$backup" >> /opt/core/etc/deploy.conf
+    say "  added BACKUP_COMMAND ($how, database $db_name)"
+  fi
+fi
+
+say "6. /etc/sudoers.d/core-runner"
+rules="$(mktemp)"
+cat > "$rules" <<'EOF'
+# one-path flow (governor ruling 2026-10-12). Installed by infra/core-one-path-setup.
+# core-runner deploys merged commits and probes them. Nothing else.
+Defaults:core-runner env_reset, !requiretty
+core-runner ALL=(root) NOPASSWD: /usr/local/sbin/core-deploy
+core-runner ALL=(core) NOPASSWD: /usr/local/sbin/core-sandbox-check ""
+EOF
+visudo -c -q -f "$rules"
+write_file /etc/sudoers.d/core-runner root root 0440 < "$rules"
+rm -f "$rules"
+
+say "7. /etc/sudoers.d/core-law: manual law apply runs the deployed release"
+if grep -q '/opt/core/current/venv/bin/core-admin law apply' /etc/sudoers.d/core-law; then
+  say "  ok"
+else
+  rules="$(mktemp)"
+  sed 's#/opt/core-law/venv/bin/core-admin law apply#/opt/core/current/venv/bin/core-admin law apply#' \
+    /etc/sudoers.d/core-law > "$rules"
+  visudo -c -q -f "$rules"
+  write_file /etc/sudoers.d/core-law root root 0440 < "$rules"
+  rm -f "$rules"
+fi
+
+say "8. core-pipeline timer"
+write_file /etc/systemd/system/core-pipeline.service root root 0644 <<'EOF'
+# one-path flow (governor ruling 2026-10-12). Installed by infra/core-one-path-setup.
+[Unit]
+Description=CORE post-merge runner: make the governor's merges into main live
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=core-runner
+Group=core-runner
+ExecStart=/usr/local/sbin/core-pipeline
+UMask=0022
+SyslogIdentifier=core-pipeline
+EOF
+write_file /etc/systemd/system/core-pipeline.timer root root 0644 <<'EOF'
+[Unit]
+Description=CORE post-merge runner, every 2 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+
+[Install]
+WantedBy=timers.target
+EOF
+do_ systemctl daemon-reload
+do_ systemctl enable --now core-pipeline.timer
+
+say "9. probes"
+if [[ $DRY -eq 1 ]]; then
+  say "  would: list core-runner's sudo rights; check it cannot read /opt/core/etc"
+else
+  sudo -l -U core-runner | sed -n '/may run/,$p'
+  if runuser -u core-runner -- ls /opt/core/etc >/dev/null 2>&1; then
+    echo "  FAILED: core-runner can read /opt/core/etc" >&2; exit 1
+  fi
+  say "  denied as expected: core-runner reads /opt/core/etc"
+fi
+say "$([[ $DRY -eq 1 ]] && echo 'plan only; nothing changed.' || echo 'done.')"

@@ -265,31 +265,35 @@ def test_symlink_inside_destination_is_refused_too(tmp_path: Path, key: Path) ->
 def test_a_file_in_a_read_only_directory_is_written_in_place(
     tmp_path: Path, key: Path
 ) -> None:
-    # The repository root is root-owned and sticky: core-law owns CLAUDE.md but
+    # The directory is not writable: core-law owns .claude/settings.json but
     # cannot create files beside it.
     repo = _repo(tmp_path)
     proposal = repo / "var" / "law-proposals" / "0007-test" / "files"
-    (proposal / "CLAUDE.md").write_text("new contract\n")
-    (repo / "CLAUDE.md").write_text("old contract\n")
+    (proposal / ".claude").mkdir()
+    (proposal / ".claude" / "settings.json").write_text('{"new": 1}\n')
+    (repo / ".claude").mkdir()
+    (repo / ".claude" / "settings.json").write_text('{"old": 1}\n')
     prepared = _prepare(repo, tmp_path, [repo])
-    repo.chmod(0o555)
+    (repo / ".claude").chmod(0o555)
     try:
         outcome = service.apply_prepared(
             prepared, approver="darek", key_path=key, custodian=ME
         )
     finally:
-        repo.chmod(0o755)
+        (repo / ".claude").chmod(0o755)
     assert outcome.ok(), [o.failed for o in outcome.outcomes]
-    assert (repo / "CLAUDE.md").read_text() == "new contract\n"
-    assert not list(repo.glob(".CLAUDE.md*"))
+    assert (repo / ".claude" / "settings.json").read_text() == '{"new": 1}\n'
+    assert not list((repo / ".claude").glob(".settings.json*"))
 
 
 def test_release_law_receives_only_intent_and_specs(tmp_path: Path, key: Path) -> None:
-    """CLAUDE.md is the development tree's alone; release law never holds it."""
+    """Release law never holds .claude/settings.json; only the dev tree does."""
     repo = _repo(tmp_path)
-    (repo / "CLAUDE.md").write_text("old contract\n")
+    (repo / ".claude").mkdir()
+    (repo / ".claude" / "settings.json").write_text('{"old": 1}\n')
     proposal = repo / "var" / "law-proposals" / "0007-test" / "files"
-    (proposal / "CLAUDE.md").write_text("new contract\n")
+    (proposal / ".claude").mkdir()
+    (proposal / ".claude" / "settings.json").write_text('{"new": 1}\n')
     law = tmp_path / "law"
     (law / ".specs").mkdir(parents=True)
     (law / ".intent" / "custody").mkdir(parents=True)
@@ -303,8 +307,8 @@ def test_release_law_receives_only_intent_and_specs(tmp_path: Path, key: Path) -
         law.chmod(0o755)
 
     assert outcome.ok(), [o.failed for o in outcome.outcomes]
-    assert (repo / "CLAUDE.md").read_text() == "new contract\n"
-    assert not (law / "CLAUDE.md").exists()
+    assert (repo / ".claude" / "settings.json").read_text() == '{"new": 1}\n'
+    assert not (law / ".claude").exists()
     assert (law / ".specs" / "b.md").read_text() == "new b\n"
-    assert "CLAUDE.md" in outcome.outcomes[0].written
-    assert "CLAUDE.md" not in outcome.outcomes[1].written
+    assert ".claude/settings.json" in outcome.outcomes[0].written
+    assert ".claude/settings.json" not in outcome.outcomes[1].written
