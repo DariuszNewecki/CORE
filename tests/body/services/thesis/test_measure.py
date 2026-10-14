@@ -391,3 +391,28 @@ def test_transcript_trips(tmp_path: Path) -> None:
         "commit refused by a hook": 1,
         "stop-hook rewrite": 1,
     }
+
+
+async def test_transcripts_behind_a_closed_directory_are_unavailable(
+    tmp_path: Path,
+) -> None:
+    """The daemon's user may not enter the transcripts' parent directory:
+    stat() then raises PermissionError. The day is still measured, with the
+    transcripts listed as unavailable (2026-10-14: the sensor crashed)."""
+    closed = tmp_path / "closed"
+    (closed / "projects").mkdir(parents=True)
+    closed.chmod(0)
+    try:
+        taken = await measure(
+            date(2026, 10, 15),
+            _FakeGitHub([], []),
+            _git(),
+            "ref",
+            closed / "projects",
+            with_convergence=False,
+            governor=GOV,
+        )
+    finally:
+        closed.chmod(0o700)
+    assert taken.measures.waste_per_change is None
+    assert any("claude code transcripts" in u for u in taken.unavailable)

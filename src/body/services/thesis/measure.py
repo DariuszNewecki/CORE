@@ -500,7 +500,10 @@ async def measure(
     except GitHubUnavailable as exc:
         unavailable.append(f"github pull requests: {exc}")
         trips = Counter()
-    readable = transcripts.is_dir() and os.access(transcripts, os.R_OK | os.X_OK)
+    try:
+        readable = transcripts.is_dir() and os.access(transcripts, os.R_OK | os.X_OK)
+    except OSError:  # a parent the daemon's user may not enter
+        readable = False
     if not readable:
         unavailable.append(f"claude code transcripts: {transcripts} not readable")
     if readable and not any(u.startswith("github") for u in unavailable):
