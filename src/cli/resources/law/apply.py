@@ -60,6 +60,12 @@ console = Console()
 # when it exists; the report and the ledger line name every destination.
 RELEASE_LAW_ROOT = Path("/opt/core/law")
 
+# core-deploy names the code of the merge commit here (2026-10-14): law is
+# checked against the code it comes with, not the development checkout. An
+# environment variable, not an option: a rollback runs an older release's
+# core-admin, which ignores an unknown variable but rejects an unknown option.
+CODE_TREE_ENV = "CORE_LAW_CODE_TREE"
+
 
 @app.command("check-tree")
 @command_meta(
@@ -456,6 +462,7 @@ async def law_apply_merge(
         raise typer.Exit(1)
     repo_root = repo.resolve()
     destinations = [repo_root] + ([release_law] if release_law.is_dir() else [])
+    code_tree = os.environ.get(CODE_TREE_ENV) or None
     try:
         prepared = prepare(
             repo_root=repo_root,
@@ -463,6 +470,7 @@ async def law_apply_merge(
             proposal_id=proposal_id,
             destinations=destinations,
             scratch_parent=Path.home() / "scratch",
+            code_tree=Path(code_tree) if code_tree else None,
         )
     except (ProposalError, CustodyError, CheckRunError) as exc:
         console.print(f"REFUSED -- nothing written: {exc}")

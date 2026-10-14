@@ -94,11 +94,18 @@ def prepare(
     scratch_parent: Path,
     custodian: str = CUSTODIAN_ACCOUNT,
     run_checks: Callable[[Path], dict[str, Any]] = run_checks_in_child,
+    code_tree: Path | None = None,
 ) -> PreparedApply:
-    """Read the proposal once, check it on a scratch tree, compute warnings."""
+    """Read the proposal once, check it on a scratch tree, compute warnings.
+
+    *code_tree*, when given, is the code the proposal is checked against
+    (the commit it comes from); otherwise the code in *repo_root*.
+    """
     proposal = read_proposal(proposals_dir, proposal_id, load_governed_text_paths())
     old = read_current(repo_root, proposal.paths())
-    tree = build_scratch_tree(repo_root, scratch_parent, proposal, custodian=custodian)
+    tree = build_scratch_tree(
+        repo_root, scratch_parent, proposal, custodian=custodian, code_tree=code_tree
+    )
     try:
         report = run_checks(tree)
     finally:

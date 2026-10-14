@@ -358,3 +358,102 @@ def test_without_a_durable_ledger_the_repository_ledger_is_read(tmp_path: Path) 
 
     assert durable_ledger() is None  # conftest points at a missing directory
     assert ledger_file(tmp_path) == tmp_path / LEDGER_REL
+
+
+def _module_checks(tree: Path) -> dict[str, Any]:
+    """The reference gate's question, asked of the scratch tree's src/."""
+    if (tree / "src" / "will" / "workers" / "new_sensor.py").exists():
+        return {"refusals": [], "checks": {"references": "ok"}}
+    message = (
+        "implementation.module 'will.workers.new_sensor' is not a module under src/"
+    )
+    return {"refusals": [{"check": "references", "message": message}], "checks": {}}
+
+
+def _code_tree(tmp_path: Path) -> Path:
+    """The merge commit's code: it has the module the dev tree lacks."""
+    code = tmp_path / "code"
+    (code / "src" / "will" / "workers").mkdir(parents=True)
+    (code / "src" / "will" / "workers" / "new_sensor.py").write_text("X = 1\n")
+    (code / ".specs").mkdir()
+    (code / ".specs" / "a.md").write_text("code tree's copy, never used\n")
+    return code
+
+
+def test_law_is_checked_against_the_code_tree_when_given(tmp_path: Path) -> None:
+    """2026-10-13: 354d17fd's worker law was refused because its module was
+    looked up in the lagging development checkout, not in 354d17fd."""
+    repo = _repo(tmp_path)
+    refused = _prepare(repo, tmp_path, [repo], checks=_module_checks)
+    assert "not a module under src/" in refused.refusals[0]["message"]
+
+    code = _code_tree(tmp_path)
+    seen: dict[str, Path] = {}
+
+    def checks(tree: Path) -> dict[str, Any]:
+        seen["src"] = (tree / "src").resolve()
+        seen["specs_a"] = tree / ".specs" / "a.md"
+        assert (tree / ".specs" / "a.md").read_text() == "new a\n"  # proposal
+        assert (tree / ".specs" / "gone.md").exists() is False
+        return _module_checks(tree)
+
+    accepted = service.prepare(
+        repo_root=repo,
+        proposals_dir=repo / "var" / "law-proposals",
+        proposal_id="0007-test",
+        destinations=[repo],
+        scratch_parent=tmp_path / "scratch",
+        custodian=ME,
+        run_checks=checks,
+        code_tree=code,
+    )
+    assert accepted.refusals == []
+    assert seen["src"] == (code / "src").resolve()
+    assert accepted.old[".specs/a.md"] == b"old a\n"  # current law: the dev tree
+
+
+def test_governed_text_comes_from_the_dev_tree_not_the_code_tree(
+    tmp_path: Path,
+) -> None:
+    repo = _repo(tmp_path)
+    (repo / ".intent" / "custody" / "dev.txt").write_text("dev law\n")
+    code = _code_tree(tmp_path)
+    (code / ".intent").mkdir()
+
+    def checks(tree: Path) -> dict[str, Any]:
+        assert (tree / ".intent" / "custody" / "dev.txt").read_text() == "dev law\n"
+        assert not (tree / ".intent").is_symlink()
+        assert (tree / "src").resolve() == (code / "src").resolve()
+        assert not (tree / "infra").exists()  # only the code tree's entries
+        return {"refusals": [], "checks": {}}
+
+    service.prepare(
+        repo_root=repo,
+        proposals_dir=repo / "var" / "law-proposals",
+        proposal_id="0007-test",
+        destinations=[repo],
+        scratch_parent=tmp_path / "scratch",
+        custodian=ME,
+        run_checks=checks,
+        code_tree=code,
+    )
+
+
+@pytest.mark.parametrize("bad", ["relative/code", "missing", "a-file"])
+def test_a_code_tree_that_is_not_an_absolute_directory_is_refused(
+    tmp_path: Path, bad: str
+) -> None:
+    repo = _repo(tmp_path)
+    (tmp_path / "a-file").write_text("x\n")
+    code = Path(bad) if bad.startswith("relative") else tmp_path / bad
+    with pytest.raises(CustodyError, match="absolute existing directory"):
+        service.prepare(
+            repo_root=repo,
+            proposals_dir=repo / "var" / "law-proposals",
+            proposal_id="0007-test",
+            destinations=[repo],
+            scratch_parent=tmp_path / "scratch",
+            custodian=ME,
+            run_checks=_clean_checks,
+            code_tree=code,
+        )

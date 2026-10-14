@@ -170,13 +170,20 @@ def build_scratch_tree(
     proposal: LawProposal,
     *,
     custodian: str = CUSTODIAN_ACCOUNT,
+    code_tree: Path | None = None,
 ) -> Path:
     """Copy governed text, link the rest of *source*, apply *proposal* on top.
+
+    Governed text always comes from *source* (the law in force). The linked
+    rest (``src/``, ``tests/``...) comes from *code_tree* when given: the
+    code of the commit the proposal comes from, so law is checked against
+    that code and not against a development checkout that lags it.
 
     Returns the scratch tree. The caller removes it (``remove_scratch_tree``).
     """
     if current_account() != custodian:
         raise CustodyError(f"the scratch tree is built only as {custodian}")
+    linked_from = source if code_tree is None else check_code_tree(code_tree)
     tree = scratch_parent / f"law-apply-{proposal.proposal_id}-{os.getpid()}"
     if tree.exists():
         shutil.rmtree(tree)
@@ -191,7 +198,7 @@ def build_scratch_tree(
         elif origin.is_file() and not origin.is_symlink():
             shutil.copy2(origin, target)
     governed_roots = {Path(rel).parts[0] for rel in SCRATCH_COPIED}
-    for entry in sorted(source.iterdir()):
+    for entry in sorted(linked_from.iterdir()):
         name = entry.name
         if (
             name in governed_roots
@@ -207,6 +214,16 @@ def build_scratch_tree(
         if target.exists():
             target.unlink()
     return tree
+
+
+# ID: a7fe3a92-b52e-4be4-9e07-78d06199a16d
+def check_code_tree(code_tree: Path) -> Path:
+    """Return *code_tree* if it is an absolute, existing, real directory."""
+    if not code_tree.is_absolute() or code_tree.is_symlink() or not code_tree.is_dir():
+        raise CustodyError(
+            f"the code tree must be an absolute existing directory: {code_tree}"
+        )
+    return code_tree
 
 
 # ID: 0b7edbf8-772f-403d-9c33-8f1cd75791e1
