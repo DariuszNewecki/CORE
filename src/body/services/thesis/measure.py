@@ -38,6 +38,7 @@ GREEN = "SUCCESS"
 AI_AUTHOR = re.compile(r"claude|^core:", re.IGNORECASE)
 CI_FAILED = ("FAILURE", "TIMED_OUT", "STARTUP_FAILURE")
 CI_PENDING = ("PENDING", "EXPECTED")
+CI_RED = ("FAILURE", "TIMED_OUT", "STARTUP_FAILURE", "ACTION_REQUIRED")
 
 # Every field the runner (infra/core-pipeline, Runner.merge/approved/ci)
 # decides on: who merged, the governor's reviews and the commit each was on,
@@ -48,8 +49,10 @@ _MERGED_PRS = """query($owner:String!,$name:String!,$after:String){
     orderBy:{field:UPDATED_AT,direction:DESC}){
     pageInfo{hasNextPage endCursor}
     nodes{number updatedAt mergedBy{login}
-      mergeCommit{oid tree{oid} statusCheckRollup{state}}
-      commits(last:1){nodes{commit{oid tree{oid} statusCheckRollup{state}}}}
+      mergeCommit{oid tree{oid} statusCheckRollup{state contexts(first:100){nodes{__typename
+        ... on CheckRun{status conclusion} ... on StatusContext{state}}}}}
+      commits(last:1){nodes{commit{oid tree{oid} statusCheckRollup{state contexts(first:100){nodes{__typename
+        ... on CheckRun{status conclusion} ... on StatusContext{state}}}}}}}
       reviews(last:100){nodes{author{login} state commit{oid}}}}}}}"""
 
 _PR_TIMELINES = """query($owner:String!,$name:String!){repository(owner:$owner,name:$name){
@@ -73,6 +76,7 @@ class Measurement:
     detail: dict[str, Any] = field(default_factory=dict)
     unavailable: list[str] = field(default_factory=list)
     unverified_breaches: list[dict[str, Any]] = field(default_factory=list)
+    unverified_corrections: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _iso(day: date) -> str:
@@ -93,13 +97,40 @@ def governor_approved(reviews: list[dict[str, Any]], governor: str, head: str) -
     return verdict == ("APPROVED", head)
 
 
-def _state(commit: dict[str, Any] | None) -> str | None:
-    return ((commit or {}).get("statusCheckRollup") or {}).get("state")
+# ID: 3c0f6a1e-7d42-4b9a-a8c5-1f2e9d6b4a70
+def ci_state(commit: dict[str, Any] | None) -> str | None:
+    """CI on *commit*: SUCCESS, PENDING, FAILURE, CANCELLED or None (no checks).
+
+    Only a completed red run is a failure (governor 2026-10-14). GitHub's
+    combined state reads FAILURE for a run cancelled when a newer merge
+    superseded it, so the individual checks decide: any completed red one is
+    FAILURE; else any still running is PENDING; else any cancelled is
+    CANCELLED, which is not a failure; else SUCCESS."""
+    rollup = (commit or {}).get("statusCheckRollup") or {}
+    state = rollup.get("state")
+    if state == GREEN:
+        return GREEN
+    nodes = (rollup.get("contexts") or {}).get("nodes") or []
+    if not nodes:
+        return state
+    runs = [n for n in nodes if n.get("__typename") == "CheckRun"]
+    statuses = [n.get("state") for n in nodes if n.get("__typename") == "StatusContext"]
+    done = [r for r in runs if r.get("status") == "COMPLETED"]
+    if any(r.get("conclusion") in CI_RED for r in done) or any(
+        s in ("FAILURE", "ERROR") for s in statuses
+    ):
+        return "FAILURE"
+    if len(done) < len(runs) or any(s in CI_PENDING for s in statuses):
+        return "PENDING"
+    if any(r.get("conclusion") == "CANCELLED" for r in done):
+        return "CANCELLED"
+    return GREEN
 
 
 # ID: 085b7f10-5c21-4be0-a297-1e165f7eb479
 def merge_verdict(pr: dict[str, Any], governor: str) -> tuple[str, str]:
-    """('verified' | 'pending' | 'unverified', why) for a merged pull request,
+    """('verified' | 'pending' | 'cancelled' | 'unverified', why) for a merged
+    pull request,
     on the runner's criterion: merged by the governor, or by anyone after the
     governor approved its exact last commit; then CI green on the PR head when
     the merge has the head's exact tree, else on the merge commit itself."""
@@ -119,12 +150,14 @@ def merge_verdict(pr: dict[str, Any], governor: str) -> tuple[str, str]:
     same_tree = (merge.get("tree") or {}).get("oid") == (head.get("tree") or {}).get(
         "oid"
     )
-    state = _state(head) if same_tree else _state(merge)
+    state = ci_state(head) if same_tree else ci_state(merge)
     where = "PR head" if same_tree else "merge commit"
     if state == GREEN:
         return "verified", f"CI green on the {where}"
     if state in CI_PENDING:
         return "pending", f"CI {state} on the {where}"
+    if state == "CANCELLED":
+        return "cancelled", f"CI cancelled on the {where}, not a failure"
     return "unverified", f"CI {state} on the {where}"
 
 
@@ -157,6 +190,44 @@ def count_unverified(
         elif verdict == "pending":
             pending.append(sha)
     return bad, pending
+
+
+# ID: 8b5e2d97-41c6-4f0a-9e3d-6a7c1b2f8e54
+def false_ci_breaches(
+    stored: list[dict[str, Any]],
+    prs: dict[str, dict[str, Any]],
+    governor: str,
+    day: date,
+) -> list[dict[str, Any]]:
+    """Stored breaches that were false: kept only because CI was read as red,
+    and that ``merge_verdict`` no longer judges unverified (a run cancelled
+    when a newer merge superseded it, read as FAILURE before 2026-10-14).
+
+    The stored rows are never changed or deleted; each false one gets a
+    correction row naming it and why. A breach kept for any other reason
+    (a direct push, a missing approval) is never corrected here."""
+    corrections: list[dict[str, Any]] = []
+    for breach in stored:
+        pr = prs.get(str(breach.get("sha", "")))
+        if pr is None or ": CI " not in str(breach.get("reason", "")):
+            continue
+        verdict, why = merge_verdict(pr, governor)
+        if verdict == "unverified":
+            continue
+        corrections.append(
+            {
+                "sha": breach["sha"],
+                "stored_reason": breach.get("reason"),
+                "first_seen": breach.get("first_seen"),
+                "why_false": (
+                    f"now judged {verdict} ({why}): only a completed red CI run "
+                    "is a failure; a run cancelled by a newer merge is not "
+                    "(governor 2026-10-14)"
+                ),
+                "corrected_on": day.isoformat(),
+            }
+        )
+    return corrections
 
 
 # ID: 562ec047-1701-4c8e-9ebc-d175f6e9ee9b
@@ -369,6 +440,7 @@ async def measure(
     detail: dict[str, Any] = {}
     unavailable: list[str] = []
     kept = list(stored or [])
+    corrections: list[dict[str, Any]] = []
 
     unverified: int | None = None
     writes_14: int | None = None
@@ -380,10 +452,12 @@ async def measure(
                 "(CORE_GOVERNOR_GITHUB or the runner's pipeline.conf)"
             )
         else:
-            bad, pending = count_unverified(
-                writes, await _merged_prs(gh, max(long_since, CUTOVER)), governor
-            )
-            known = {b["sha"] for b in kept}
+            prs = await _merged_prs(gh, max(long_since, CUTOVER))
+            bad, pending = count_unverified(writes, prs, governor)
+            corrections = false_ci_breaches(kept, prs, governor, day)
+            false_shas = {c["sha"] for c in corrections}
+            kept = [b for b in kept if b["sha"] not in false_shas]
+            known = {b["sha"] for b in kept} | false_shas
             new = [
                 {**b, "first_seen": day.isoformat()}
                 for b in bad
@@ -396,6 +470,7 @@ async def measure(
                 "list": [f"{b['sha'][:12]} {b['reason']}" for b in kept],
                 "new": len(new),
                 "ci_pending": pending,
+                "corrected": len(corrections),
             }
         writes_14 = len(await _main_writes(gh, waste_since))
     except GitHubUnavailable as exc:
@@ -441,4 +516,5 @@ async def measure(
         detail,
         unavailable,
         kept,
+        corrections,
     )

@@ -93,3 +93,24 @@ def test_stored_unverified_keeps_every_breach_once_since_cutover() -> None:
         a,
         {"sha": "b", "reason": "r", "first_seen": "2026-12-20"},
     ]
+
+
+def test_a_corrected_breach_is_left_out_but_its_row_stays() -> None:
+    from shared.thesis_rules import stored_unverified
+
+    a = {
+        "sha": "a",
+        "reason": "PR #1: CI FAILURE on the merge commit",
+        "first_seen": "2026-10-14",
+    }
+    b = {"sha": "b", "reason": "push by x", "first_seen": "2026-10-14"}
+    records = [
+        {"day": "2026-10-14", "unverified_breaches": [a, b]},
+        {
+            "day": "2026-10-15",
+            "unverified_breaches": [b],
+            "unverified_corrections": [{"sha": "a", "why_false": "cancelled"}],
+        },
+    ]
+    assert stored_unverified(records) == [b]
+    assert records[0]["unverified_breaches"] == [a, b]

@@ -42,6 +42,7 @@ MEASURES_SUBJECT = "thesis.measures::"
 EVIDENCE_SUBJECT = "thesis.evidence::"
 BROKEN_SUBJECT = "thesis.broken::"
 UNVERIFIED_KEY = "unverified_breaches"
+CORRECTIONS_KEY = "unverified_corrections"
 
 
 @dataclass(frozen=True)
@@ -85,13 +86,20 @@ class Breach:
 # ID: 24af845e-793b-46c6-a171-341e281820ea
 def stored_unverified(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Every unverified write ever stored in the daily reports, once per sha,
-    with the day it was first seen, oldest first; only those since CUTOVER."""
+    with the day it was first seen, oldest first; only those since CUTOVER.
+    A breach named false by a correction row (CORRECTIONS_KEY, in any later
+    report) is left out; the row that stored it stays as it was."""
+    corrected = {
+        str(c.get("sha", ""))
+        for record in records
+        for c in record.get(CORRECTIONS_KEY) or []
+    }
     found: dict[str, dict[str, Any]] = {}
     for record in records:
         for breach in record.get(UNVERIFIED_KEY) or []:
             sha = str(breach.get("sha", ""))
             seen = str(breach.get("first_seen", ""))
-            if not sha or seen < CUTOVER.isoformat():
+            if not sha or sha in corrected or seen < CUTOVER.isoformat():
                 continue
             if sha not in found or seen < str(found[sha]["first_seen"]):
                 found[sha] = dict(breach)
