@@ -252,6 +252,14 @@ class Settings(BaseSettings):
         Path("/home/core-claude/.claude/projects/-opt-dev-CORE"),
         validation_alias="CORE_CLAUDE_TRANSCRIPTS",
     )
+    # Deploys the governor ran by hand and the runner's deploys that did not
+    # go live count as waste trips (infra/core-deploy, infra/core-pipeline).
+    CORE_DEPLOY_LEDGER: Path = Field(
+        Path("/opt/core/deploy-ledger.jsonl"), validation_alias="CORE_DEPLOY_LEDGER"
+    )
+    CORE_PIPELINE_LOGS: Path = Field(
+        Path("/var/lib/core-pipeline/logs"), validation_alias="CORE_PIPELINE_LOGS"
+    )
     # The governor's GitHub login, as the runner reads it: GOVERNOR_GITHUB in
     # the runner's pipeline.conf (infra/core-pipeline). CORE_GOVERNOR_GITHUB
     # overrides it where CORE cannot read that file.
