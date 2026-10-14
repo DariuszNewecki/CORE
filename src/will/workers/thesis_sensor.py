@@ -27,6 +27,7 @@ from typing import Any
 from shared.logger import getLogger
 from shared.thesis_rules import (
     BROKEN_SUBJECT,
+    CORRECTIONS_KEY,
     EVIDENCE_SUBJECT,
     MEASURES,
     MEASURES_SUBJECT,
@@ -129,6 +130,7 @@ class ThesisSensor(Worker):
             "unavailable": taken.unavailable,
             "detail": taken.detail,
             UNVERIFIED_KEY: taken.unverified_breaches,
+            CORRECTIONS_KEY: taken.unverified_corrections,
         }
         await self.post_report(subject=f"{MEASURES_SUBJECT}{today}", payload=payload)
         blackboard = await self._core_context.registry.get_blackboard_service()

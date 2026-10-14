@@ -196,6 +196,72 @@ async def test_a_stored_breach_counts_after_the_window(tmp_path: Path) -> None:
     assert taken.unverified_breaches[1]["first_seen"] == "2026-12-31"
 
 
+def _checks(*runs: tuple[str, str | None], rollup: str = "FAILURE") -> dict:
+    """A statusCheckRollup with its check runs as (status, conclusion)."""
+    return {
+        "state": rollup,
+        "contexts": {
+            "nodes": [
+                {"__typename": "CheckRun", "status": st, "conclusion": co}
+                for st, co in runs
+            ]
+        },
+    }
+
+
+def _merge_with(rollup: dict) -> dict:
+    pr = _pr(same_tree=False)
+    pr["mergeCommit"]["statusCheckRollup"] = rollup
+    return pr
+
+
+def test_a_cancelled_run_is_not_a_failure() -> None:
+    """GitHub's combined state reads FAILURE when a newer merge cancels a
+    main run (#1003, #1004 on 2026-10-14); only a completed red run fails."""
+    cancelled = _checks(("COMPLETED", "SUCCESS"), ("COMPLETED", "CANCELLED"))
+    assert merge_verdict(_merge_with(cancelled), GOV)[0] == "cancelled"
+    red = _checks(("COMPLETED", "CANCELLED"), ("COMPLETED", "FAILURE"))
+    assert merge_verdict(_merge_with(red), GOV)[0] == "unverified"
+    running = _checks(("COMPLETED", "CANCELLED"), ("IN_PROGRESS", None))
+    assert merge_verdict(_merge_with(running), GOV)[0] == "pending"
+    skipped = _checks(("COMPLETED", "SUCCESS"), ("COMPLETED", "SKIPPED"))
+    assert merge_verdict(_merge_with(skipped), GOV)[0] == "verified"
+
+
+async def test_a_stored_false_ci_breach_gets_a_correction_row(tmp_path: Path) -> None:
+    """A breach stored only because a cancelled run read as FAILURE is named
+    false in a correction row and stops counting; the stored row is kept as
+    it was. A breach stored for a missing approval is never corrected."""
+    false = {
+        "sha": MERGE,
+        "reason": "PR #7: CI FAILURE on the merge commit",
+        "first_seen": "2026-10-14",
+    }
+    push = {"sha": "p" * 40, "reason": "push by x", "first_seen": "2026-10-14"}
+    cancelled = _merge_with(_checks(("COMPLETED", "CANCELLED")))
+    writes = [
+        {
+            "activity_type": "pr_merge",
+            "after": MERGE,
+            "timestamp": "2026-10-14T04:00:00Z",
+        }
+    ]
+    taken = await _measure(
+        date(2026, 10, 15),
+        _FakeGitHub(writes, [cancelled]),
+        tmp_path,
+        governor=GOV,
+        stored=[false, push],
+    )
+    assert taken.measures.unverified_writes == 1
+    assert taken.unverified_breaches == [push]
+    [row] = taken.unverified_corrections
+    assert row["sha"] == MERGE
+    assert row["stored_reason"] == false["reason"]
+    assert row["corrected_on"] == "2026-10-15"
+    assert "cancelled" in row["why_false"]
+
+
 async def test_without_the_governors_login_unverified_is_unavailable(
     tmp_path: Path,
 ) -> None:

@@ -141,3 +141,16 @@ async def test_unverified_breaches_are_stored_and_passed_back() -> None:
     assert rt.measure_today.await_args.args[2] == [kept]
     payload = sensor.post_report.await_args_list[0].kwargs["payload"]
     assert payload["unverified_breaches"] == [kept]
+
+
+async def test_correction_rows_are_stored_with_the_days_report() -> None:
+    fix = {"sha": "f" * 40, "why_false": "cancelled", "corrected_on": "2026-12-31"}
+    sensor, rt = _sensor(), _runtime([])
+    rt.measure_today = AsyncMock(
+        return_value=Measurement(
+            ThesisMeasures(MONDAY, 0, 0.7, 1.0, 0.9), unverified_corrections=[fix]
+        )
+    )
+    await _run(sensor, rt, today=date(2026, 12, 31))
+    payload = sensor.post_report.await_args_list[0].kwargs["payload"]
+    assert payload["unverified_corrections"] == [fix]
