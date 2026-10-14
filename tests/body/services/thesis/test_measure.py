@@ -11,6 +11,7 @@ from unittest.mock import MagicMock
 from body.services.thesis.measure import (
     ai_share,
     count_unverified,
+    deploy_trips,
     measure,
     merge_verdict,
     pr_trips,
@@ -377,6 +378,19 @@ def test_transcript_trips(tmp_path: Path) -> None:
                 ),
                 _line("user", ts, "Stop hook feedback: 8 lines outside code blocks"),
                 _line(
+                    "user",
+                    ts,
+                    "not set correctly: core-darek@core:/opt/dev/CORE$ core-admin daemon up\n"
+                    "core-admin: command not found",
+                ),
+                _line(
+                    "user",
+                    ts,
+                    [{"type": "text", "text": "<bash-input>ls</bash-input>"}],
+                ),
+                _line("user", ts, "A"),
+                _line("user", ts, "mail me at a@b.com: thanks $ 5"),
+                _line(
                     "assistant",
                     "2026-09-01T00:00:00Z",
                     [{"type": "tool_use", "name": "AskUserQuestion"}],
@@ -390,7 +404,72 @@ def test_transcript_trips(tmp_path: Path) -> None:
         "permission block": 1,
         "commit refused by a hook": 1,
         "stop-hook rewrite": 1,
+        "command run by the governor": 2,
     }
+
+
+def test_deploy_trips(tmp_path: Path) -> None:
+    """2026-10-14: after a reboot the runner's deploy of 550969cf was
+    refused (API down) and the governor redeployed it by hand. The runner's
+    repeated "merged by" lines (waiting for CI) are not trips."""
+    ledger = tmp_path / "deploy-ledger.jsonl"
+    ledger.write_text(
+        "\n".join(
+            json.dumps(e)
+            for e in [
+                {
+                    "action": "deploy",
+                    "at": "2026-10-14T06:21:18+00:00",
+                    "by": "core-runner",
+                },
+                {"action": "deploy", "at": "2026-10-14T20:30:00+00:00", "by": "darek"},
+                {"action": "deploy", "at": "2026-09-01T00:00:00+00:00", "by": "darek"},
+            ]
+        )
+        + "\nnot json\n"
+    )
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    (logs / "550969cfce2e.log").write_text(
+        "[2026-10-14T20:04:11.0+00:00] merged by bot on gov's approval of 5b\n"
+        "[2026-10-14T20:06:44.2+00:00] merged by bot on gov's approval of 5b\n"
+        "[2026-10-14T20:11:36.5+00:00] $ sudo -n /usr/local/sbin/core-deploy 5509 --migrate\n"
+        "core-deploy: refused: API /health did not answer; switched back\n\n(exit 1)\n"
+    )
+    (logs / "1f7888969b48.log").write_text(
+        "[2026-10-14T06:10:00.0+00:00] merged by bot on gov's approval of 1f\n"
+        "[2026-10-14T06:12:00.0+00:00] $ sudo -n /usr/local/sbin/core-deploy 1f78 --migrate\n"
+        "core-deploy: live\n(exit 0)\n"
+        "[2026-10-14T06:13:00.0+00:00] $ sudo -n -u core /usr/local/sbin/core-sandbox-check\n"
+        "failed\n(exit 2)\n"
+        "[2026-10-14T06:14:00.0+00:00] $ sudo -n /usr/local/sbin/core-deploy 1f78 --rollback\n"
+        "(exit 1)\n"
+    )
+    (logs / "old.log").write_text(
+        "[2026-09-01T00:00:00+00:00] $ sudo -n /usr/local/sbin/core-deploy 0 --migrate\n(exit 1)\n"
+    )
+    assert deploy_trips(ledger, logs, date(2026, 10, 1)) == {
+        "deploy run by hand": 1,
+        "deploy refused": 1,
+        "post-deploy check failed": 1,
+    }
+
+
+async def test_unreadable_deploy_records_leave_waste_unavailable(
+    tmp_path: Path,
+) -> None:
+    taken = await measure(
+        date(2026, 10, 15),
+        _FakeGitHub([], []),
+        _git(),
+        "ref",
+        tmp_path,
+        deploys=(tmp_path / "missing.jsonl", tmp_path),
+        with_convergence=False,
+        governor=GOV,
+    )
+    assert taken.measures.waste_per_change is None
+    assert any(u.startswith("deploy records") for u in taken.unavailable)
 
 
 async def test_transcripts_behind_a_closed_directory_are_unavailable(

@@ -32,6 +32,7 @@ async def measure_today(
             git_service,
             f"refs/remotes/upstream/{upstream_branch()}",
             config.transcripts,
+            deploys=(config.deploy_ledger, config.pipeline_logs),
             governor=config.governor,
             stored=stored,
         )

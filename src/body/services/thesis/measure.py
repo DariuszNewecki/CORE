@@ -9,7 +9,8 @@ never leaves the count). A write is verified only on the runner's criterion
 (infra/core-pipeline): a pull request merged by the governor's GitHub
 account, or whose exact last commit that account approved, with green CI. Sources: GitHub's
 activity API and pull requests, git log of the merge branch, the blackboard
-(read-only transaction) and Claude Code's transcripts for this project. A
+(read-only transaction), Claude Code's transcripts for this project, and the
+deploy ledger with the post-merge runner's logs. A
 source that cannot be read leaves its measure None and is named in
 ``unavailable``; it never counts as zero.
 """
@@ -36,6 +37,10 @@ LONG_WINDOW = timedelta(days=30)
 WASTE_WINDOW = timedelta(days=14)
 GREEN = "SUCCESS"
 AI_AUTHOR = re.compile(r"claude|^core:", re.IGNORECASE)
+RUNNER = "core-runner"
+SHELL_PROMPT = re.compile(r"(?:^|\s)[\w.-]+@[\w.-]+:[^\s$#]*[$#] \S")
+RUNNER_ENTRY = re.compile(r"^\[([^\]]+)\] (.*?)(?=^\[[^\]]+\] |\Z)", re.M | re.S)
+EXIT_LINE = re.compile(r"^\(exit (-?\d+)\)$", re.MULTILINE)
 CI_FAILED = ("FAILURE", "TIMED_OUT", "STARTUP_FAILURE")
 CI_PENDING = ("PENDING", "EXPECTED")
 CI_RED = ("FAILURE", "TIMED_OUT", "STARTUP_FAILURE", "ACTION_REQUIRED")
@@ -300,7 +305,8 @@ def _commit_trips(commit: dict[str, Any], approved: str | None, start: str) -> C
 def transcript_trips(root: Path, since: date) -> Counter:
     """Claude Code round trips in this project's transcripts: questions to
     the governor, permission blocks, commits refused by a hook, replies the
-    stop hook sent back for being too long."""
+    stop hook sent back for being too long, and commands the governor ran by
+    hand (a ``!`` command, or terminal output pasted with its prompt)."""
     start = _iso(since)
     trips: Counter = Counter()
     for path in root.rglob("*.jsonl"):
@@ -325,6 +331,9 @@ def _event_trips(line: str, start: str) -> Counter:
         blob = json.dumps(content)
         if "Stop hook feedback" in blob and "lines outside code blocks" in blob:
             trips["stop-hook rewrite"] += 1
+        typed = _typed_text(content)
+        if "<bash-input>" in typed or SHELL_PROMPT.search(typed):
+            trips["command run by the governor"] += 1
     if not isinstance(content, list):
         return trips
     for block in content:
@@ -344,6 +353,53 @@ def _event_trips(line: str, start: str) -> Counter:
             trips["permission block"] += 1
         if "hook error" in text and "commit refused" in text:
             trips["commit refused by a hook"] += 1
+    return trips
+
+
+def _typed_text(content: Any) -> str:
+    """What the governor typed or pasted; tool results are not typed."""
+    if isinstance(content, str):
+        return content
+    if not isinstance(content, list):
+        return ""
+    blocks = [b for b in content if isinstance(b, dict)]
+    if any(b.get("type") == "tool_result" for b in blocks):
+        return ""
+    return " ".join(b.get("text", "") for b in blocks if b.get("type") == "text")
+
+
+# ID: be158f5c-054d-4ac0-bc27-ff654175eee8
+def deploy_trips(ledger: Path, logs: Path, since: date) -> Counter:
+    """Deploy round trips: deploys the governor ran by hand (deploy-ledger
+    lines not written by the runner), and the runner's deploys that did not
+    go live (core-deploy or its post-deploy check exited non-zero)."""
+    start = _iso(since)
+    trips: Counter = Counter()
+    for line in ledger.read_text(errors="replace").splitlines():
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if str(entry.get("at", "")) >= start and entry.get("by") != RUNNER:
+            trips["deploy run by hand"] += 1
+    for path in sorted(logs.glob("*.log")):
+        trips.update(_runner_log_trips(path.read_text(errors="replace"), start))
+    return trips
+
+
+def _runner_log_trips(text: str, start: str) -> Counter:
+    trips: Counter = Counter()
+    entries = [m.groups() for m in RUNNER_ENTRY.finditer(text)]
+    for at, body in entries:
+        if at.replace("+00:00", "Z") < start:
+            continue
+        first = body.split("\n", 1)[0]
+        exit_code = EXIT_LINE.search(body)
+        failed = exit_code is not None and exit_code.group(1) != "0"
+        if "core-deploy" in first and "--rollback" not in first and failed:
+            trips["deploy refused"] += 1
+        elif "core-sandbox-check" in first and failed:
+            trips["post-deploy check failed"] += 1
     return trips
 
 
@@ -424,12 +480,15 @@ async def measure(
     ref: str,
     transcripts: Path,
     *,
+    deploys: tuple[Path, Path] | None = None,
     with_convergence: bool = True,
     governor: str | None = None,
     stored: list[dict[str, Any]] | None = None,
 ) -> Measurement:
     """The four measures for *day*; each source is read independently.
 
+    *deploys* is (deploy ledger, runner logs directory); when given, its
+    trips count toward waste and an unreadable one leaves waste unavailable.
     *governor* is the governor's GitHub login (the runner's GOVERNOR_GITHUB);
     without it unverified writes cannot be judged and read as unavailable.
     *stored* are the unverified writes already kept (``stored_unverified``);
@@ -506,7 +565,14 @@ async def measure(
         readable = False
     if not readable:
         unavailable.append(f"claude code transcripts: {transcripts} not readable")
-    if readable and not any(u.startswith("github") for u in unavailable):
+    if deploys is not None:
+        try:
+            trips += deploy_trips(*deploys, waste_since)
+        except OSError as exc:
+            unavailable.append(f"deploy records: {exc}")
+    deploys_read = not any(u.startswith("deploy records") for u in unavailable)
+    github_read = not any(u.startswith("github") for u in unavailable)
+    if readable and github_read and deploys_read:
         trips += transcript_trips(transcripts, waste_since)
         if writes_14:
             waste = round(sum(trips.values()) / writes_14, 1)
