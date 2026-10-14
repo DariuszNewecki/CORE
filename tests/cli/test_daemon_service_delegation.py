@@ -83,3 +83,16 @@ def test_status_skips_stray_scan_when_show_fails(monkeypatch) -> None:
     monkeypatch.setattr(daemon_module, "_heavy_worker_stems", lambda: [])
     monkeypatch.setattr(daemon_module, "_enabled_template_stems", lambda: None)
     daemon_module.status()
+
+
+def test_daemon_units_prints_every_unit_as_a_service(monkeypatch) -> None:
+    from typer.testing import CliRunner
+
+    monkeypatch.setattr(daemon_module, "_heavy_worker_stems", lambda: ["sync_db"])
+    result = CliRunner().invoke(daemon_module.daemon_app, ["units"])
+    assert result.exit_code == 0
+    assert result.stdout.split() == [
+        "core-daemon.service",
+        "core-api.service",
+        "core-daemon-worker@sync_db.service",
+    ]
