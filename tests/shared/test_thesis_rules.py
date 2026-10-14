@@ -71,3 +71,25 @@ def test_report_line_and_week() -> None:
     )
     assert week_label(date(2026, 10, 12)) == "2026-W42"
     assert ThesisMeasures.from_payload(_m().as_payload()) == _m()
+
+
+def test_stored_unverified_keeps_every_breach_once_since_cutover() -> None:
+    from shared.thesis_rules import stored_unverified
+
+    a = {"sha": "a", "reason": "r", "first_seen": "2026-10-14"}
+    records = [
+        {"day": "2026-10-14", "unverified_breaches": [a]},
+        {"day": "2026-10-15"},  # an older report without the field
+        {
+            "day": "2026-12-20",
+            "unverified_breaches": [
+                {**a, "first_seen": "2026-12-20"},
+                {"sha": "b", "reason": "r", "first_seen": "2026-12-20"},
+                {"sha": "c", "reason": "r", "first_seen": "2026-10-01"},
+            ],
+        },
+    ]
+    assert stored_unverified(records) == [
+        a,
+        {"sha": "b", "reason": "r", "first_seen": "2026-12-20"},
+    ]

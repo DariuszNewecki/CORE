@@ -124,3 +124,20 @@ async def test_monday_pushes_last_week_once() -> None:
     sensor2, rt2 = _sensor(), _runtime([{"day": "2026-10-13"}], weeks={"2026-W42"})
     await _run(sensor2, rt2)
     rt2.push_week.assert_not_awaited()
+
+
+async def test_unverified_breaches_are_stored_and_passed_back() -> None:
+    kept = {"sha": "s" * 40, "reason": "push by x", "first_seen": "2026-10-14"}
+    sensor, rt = (
+        _sensor(),
+        _runtime([{"day": "2026-10-14", "unverified_breaches": [kept]}]),
+    )
+    rt.measure_today = AsyncMock(
+        return_value=Measurement(
+            ThesisMeasures(MONDAY, 1, 0.7, 1.0, 0.9), unverified_breaches=[kept]
+        )
+    )
+    await _run(sensor, rt, today=date(2026, 12, 31))
+    assert rt.measure_today.await_args.args[2] == [kept]
+    payload = sensor.post_report.await_args_list[0].kwargs["payload"]
+    assert payload["unverified_breaches"] == [kept]

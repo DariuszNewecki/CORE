@@ -16,8 +16,11 @@ from body.services.thesis.github import GitHub
 
 
 # ID: 04fd8c20-a858-4112-a892-5af948401efd
-async def measure_today(day: date, git_service: Any) -> measure_module.Measurement:
-    """Measure *day* against CORE's clone of the merge branch."""
+async def measure_today(
+    day: date, git_service: Any, stored: list[dict[str, Any]] | None = None
+) -> measure_module.Measurement:
+    """Measure *day* against CORE's clone of the merge branch; *stored* are
+    the unverified writes already kept in the daily reports."""
     from body.infrastructure.repo_sync import upstream_branch
 
     config = thesis_config()
@@ -29,6 +32,8 @@ async def measure_today(day: date, git_service: Any) -> measure_module.Measureme
             git_service,
             f"refs/remotes/upstream/{upstream_branch()}",
             config.transcripts,
+            governor=config.governor,
+            stored=stored,
         )
 
 

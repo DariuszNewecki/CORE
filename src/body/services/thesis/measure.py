@@ -1,9 +1,13 @@
 # src/body/services/thesis/measure.py
 """Take the four thesis measures for one day (read-only).
 
-Windows: authorship, convergence and unverified writes look back 30 days
-(unverified writes never before the one-path cutover, 2026-10-12); waste
-looks back 14 days, as the 2026-10-13 baseline did. Sources: GitHub's
+Windows: authorship and convergence look back 30 days; waste looks back 14
+days, as the 2026-10-13 baseline did. Unverified writes are found in
+GitHub's last month of writes to main and added to the ones already stored
+(every breach since the one-path cutover, 2026-10-12, is kept for good and
+never leaves the count). A write is verified only on the runner's criterion
+(infra/core-pipeline): a pull request merged by the governor's GitHub
+account, or whose exact last commit that account approved, with green CI. Sources: GitHub's
 activity API and pull requests, git log of the merge branch, the blackboard
 (read-only transaction) and Claude Code's transcripts for this project. A
 source that cannot be read leaves its measure None and is named in
@@ -33,11 +37,20 @@ WASTE_WINDOW = timedelta(days=14)
 GREEN = "SUCCESS"
 AI_AUTHOR = re.compile(r"claude|^core:", re.IGNORECASE)
 CI_FAILED = ("FAILURE", "TIMED_OUT", "STARTUP_FAILURE")
+CI_PENDING = ("PENDING", "EXPECTED")
 
-_MERGED_PRS = """query($owner:String!,$name:String!){repository(owner:$owner,name:$name){
-  pullRequests(states:MERGED,first:100,orderBy:{field:UPDATED_AT,direction:DESC}){
-    nodes{number mergeCommit{oid}
-      commits(last:1){nodes{commit{statusCheckRollup{state}}}}}}}}"""
+# Every field the runner (infra/core-pipeline, Runner.merge/approved/ci)
+# decides on: who merged, the governor's reviews and the commit each was on,
+# the PR head and the merge commit with their trees and checks.
+_MERGED_PRS = """query($owner:String!,$name:String!,$after:String){
+  repository(owner:$owner,name:$name){
+  pullRequests(states:MERGED,first:50,after:$after,
+    orderBy:{field:UPDATED_AT,direction:DESC}){
+    pageInfo{hasNextPage endCursor}
+    nodes{number updatedAt mergedBy{login}
+      mergeCommit{oid tree{oid} statusCheckRollup{state}}
+      commits(last:1){nodes{commit{oid tree{oid} statusCheckRollup{state}}}}
+      reviews(last:100){nodes{author{login} state commit{oid}}}}}}}"""
 
 _PR_TIMELINES = """query($owner:String!,$name:String!){repository(owner:$owner,name:$name){
   pullRequests(first:100,orderBy:{field:UPDATED_AT,direction:DESC}){
@@ -59,28 +72,91 @@ class Measurement:
     measures: ThesisMeasures
     detail: dict[str, Any] = field(default_factory=dict)
     unavailable: list[str] = field(default_factory=list)
+    unverified_breaches: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _iso(day: date) -> str:
     return f"{day.isoformat()}T00:00:00Z"
 
 
+# ID: 4d2f1734-520b-472f-b407-0e8ff817e1da
+def governor_approved(reviews: list[dict[str, Any]], governor: str, head: str) -> bool:
+    """The runner's ``approved``: the governor's account approved *head*, the
+    pull request's exact last commit, and did not ask for changes after.
+    Reviews are chronological; any other account's review never counts."""
+    verdict = None
+    for review in reviews:
+        if (review.get("author") or {}).get("login") != governor:
+            continue
+        if review.get("state") in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED"):
+            verdict = (review.get("state"), (review.get("commit") or {}).get("oid"))
+    return verdict == ("APPROVED", head)
+
+
+def _state(commit: dict[str, Any] | None) -> str | None:
+    return ((commit or {}).get("statusCheckRollup") or {}).get("state")
+
+
+# ID: 085b7f10-5c21-4be0-a297-1e165f7eb479
+def merge_verdict(pr: dict[str, Any], governor: str) -> tuple[str, str]:
+    """('verified' | 'pending' | 'unverified', why) for a merged pull request,
+    on the runner's criterion: merged by the governor, or by anyone after the
+    governor approved its exact last commit; then CI green on the PR head when
+    the merge has the head's exact tree, else on the merge commit itself."""
+    merger = (pr.get("mergedBy") or {}).get("login")
+    heads = (pr.get("commits") or {}).get("nodes") or []
+    head = heads[-1]["commit"] if heads else {}
+    head_oid = head.get("oid")
+    reviews = (pr.get("reviews") or {}).get("nodes") or []
+    if merger != governor and not (
+        head_oid and governor_approved(reviews, governor, head_oid)
+    ):
+        return "unverified", (
+            f"merged by {merger} without {governor}'s approval of its last "
+            f"commit {str(head_oid)[:12]}"
+        )
+    merge = pr.get("mergeCommit") or {}
+    same_tree = (merge.get("tree") or {}).get("oid") == (head.get("tree") or {}).get(
+        "oid"
+    )
+    state = _state(head) if same_tree else _state(merge)
+    where = "PR head" if same_tree else "merge commit"
+    if state == GREEN:
+        return "verified", f"CI green on the {where}"
+    if state in CI_PENDING:
+        return "pending", f"CI {state} on the {where}"
+    return "unverified", f"CI {state} on the {where}"
+
+
 # ID: f85ea490-224c-44f6-9b7a-dd18494bf064
 def count_unverified(
-    writes: list[dict[str, Any]], rollups: dict[str, str | None]
-) -> list[str]:
-    """Writes to main that did not pass a CI-green pull request: every
-    direct push, and every merge whose PR head's checks are not green."""
-    bad: list[str] = []
+    writes: list[dict[str, Any]], prs: dict[str, dict[str, Any]], governor: str
+) -> tuple[list[dict[str, str]], list[str]]:
+    """(unverified writes as {sha, reason}, merges whose CI is still running).
+
+    Every direct push is unverified; a merge is judged by ``merge_verdict``
+    on its pull request (*prs* by merge-commit sha), and a merge with no
+    pull request found is unverified."""
+    bad: list[dict[str, str]] = []
+    pending: list[str] = []
     for write in writes:
         sha = str(write.get("after", ""))
-        if write.get("activity_type") == "pr_merge":
-            if rollups.get(sha) != GREEN:
-                bad.append(f"merge {sha[:12]} (PR checks {rollups.get(sha)})")
-        else:
+        if write.get("activity_type") != "pr_merge":
             actor = (write.get("actor") or {}).get("login")
-            bad.append(f"{write.get('activity_type')} {sha[:12]} by {actor}")
-    return bad
+            bad.append(
+                {"sha": sha, "reason": f"{write.get('activity_type')} by {actor}"}
+            )
+            continue
+        pr = prs.get(sha)
+        if pr is None:
+            bad.append({"sha": sha, "reason": "merge with no pull request found"})
+            continue
+        verdict, why = merge_verdict(pr, governor)
+        if verdict == "unverified":
+            bad.append({"sha": sha, "reason": f"PR #{pr.get('number')}: {why}"})
+        elif verdict == "pending":
+            pending.append(sha)
+    return bad, pending
 
 
 # ID: 562ec047-1701-4c8e-9ebc-d175f6e9ee9b
@@ -207,15 +283,28 @@ async def _main_writes(gh: GitHub, since: date) -> list[dict[str, Any]]:
     return [w for w in writes if str(w.get("timestamp", "")) >= _iso(since)]
 
 
-async def _merged_rollups(gh: GitHub) -> dict[str, str | None]:
+async def _merged_prs(gh: GitHub, since: date) -> dict[str, dict[str, Any]]:
+    """Merged pull requests by merge-commit sha, every page updated since *since*."""
     owner, name = gh.repo.split("/", 1)
-    data = await gh.graphql(_MERGED_PRS, {"owner": owner, "name": name})
-    rollups: dict[str, str | None] = {}
-    for pr in data["repository"]["pullRequests"]["nodes"]:
-        if pr.get("mergeCommit"):
-            head = pr["commits"]["nodes"][0]["commit"].get("statusCheckRollup") or {}
-            rollups[pr["mergeCommit"]["oid"]] = head.get("state")
-    return rollups
+    prs: dict[str, dict[str, Any]] = {}
+    after: str | None = None
+    while True:
+        data = await gh.graphql(
+            _MERGED_PRS, {"owner": owner, "name": name, "after": after}
+        )
+        page = data["repository"]["pullRequests"]
+        for pr in page["nodes"]:
+            if pr.get("mergeCommit"):
+                prs[pr["mergeCommit"]["oid"]] = pr
+        nodes = page["nodes"]
+        info = page.get("pageInfo") or {}
+        if (
+            not info.get("hasNextPage")
+            or not nodes
+            or str(nodes[-1].get("updatedAt", "")) < _iso(since)
+        ):
+            return prs
+        after = info.get("endCursor")
 
 
 async def _convergence(since: date) -> tuple[float | None, dict[str, int]]:
@@ -265,20 +354,49 @@ async def measure(
     transcripts: Path,
     *,
     with_convergence: bool = True,
+    governor: str | None = None,
+    stored: list[dict[str, Any]] | None = None,
 ) -> Measurement:
-    """The four measures for *day*; each source is read independently."""
+    """The four measures for *day*; each source is read independently.
+
+    *governor* is the governor's GitHub login (the runner's GOVERNOR_GITHUB);
+    without it unverified writes cannot be judged and read as unavailable.
+    *stored* are the unverified writes already kept (``stored_unverified``);
+    they always count, and the result carries them plus today's new ones.
+    """
     long_since = day - LONG_WINDOW
     waste_since = day - WASTE_WINDOW
     detail: dict[str, Any] = {}
     unavailable: list[str] = []
+    kept = list(stored or [])
 
     unverified: int | None = None
     writes_14: int | None = None
     try:
         writes = await _main_writes(gh, max(long_since, CUTOVER))
-        bad = count_unverified(writes, await _merged_rollups(gh))
-        unverified = len(bad)
-        detail["unverified"] = {"writes": len(writes), "list": bad}
+        if not governor:
+            unavailable.append(
+                "governor's GitHub login: GOVERNOR_GITHUB not readable "
+                "(CORE_GOVERNOR_GITHUB or the runner's pipeline.conf)"
+            )
+        else:
+            bad, pending = count_unverified(
+                writes, await _merged_prs(gh, max(long_since, CUTOVER)), governor
+            )
+            known = {b["sha"] for b in kept}
+            new = [
+                {**b, "first_seen": day.isoformat()}
+                for b in bad
+                if b["sha"] not in known
+            ]
+            kept += new
+            unverified = len(kept)
+            detail["unverified"] = {
+                "writes": len(writes),
+                "list": [f"{b['sha'][:12]} {b['reason']}" for b in kept],
+                "new": len(new),
+                "ci_pending": pending,
+            }
         writes_14 = len(await _main_writes(gh, waste_since))
     except GitHubUnavailable as exc:
         unavailable.append(f"github writes: {exc}")
@@ -322,4 +440,5 @@ async def measure(
         ThesisMeasures(day, unverified, share, waste, converged),
         detail,
         unavailable,
+        kept,
     )

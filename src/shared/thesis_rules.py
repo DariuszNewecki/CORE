@@ -7,7 +7,11 @@ working software, at a governance cost that falls over time. Four measures,
 taken daily by the thesis sensor:
 
 - unverified_writes: writes to main since the one-path cutover (2026-10-12)
-  that did not pass a governor-merged, CI-green pull request. Any is a breach.
+  that the runner (infra/core-pipeline) would not deploy: not a pull request
+  the governor merged or whose exact last commit the governor approved, or
+  CI not green. Any is a breach. Each breach is kept for good in the daily
+  reports (``unverified_breaches``) and counted every day after, never
+  dropped by a window.
 - ai_share: AI-authored share of commits merged into main (30 days); below
   the 63% baseline is a breach.
 - waste_per_change: round trips that reached the governor or Claude Code
@@ -37,6 +41,7 @@ MEASURES = ("unverified_writes", "ai_share", "waste_per_change", "convergence")
 MEASURES_SUBJECT = "thesis.measures::"
 EVIDENCE_SUBJECT = "thesis.evidence::"
 BROKEN_SUBJECT = "thesis.broken::"
+UNVERIFIED_KEY = "unverified_breaches"
 
 
 @dataclass(frozen=True)
@@ -77,6 +82,22 @@ class Breach:
     message: str
 
 
+# ID: 24af845e-793b-46c6-a171-341e281820ea
+def stored_unverified(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Every unverified write ever stored in the daily reports, once per sha,
+    with the day it was first seen, oldest first; only those since CUTOVER."""
+    found: dict[str, dict[str, Any]] = {}
+    for record in records:
+        for breach in record.get(UNVERIFIED_KEY) or []:
+            sha = str(breach.get("sha", ""))
+            seen = str(breach.get("first_seen", ""))
+            if not sha or seen < CUTOVER.isoformat():
+                continue
+            if sha not in found or seen < str(found[sha]["first_seen"]):
+                found[sha] = dict(breach)
+    return sorted(found.values(), key=lambda b: (str(b["first_seen"]), b["sha"]))
+
+
 def _month_before(history: list[ThesisMeasures], day: date) -> ThesisMeasures | None:
     earlier = [r for r in history if r.day <= day - MONTH]
     return max(earlier, key=lambda r: r.day) if earlier else None
@@ -94,8 +115,9 @@ def breaches(today: ThesisMeasures, history: list[ThesisMeasures]) -> list[Breac
         found.append(
             Breach(
                 "unverified_writes",
-                f"{today.unverified_writes} write(s) reached main without a "
-                "governor-merged, CI-green pull request.",
+                f"{today.unverified_writes} write(s) reached main since "
+                f"{CUTOVER.isoformat()} without green CI and the governor's "
+                "approval of the pull request's last commit (or merge).",
             )
         )
     if today.ai_share is not None and today.ai_share < AI_SHARE_FLOOR:
