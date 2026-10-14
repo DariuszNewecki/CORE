@@ -859,8 +859,20 @@ class Deployer:
         if removals:
             md += "\n## Remove\n\n" + "".join(f"- `{p}`\n" for p in removals)
         (root / proposal_id / "proposal.md").write_text(md)
+        # Law is checked against the code it comes with: the target's tree,
+        # not the development checkout, which lags main until the governor
+        # fast-forwards it (2026-10-13: 354d17fd refused, its new worker
+        # module "not under src/" of the dev tree). "data" filter: no
+        # absolute paths, no links out, no devices.
+        code = root / "code"
+        code.mkdir()
+        with tarfile.open(
+            fileobj=io.BytesIO(self.git("archive", "--format=tar", target))
+        ) as tar:
+            tar.extractall(code, filter="data")
         for path in [root, *root.rglob("*")]:
-            os.chmod(path, 0o755 if path.is_dir() else 0o644)
+            if not path.is_symlink():
+                os.chmod(path, 0o755 if path.is_dir() else 0o644)
         core_admin = self.layout.releases / venv_sha / "venv" / "bin" / "core-admin"
         dev = str(self.options.dev_repo)
         result = self.host.run(
@@ -871,6 +883,10 @@ class Deployer:
                 "env",
                 f"--chdir={dev}",
                 f"REPO_PATH={dev}",
+                # An environment variable, not an option: a rollback runs an
+                # older core-admin, which ignores it (and checks against the
+                # dev tree, as before) but would reject an unknown option.
+                f"CORE_LAW_CODE_TREE={code}",
                 str(core_admin),
                 "law",
                 "apply-merge",

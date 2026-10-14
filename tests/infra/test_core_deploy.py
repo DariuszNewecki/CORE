@@ -178,7 +178,10 @@ class FakeHost(cd.Host):
                 "--chdir=/opt/dev/CORE",
                 "REPO_PATH=/opt/dev/CORE",
             ]
-            cmd = cmd[3:]
+            env_code = cmd[3]
+            assert env_code.startswith("CORE_LAW_CODE_TREE=")
+            code = Path(env_code.split("=", 1)[1])
+            cmd = cmd[4:]
             pdir = Path(cmd[cmd.index("--proposals-dir") + 1]) / cmd[3]
             self.law_runs.append(
                 {
@@ -192,6 +195,12 @@ class FakeHost(cd.Host):
                         if p.is_file()
                     ),
                     "proposal_md": (pdir / "proposal.md").read_text(),
+                    "code_tree": code,
+                    "code_files": {
+                        p.relative_to(code).as_posix(): p.read_bytes()
+                        for p in code.rglob("*")
+                        if p.is_file()
+                    },
                 }
             )
             rc = self.law_rc
@@ -644,6 +653,22 @@ def test_changed_law_is_applied_by_core_law_with_the_new_release(root: Path) -> 
     assert "- `.specs/old.md`" in run["proposal_md"]
     entry = json.loads((root / "deploy-ledger.jsonl").read_text().splitlines()[-1])
     assert entry["law_applied"] is True and entry["merged_by"] == "darek"
+
+
+def test_law_is_checked_against_the_code_of_the_target(root: Path) -> None:
+    """2026-10-13: 354d17fd was refused because its new worker module was
+    looked up in the development checkout; core-law now gets the target's
+    tree (by environment variable, so an older release ignores it)."""
+    _with_previous(root)
+    host = FakeHost(root)
+    host.law_diff = LAW_DIFF
+    assert _deploy(root, host) == 0
+    [run] = host.law_runs
+    assert any(c[-2:] == ["--format=tar", SHA] for c in host.commands("git"))
+    assert run["code_tree"].is_absolute()
+    assert run["code_tree"].parent == root / "build" / f"law-{SHA[:12]}"
+    assert run["code_files"] == {**SOURCE, "pyproject.toml": PYPROJECT}
+    assert not run["code_tree"].exists()  # removed with the proposal
 
 
 def test_no_law_change_runs_no_law_apply(root: Path) -> None:
