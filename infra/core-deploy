@@ -50,9 +50,10 @@ Order (ADR-132 D10 · D2):
     against a schema it does not expect;
  6. readiness: the new release's API on a spare loopback port must answer
     /health, which it does only after its law-root and schema gates pass;
- 7. switch ``current``, restart every unit, require all active and every
+ 7. switch ``current``, restart every unit (the loaded ones plus those the
+    new release declares, ``daemon units``), require all active and every
     worker that was alive before to heartbeat again; without a migration a
-    failure switches back;
+    failure switches back; then enable them, so they start after a reboot;
  8. self-update: the installed core-deploy, core-pipeline and
     core-sandbox-check become the deployed commit's ``infra/`` copies;
  9. append a ledger line.
@@ -438,6 +439,35 @@ class Deployer:
                 if n.startswith("core-") and n.endswith(".service")
             }
         return [n for n in sorted(names) if not n.startswith(READINESS_UNIT)]
+
+    def declared_units(self, sha: str) -> list[str]:
+        """The units release *sha* says CORE runs (``daemon units``); empty
+        for a release older than that command."""
+        result = self.as_service(
+            [self.release_python(sha), "-I", "-m", "cli.admin_cli", "daemon", "units"]
+        )
+        if result.returncode != 0:
+            return []
+        return [
+            u
+            for u in result.stdout.decode(errors="replace").split()
+            if u.startswith("core-") and u.endswith(".service")
+        ]
+
+    def with_declared(self, units: list[str], sha: str) -> list[str]:
+        """Loaded units plus those *sha* declares: after a reboot nothing
+        was enabled, so only what someone started by hand was loaded and the
+        dedicated workers stayed down (2026-10-14)."""
+        names = set(units) | set(self.declared_units(sha))
+        return [n for n in sorted(names) if not n.startswith(READINESS_UNIT)]
+
+    def enable(self, units: list[str]) -> None:
+        """Enable the verified units so core's user manager (lingering)
+        starts them at boot. A failure is reported, not a refusal: the
+        release is already live."""
+        done = self.systemctl("enable", *units, check=False)
+        if done.returncode != 0:
+            self.say(f"warning: could not enable units for boot (rc {done.returncode})")
 
     def current_sha(self) -> str | None:
         if not self.layout.current.is_symlink():
@@ -1027,6 +1057,7 @@ class Deployer:
                         f"stopped; the old release was not restarted. Backup: {backup}."
                     )
                 raise Refused("new release failed readiness; nothing switched")
+            units = self.with_declared(units, sha)
         except Refused:
             # Never switched: drop the release so a corrected re-run can install it.
             # (A GovernorDecision keeps it: the governor may choose to fix forward.)
@@ -1054,6 +1085,7 @@ class Deployer:
                 raise Refused(f"{failure}; switched back to {previous[:12]}")
             raise Refused(f"{failure}; no previous release to switch back to")
 
+        self.enable(units)
         scripts = self.update_host_scripts(sha)
         claude_md = self.update_claude_md(sha)
         self.ledger(
@@ -1097,6 +1129,7 @@ class Deployer:
             raise Refused(f"release {target[:12]} is no longer installed")
         units = self.units()
         expect = self.alive_workers()
+        units = self.with_declared(units, target)
         law_changed = self.sync_law(target, current, current, "rollback")
         switched_at = self.host.now()
         self.switch_current(target)
@@ -1108,6 +1141,7 @@ class Deployer:
             self.switch_current(current)
             self.restart(units)
             raise Refused(f"{failure}; switched back to {current[:12]}")
+        self.enable(units)
         self.ledger(
             {
                 "action": "rollback",

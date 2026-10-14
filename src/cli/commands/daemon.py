@@ -419,6 +419,15 @@ def restart() -> None:
     raise typer.Exit(code=rc)
 
 
+@daemon_app.command("units")
+# ID: 160d5301-99d3-4475-a6f4-14e1a44be354
+def units() -> None:
+    """Print the systemd units CORE runs, one per line (read by core-deploy,
+    which enables them so they start again after a reboot)."""
+    for unit in _systemd_units():
+        typer.echo(unit if unit.endswith(".service") else f"{unit}.service")
+
+
 @daemon_app.command("status")
 # ID: ad62cbef-7f06-4d8e-9c3c-1b8d0f5a4c52
 def status() -> None:

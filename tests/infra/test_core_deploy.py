@@ -126,6 +126,7 @@ class FakeHost(cd.Host):
             "core-daemon-worker@sync_db_worker.service",
         ]
         self.wanted: list[str] = []
+        self.declared: list[str] | None = list(self.unit_list)
         self.alive = ["sync_db_worker"]
         self.beats_after_switch = True
         self.clock = T0
@@ -208,7 +209,10 @@ class FakeHost(cd.Host):
             (Path(cmd[4]) / "bin").mkdir(parents=True)
         elif cmd[0] == "systemd-run":
             body = cmd[cmd.index("--") + 1 :]
-            if "status" in body:
+            if body[-2:] == ["daemon", "units"]:
+                rc = 2 if self.declared is None else 0
+                out = "\n".join(self.declared or []).encode()
+            elif "status" in body:
                 out = json.dumps(
                     self.status_after_migrate if self.migrated else self.status
                 ).encode()
@@ -333,6 +337,44 @@ def test_first_deploy_with_nothing_loaded_starts_the_enabled_units(root: Path) -
     restart = next(c for c in host.commands("systemctl") if c[4] == "restart")
     assert set(restart[5:]) == set(host.wanted)
     assert _current(root) == SHA
+
+
+def test_units_the_release_declares_are_started_and_enabled_for_boot(
+    root: Path,
+) -> None:
+    # 2026-10-14: after a reboot nothing was enabled; the governor started
+    # core-api and core-daemon by hand and the hand deploy restarted only
+    # those two, leaving every dedicated worker down.
+    _with_previous(root)
+    host = FakeHost(root)
+    host.unit_list = ["core-api.service", "core-daemon.service"]
+    host.declared = [
+        "core-daemon.service",
+        "core-api.service",
+        "core-daemon-worker@sync_db_worker.service",
+    ]
+    assert _deploy(root, host) == 0
+    by_verb = {c[4]: c[5:] for c in host.commands("systemctl")}
+    assert set(by_verb["restart"]) == set(host.declared)
+    assert set(by_verb["enable"]) == set(host.declared)
+    entry = json.loads((root / "deploy-ledger.jsonl").read_text().splitlines()[-1])
+    assert set(entry["units"]) == set(host.declared)
+
+
+def test_a_release_without_daemon_units_keeps_the_loaded_units(root: Path) -> None:
+    host = FakeHost(root)
+    host.declared = None
+    assert _deploy(root, host) == 0
+    by_verb = {c[4]: c[5:] for c in host.commands("systemctl")}
+    assert set(by_verb["restart"]) == set(host.unit_list)
+
+
+def test_a_failed_switch_enables_nothing(root: Path) -> None:
+    _with_previous(root)
+    host = FakeHost(root)
+    host.health = False
+    assert _deploy(root, host) != 0
+    assert "enable" not in host.systemctl_verbs()
 
 
 # ID: 4084c0c0-0029-4b7c-978a-ca94240f1cf8

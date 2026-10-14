@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-104 commands.
+105 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -16,7 +16,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`commands`](#commands) | 1 | Search and inspect registered CLI commands. |
 | [`constitution`](#constitution) | 4 | Operations for the system mind: policies, schemas, and rule coverage. |
 | [`context`](#context) | 3 | Build and explore context packages for LLM assistance. |
-| [`daemon`](#daemon) | 5 | Background worker daemon management. |
+| [`daemon`](#daemon) | 6 | Background worker daemon management. |
 | [`database`](#database) | 6 | PostgreSQL state and operational data management. |
 | [`decisions`](#decisions) | 2 | Decision history: the repository's ADRs, with their files (ADR-168). |
 | [`demo`](#demo) | 2 | Isolated, opt-in demonstrations that CORE governs its own changes. |
@@ -673,6 +673,15 @@ Unit list is dynamic per ADR-081 D6 — lightweight core-daemon + core-api
 plus one row per enabled core-daemon-worker@&lt;stem>.service instance.
 Drift between .intent/workers/ classification and enabled systemd state
 is surfaced as a separate panel below the unit table.
+
+### `core-admin daemon units` {#daemon-units}
+
+```
+core-admin daemon units
+```
+
+Print the systemd units CORE runs, one per line (read by core-deploy,
+which enables them so they start again after a reboot).
 
 ### `core-admin daemon up` {#daemon-up}
 
