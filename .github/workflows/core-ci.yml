@@ -11,7 +11,7 @@ on:
     branches: [develop, main]
   pull_request:
     branches: [main, develop]
-  # Nightly full run on develop, including the release-upgrade tests that
+  # Nightly full run on main, including the release-upgrade tests that
   # push/PR runs skip (governor decision 2026-10-11).
   schedule:
     - cron: "0 3 * * *"
@@ -50,7 +50,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
+          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -230,7 +230,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
+          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -266,7 +266,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
+          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
@@ -302,7 +302,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
+          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
@@ -384,7 +384,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
+          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -480,7 +480,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'develop' || '') }}
+          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
