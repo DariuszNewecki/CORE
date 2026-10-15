@@ -79,7 +79,7 @@ from shared.infrastructure.intent.errors import GovernanceError
 console = Console()
 app = typer.Typer(
     name="core-admin",
-    help="CORE: The Self-Improving System Architect's Toolkit.",
+    help="CORE: executable constitutional governance for AI-assisted software development.",
     no_args_is_help=False,
 )
 
