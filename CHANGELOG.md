@@ -8,6 +8,17 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.14.4] — 2026-10-15
+
+Patch release. No database migrations. Fixes from the first 'Prove it' run (a fresh project, from PyPI).
+
+### Added
+
+- **`law_rules` (MCP) and `core-admin law list [MATCH]` list the rules in force (#1029):** id, enforcement, a one-line
+  statement, the engine and check that run it, and the file; filter by rule-id prefix or pack id.
+- **`change_verdict` names the rules it evaluated and the non-blocking findings in scope (#1030)**, so
+  CLEAR_IN_SCOPE is checkable.
+
 ### Fixed
 
 - **`starter.no_bare_except` catches a bare `except:` (#1026).** The rule forbids a bare `except:` and
@@ -15,6 +26,19 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
   with a body passed the starter pack's only blocking rule. It is now an AST check (`no_swallowed_exceptions`),
   which also stops matching text in strings and comments. `core/starter-python` and `core/python-hygiene` 1.1.0;
   re-adopt the pack to get it.
+- **Law that was never committed is one finding, and the audit says so (#1027).** After `project init` and
+  `adopt-pack`, the first audit reported every new `.intent/` file as `governance.law_drift` (31 findings, hidden below
+  the default severity) and DEGRADED with no visible reason. Now one finding, the reason printed next to the verdict,
+  and `init`/`adopt-pack` say to commit `.intent/` before auditing.
+- **A standalone install no longer warns about the outside-write ledger on every write (#1028);** the paths are in the
+  debug log.
+- **`core-admin` shows warnings and errors only (#1021).** `LOG_LEVEL=INFO` brings the runtime's logs back; the daemon
+  keeps the level from `core.env`.
+- **MCP texts (#1031):** `mcp run --help` names the two tools that act; `law_rule` names the engine's check; the
+  README shows how to connect an assistant.
+- **`core-admin --help` describes CORE as the PyPI page does (#1022).**
+- **Release: the Docker images are built by the PyPI publish run, after it succeeded** (both v2.14.3 images failed
+  waiting for PyPI).
 
 ## [2.14.3] — 2026-10-15
 
@@ -1193,7 +1217,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.14.3...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.14.4...HEAD
+[2.14.4]: https://github.com/DariuszNewecki/CORE/compare/v2.14.3...v2.14.4
 [2.14.3]: https://github.com/DariuszNewecki/CORE/compare/v2.14.2...v2.14.3
 [2.14.2]: https://github.com/DariuszNewecki/CORE/compare/v2.14.1...v2.14.2
 [2.14.1]: https://github.com/DariuszNewecki/CORE/compare/v2.14.0...v2.14.1
