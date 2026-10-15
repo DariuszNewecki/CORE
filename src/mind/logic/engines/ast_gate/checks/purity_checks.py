@@ -239,6 +239,41 @@ class PurityChecks:
         ]
 
     @staticmethod
+    # ID: 2660494b-950c-4548-b4e4-5caae2ba9f98
+    def check_no_swallowed_exceptions(tree: ast.AST) -> list[str]:
+        """A bare ``except:`` (any body), or ``except Exception``/``BaseException``
+        whose body only passes (#1026: the starter rule's regex missed a bare
+        ``except:`` with a body, and matched text in strings and comments)."""
+        violations: list[str] = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ExceptHandler):
+                continue
+            line = ASTHelpers.lineno(node)
+            if node.type is None:
+                violations.append(
+                    f"Line {line}: bare 'except:' catches everything; name the "
+                    "exception you expect."
+                )
+                continue
+            caught = node.type.id if isinstance(node.type, ast.Name) else ""
+            broad = caught in {"Exception", "BaseException"}
+            silent = all(
+                isinstance(stmt, ast.Pass)
+                or (
+                    isinstance(stmt, ast.Expr)
+                    and isinstance(stmt.value, ast.Constant)
+                    and stmt.value.value is Ellipsis
+                )
+                for stmt in node.body
+            )
+            if broad and silent:
+                violations.append(
+                    f"Line {line}: 'except {caught}' that only passes "
+                    "swallows the error; name the exception and handle it."
+                )
+        return violations
+
+    @staticmethod
     # ID: ca48084e-0a5b-4120-803f-dfc425f3a269
     def check_required_decorator(
         tree: ast.AST, decorator: str, file_path: Path | None = None, **kwargs

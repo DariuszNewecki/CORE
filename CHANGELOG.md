@@ -8,6 +8,14 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+### Fixed
+
+- **`starter.no_bare_except` catches a bare `except:` (#1026).** The rule forbids a bare `except:` and
+  `except Exception: pass`, but its regex mapping matched only `except:` followed by `pass`, so a bare `except:`
+  with a body passed the starter pack's only blocking rule. It is now an AST check (`no_swallowed_exceptions`),
+  which also stops matching text in strings and comments. `core/starter-python` and `core/python-hygiene` 1.1.0;
+  re-adopt the pack to get it.
+
 ## [2.14.3] — 2026-10-15
 
 Patch release. One database migration (`20261012_approver_original.sql`); `core-deploy --migrate` applies it.

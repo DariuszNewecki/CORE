@@ -1,6 +1,6 @@
 kind: governance_pack
 id: "core/starter-python"
-version: "1.0.0"
+version: "1.1.0"
 title: "Starter Python Hygiene"
 description: >
   Zero-friction baseline for any Python project. Four proven rules covering
@@ -64,12 +64,9 @@ rules:
 
 enforcement_mappings:
   starter.no_bare_except:
-    engine: regex_gate
+    engine: ast_gate
     params:
-      forbidden_patterns:
-        - "except:\\s*pass"
-        - "except Exception:\\s*pass"
-        - "except BaseException:\\s*pass"
+      check_type: no_swallowed_exceptions
     scope:
       applies_to: ["**/*.py"]
       excludes:
