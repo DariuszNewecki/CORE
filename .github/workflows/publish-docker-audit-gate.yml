@@ -3,7 +3,7 @@
 # F-10.3 / #578 — Publish the `core-audit-gate` image to GHCR.
 #
 # Builds from `Dockerfile` (repo root) and pushes to
-# ghcr.io/dariusznewecki/core-audit-gate on each semver tag and on
+# ghcr.io/dariusznewecki/core-audit-gate after each successful PyPI publish of a semver tag, and on
 # manual dispatch. The image pins `core-runtime` via the ARG declared
 # in the Dockerfile; the tag here must match the PyPI release.
 #
@@ -18,9 +18,14 @@
 name: Publish core-audit-gate (Docker)
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
+  # After the PyPI publish of a tag succeeds, not on the tag push itself: the
+  # publish waits for green CI (a full run included), which can take longer
+  # than the PyPI wait below. On 2026-10-15 both images failed for v2.14.3
+  # because PyPI published ~40 minutes after the tag. A rerun of the publish
+  # triggers this again.
+  workflow_run:
+    workflows: ["Publish to PyPI"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       version:
@@ -34,10 +39,18 @@ permissions:
 jobs:
   build-and-publish:
     name: Build and publish core-audit-gate to GHCR
+    # Only a successful publish of a v*.*.* tag (or a manual backfill).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # The tagged commit, not the default branch workflow_run runs on.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Resolve version (tag or dispatch input)
         id: ver
@@ -45,7 +58,9 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             V="${{ github.event.inputs.version }}"
           else
-            V="${GITHUB_REF_NAME#v}"
+            # workflow_run: head_branch is the tag the PyPI publish ran for.
+            TAG="${{ github.event.workflow_run.head_branch }}"
+            V="${TAG#v}"
           fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
           echo "Resolved version: $V"
