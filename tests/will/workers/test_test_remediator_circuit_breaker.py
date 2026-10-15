@@ -19,7 +19,7 @@ No real DB needed — all collaborators are mocked.
 from __future__ import annotations
 
 import contextlib
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 
 # ---------------------------------------------------------------------------
@@ -220,7 +220,7 @@ async def test_circuit_breaker_skips_when_inherited_below_cap() -> None:
     ].assert_awaited_once_with(["entry-id-1"], 2)
     patches[
         "will.workers.test_remediator.worker._release_entries"
-    ].assert_awaited_once_with(["entry-id-1"])
+    ].assert_awaited_once_with(["entry-id-1"], ANY)
 
 
 async def test_circuit_breaker_skips_when_no_prior_abandoned_findings() -> None:

@@ -24,7 +24,7 @@ test_test_remediator_circuit_breaker.py.
 from __future__ import annotations
 
 import contextlib
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 
 _SOURCE_FILE = "src/foo/bar.py"
@@ -75,7 +75,7 @@ def _patch_operations(
         ),
         "will.workers.test_remediator.worker._inherit_attempt_count": AsyncMock(),
         "will.workers.test_remediator.worker._release_entries": AsyncMock(
-            side_effect=lambda entry_ids: len(entry_ids)
+            side_effect=lambda entry_ids, _worker_uuid: len(entry_ids)
         ),
         "body.evaluators.test_gap_evaluator.TestGapEvaluator": MagicMock(
             return_value=MagicMock(execute=AsyncMock(return_value=_gap_result))
@@ -141,7 +141,7 @@ async def test_multi_symbol_missing_finding_creates_both_proposals_and_releases(
 
     patches[
         "will.workers.test_remediator.worker._release_entries"
-    ].assert_awaited_once_with(["entry-missing-1"])
+    ].assert_awaited_once_with(["entry-missing-1"], ANY)
 
     report_payload = worker.post_report.await_args.kwargs["payload"]  # type: ignore[attr-defined]
     assert report_payload["entries_deferred"] == 0
@@ -182,7 +182,7 @@ async def test_failure_finding_with_convention_matched_name_is_still_released() 
     create_mock.assert_awaited_once()
     patches[
         "will.workers.test_remediator.worker._release_entries"
-    ].assert_awaited_once_with(["entry-failure-matched"])
+    ].assert_awaited_once_with(["entry-failure-matched"], ANY)
     report_payload = worker.post_report.await_args.kwargs["payload"]  # type: ignore[attr-defined]
     assert report_payload["entries_deferred"] == 0
 
@@ -215,7 +215,7 @@ async def test_failure_finding_with_non_matched_name_is_released() -> None:
     create_mock.assert_awaited_once()
     patches[
         "will.workers.test_remediator.worker._release_entries"
-    ].assert_awaited_once_with(["entry-failure-unmatched"])
+    ].assert_awaited_once_with(["entry-failure-unmatched"], ANY)
 
 
 async def test_reevaluation_after_proposal_created_does_not_recreate_or_hot_loop() -> (
@@ -254,7 +254,7 @@ async def test_reevaluation_after_proposal_created_does_not_recreate_or_hot_loop
     create_mock_1.assert_awaited_once()
     patches_1[
         "will.workers.test_remediator.worker._release_entries"
-    ].assert_awaited_once_with(["entry-reeval-1"])
+    ].assert_awaited_once_with(["entry-reeval-1"], ANY)
 
     # --- Cycle 2: the proposal from cycle 1 is now active/visible ---
     worker2 = _make_worker()
@@ -271,7 +271,7 @@ async def test_reevaluation_after_proposal_created_does_not_recreate_or_hot_loop
     create_mock_2.assert_not_awaited()
     patches_2[
         "will.workers.test_remediator.worker._release_entries"
-    ].assert_awaited_once_with(["entry-reeval-1"])
+    ].assert_awaited_once_with(["entry-reeval-1"], ANY)
     report_payload_2 = worker2.post_report.await_args.kwargs["payload"]  # type: ignore[attr-defined]
     assert report_payload_2["symbols_skipped_dedup"] == 1
     assert report_payload_2["proposals_created"] == 0

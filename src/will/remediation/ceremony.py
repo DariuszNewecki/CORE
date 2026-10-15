@@ -359,9 +359,13 @@ class RemediationCeremony(CrateCanaryMixin, ContextMixin, LLMMixin):
                 file_path,
                 mapped_action,
             )
-            bb = await self._ctx.registry.get_blackboard_service()
-            finding_ids = [f["id"] for f in findings]
-            await bb.release_claimed_entries(finding_ids)
+            # #899: only this worker's claims; CLI file-mode (no worker)
+            # claimed nothing, so there is nothing to release.
+            worker_uuid = self._blackboard.worker_uuid
+            if worker_uuid is not None:
+                bb = await self._ctx.registry.get_blackboard_service()
+                finding_ids = [f["id"] for f in findings]
+                await bb.release_claimed_entries(finding_ids, claimed_by=worker_uuid)
             return False
 
         proposed_fix = await self._invoke_llm(

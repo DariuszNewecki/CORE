@@ -68,14 +68,14 @@ async def claim_unmapped_findings(
 
 
 # ID: 84ef02d8-0ea1-4d5f-be0a-3f84b73134c4
-async def release_findings(findings: list[dict[str, Any]]) -> None:
-    """Release claimed findings back to open status."""
+async def release_findings(findings: list[dict[str, Any]], *, claimed_by: UUID) -> None:
+    """Release this worker's claimed findings back to open status."""
     try:
         from body.services.service_registry import service_registry
 
         svc = await service_registry.get_blackboard_service()
         entry_ids = [str(f["id"]) for f in findings]
-        await svc.release_claimed_entries(entry_ids)
+        await svc.release_claimed_entries(entry_ids, claimed_by=claimed_by)
     except Exception as exc:
         logger.error(
             "ViolationExecutorWorker: release_claimed_entries failed — %s", exc

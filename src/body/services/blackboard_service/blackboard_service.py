@@ -202,7 +202,9 @@ class BlackboardService:
         return resolved_count
 
     # ID: e26d6375-97b0-44a5-bbf0-3db9380bef9a
-    async def release_claimed_entries(self, entry_ids: list[str]) -> int:
+    async def release_claimed_entries(
+        self, entry_ids: list[str], *, claimed_by: Any
+    ) -> int:
         """
         Reset claimed entries back to open status and clear claimed_by.
 
@@ -210,8 +212,10 @@ class BlackboardService:
         unmappable violations with no registered remediation action).
         Releasing prevents them from staying claimed forever.
 
-        Only updates entries currently in 'claimed' status.
-        Returns the count of rows actually updated.
+        Only updates entries currently in 'claimed' status AND claimed by
+        ``claimed_by`` (the releasing worker's uuid): one worker can never
+        reopen another's live claim (#899). Returns the count of rows actually
+        updated; ids claimed by someone else are left as they are and logged.
         """
         if not entry_ids:
             return 0
@@ -231,11 +235,20 @@ class BlackboardService:
                                 updated_at = now()
                             WHERE id = cast(:entry_id as uuid)
                               AND status = 'claimed'
+                              AND claimed_by = cast(:claimed_by as uuid)
                             """
                         ),
-                        {"entry_id": entry_id},
+                        {"entry_id": entry_id, "claimed_by": str(claimed_by)},
                     )
                     released += result.rowcount
+        if released < len(entry_ids):
+            logger.warning(
+                "release_claimed_entries: %d of %d entries released; the rest "
+                "are not claimed by %s and were left as they are",
+                released,
+                len(entry_ids),
+                claimed_by,
+            )
         return released
 
     # ID: d6c306ec-1d91-4af8-ab72-d8e540b25bc8

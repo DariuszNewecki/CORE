@@ -88,7 +88,9 @@ async def _load_open_findings(worker_uuid: uuid.UUID) -> list[dict[str, Any]]:
     if invalid_ids:
         try:
             blackboard_service = await service_registry.get_blackboard_service()
-            released = await blackboard_service.release_claimed_entries(invalid_ids)
+            released = await blackboard_service.release_claimed_entries(
+                invalid_ids, claimed_by=worker_uuid
+            )
             logger.info(
                 "TestRemediatorWorker: released %d/%d findings missing "
                 "source_file at claim time",
@@ -248,7 +250,7 @@ async def _last_failed_proposal(subject: str) -> dict[str, Any] | None:
         return None
 
 
-async def _release_entries(entry_ids: list[str]) -> int:
+async def _release_entries(entry_ids: list[str], worker_uuid: uuid.UUID) -> int:
     """
     Release claimed findings back to open status.
     Used when proposal creation is skipped by dedup.
@@ -260,7 +262,9 @@ async def _release_entries(entry_ids: list[str]) -> int:
 
     try:
         blackboard_service = await service_registry.get_blackboard_service()
-        return await blackboard_service.release_claimed_entries(entry_ids)
+        return await blackboard_service.release_claimed_entries(
+            entry_ids, claimed_by=worker_uuid
+        )
     except Exception as e:
         logger.error("TestRemediatorWorker: failed to release entries: %s", e)
         return 0

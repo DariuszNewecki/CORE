@@ -14,7 +14,7 @@ drain decides: resolve when the source is covered, reopen when still missing.
 from __future__ import annotations
 
 import contextlib
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -49,7 +49,7 @@ async def _run_no_gap(findings: list[dict]) -> dict:  # type: ignore[type-arg]
                 side_effect=lambda ids: len(ids)
             ),
             "will.workers.test_remediator.worker._release_entries": AsyncMock(
-                side_effect=lambda ids: len(ids)
+                side_effect=lambda ids, _worker_uuid: len(ids)
             ),
             "body.evaluators.test_gap_evaluator.TestGapEvaluator": MagicMock(
                 return_value=MagicMock(execute=AsyncMock(return_value=complete))
@@ -76,7 +76,7 @@ async def test_no_gap_returns_missing_finding_for_reaudit_not_open() -> None:
     ].assert_awaited_once_with(["m-1"])
     patches[
         "will.workers.test_remediator.worker._release_entries"
-    ].assert_awaited_once_with([])
+    ].assert_awaited_once_with([], ANY)
 
 
 async def test_no_gap_leaves_failure_findings_on_the_release_path() -> None:
@@ -86,7 +86,7 @@ async def test_no_gap_leaves_failure_findings_on_the_release_path() -> None:
     ].assert_awaited_once_with(["m-1"])
     patches[
         "will.workers.test_remediator.worker._release_entries"
-    ].assert_awaited_once_with(["f-1"])
+    ].assert_awaited_once_with(["f-1"], ANY)
 
 
 @pytest.mark.asyncio
