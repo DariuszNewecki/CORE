@@ -1,0 +1,28 @@
+# .github/workflows/pr-first-line.yml
+# Governor 2026-10-15: a merge is the only approval, and core-deploy applies
+# host setup and the assistant's .claude/ from main by itself. A pull request
+# that touches them must start its description with "Host change:".
+# Runs again when the description is edited.
+name: PR first line
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  host-change-stated:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: The first line names a host change
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: git diff --name-only "$BASE...$HEAD" | python3 -I infra/scripts/pr_first_line.py

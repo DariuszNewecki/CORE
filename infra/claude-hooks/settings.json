@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/core-verdict.sh",
+            "timeout": 600,
+            "statusMessage": "CORE verdict (ADR-168 D4.1 experiment)\u2026"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/core-chat-length.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

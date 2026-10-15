@@ -38,7 +38,8 @@
 # refuses (fail closed).
 #
 # The installed copy lives in .claude/hooks/ (core-law, not in git); this
-# file in infra/claude-hooks/ is its source and what CI tests.
+# file in infra/claude-hooks/ is its source and what CI tests, and core-deploy
+# installs it from main on every deploy (governor 2026-10-15).
 #
 # Every run appends one JSON line to var/experiments/adr168/verdicts.jsonl so
 # the experiment can be evaluated from evidence.

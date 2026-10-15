@@ -38,12 +38,13 @@ Order (ADR-132 D10 · D2):
     the hashed wheel and the commit's poetry.lock in releases/<sha>/dist/,
     from which core-law-setup installs the custodian's venv;
  3a. law: governed text that changed between the live commit and <sha>
-    (``.intent/`` except custody, ``.specs/``, ``.claude/`` settings and
-    hooks) is applied by core-law running the NEW release's
-    ``core-admin law apply-merge`` (no PyPI release involved): the merge on
-    GitHub is the approval, recorded in core-law's signed ledger. A refusal
-    stops the deploy before anything switched. If the deploy later switches
-    back, the law is put back the same way;
+    (``.intent/`` except custody, ``.specs/``), and the assistant's
+    ``.claude/`` (settings.json and hooks/) made equal to the commit's
+    ``infra/claude-hooks/``, are applied by core-law running the NEW
+    release's ``core-admin law apply-merge`` (no PyPI release involved): the
+    merge on GitHub is the approval, recorded in core-law's signed ledger. A
+    refusal stops the deploy before anything switched. If the deploy later
+    switches back, the law is put back the same way;
  4. migration check with the new release (read-only); pending migrations
     without --migrate refuse;
  5. --migrate: stop every unit, back up (BACKUP_COMMAND), migrate as core.
@@ -57,14 +58,18 @@ Order (ADR-132 D10 · D2):
     worker that was alive before to heartbeat again; without a migration a
     failure switches back; then enable them, so they start after a reboot;
  8. self-update: the installed core-deploy, core-law-setup, core-pipeline
-    and core-sandbox-check become the deployed commit's ``infra/`` copies
-    (core-law-setup is installed, never run: running it stays the
-    governor's act);
+    and core-sandbox-check become the deployed commit's ``infra/`` copies;
+    then, when the merge changed it, core-law-setup runs (it installs the
+    live release's wheel, so it runs after the switch; a failure is reported
+    and never undoes the deploy);
  9. append a ledger line.
 
-A merge that changes the host setup (``infra/systemd/``, the setup scripts:
-sudoers, accounts, units) is refused before anything is built, with the exact
-commands for the governor (``--host-setup-applied`` after applying it).
+Host setup (governor 2026-10-15: a merge is the only approval). A merge that
+changes ``infra/core-runtime-setup`` or ``infra/systemd/`` runs
+core-runtime-setup, and one that changes ``infra/core-one-path-setup`` runs
+that script: as root, the copy in the deployed commit, before anything is
+built. A failure refuses the deploy. The governor account they need is the
+one member of the group ``core-gov``.
 
 ``--rollback`` returns to the release the current one replaced, refusing
 when a migration lies between them (a symlink does not roll back a database).
@@ -82,6 +87,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import fcntl
+import grp
 import hashlib
 import io
 import json
@@ -92,6 +98,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 import tomllib
 import urllib.request
@@ -106,14 +113,29 @@ SAFE_GIT = ("-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false")
 LAW_USER = "core-law"
 # Host scripts core-deploy keeps equal to the deployed commit (self-update).
 HOST_SCRIPTS = ("core-deploy", "core-law-setup", "core-pipeline", "core-sandbox-check")
-# Host setup: sudoers, accounts and units. A merge that changes these is not
-# deployed automatically; the governor applies the setup, then deploys.
+# Host setup: sudoers, accounts and units. A merge that changes these paths
+# runs the setup script that applies them (the merge is the approval).
 HOST_SETUP_PATHS = (
     "infra/systemd",
     "infra/core-runtime-setup",
     "infra/core-law-setup",
     "infra/core-one-path-setup",
 )
+# Run before the build, from the deployed commit: (script, its interpreter,
+# the paths it applies). core-law-setup runs after the switch instead.
+PRE_SWITCH_SETUP = (
+    (
+        "core-runtime-setup",
+        "/usr/bin/python3",
+        ("infra/core-runtime-setup", "infra/systemd"),
+    ),
+    ("core-one-path-setup", "/bin/bash", ("infra/core-one-path-setup",)),
+)
+LAW_SETUP_PATH = "infra/core-law-setup"
+GOVERNOR_GROUP = "core-gov"
+# The source of the assistant's .claude/ in the dev tree: settings.json is
+# .claude/settings.json, every other file is .claude/hooks/<name>.
+CLAUDE_SOURCE = "infra/claude-hooks"
 DEV_REPO = Path("/opt/dev/CORE")
 # Governed text (governance_paths.yaml governed_text); custody is written by
 # law apply itself and is never carried by a merge.
@@ -190,7 +212,6 @@ class Options:
     migrate: bool = False
     merged_by: str | None = None
     tested_as: str | None = None
-    host_setup_applied: bool = False
     dev_repo: Path = DEV_REPO
     readiness_port: int = 8765
     api_base: str = "http://127.0.0.1:8000"
@@ -240,6 +261,12 @@ class Host:
                 + result.stderr.decode(errors="replace").strip()
             )
         return result
+
+    def group_members(self, group: str) -> list[str]:
+        try:
+            return list(grp.getgrnam(group).gr_mem)
+        except KeyError:
+            return []
 
     def http_json(self, url: str, timeout: float = 15.0) -> object:
         request = urllib.request.Request(
@@ -872,21 +899,27 @@ class Deployer:
             self.say("law: no live commit to compare with; law left as it is")
             return False
         changes = self.law_changes(base, target)
-        if not changes:
+        writes: dict[str, bytes] = {}
+        removals: list[str] = []
+        for status, path in changes:
+            if status == "D":
+                removals.append(path)
+            else:
+                writes[path] = self.git("show", f"{target}:{path}")
+        claude_writes, claude_removals = self.claude_changes(target)
+        writes.update(claude_writes)
+        removals += claude_removals
+        if not writes and not removals:
             return False
         proposal_id = f"merge-{target[:12]}"
         root = self.layout.build / f"law-{target[:12]}"
         shutil.rmtree(root, ignore_errors=True)
         files = root / proposal_id / "files"
         files.mkdir(parents=True)
-        removals: list[str] = []
-        for status, path in changes:
-            if status == "D":
-                removals.append(path)
-                continue
+        for path, data in writes.items():
             dest = files / path
             dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_bytes(self.git("show", f"{target}:{path}"))
+            dest.write_bytes(data)
         who = (
             self.options.merged_by
             or self.git("log", "-1", "--format=%an", target).decode().strip()
@@ -953,18 +986,62 @@ class Deployer:
                 .strip()[-2000:]
             )
         self.say(
-            f"law: {len(changes)} governed file(s) applied for {target[:12]} ({why})"
+            f"law: {len(writes) + len(removals)} governed file(s) applied for "
+            f"{target[:12]} ({why})"
         )
         return True
 
+    def claude_changes(self, target: str) -> tuple[dict[str, bytes], list[str]]:
+        """What makes the dev tree's ``.claude/`` equal to *target*'s
+        ``infra/claude-hooks/``: (path -> bytes to write, paths to remove).
+
+        Compared by content, not by diff, so a copy that drifted, or a source
+        that a deploy before this one did not install, is put right. A commit
+        whose source has no ``settings.json`` does not define the set (older
+        commits): ``.claude/`` is left as it is.
+        """
+        prefix = f"{CLAUDE_SOURCE}/"
+        listed = self.git(
+            "ls-tree", "-r", "-z", "--name-only", target, "--", prefix
+        ).decode()
+        names = sorted(
+            p[len(prefix) :]
+            for p in listed.split("\0")
+            if p.startswith(prefix) and "/" not in p[len(prefix) :]
+        )
+        if "settings.json" not in names:
+            return {}, []
+        installed = self.options.dev_repo / ".claude"
+        writes: dict[str, bytes] = {}
+        for name in names:
+            path = (
+                ".claude/settings.json"
+                if name == "settings.json"
+                else f".claude/hooks/{name}"
+            )
+            data = self.git("show", f"{target}:{prefix}{name}")
+            current = self.options.dev_repo / path
+            if not (current.is_file() and current.read_bytes() == data):
+                writes[path] = data
+        hooks = installed / "hooks"
+        removals = (
+            sorted(
+                f".claude/hooks/{p.name}"
+                for p in hooks.iterdir()
+                if p.is_file() and p.name not in names
+            )
+            if hooks.is_dir()
+            else []
+        )
+        return writes, removals
+
     # -- host scripts and host setup -------------------------------------------
 
-    def refuse_host_setup_changes(self, previous: str | None, sha: str) -> None:
-        """Refuse a merge that changes sudoers, accounts or units (the
-        governor's to apply), unless --host-setup-applied says it is done."""
-        if previous is None or self.options.host_setup_applied:
-            return
-        changed = [
+    def host_setup_changes(self, previous: str | None, sha: str) -> list[str]:
+        """Host setup paths (sudoers, accounts, units) the merge changes."""
+        if previous is None:
+            return []
+        return [
             line
             for line in self.git(
                 "diff", "--name-only", previous, sha, "--", *HOST_SETUP_PATHS
@@ -973,15 +1050,82 @@ class Deployer:
             .splitlines()
             if line
         ]
-        if changed:
+
+    def governor_account(self) -> str:
+        """The human's account: the one member of ``core-gov``."""
+        members = self.host.group_members(GOVERNOR_GROUP)
+        if len(members) != 1:
             raise Refused(
-                "this merge changes the host setup (sudoers, accounts or units): "
-                + ", ".join(changed)
-                + ". Nothing was deployed. Apply it yourself: "
-                f"sudo bash infra/core-one-path-setup --ref {sha} (or the setup "
-                f"script named above), then: sudo core-deploy {sha} "
-                "--migrate --host-setup-applied"
+                f"host setup needs the governor account: group {GOVERNOR_GROUP} "
+                f"must have exactly one member, has {members or 'none'}"
             )
+        return members[0]
+
+    def apply_host_setup(self, sha: str, changed: list[str]) -> list[str]:
+        """Run, as root, the deployed commit's setup scripts for *changed*.
+
+        Before anything is built; a failure refuses the deploy. Each script
+        is safe to run again and fetches what it installs from GitHub at
+        *sha*. Returns the scripts run.
+        """
+        ran: list[str] = []
+        for name, interpreter, paths in PRE_SWITCH_SETUP:
+            if not any(c == p or c.startswith(f"{p}/") for c in changed for p in paths):
+                continue
+            argv = ["--ref", sha]
+            if name == "core-runtime-setup":
+                argv += ["--governor", self.governor_account(), "--apply"]
+            folder = Path(tempfile.mkdtemp(prefix="core-setup-"))
+            try:
+                script = folder / name
+                script.write_bytes(self.git("show", f"{sha}:infra/{name}"))
+                os.chmod(script, 0o700)
+                self.say(f"host setup: {name} from {sha[:12]}")
+                result = self.host.run(
+                    [interpreter, str(script), *argv], input=b"", check=False
+                )
+            finally:
+                shutil.rmtree(folder, ignore_errors=True)
+            if result.returncode != 0:
+                raise Refused(
+                    f"host setup {name} failed for {sha[:12]}; nothing deployed:\n"
+                    + (result.stdout + result.stderr)
+                    .decode(errors="replace")
+                    .strip()[-2000:]
+                )
+            ran.append(name)
+        return ran
+
+    def apply_law_setup(self, changed: list[str]) -> str | None:
+        """Run the installed (just updated) core-law-setup when the merge
+        changed it. After the switch: it installs the live release's wheel.
+        A failure is reported and never undoes the deploy."""
+        if LAW_SETUP_PATH not in changed:
+            return None
+        try:
+            result = self.host.run(
+                [
+                    str(self.layout.sbin / "core-law-setup"),
+                    "--governor",
+                    self.governor_account(),
+                    "--apply",
+                ],
+                input=b"",
+                check=False,
+            )
+        except Refused as exc:
+            self.say(f"core-law-setup not run: {exc}")
+            return "not run"
+        if result.returncode != 0:
+            self.say(
+                "core-law-setup failed:\n"
+                + (result.stdout + result.stderr)
+                .decode(errors="replace")
+                .strip()[-2000:]
+            )
+            return "failed"
+        self.say("host setup: core-law-setup applied")
+        return "applied"
 
     def update_host_scripts(self, sha: str) -> list[str]:
         """Make the installed host scripts equal to the deployed commit's.
@@ -1051,7 +1195,8 @@ class Deployer:
                 f"release {sha[:12]} already exists; use --rollback or a new commit"
             )
         previous = self.current_sha()
-        self.refuse_host_setup_changes(previous, sha)
+        setup_changed = self.host_setup_changes(previous, sha)
+        host_setup = self.apply_host_setup(sha, setup_changed)
         units = self.units()
         expect = self.alive_workers()
 
@@ -1097,6 +1242,7 @@ class Deployer:
 
         self.enable(units)
         scripts = self.update_host_scripts(sha)
+        law_setup = self.apply_law_setup(setup_changed)
         claude_md = self.update_claude_md(sha)
         self.ledger(
             {
@@ -1104,6 +1250,8 @@ class Deployer:
                 "sha": sha,
                 "ref": ref,
                 "host_scripts_updated": scripts,
+                "host_setup": host_setup,
+                "law_setup": law_setup,
                 "claude_md_updated": claude_md,
                 "wheel_sha256": wheel_sha,
                 "previous": previous,
@@ -1185,11 +1333,6 @@ def main(argv: list[str] | None = None, host: Host | None = None) -> int:
         help="who merged the commit on GitHub (the post-merge runner passes it)",
     )
     parser.add_argument(
-        "--host-setup-applied",
-        action="store_true",
-        help="the governor applied this commit's host setup; deploy it anyway",
-    )
-    parser.add_argument(
         "--tested-as",
         help="the pull-request head CI tested; the commit's tree must equal it",
     )
@@ -1198,6 +1341,9 @@ def main(argv: list[str] | None = None, host: Host | None = None) -> int:
     )
     parser.add_argument(
         "--sbin", type=Path, default=Path("/usr/local/sbin"), help=argparse.SUPPRESS
+    )
+    parser.add_argument(
+        "--dev-repo", type=Path, default=DEV_REPO, help=argparse.SUPPRESS
     )
     args = parser.parse_args(argv)
     if bool(args.ref) == bool(args.rollback):
@@ -1214,7 +1360,7 @@ def main(argv: list[str] | None = None, host: Host | None = None) -> int:
             migrate=args.migrate,
             merged_by=args.merged_by,
             tested_as=args.tested_as,
-            host_setup_applied=args.host_setup_applied,
+            dev_repo=args.dev_repo,
         ),
     )
     layout.root.mkdir(parents=True, exist_ok=True)
