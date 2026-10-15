@@ -25,7 +25,7 @@
 # D4.2 (required CI + branch protection), not this hook.
 #
 # The tree judged is the one each commit lands on, decided by
-# core-commit-target.py beside this file (shared with core-develop-ancestry.sh):
+# core-commit-target.py beside this file:
 # the payload's cwd, then a `cd <dir>` or `git -C <dir>` in the command, when
 # that tree is this repository or one of its worktrees; otherwise this
 # repository. The check runs there with REPO_PATH and PYTHONPATH naming that
