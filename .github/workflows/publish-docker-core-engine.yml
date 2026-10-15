@@ -8,7 +8,7 @@
 # same tag — enforced by the "wait for PyPI" guard below.
 #
 # Triggers:
-#   - a semver tag push (v*.*.*), the same tag that fires publish-pypi.yml
+#   - publish-pypi.yml, after it published the tag (workflow_call)
 #   - manual workflow_dispatch with a version input (to backfill an already
 #     published release, e.g. 2.7.0)
 #
@@ -19,9 +19,17 @@
 name: Publish core-engine (Docker)
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
+  # Called by publish-pypi.yml after the PyPI publish of a v*.*.* tag
+  # succeeded, not on the tag push itself: the publish waits for green CI (a
+  # full run included), which outlasted the PyPI wait below for v2.14.3
+  # (2026-10-15, both images failed). A reusable call keeps the trusted
+  # tag-push context (no workflow_run).
+  workflow_call:
+    inputs:
+      version:
+        description: "core-runtime version just published, e.g. 2.14.4"
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       version:
@@ -40,13 +48,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Resolve version (tag or dispatch input)
+      - name: Resolve version (call or dispatch input)
         id: ver
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            V="${{ github.event.inputs.version }}"
-          else
-            V="${GITHUB_REF_NAME#v}"
+          # inputs.version: dispatch (backfill) and workflow_call alike;
+          # "v2.14.4" or "2.14.4". Through the environment, and checked.
+          V="${INPUT_VERSION#v}"
+          if ! [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version '$INPUT_VERSION' is not X.Y.Z"; exit 1
           fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
           echo "Resolved version: $V"

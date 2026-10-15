@@ -11,7 +11,7 @@
 # PyPI environment configuration). After setup, releases are:
 #   1. Bump version in pyproject.toml
 #   2. git tag vX.Y.Z && git push --tags
-#   3. This workflow fires automatically.
+#   3. This workflow fires automatically, then builds the Docker images.
 #
 # #954: nothing is published unless the latest CORE CI run for the exact
 # tagged SHA concluded success, and the built wheel passes the adopter-path
@@ -171,3 +171,24 @@ jobs:
         # minted by GitHub Actions (id-token: write permission above).
         # PyPI verifies the token against the trusted publisher
         # configuration registered for `core-runtime`.
+
+  # The Docker images install the published wheel (ADR-086 D7: an image
+  # exists iff the release is on PyPI), so they are built only after the
+  # publish above succeeded, in this tag-push run (2026-10-15).
+  docker-core-engine:
+    needs: build-and-publish
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish-docker-core-engine.yml
+    with:
+      version: ${{ github.ref_name }}
+
+  docker-audit-gate:
+    needs: build-and-publish
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish-docker-audit-gate.yml
+    with:
+      version: ${{ github.ref_name }}
