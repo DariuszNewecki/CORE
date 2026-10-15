@@ -192,7 +192,9 @@ class ViolationExecutorWorker(Worker):
             deferred_findings = [f for _, f_list in deferred for f in f_list]
             deferred_paths = [path for path, _ in deferred]
 
-            await finding_state.release_findings(deferred_findings)
+            await finding_state.release_findings(
+                deferred_findings, claimed_by=self._worker_uuid
+            )
             await self._post_blast_bound_finding(
                 cap=self._files_per_cycle_max,
                 total_files=len(all_files),
@@ -304,7 +306,9 @@ class ViolationExecutorWorker(Worker):
             if str((f.get("payload") or {}).get("rule") or "") in mapped_rule_ids
         ]
         if late_mapped:
-            await finding_state.release_findings(late_mapped)
+            await finding_state.release_findings(
+                late_mapped, claimed_by=self._worker_uuid
+            )
             findings = [f for f in findings if f not in late_mapped]
             logger.info(
                 "ViolationExecutorWorker: released %d finding(s) back to open "

@@ -137,7 +137,9 @@ async def load_open_findings(
 
     if unmappable_ids:
         try:
-            released = await service.release_claimed_entries(unmappable_ids)
+            released = await service.release_claimed_entries(
+                unmappable_ids, claimed_by=claimed_by
+            )
             logger.info(
                 "ViolationRemediatorWorker: released %d/%d unmappable findings "
                 "at claim time",
@@ -178,7 +180,9 @@ async def resolve_entries(
 
 
 # ID: 2f3a6a63-bb19-410a-9497-1433e0811bf9
-async def release_entries(service: Any, entry_ids: list[str]) -> int:
+async def release_entries(
+    service: Any, entry_ids: list[str], *, claimed_by: Any
+) -> int:
     """Release claimed entries back to 'open' by id.
 
     Used when proposal creation fails and findings need to be retry-
@@ -188,14 +192,16 @@ async def release_entries(service: Any, entry_ids: list[str]) -> int:
     if not entry_ids:
         return 0
     try:
-        return await service.release_claimed_entries(entry_ids)
+        return await service.release_claimed_entries(entry_ids, claimed_by=claimed_by)
     except Exception as e:
         logger.error("ViolationRemediatorWorker: failed to release entries: %s", e)
         return 0
 
 
 # ID: 75f8df09-f542-43fc-8506-85b7a1059be1
-async def release_unmappable(service: Any, findings: list[dict[str, Any]]) -> int:
+async def release_unmappable(
+    service: Any, findings: list[dict[str, Any]], *, claimed_by: Any
+) -> int:
     """Release claimed findings whose rule has no remediation mapping.
 
     Resolves entry ids and delegates to release_entries — same release
@@ -204,7 +210,7 @@ async def release_unmappable(service: Any, findings: list[dict[str, Any]]) -> in
     if not findings:
         return 0
     entry_ids = [_entry_id(f) for f in findings]
-    return await release_entries(service, entry_ids)
+    return await release_entries(service, entry_ids, claimed_by=claimed_by)
 
 
 # ID: 3a2edb4b-98c1-4ab5-ad7e-8f4c31d6bcdd

@@ -301,7 +301,7 @@ class TestRemediatorWorker(Worker):
                 ]
                 other_ids = [i for i in entry_ids if i not in missing_ids]
                 entries_returned_for_reaudit += await _return_for_reaudit(missing_ids)
-                entries_released += await _release_entries(other_ids)
+                entries_released += await _release_entries(other_ids, self._worker_uuid)
                 source_files_skipped.append(source_file)
                 continue
 
@@ -432,7 +432,7 @@ class TestRemediatorWorker(Worker):
 
             if inherited > 0:
                 await _inherit_attempt_count(entry_ids, inherited)
-            entries_released += await _release_entries(entry_ids)
+            entries_released += await _release_entries(entry_ids, self._worker_uuid)
 
         await self.post_report(
             subject="test_remediator.completed",

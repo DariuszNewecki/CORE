@@ -445,11 +445,15 @@ class ViolationRemediatorWorker(Worker):
 
     # ID: 919e30eb-20bb-4dfc-9b98-70b5a4ed7fa8
     async def _release_entries(self, entry_ids: list[str]) -> int:
-        return await release_entries(await self._blackboard_service(), entry_ids)
+        return await release_entries(
+            await self._blackboard_service(), entry_ids, claimed_by=self._worker_uuid
+        )
 
     # ID: 508a6c03-fe1a-4f72-8be1-a4b68e65d67a
     async def _release_unmappable(self, findings: list[dict[str, Any]]) -> int:
-        return await release_unmappable(await self._blackboard_service(), findings)
+        return await release_unmappable(
+            await self._blackboard_service(), findings, claimed_by=self._worker_uuid
+        )
 
     # ID: e16afa44-6fde-4782-9879-e4953b997e74
     async def _check_circuit_breaker(
