@@ -78,6 +78,13 @@ async def _law_rule(repo_root: Path, arguments: dict[str, Any]) -> dict[str, Any
     return LawFacts(repo_root).rule(_text(arguments, "rule_id")).as_dict()
 
 
+async def _law_rules(repo_root: Path, arguments: dict[str, Any]) -> dict[str, Any]:
+    match = arguments.get("match")
+    if match is not None and not isinstance(match, str):
+        raise ToolInputError("'match' must be a string when given.")
+    return LawFacts(repo_root).rules(match or None).as_dict()
+
+
 async def _law_can_write(repo_root: Path, arguments: dict[str, Any]) -> dict[str, Any]:
     return LawFacts(repo_root).can_write(_text(arguments, "path")).as_dict()
 
@@ -228,6 +235,21 @@ TOOLS: dict[str, AssistantTool] = {
                 "additionalProperties": False,
             },
             handler=_law_can_write,
+        ),
+        AssistantTool(
+            name="law_rules",
+            description=(
+                "Every rule declared in this project: id, enforcement (blocking, "
+                "reporting ...), a one-line statement, the engine and check that "
+                "run it, and its file. Optional 'match': a rule-id prefix (e.g. "
+                "'starter.') or a pack id (e.g. 'core/starter-python')."
+            ),
+            input_schema={
+                "type": "object",
+                "properties": {"match": _STRING},
+                "additionalProperties": False,
+            },
+            handler=_law_rules,
         ),
         AssistantTool(
             name="decision_adr",

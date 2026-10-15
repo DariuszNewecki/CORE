@@ -32,6 +32,7 @@ from shared.infrastructure.assistant_surface.law_facts import LawFacts
 
 _READ_TOOLS = {
     "law_rule",
+    "law_rules",
     "law_can_write",
     "decision_adr",
     "decision_adrs",
@@ -44,6 +45,7 @@ _ALLOWLIST = _READ_TOOLS | _SUBMIT_TOOLS
 # One call per tool, with the arguments each needs.
 _CALLS = {
     "law_rule": {"rule_id": "governance.constitution.read_only"},
+    "law_rules": {"match": "governance."},
     "law_can_write": {"path": ".intent/rules/x.json"},
     "decision_adr": {"adr_id": "ADR-007"},
     "decision_adrs": {"status": "accepted"},
