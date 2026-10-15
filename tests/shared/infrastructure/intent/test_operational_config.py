@@ -224,3 +224,26 @@ def test_load_falls_back_on_non_dict_document(caplog: pytest.LogCaptureFixture) 
     assert isinstance(cfg, OperationalConfig)
     assert cfg == OperationalConfig()
     assert "did not parse as a dict" in caplog.text
+
+
+def test_a_load_failure_is_logged_once_and_short(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """#948: on a floor-less .intent/ every module that reads the config
+    logged the same warning (28 times), each with the multi-line floor hint."""
+    from shared.infrastructure.intent import operational_config as oc
+
+    oc._LOGGED_LOAD_FAILURES.clear()
+    repo = MagicMock()
+    repo.resolve_rel.side_effect = RuntimeError(
+        ".intent/META does not exist\nA project's .intent/ must contain the floor ..."
+    )
+    with patch.object(oc, "get_intent_repository", return_value=repo):
+        for _ in range(28):
+            oc.load_operational_config()
+    lines = [
+        r.getMessage() for r in caplog.records if "could not load" in r.getMessage()
+    ]
+    assert len(lines) == 1
+    assert "\n" not in lines[0] and ".intent/META does not exist" in lines[0]
+    oc._LOGGED_LOAD_FAILURES.clear()
