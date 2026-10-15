@@ -37,6 +37,14 @@ core-admin project adopt-pack core/starter-python --write
 core-admin code audit --offline
 ```
 
+Connect your AI assistant (Claude Code shown; any MCP client works) so it asks
+CORE about your project's rules and checks its change before committing; see
+[Connect your AI assistant](https://dariusznewecki.github.io/CORE/connect-an-assistant/):
+
+```bash
+claude mcp add --scope project core -- core-admin mcp run
+```
+
 A new project:
 
 ```bash

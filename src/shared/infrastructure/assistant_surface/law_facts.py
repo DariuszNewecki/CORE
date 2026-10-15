@@ -129,6 +129,9 @@ class LawFacts:
             params = mapping.get("params") or {}
             answer["mechanism"] = {
                 "engine": mapping.get("engine"),
+                # The engine's own check (ast_gate check_type ...): what runs
+                # when no code path is named in enforced_by (#1031).
+                "check": params.get("check_type"),
                 "enforced_by": params.get("enforced_by"),
                 "note": _squash(params.get("enforcement_note")),
             }

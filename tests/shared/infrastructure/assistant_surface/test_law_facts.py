@@ -224,6 +224,34 @@ def test_collapsed_decisions_record_answers_adr_and_mentions(repo: Path) -> None
     assert "ADR-012" in ids
 
 
+def test_rule_names_the_engine_check_when_no_code_path_is_given(repo: Path) -> None:
+    """#1031 (proof run): for the starter rules (ast_gate, regex_gate)
+    `enforced_by` was null and the assistant could not tell what runs the
+    check. The engine's own check is named."""
+    rules = repo / ".intent" / "rules" / "architecture" / "safety.json"
+    doc = json.loads(rules.read_text())
+    doc["rules"].append(
+        {
+            "id": "starter.no_print",
+            "statement": "No print().",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit",
+        }
+    )
+    rules.write_text(json.dumps(doc), encoding="utf-8")
+    mapping = repo / ".intent" / "enforcement" / "mappings" / "architecture"
+    (mapping / "print.yaml").write_text(
+        "mappings:\n  starter.no_print:\n    engine: ast_gate\n    params:\n"
+        "      check_type: no_print_statements\n",
+        encoding="utf-8",
+    )
+    mechanism = LawFacts(repo).rule("starter.no_print").as_dict()["answer"]["mechanism"]
+    assert mechanism["engine"] == "ast_gate"
+    assert mechanism["check"] == "no_print_statements"
+    assert mechanism["enforced_by"] is None
+
+
 def test_rules_lists_every_declared_rule_with_its_mechanism(repo: Path) -> None:
     """#1029 (proof run): an assistant could not ask which rules apply."""
     answer = LawFacts(repo).rules().as_dict()
