@@ -8,12 +8,6 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
-### Fixed
-
-- **`core-admin` shows warnings and errors only (#1021).** Every command printed the runtime's INFO logs around its
-  output (an offline audit about twenty lines). `LOG_LEVEL=INFO` (or `DEBUG`) brings them back; the daemon keeps the
-  level from `core.env`.
-
 ## [2.14.3] — 2026-10-15
 
 Patch release. One database migration (`20261012_approver_original.sql`); `core-deploy --migrate` applies it.
