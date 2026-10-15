@@ -223,10 +223,6 @@ class ConstitutionalAuditor:
         ):
             return AuditVerdict.DEGRADED
 
-        # ADR-169 D2: the law evaluated is not known to be the law of record.
-        if law_drift_degrades(policy, law_relationship):
-            return AuditVerdict.DEGRADED
-
         fail_sevs = {AuditSeverity[name] for name in policy["fail_severities"]}
         ignored_types = set(policy["ignored_finding_types"])
 
@@ -242,5 +238,11 @@ class ConstitutionalAuditor:
 
         if has_blocking_violations:
             return AuditVerdict.FAIL
+
+        # ADR-169 D2: the law evaluated is not known to be the law of record.
+        # After the FAIL check (#1045): uncommitted law does not hide a proven
+        # violation; it only keeps a clean result from being PASS.
+        if law_drift_degrades(policy, law_relationship):
+            return AuditVerdict.DEGRADED
 
         return AuditVerdict.PASS
