@@ -8,6 +8,17 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.14.3] — 2026-10-15
+
+Patch release. One database migration (`20261012_approver_original.sql`); `core-deploy --migrate` applies it.
+
+### Added
+
+- **`core-admin project init [PATH] --write` brings an existing repository under CORE from `pip install
+  core-runtime` alone (#1023).** It copies the machinery floor into `.intent/` (never overwriting one); then
+  `project adopt-pack` and `code audit --offline`. Before, an existing repository needed core-cli and a running CORE
+  API with Postgres and Qdrant.
+
 ### Fixed
 
 - **The CLI rules no longer pass on nothing when the audited tree is not the importable one (#965).** A worktree or
@@ -1174,7 +1185,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.14.2...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.14.3...HEAD
+[2.14.3]: https://github.com/DariuszNewecki/CORE/compare/v2.14.2...v2.14.3
 [2.14.2]: https://github.com/DariuszNewecki/CORE/compare/v2.14.1...v2.14.2
 [2.14.1]: https://github.com/DariuszNewecki/CORE/compare/v2.14.0...v2.14.1
 [2.14.0]: https://github.com/DariuszNewecki/CORE/compare/v2.13.0...v2.14.0
