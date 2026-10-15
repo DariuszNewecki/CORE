@@ -1477,7 +1477,10 @@ when the ledger is unreachable. 2026-10-11 (ADR-132 D10.14) — loaded-code iden
 (commit SHA and wheel sha256). 2026-10-15 (D6–D8) — CORE's own controls are checked like code: every
 control has one source in git and every audit compares the installed copy with it (D6); the commit
 gate runs the deployed release (D7); every assistant commit carries the gate's verdict and CI
-requires it (D8). A mismatch or a missing verdict is a blocking finding.  
+requires it (D8). A mismatch or a missing verdict is a blocking finding. 2026-10-15 (later) — a
+merge is the only approval: core-deploy applies changed setup scripts and installs `.claude/` from
+`infra/claude-hooks/` from main by itself, and a pull request touching them starts its description
+with "Host change:". The commit hook is producer feedback, not a control; D8 is dropped.  
 Enforced by: src/body/services/change_attribution.py, src/body/services/outside_write_ledger.py,
   src/body/services/state_ledger_service.py (+16 more src/ files)
 
