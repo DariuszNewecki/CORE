@@ -17,6 +17,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from body.services.access_register import AccessFinding, AccessReport
 from body.services.change_attribution import UNREADABLE_RANGE_PATH, ChangeFact
 from body.services.state_ledger_service import StateObservation
 from shared.infrastructure.code_identity import CodeDrift
@@ -119,6 +120,7 @@ async def _cycle(
     escalation_minutes: int = 30,
     changes: list | None = None,
     law_venv: LawVenvState | None = None,
+    access: AccessReport | None = None,
 ) -> tuple[MagicMock, AsyncMock]:
     sensor, publisher = _sensor()
     observation = StateObservation(
@@ -146,6 +148,12 @@ async def _cycle(
         patch.object(
             StateSensor, "_escalation_minutes", return_value=escalation_minutes
         ),
+        patch("body.services.access_register.load_register"),
+        patch(
+            "body.services.access_register.check_host",
+            return_value=access or AccessReport(),
+        ),
+        patch("body.services.access_register.check_github_access", AsyncMock()),
     ):
         await sensor.run()
     return publisher, record
@@ -340,3 +348,31 @@ async def test_a_matching_or_absent_law_venv_resolves_the_finding() -> None:
         publisher, _ = await _cycle(_MATCH, _CODE_MATCH, board, law_venv=state)
         assert board.resolved == ["governance::law_venv::core-law"]
         assert _subjects(publisher) == []
+
+
+# -- access register (ADR-068 amendment 2026-10-15, rule 5) ----------------------
+
+
+async def test_an_access_difference_is_a_blocking_finding_posted_once() -> None:
+    report = AccessReport(
+        findings=[AccessFinding("binding", "principals.yaml binds darek")],
+        not_evaluated={"sudo rules": "unreadable"},
+    )
+    publisher, _ = await _cycle(_MATCH, _CODE_MATCH, _Blackboard(), access=report)
+    assert _subjects(publisher) == ["governance::access_register::binding"]
+    payload = publisher.post_finding.await_args.args[1]
+    assert payload["severity"] == "blocking"
+    assert payload["rule"] == "rbac.register_is_complete"
+    run = publisher.post_report.await_args.args[1]
+    assert run["access_not_evaluated"] == {"sudo rules": "unreadable"}
+
+    already = _Blackboard({"governance::access_register::binding": {"id": "a1"}})
+    again, _ = await _cycle(_MATCH, _CODE_MATCH, already, access=report)
+    assert _subjects(again) == []
+
+
+async def test_an_access_finding_resolves_when_reality_matches() -> None:
+    board = _Blackboard({"governance::access_register::binding": {"id": "a1"}})
+    publisher, _ = await _cycle(_MATCH, _CODE_MATCH, board, access=AccessReport())
+    assert board.resolved == ["governance::access_register::binding"]
+    assert _subjects(publisher) == []
