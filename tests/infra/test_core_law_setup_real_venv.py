@@ -131,7 +131,7 @@ def _setup(tmp_path: Path, host: RealVenvHost) -> object:
     return cls.Setup(
         layout=layout,
         host=host,
-        governor="darek",
+        governor="core-darek",
         apply=True,
         pip_source=("--no-index",),
     )
@@ -224,47 +224,19 @@ def test_an_entry_point_that_does_not_run_restores_the_previous_venv(
     )
 
 
-@pytest.mark.skipif(
-    not Path("/usr/sbin/visudo").exists(), reason="visudo not installed"
-)
-def test_sudoers_text_passes_visudo_and_always_asks(tmp_path: Path) -> None:
-    text = cls.sudoers_text("darek", Path("/opt/core-law/venv"))
-    assert "Defaults>core-law timestamp_timeout=0" in text
-    path = tmp_path / "core-law"
-    path.write_text(text)
-    path.chmod(0o440)
-    done = subprocess.run(
-        ["/usr/sbin/visudo", "-c", "-f", str(path)],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert done.returncode == 0, done.stdout + done.stderr
-    bad = tmp_path / "bad"
-    bad.write_text(text.replace("timestamp_timeout=0", "timestamp_timeout=zero"))
-    assert (
-        subprocess.run(
-            ["/usr/sbin/visudo", "-c", "-f", str(bad)], capture_output=True, check=False
-        ).returncode
-        != 0
-    )
-
-
-def test_a_rule_without_the_fresh_password_is_refused(
-    tmp_path: Path, monkeypatch
-) -> None:
-    monkeypatch.setattr(
-        cls,
-        "sudoers_text",
-        lambda governor, venv: f"{governor} ALL=(core-law) {venv}/bin/x\n",
+def test_an_installed_law_apply_sudo_rule_is_removed(tmp_path: Path) -> None:
+    """The merge is the only approval of law; the governor holds no sudo."""
+    rule = tmp_path / "s"
+    rule.write_text(
+        "darek ALL=(core-law) /opt/core-law/venv/bin/core-admin law apply *\n"
     )
     setup = cls.Setup(
-        layout=cls.Layout(law_home=tmp_path / "l", sudoers=tmp_path / "s"),
+        layout=cls.Layout(law_home=tmp_path / "l", sudoers=rule),
         host=SimpleNamespace(),
-        governor="darek",
+        governor="core-darek",
         apply=True,
     )
-    with pytest.raises(cls.Refused, match="every time"):
-        setup.sudoers()
-    assert not (tmp_path / "s").exists()
+    setup.sudoers()
+    assert not rule.exists()
+    setup.sudoers()
     shutil.rmtree(tmp_path / "l", ignore_errors=True)

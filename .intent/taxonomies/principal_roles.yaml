@@ -1,49 +1,146 @@
-version: "2.0.0"
+version: "3.0.0"
 status: active
 authority: constitutional
-title: CORE Principal Role Taxonomy
+title: CORE Principal Role Taxonomy and Access Register
 description: >
-  Canonical declaration of principal roles in CORE. Defines what roles
-  exist and what authority each carries (Layer 1 of the three-layer role
-  model). Principal-to-role binding (Layer 2) is a deployment concern.
-  Action-to-role requirements (Layer 3) are expressed in enforcement rules.
-  Authority: ADR-068 (D2; amendment 2026-10-11 A2, A3, A6.1); governor
-  redesign 2026-10-12: two roles, one human (governor) and CORE (system).
-  Operator, auditor and producer were enforced nowhere and are removed;
-  separation of duties returns with a second human.
+  Canonical declaration of who may do what in CORE (RBAC). A closed list of
+  permissions, the roles that carry them, the identities bound to each role,
+  and the rules that hold between them. Authority: ADR-068 (D1; amendment
+  2026-10-11 A2, A6.1; amendment 2026-10-15, the governor's final RBAC
+  proposal). The binding of OS accounts to roles that the API enforces stays
+  in root-owned /etc/core/principals.yaml (ADR-132 D10.2); this register is
+  what that file, the host and GitHub are checked against.
 
 governance:
   flat_forever: true
   rationale: >
-    Role hierarchy is permanently rejected. Scope constraints are expressed
-    as attributes on Layer 2 bindings, not as structural properties of roles.
-    This makes permission attribution a one-sentence answer, required for
-    GxP audit defensibility. See ADR-068 D1.
+    Role hierarchy is permanently rejected. A permission is held by a role,
+    never by an identity, so "who may do X" is a one-sentence answer. See
+    ADR-068 D1.
+
+# Closed list. Nothing outside it is a CORE permission.
+permissions:
+  approve.change: Approve a code change (a pull request, a proposal).
+  approve.law: Approve a change to governed text.
+  propose.change: Propose a change to code or law.
+  read.law: Read governed text.
+  read.state: Read CORE's state, through CORE's API.
+  read.secrets: Read production credentials.
+  write.law: Write governed text.
+  run.services: Run CORE's daemon, workers and API.
+  deploy: Make a merged commit live.
+  run.untrusted: Run repository code, with no secrets and no network.
 
 roles:
   principal.governor:
     display_name: Governor
     authority: constitutional
-    description: >
-      The one human. Approves policy and exceptions: rule changes, proposals
-      that need a human after their pre-approval run, deployments. Recorded
-      as the principal `governor`; the identity behind it is kept beside it.
-      At most one Governor per deployment at any given time.
+    permissions: [approve.change, approve.law, read.law, read.state]
     proposal_approval_authority: true
-    read_access: full
-    write_access: full
-
-  principal.system:
-    display_name: System Agent
-    authority: policy
     description: >
-      CORE itself: workers, daemons, the risk classifier, and the coding
-      assistants that produce proposals. The
-      risk_classification.safe_auto_approval authority belongs to this role.
-      Never approves what needs the governor; never issued credentials.
+      Approves changes and law. At most one Governor per deployment.
+
+  principal.producer:
+    display_name: Producer
+    authority: policy
+    permissions: [propose.change, read.law, read.state]
     proposal_approval_authority: false
-    read_access: operational
-    write_access: operational
+    description: >
+      Produces changes, code and drafts of law, and proposes them. Never
+      approves.
+
+  principal.operator:
+    display_name: Operator
+    authority: policy
+    permissions: [run.services, read.secrets]
+    proposal_approval_authority: false
+    description: >
+      CORE's services. The only role that reads secrets. The services'
+      safe auto-approval (ADR-068 D5) applies the envelope the governor
+      approved as law; it is not approve.change.
+
+  principal.custodian:
+    display_name: Custodian
+    authority: policy
+    permissions: [write.law]
+    proposal_approval_authority: false
+    description: >
+      Writes governed text, and only after approve.law (ADR-170).
+
+  principal.deployer:
+    display_name: Deployer
+    authority: policy
+    permissions: [deploy]
+    proposal_approval_authority: false
+    description: >
+      Makes the governor's merges live (core-deploy).
+
+  principal.executor:
+    display_name: Executor
+    authority: policy
+    permissions: [run.untrusted]
+    proposal_approval_authority: false
+    description: >
+      Builds releases and runs repository code; no secrets, no network.
+
+# Identities -> roles. OS accounts on CORE's server, GitHub accounts on the
+# repository.
+identities:
+  os_accounts:
+    core-darek: principal.governor
+    core-claude: principal.producer
+    core: principal.operator
+    core-law: principal.custodian
+    core-runner: principal.deployer
+    core-build: principal.executor
+    core-sandbox: principal.executor
+  github_accounts:
+    DariuszNewecki: principal.governor
+    core-claude-bot: principal.producer
+
+# Host administration is not a CORE role (rule 6).
+host_administration:
+  os_accounts: [darek, root]
+
+# What the host grants each identity, as the roles need it. Anything not
+# listed here is a finding (rule 5).
+host_grants:
+  groups:
+    core-gov:
+      members: [core-darek]
+      purpose: the governor's socket, /run/core/api (ADR-132 D10.3)
+    core-dev:
+      members: [core, core-darek, core-claude]
+      purpose: the shared development tree
+  sudo_rules:
+    - who: core-runner
+      as: root
+      command: /usr/local/sbin/core-deploy
+      purpose: deploy
+    - who: core-runner
+      as: core
+      command: /usr/local/sbin/core-sandbox-check
+      purpose: deploy (probe the sandbox)
+
+rules:
+  - id: rbac.roles_only
+    statement: Permissions are granted to roles only, never directly to an identity.
+  - id: rbac.propose_not_approve
+    statement: No identity holds both propose.change and approve.change.
+  - id: rbac.secrets_operator_only
+    statement: >
+      Only the Operator holds read.secrets; every other role reads state
+      through CORE's API.
+  - id: rbac.law_written_after_approval
+    statement: write.law happens only after approve.law.
+  - id: rbac.register_is_complete
+    statement: >
+      Any account, group, sudo rule or GitHub collaborator not in the
+      register is a blocking finding.
+  - id: rbac.host_administration_outside
+    statement: >
+      Host administration is not a CORE role: darek and root perform no
+      governance act and are outside CORE's trust boundary.
 
 operation_modes:
   solo:
@@ -56,17 +153,16 @@ operation_modes:
     claim: detects_not_prevents
   solo-separated:
     description: >
-      One OS account per role or mechanism (A4); the binding file of
+      One OS account per role (the identities above); the binding file of
       ADR-132 D10.2, root-owned, outside the repository. Prevents each act
-      in A5 whose mechanism is live; an act whose mechanism is not live is
+      whose mechanism is live; an act whose mechanism is not live is
       reported as such.
     binding: os_accounts
     claim: prevents_where_mechanism_live
   platform:
     description: >
-      Teams, through core-platform: identities and roles from the platform,
-      D3's separation of duties enforced. Built on a solo-separated host,
-      never instead of one.
+      Teams, through core-platform: identities and roles from the platform.
+      Built on a solo-separated host, never instead of one.
     binding: platform_identity
     claim: prevents_and_separates_duties
 

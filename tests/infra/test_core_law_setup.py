@@ -68,7 +68,10 @@ class FakeHost(cls.Host):
         self.install_sha = WHEEL_SHA
         self.inject_pth = False
         self.allowed_probes: set[tuple[str, str]] = set()
-        self.groups = {"core-darek": ["core-darek", "core-dev", "docker", "sudo"]}
+        self.groups = {
+            "core": ["core", "core-dev", "docker", "sudo"],
+            "darek": ["darek", "sudo"],
+        }
 
     def groups_of(self, user: str) -> list[str]:
         return self.groups.get(user, [user, "core-dev"])
@@ -185,7 +188,7 @@ def _release(layout, sha: str = RELEASE, wheel: bytes = WHEEL) -> Path:
 
 def _main(world, *extra: str) -> int:
     host, layout = world
-    return cls.main(["--governor", "darek", *extra], host=host, layout=layout)
+    return cls.main(["--governor", "core-darek", *extra], host=host, layout=layout)
 
 
 def _mode(path: Path) -> int:
@@ -195,7 +198,7 @@ def _mode(path: Path) -> int:
 def test_plan_only_changes_nothing(world) -> None:
     host, layout = world
     assert _main(world) == 0
-    assert not layout.law_home.exists() and not layout.sudoers.exists()
+    assert not layout.law_home.exists()
     assert host.owners == {}
     assert all(cmd[0] not in ("useradd", "ssh-keygen") for cmd, _ in host.calls)
     # It still checks the live release's wheel, and installs nothing.
@@ -261,11 +264,9 @@ def test_apply_creates_the_custodian(world) -> None:
     assert host.owners[law / ".intent"] == ("core-law", "core-law")
     assert host.owners[law] == ("root", "root")
 
-    sudoers = layout.sudoers.read_text()
-    assert "NOPASSWD" not in sudoers
-    assert f"darek ALL=(core-law) {layout.venv}/bin/core-admin law apply *" in sudoers
-    assert _mode(layout.sudoers) == 0o440
-    assert any(c[0] == "visudo" for c, _ in host.calls)
+    # The merge is the only approval of law: no sudo rule reaches core-law.
+    assert not layout.sudoers.exists()
+    assert not any(c[0] == "visudo" for c, _ in host.calls)
 
     probes = [(c[2], u) for c, u in host.calls if c[:2] == ["sh", "-c"] and u]
     assert {u for _, u in probes} == {"core-claude", "core", "core-darek"}
@@ -292,9 +293,10 @@ def test_a_lost_public_key_is_rederived_not_regenerated(world) -> None:
 
 
 @pytest.mark.parametrize(
-    "governor", ["core-darek", "core-claude", "root", "nosuchuser"]
+    "governor", ["darek", "core-claude", "core-runner", "root", "nosuchuser"]
 )
-def test_refuses_a_governor_that_is_not_human(world, governor: str) -> None:
+def test_refuses_a_governor_outside_the_register(world, governor: str) -> None:
+    """Another role's account, root, unknown, or a host administrator (rule 6)."""
     host, layout = world
     code = cls.main(
         ["--governor", governor, "--apply"],
@@ -474,11 +476,11 @@ def test_root_equivalent_groups_are_named_not_hidden(world, capsys) -> None:
     _host, _layout = world
     assert _main(world) == 0
     out = capsys.readouterr().out
-    assert "NOT PROTECTED from core-darek: member of docker, sudo" in out
+    assert "NOT PROTECTED from core: member of docker, sudo" in out
     assert "root without any password" in out
     assert "core-claude: none" in out
     summary = out.split("The sticky bit and ownership do not hold against:", 1)[1]
-    assert "core-darek" in summary
+    assert "NOT PROTECTED from core:" in summary
 
 
 def test_a_repository_rename_that_succeeds_fails_the_run_and_is_undone(world) -> None:

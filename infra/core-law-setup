@@ -3,10 +3,14 @@
 """
 core-law-setup — create the law's custodian (ADR-170 D2-D6, Stage 1).
 
-Usage (the governor, as root, from their own account):
+Usage (as root; core-deploy runs it after a merge that changes it):
 
-    sudo core-law-setup --governor darek            # plan only
-    sudo core-law-setup --governor darek --apply    # do it
+    sudo core-law-setup            # plan only
+    sudo core-law-setup --apply    # do it
+
+``--governor`` (default ``core-darek``, the Governor in the register of
+``.intent/taxonomies/principal_roles.yaml``) is checked, not granted
+anything: the governor approves law by merging it and holds no sudo.
 
 Without ``--apply`` it prints what it would do and changes nothing. Every
 step is safe to run again: what is already right is left alone, and the
@@ -52,11 +56,10 @@ What it does:
     act);
  6. ``/opt/core/law/{.intent,.specs}`` (ADR-132 D10.13): seeded once from
     the development tree, owned by core-law, under a root-owned parent;
- 7. ``/etc/sudoers.d/core-law``: the governor may run exactly
-    ``/opt/core-law/venv/bin/core-admin law apply ...`` as core-law, and sudo
-    asks for their password every time, even right after another sudo
-    (``timestamp_timeout=0``; D6: never NOPASSWD). Checked with visudo before
-    it is installed;
+ 7. ``/etc/sudoers.d/core-law`` is removed: the merge is the only approval
+    of law and core-law writes it on core-deploy's call, so no account may
+    run core-law's ``law apply`` through sudo (ADR-068 amendment 2026-10-15:
+    the governor needs no sudo; ADR-170 D6 superseded);
  0. first, a table of every path it touches: owner and mode now, and after;
  8. the acceptance probes: as core-claude, core and core-darek, writing,
     renaming or replacing governed text, or renaming the repository, is
@@ -94,8 +97,19 @@ DEV_GROUP = "core-dev"
 ASSISTANT = "core-claude"
 SERVICES = "core"
 PROBE_ACCOUNTS = ("core-claude", "core", "core-darek")
+DEFAULT_GOVERNOR = "core-darek"
+# Accounts the register binds to a role other than Governor, and root.
 NOT_A_GOVERNOR = frozenset(
-    {"root", "core", "core-claude", "core-darek", "core-law", "core-build", "nobody"}
+    {
+        "root",
+        "core",
+        "core-claude",
+        "core-law",
+        "core-runner",
+        "core-build",
+        "core-sandbox",
+        "nobody",
+    }
 )
 GOVERNED = (".intent", ".specs", "CLAUDE.md", ".claude/settings.json", ".claude/hooks")
 PROTECTED_NAMES = (".intent", ".specs", "CLAUDE.md", ".claude")
@@ -397,17 +411,6 @@ def venv_problems(venv: Path, release: Release) -> list[str]:
     return problems
 
 
-def sudoers_text(governor: str, venv: Path) -> str:
-    return (
-        "# ADR-170 D6: the governor's sudo password is the approval of a law proposal.\n"
-        "# Installed by core-law-setup. sudo always asks for the password here.\n"
-        f"Defaults>{CUSTODIAN} env_reset, always_set_home\n"
-        "# A cached sudo login never approves: the password is asked every time.\n"
-        f"Defaults>{CUSTODIAN} timestamp_timeout=0\n"
-        f"{governor} ALL=({CUSTODIAN}) {venv}/bin/core-admin law apply *\n"
-    )
-
-
 AUTO_UNITS = (
     "core-law-auto-apply.service",
     "core-law-auto-apply.timer",
@@ -498,8 +501,17 @@ class Setup:
             raise Refused("run it as root (sudo)")
         if self.governor in NOT_A_GOVERNOR or self.host.account(self.governor) is None:
             raise Refused(
-                f"{self.governor!r} is not a human governor account "
-                "(ADR-132 D10.9: not an assistant, service or system account)"
+                f"{self.governor!r} is not the Governor's account "
+                "(the register binds it to another role, or it does not exist)"
+            )
+        admin = [
+            g for g in self.host.groups_of(self.governor) if g in ROOT_EQUIVALENT_GROUPS
+        ]
+        if admin:
+            raise Refused(
+                f"the governor account {self.governor!r} administers the host "
+                f"(member of {', '.join(admin)}); host administration is not a "
+                "CORE role (rule 6)"
             )
         if not (self.layout.repo / ".intent").is_dir():
             raise Refused(f"no .intent/ in {self.layout.repo}")
@@ -543,7 +555,7 @@ class Setup:
             (self.layout.venv, "root:root 755"),
             (self.layout.home, f"{CUSTODIAN}:{CUSTODIAN} 700"),
             (self.layout.key, f"{CUSTODIAN}:{CUSTODIAN} 600 (kept if present)"),
-            (self.layout.sudoers, "root:root 440"),
+            (self.layout.sudoers, "removed"),
         ]
         for path, target in rows:
             self.say(f"  {path!s:<45} {self._now(path):<26} -> {target}")
@@ -844,28 +856,13 @@ class Setup:
     # -- 7. sudoers --------------------------------------------------------------
 
     def sudoers(self) -> None:
-        self.say("7. sudoers: the governor's password approves (no NOPASSWD)")
-        text = sudoers_text(self.governor, self.layout.venv)
-        if "timestamp_timeout=0" not in text:
-            raise Refused(
-                "the core-law rule must ask for the password every time (ADR-170 D6)"
-            )
-        if any(
-            "NOPASSWD" in line for line in text.splitlines() if not line.startswith("#")
-        ):
-            raise Refused("a password-less rule for core-law is forbidden (ADR-170 D6)")
+        self.say("7. sudoers: no law apply through sudo (the merge approves)")
         target = self.layout.sudoers
-        if target.exists() and target.read_text() == text:
-            self.say("  ok")
+        if not target.exists():
+            self.say("  ok: none")
             return
-        if self.act(f"install {target}: {self.governor} -> ({CUSTODIAN}) law apply"):
-            staged = self.layout.build / "sudoers.core-law"
-            staged.write_text(text)
-            os.chmod(staged, 0o440)
-            self.host.run(["visudo", "-c", "-f", str(staged)])
-            shutil.copy2(staged, target)
-            self.host.chown(target, "root", "root")
-            os.chmod(target, 0o440)
+        if self.act(f"remove {target}"):
+            target.unlink()
 
     # -- 7a. record-only auto-apply ------------------------------------------------
 
@@ -977,15 +974,6 @@ class Setup:
         if self.failures:
             self.say("FAILED:\n  " + "\n  ".join(self.failures))
             return 1
-        if self.apply:
-            self.say(
-                "Stage 1 acceptance, by the governor (ADR-170 checks 3-9):\n"
-                "  - warm cache: run `sudo -v`, then at once `sudo -u core-law "
-                f"{self.layout.venv}/bin/core-admin law apply <id>`; it must ask for "
-                "the password again\n"
-                "  - the first law apply (--write) adds .intent/custody/allowed_signers "
-                "with the line printed in step 3"
-            )
         self.say(
             "done."
             if self.apply
@@ -1002,7 +990,11 @@ def main(
     parser = argparse.ArgumentParser(
         prog="core-law-setup", description=__doc__.split("\n\n")[0]
     )
-    parser.add_argument("--governor", required=True, help="the human governor account")
+    parser.add_argument(
+        "--governor",
+        default=DEFAULT_GOVERNOR,
+        help=f"the Governor's account, checked only (default: {DEFAULT_GOVERNOR})",
+    )
     parser.add_argument("--repo", type=Path, default=Layout.repo)
     parser.add_argument("--apply", action="store_true", help="make the changes")
     args = parser.parse_args(argv)

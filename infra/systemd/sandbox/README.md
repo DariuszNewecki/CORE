@@ -26,7 +26,7 @@ enabled and started. `CORE_SANDBOX_MODE=service` comes with `core.env`.
 
 ## Verification (M1)
 
-As the governor (`darek`), from any directory:
+As the host administrator (`darek`), from any directory:
 
 ```
 sudo -u core bash -c 'set -a; . /opt/core/etc/core.env; /opt/core/current/venv/bin/core-admin runtime sandbox-check --mode service'
