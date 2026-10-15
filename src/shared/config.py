@@ -36,6 +36,20 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SECRETS_FILE = REPO_ROOT / ".secrets" / "core.env"
 
 
+def _load_dotenv_if_readable(path: Path) -> bool:
+    """Load *path* into the environment unless it cannot be read.
+
+    An account that may not read a repository's .env (the assistant, once
+    the dev tree's database credential is locked away, #942) runs without
+    it instead of failing at import with PermissionError.
+    """
+    try:
+        return bool(load_dotenv(dotenv_path=path, override=True))
+    except PermissionError:
+        logger.debug("config: %s not readable; skipped", path)
+        return False
+
+
 def _read_secrets_file() -> dict[str, str]:
     """Read the secrets file into a dict without touching os.environ.
 
@@ -358,7 +372,7 @@ class Settings(BaseSettings):
         # over the environment and never reaches os.environ (#962). Explicit
         # constructor arguments still win over both.
         if not is_testing:
-            load_dotenv(dotenv_path=REPO_ROOT / ".env", override=True)
+            _load_dotenv_if_readable(REPO_ROOT / ".env")
             os.environ.update(preset_env)
             values = {**_read_secrets_file(), **values}
 
@@ -367,8 +381,7 @@ class Settings(BaseSettings):
         env_file_name = self._get_env_file_name(self.CORE_ENV)
         env_path = REPO_ROOT / env_file_name
 
-        if env_path.exists():
-            load_dotenv(dotenv_path=env_path, override=True)
+        if env_path.exists() and _load_dotenv_if_readable(env_path):
             os.environ.update(preset_env)
             super().__init__(**values)
 
