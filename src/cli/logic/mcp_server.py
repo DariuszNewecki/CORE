@@ -38,7 +38,7 @@ _INSTRUCTIONS = (
     "limits. Before committing, call change_verdict on your change: BLOCKED "
     "means a blocking rule is violated; CLEAR_IN_SCOPE means none of the rules "
     "it evaluated is, and it names the rules it did not evaluate. It never says "
-    "PASS; the full audit (commit hook, CI) is authoritative. To submit a change, "
+    "PASS; the full audit (CI) is authoritative. To submit a change, "
     "validate_change asks CORE to check a patch and submit_change records it as "
     "a pending proposal; both need a running CORE. No tool can approve, waive or "
     "act as the governor."

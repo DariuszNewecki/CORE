@@ -3,7 +3,7 @@
 """The fast verdict: producer feedback on a change, honest about its scope (ADR-168 D4.3).
 
 An assistant consults this before acting; it is not the authoritative audit.
-The full audit (the commit hook, CI) stays authoritative and unchanged
+The full audit (CI) stays authoritative and unchanged
 (ADR-168 third review: fast producer feedback stays distinct from
 authoritative repository enforcement).
 
@@ -51,7 +51,7 @@ NOT_EVALUATED = "NOT_EVALUATED"
 _BLOCKING = {"block", "blocking"}
 _AUTHORITY_NOTE = (
     "Producer feedback, not the authoritative verdict. PASS is given only by the "
-    "full audit (the commit hook and CI), which evaluates every rule."
+    "full audit (CI), which evaluates every rule."
 )
 
 

@@ -120,7 +120,7 @@ _result["class_b"] = _class_b_violations()
 print(json.dumps({"ok": True, "error": None, "result": _result}, default=str))
 """
 
-# The commit gate's own ceiling for the same audit (.claude/hooks/core-verdict.sh).
+# The ceiling the commit hook used for the same audit until it moved to CI (#907).
 _FULL_AUDIT_TIMEOUT_SEC = 540
 
 

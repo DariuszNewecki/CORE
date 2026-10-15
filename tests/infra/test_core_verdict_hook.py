@@ -1,12 +1,14 @@
 """The `.claude/hooks` CORE verdict check (ADR-168 D4.1).
 
 A real git repository stands in for the development checkout; its
-`.venv/bin/core-admin` is a stand-in audit that records where it ran and
-reports a BLOCK finding when the audited tree holds a file named BLOCK. The
-hook must pass anything but `git commit`, audit the tree each commit lands in
-(with REPO_PATH and PYTHONPATH naming it) in every spelling of `git commit`
-the shared detector knows, and refuse (fail closed) on a BLOCK finding, an
-audit that produced no verdict, or a payload it cannot read.
+`.venv/bin/core-admin` is a stand-in for `core-admin code verify` (the
+change_verdict tool) that records where it ran and how it was called, and
+says BLOCKED when the judged tree holds a file named BLOCK. The hook must
+pass anything but `git commit`, run the per-file change check -- not the
+full audit, which stays in CI -- on the tree each commit lands in (with
+REPO_PATH and PYTHONPATH naming it) in every spelling of `git commit` the
+shared detector knows, and refuse (fail closed) on BLOCKED, NOT_EVALUATED, a
+check that produced no verdict, or a payload it cannot read.
 """
 
 from __future__ import annotations
@@ -25,12 +27,17 @@ HOOK = REPO / "infra" / "claude-hooks" / "core-verdict.sh"
 
 FAKE_AUDIT = """#!/bin/sh
 printf '%s|%s|%s\\n' "$(pwd)" "$REPO_PATH" "$PYTHONPATH" >>"$FAKE_AUDIT_RECORD"
+[ "$*" = "code verify" ] || { echo "called as: $*" >&2; exit 9; }
 [ -e CRASH ] && exit 3
+if [ -e UNJUDGED ]; then
+  echo '{"verdict": "NOT_EVALUATED", "blocking": [], "error": "no rules"}'
+  exit 2
+fi
 if [ -e BLOCK ]; then
-  echo '{"verdict": "PASS", "findings": [{"severity": "block", "check_id": "fake.rule", "file_path": "BLOCK", "message": "blocked"}]}'
+  echo '{"verdict": "BLOCKED", "scope": {"files": ["BLOCK"]}, "blocking": [{"rule_id": "fake.rule", "file": "BLOCK", "line": 1, "message": "blocked"}]}'
   exit 1
 fi
-echo '{"verdict": "PASS", "findings": []}'
+echo '{"verdict": "CLEAR_IN_SCOPE", "scope": {"files": ["a.py", "b.py"]}, "blocking": []}'
 """
 
 
@@ -110,6 +117,11 @@ def test_a_clean_commit_is_allowed_and_logged_with_its_tree(dev: Path) -> None:
         str(dev),
         "s",
     )
+    assert (entry["check"], entry["verdict"], entry["file_count"]) == (
+        "change_verdict",
+        "CLEAR_IN_SCOPE",
+        2,
+    )
 
 
 # ID: 5ff581c7-51b2-4e86-906d-3d4c30fd617a
@@ -117,7 +129,23 @@ def test_a_block_finding_refuses_the_commit(dev: Path) -> None:
     (dev / "BLOCK").write_text("")
     refused = _hook(dev, "git add BLOCK && git commit -m x")
     assert refused.returncode == 2
-    assert "fake.rule" in refused.stderr
+    assert "fake.rule: BLOCK:1" in refused.stderr
+    log = dev / "var" / "experiments" / "adr168" / "verdicts.jsonl"
+    entry = json.loads(log.read_text().splitlines()[-1])
+    assert (entry["decision"], entry["verdict"], entry["block_rules"]) == (
+        "deny",
+        "BLOCKED",
+        ["fake.rule"],
+    )
+
+
+# ID: 3edd93e0-53dc-4e4e-911c-30be11c06f46
+def test_a_change_that_could_not_be_judged_refuses_the_commit(dev: Path) -> None:
+    (dev / "UNJUDGED").write_text("")
+    refused = _hook(dev, "git commit -m x")
+    assert refused.returncode == 2
+    assert "NOT_EVALUATED" in refused.stderr
+    assert "no rules" in refused.stderr
 
 
 # ID: 938d8a0e-bc64-4b50-a0cd-5ec6af2ac2b4
@@ -168,7 +196,7 @@ def test_an_audit_without_a_verdict_fails_closed(dev: Path) -> None:
     (dev / "CRASH").write_text("")
     refused = _hook(dev, "git commit -m x")
     assert refused.returncode == 2
-    assert "audit result unreadable" in refused.stderr
+    assert "change check result unreadable" in refused.stderr
 
 
 # ID: 43d2dd51-cdd7-4544-9982-92d395bb15ef

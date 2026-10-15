@@ -263,7 +263,7 @@ TOOLS: dict[str, AssistantTool] = {
                 "HEAD, or the given files): BLOCKED, CLEAR_IN_SCOPE, NO_CHANGES or "
                 "NOT_EVALUATED (nothing could be judged; see 'error'), naming every "
                 "rule it did not evaluate. Producer feedback, never "
-                "PASS: the full audit (commit hook, CI) stays authoritative."
+                "PASS: the full audit (CI) stays authoritative."
             ),
             input_schema={
                 "type": "object",
