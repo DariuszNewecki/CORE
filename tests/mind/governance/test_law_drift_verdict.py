@@ -113,7 +113,7 @@ def _rule() -> ExecutableRule:
     )
 
 
-async def _offline(law: LawState, tmp_path: Path) -> dict:
+async def _offline(law: LawState, tmp_path: Path, findings: tuple = ()) -> dict:
     with (
         patch("mind.governance.stateless_audit.observe_law_state", return_value=law),
         patch(
@@ -123,7 +123,7 @@ async def _offline(law: LawState, tmp_path: Path) -> dict:
         patch("mind.governance.stateless_audit._count_declared_rules", return_value=1),
         patch(
             "mind.governance.stateless_audit.run_filtered_audit",
-            new=AsyncMock(return_value=([], {"some.rule"}, {})),
+            new=AsyncMock(return_value=(list(findings), {"some.rule"}, {})),
         ),
         patch(
             "mind.governance.stateless_audit.load_audit_verdict_policy",
@@ -175,3 +175,35 @@ async def test_persisted_run_keeps_degraded_verdict() -> None:
     assert out["verdict"] == "DEGRADED"
     params = session.execute.await_args.args[1]
     assert params["verdict"] == "DEGRADED"
+
+
+# --- #1045: uncommitted law does not hide a proven violation ---------------
+
+
+def test_online_drift_with_a_blocking_violation_is_fail() -> None:
+    """Proof run 2: before .intent/ was committed, a BLOCK finding was shown
+    under a DEGRADED verdict; the code is known to violate the law it was
+    judged against."""
+    from shared.models.audit_models import AuditFinding, AuditSeverity
+
+    blocking = AuditFinding(
+        check_id="starter.no_bare_except",
+        severity=AuditSeverity.BLOCK,
+        message="bare except",
+        file_path="src/a.py",
+    )
+    assert _verdict("DRIFT", [blocking]) == AuditVerdict.FAIL
+    assert _verdict(None, [blocking]) == AuditVerdict.FAIL
+
+
+async def test_offline_drift_with_a_blocking_violation_is_fail(tmp_path: Path) -> None:
+    violation = {
+        "check_id": "some.rule",
+        "severity": "block",
+        "file_path": "src/a.py",
+        "message": "violated",
+        "context": {},
+    }
+    result = await _offline(_DRIFT, tmp_path, (violation,))
+    assert result["verdict"] == "FAIL"
+    assert any(f["check_id"] == "governance.law_drift" for f in result["findings"])

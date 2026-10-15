@@ -390,16 +390,21 @@ async def run_stateless_audit(
     # ADR-169 D2: same precondition, same helper as the online auditor.
     law_drift = law_drift_degrades(verdict_policy, law_state.relationship)
 
-    if (
-        verdict_policy.get("_error")
-        or degraded_findings
-        or blocking_skipped
-        or law_drift
-    ):
+    # #1045 (proof run 2): uncommitted law does not hide a proven blocking
+    # violation. Law drift means the law evaluated is not the law of record,
+    # not that the instrument failed; the code still violates the law it was
+    # judged against, so FAIL, with the drift finding alongside. An
+    # adopter's first audit before committing .intent/ showed a BLOCK finding
+    # under DEGRADED. The instrument conditions (policy, unavailable or
+    # skipped blocking rules) keep their precedence (#847/#856 rulings).
+    if verdict_policy.get("_error") or degraded_findings or blocking_skipped:
         verdict = "DEGRADED"
         passed = False
     elif genuine_blocking_findings:
         verdict = "FAIL"
+        passed = False
+    elif law_drift:
+        verdict = "DEGRADED"
         passed = False
     else:
         verdict = "PASS"

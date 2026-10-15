@@ -444,8 +444,14 @@ def _render_text_summary(
             f"{len(law.get('drift_paths') or [])} file(s) under .intent/ differ "
             "from the last commit; commit or revert them"
         )
+        # #1045: with a blocking violation the verdict is FAIL anyway.
+        effect = (
+            "the violations above stand"
+            if result.get("verdict") == "FAIL"
+            else "verdict DEGRADED, not PASS"
+        )
         console.print(
-            "[bold yellow]Law not committed (verdict DEGRADED, not PASS):"
+            f"[bold yellow]Law not committed ({effect}):"
             f"[/bold yellow] {reason}, then audit again."
         )
     if skipped:
