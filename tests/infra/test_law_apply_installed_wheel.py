@@ -126,13 +126,20 @@ def installed(tmp_path_factory: pytest.TempPathFactory) -> Path:
     # The venv check core-law-setup applies before it accepts a venv: no .pth
     # file or editable install may point outside it (2026-10-11: the dev group
     # brought two .pth files and the real setup refused).
+    # Installed from the wheel file, as the real setup installs the release's
+    # wheel: pip's recorded hash must be the file's, and with the release
+    # record copied in, the check finds nothing.
     setup = sys.modules["core_law_setup_for_test"]
-    version = wheel.name.split("-")[1]
-    problems = setup.venv_problems(venv_dir, version)
-    # This test installs the wheel from a local file, so pip records a
-    # direct_url.json and the check rightly calls it "not a release"; the
-    # real setup installs from the index. Everything else must be clean.
-    assert [p for p in problems if "installed from a path or URL" not in p] == []
+    record = json.dumps({"sha": "0" * 40, "wheel_sha256": "x"}).encode()
+    (venv_dir / "core-release.json").write_bytes(record)
+    release = setup.Release(
+        sha="0" * 40,
+        record=record,
+        wheel_sha256=setup.sha256_file(wheel),
+        wheel=wheel,
+        lock=REPO_ROOT / "poetry.lock",
+    )
+    assert setup.venv_problems(venv_dir, release) == []
     return venv_dir
 
 

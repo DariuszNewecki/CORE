@@ -12,6 +12,7 @@ helpers run for real on real archives, wheels and lock text.
 from __future__ import annotations
 
 import datetime
+import hashlib
 import importlib.machinery
 import importlib.util
 import io
@@ -318,6 +319,11 @@ def test_happy_path_installs_switches_verifies_and_records(root: Path) -> None:
         (root / "releases" / SHA / "venv" / "core-release.json").read_text()
     )
     assert release["sha"] == SHA and len(release["wheel_sha256"]) == 64  # C4 contract
+    # The hashed wheel and its lock are kept for core-law-setup.
+    dist = root / "releases" / SHA / "dist"
+    (wheel,) = dist.glob("*.whl")
+    assert hashlib.sha256(wheel.read_bytes()).hexdigest() == release["wheel_sha256"]
+    assert (dist / "poetry.lock").read_bytes() == LOCK
     assert _current(root) == SHA
     entry = json.loads((root / "deploy-ledger.jsonl").read_text().splitlines()[-1])
     assert entry["action"] == "deploy" and entry["previous"] == OLD
@@ -776,12 +782,16 @@ def test_a_deploy_updates_the_host_scripts_from_the_deployed_commit(
     )
     host = FakeHost(root)
     assert _deploy(root, host) == 0
-    for name in ("core-deploy", "core-sandbox-check"):
+    for name in ("core-deploy", "core-law-setup", "core-sandbox-check"):
         target = root / "sbin" / name
         assert target.read_bytes() == f"#!/bin/sh\n# {SHA}:infra/{name}\n".encode()
         assert _mode(target) == 0o755
     entry = json.loads((root / "deploy-ledger.jsonl").read_text().splitlines()[-1])
-    assert entry["host_scripts_updated"] == ["core-deploy", "core-sandbox-check"]
+    assert entry["host_scripts_updated"] == [
+        "core-deploy",
+        "core-law-setup",
+        "core-sandbox-check",
+    ]
 
 
 def _deployer(root: Path, dev: Path) -> cd.Deployer:

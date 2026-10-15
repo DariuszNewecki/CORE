@@ -34,7 +34,9 @@ Order (ADR-132 D10 · D2):
     the one-path flow) and its CI check runs are all green;
  2. refuse if releases/<sha> exists;
  3. build (core-build) and install (root) into releases/<sha>/venv, then
-    write core-release.json {sha, wheel_sha256} (the C4 contract);
+    write core-release.json {sha, wheel_sha256} (the C4 contract) and keep
+    the hashed wheel and the commit's poetry.lock in releases/<sha>/dist/,
+    from which core-law-setup installs the custodian's venv;
  3a. law: governed text that changed between the live commit and <sha>
     (``.intent/`` except custody, ``.specs/``, ``.claude/`` settings and
     hooks) is applied by core-law running the NEW release's
@@ -54,8 +56,10 @@ Order (ADR-132 D10 · D2):
     new release declares, ``daemon units``), require all active and every
     worker that was alive before to heartbeat again; without a migration a
     failure switches back; then enable them, so they start after a reboot;
- 8. self-update: the installed core-deploy, core-pipeline and
-    core-sandbox-check become the deployed commit's ``infra/`` copies;
+ 8. self-update: the installed core-deploy, core-law-setup, core-pipeline
+    and core-sandbox-check become the deployed commit's ``infra/`` copies
+    (core-law-setup is installed, never run: running it stays the
+    governor's act);
  9. append a ledger line.
 
 A merge that changes the host setup (``infra/systemd/``, the setup scripts:
@@ -101,7 +105,7 @@ BUILD_USER = "core-build"
 SAFE_GIT = ("-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false")
 LAW_USER = "core-law"
 # Host scripts core-deploy keeps equal to the deployed commit (self-update).
-HOST_SCRIPTS = ("core-deploy", "core-pipeline", "core-sandbox-check")
+HOST_SCRIPTS = ("core-deploy", "core-law-setup", "core-pipeline", "core-sandbox-check")
 # Host setup: sudoers, accounts and units. A merge that changes these is not
 # deployed automatically; the governor applies the setup, then deploys.
 HOST_SETUP_PATHS = (
@@ -660,6 +664,12 @@ class Deployer:
                 json.dumps({"sha": sha, "wheel_sha256": wheel_sha}) + "\n",
                 encoding="utf-8",
             )
+            # core-law-setup installs exactly this wheel (the hash above) and
+            # pins its dependencies from this lock (read through core's git).
+            dist = release / "dist"
+            dist.mkdir()
+            shutil.copyfile(wheels[0], dist / wheels[0].name)
+            (dist / "poetry.lock").write_bytes(lock)
             self.host.run(["chown", "-R", "root:root", str(release)])
             self.host.run(["chmod", "-R", "go-w", str(release)])
         except BaseException:
