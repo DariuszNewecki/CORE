@@ -3,8 +3,9 @@
 Real git repositories: a development tree and a stand-in for CORE's clone.
 The hook must pass anything but `git commit`, stay inert while no clone
 exists, refuse a commit whose HEAD lacks core/develop, refuse (fail closed)
-when core/develop cannot be fetched, and judge the worktree the commit lands
-in rather than the development checkout.
+when core/develop cannot be fetched or the payload cannot be read, and judge
+the worktree the commit lands in rather than the development checkout, in
+every spelling of `git commit` the shared detector knows.
 """
 
 from __future__ import annotations
@@ -49,14 +50,18 @@ def trees(tmp_path: Path) -> tuple[Path, Path]:
     return dev, clone
 
 
-def _hook(
-    dev: Path, clone: Path, command: str, cwd: Path | None = None
-) -> subprocess.CompletedProcess[str]:
+def _run(dev: Path, clone: Path, payload: str) -> subprocess.CompletedProcess[str]:
     env = {**os.environ, "CLAUDE_PROJECT_DIR": str(dev), "CORE_CLONE": str(clone)}
-    payload = json.dumps({"tool_input": {"command": command}, "cwd": str(cwd or dev)})
     return subprocess.run(
         ["bash", str(HOOK)], input=payload, env=env, capture_output=True, text=True
     )
+
+
+def _hook(
+    dev: Path, clone: Path, command: str, cwd: Path | None = None
+) -> subprocess.CompletedProcess[str]:
+    payload = json.dumps({"tool_input": {"command": command}, "cwd": str(cwd or dev)})
+    return _run(dev, clone, payload)
 
 
 # ID: 188dd5be-d6a6-47ff-83b8-7ac8c8c282aa
@@ -64,6 +69,8 @@ def test_non_commit_commands_pass(trees: tuple[Path, Path]) -> None:
     dev, clone = trees
     _commit(clone, "core-work")
     assert _hook(dev, clone, "git status").returncode == 0
+    assert _hook(dev, clone, "git log --grep commit").returncode == 0
+    assert _hook(dev, clone, "echo 'git commit'").returncode == 0
 
 
 # ID: 8421b70e-4e10-4da7-8cb2-ae03e13cfe96
@@ -137,3 +144,37 @@ def test_another_repository_is_judged_by_the_development_checkout(
     _git(other, "init", "-q")
     _commit(clone, "core-work")
     assert _hook(dev, clone, "git commit -m x", cwd=other).returncode == 2
+
+
+# ID: c1352124-5367-4aad-b657-1ca484b92a3d
+@pytest.mark.parametrize(
+    ("command", "in_worktree"),
+    [
+        ("git -C {wt} commit -m mine", False),
+        ("git --no-pager -C {wt} commit -m mine", False),
+        ("git -c user.name=x commit -m mine", True),
+        ("/usr/bin/git commit -m mine", True),
+        ("cd {wt}; git commit -m mine", False),
+    ],
+)
+def test_every_commit_spelling_is_judged_in_its_worktree(
+    trees: tuple[Path, Path], tmp_path: Path, command: str, in_worktree: bool
+) -> None:
+    dev, clone = trees
+    wt = tmp_path / "old"
+    _git(dev, "worktree", "add", "-q", "-b", "old", str(wt), "HEAD")
+    _commit(clone, "core-work")
+    refused = _hook(dev, clone, command.format(wt=wt), cwd=wt if in_worktree else dev)
+    assert refused.returncode == 2
+    assert f"HEAD of {wt} " in refused.stderr
+
+
+# ID: 09b53828-76a6-411f-bfae-a8cd90bcf7d1
+@pytest.mark.parametrize("payload", ["{not json", "{}", '{"tool_input": {}}'])
+def test_an_unreadable_payload_is_refused(
+    trees: tuple[Path, Path], payload: str
+) -> None:
+    dev, clone = trees
+    refused = _run(dev, clone, payload)
+    assert refused.returncode == 2
+    assert "could not tell whether it commits" in refused.stderr
