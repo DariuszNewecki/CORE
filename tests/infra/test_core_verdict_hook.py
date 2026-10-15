@@ -1,0 +1,180 @@
+"""The `.claude/hooks` CORE verdict check (ADR-168 D4.1).
+
+A real git repository stands in for the development checkout; its
+`.venv/bin/core-admin` is a stand-in audit that records where it ran and
+reports a BLOCK finding when the audited tree holds a file named BLOCK. The
+hook must pass anything but `git commit`, audit the tree each commit lands in
+(with REPO_PATH and PYTHONPATH naming it) in every spelling of `git commit`
+the shared detector knows, and refuse (fail closed) on a BLOCK finding, an
+audit that produced no verdict, or a payload it cannot read.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+from pathlib import Path
+
+import pytest
+
+
+REPO = Path(__file__).resolve().parents[2]
+# The source of the copy installed in .claude/hooks/ (core-law, not in git).
+HOOK = REPO / "infra" / "claude-hooks" / "core-verdict.sh"
+
+FAKE_AUDIT = """#!/bin/sh
+printf '%s|%s|%s\\n' "$(pwd)" "$REPO_PATH" "$PYTHONPATH" >>"$FAKE_AUDIT_RECORD"
+[ -e CRASH ] && exit 3
+if [ -e BLOCK ]; then
+  echo '{"verdict": "PASS", "findings": [{"severity": "block", "check_id": "fake.rule", "file_path": "BLOCK", "message": "blocked"}]}'
+  exit 1
+fi
+echo '{"verdict": "PASS", "findings": []}'
+"""
+
+
+def _git(cwd: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+@pytest.fixture
+def dev(tmp_path: Path) -> Path:
+    dev = tmp_path / "dev"
+    dev.mkdir()
+    _git(dev, "init", "-q")
+    (dev / "base").write_text("base")
+    _git(dev, "add", "base")
+    _git(dev, "commit", "-q", "-m", "base")
+    audit = dev / ".venv" / "bin" / "core-admin"
+    audit.parent.mkdir(parents=True)
+    audit.write_text(FAKE_AUDIT)
+    audit.chmod(0o755)
+    return dev
+
+
+@pytest.fixture
+def wt(dev: Path, tmp_path: Path) -> Path:
+    wt = tmp_path / "wt"
+    _git(dev, "worktree", "add", "-q", "-b", "mine", str(wt), "HEAD")
+    return wt
+
+
+def _run(dev: Path, payload: str) -> subprocess.CompletedProcess[str]:
+    env = {
+        **os.environ,
+        "CLAUDE_PROJECT_DIR": str(dev),
+        "FAKE_AUDIT_RECORD": str(dev / "audits.txt"),
+    }
+    return subprocess.run(
+        ["bash", str(HOOK)], input=payload, env=env, capture_output=True, text=True
+    )
+
+
+def _hook(
+    dev: Path, command: str, cwd: Path | None = None
+) -> subprocess.CompletedProcess[str]:
+    payload = json.dumps(
+        {"tool_input": {"command": command}, "cwd": str(cwd or dev), "session_id": "s"}
+    )
+    return _run(dev, payload)
+
+
+def _audited(dev: Path) -> list[str]:
+    record = dev / "audits.txt"
+    return record.read_text().splitlines() if record.exists() else []
+
+
+# ID: b4521763-2a9b-43e1-a92e-a71038b51d6f
+def test_non_commit_commands_pass_without_an_audit(dev: Path) -> None:
+    (dev / "BLOCK").write_text("")
+    for command in ("git status", "git log --grep commit", "echo 'git commit'"):
+        assert _hook(dev, command).returncode == 0
+    assert _audited(dev) == []
+
+
+# ID: 0185551d-0fd5-4b54-b352-109f5b52eba3
+def test_a_clean_commit_is_allowed_and_logged_with_its_tree(dev: Path) -> None:
+    assert _hook(dev, "git commit -m x").returncode == 0
+    assert _audited(dev) == [f"{dev}|{dev}|{dev}/src"]
+    log = dev / "var" / "experiments" / "adr168" / "verdicts.jsonl"
+    entry = json.loads(log.read_text().splitlines()[-1])
+    assert (entry["decision"], entry["tree"], entry["session"]) == (
+        "allow",
+        str(dev),
+        "s",
+    )
+
+
+# ID: 5ff581c7-51b2-4e86-906d-3d4c30fd617a
+def test_a_block_finding_refuses_the_commit(dev: Path) -> None:
+    (dev / "BLOCK").write_text("")
+    refused = _hook(dev, "git add BLOCK && git commit -m x")
+    assert refused.returncode == 2
+    assert "fake.rule" in refused.stderr
+
+
+# ID: 938d8a0e-bc64-4b50-a0cd-5ec6af2ac2b4
+def test_a_worktree_commit_audits_the_worktree_not_the_checkout(
+    dev: Path, wt: Path
+) -> None:
+    (dev / "BLOCK").write_text("")
+    assert _hook(dev, "git commit -m x", cwd=wt).returncode == 0
+    assert _audited(dev) == [f"{wt}|{wt}|{wt}/src"]
+
+
+# ID: eb315d5b-821b-4716-8e2b-5396d64e6a50
+@pytest.mark.parametrize(
+    ("command", "in_worktree"),
+    [
+        ("git commit -m x", True),
+        ("git -C {wt} commit -m x", False),
+        ("git --no-pager -C {wt} commit -m x", False),
+        ("git -c user.name=x commit -m x", True),
+        ("/usr/bin/git commit -m x", True),
+        ("cd {wt} && git commit -m x", False),
+        ("cd {wt}; git commit -m x", False),
+    ],
+)
+def test_every_commit_spelling_in_a_blocked_worktree_is_refused(
+    dev: Path, wt: Path, command: str, in_worktree: bool
+) -> None:
+    (wt / "BLOCK").write_text("")
+    refused = _hook(dev, command.format(wt=wt), cwd=wt if in_worktree else dev)
+    assert refused.returncode == 2
+    assert f"(audited {wt})" in refused.stderr
+    assert _audited(dev) == [f"{wt}|{wt}|{wt}/src"]
+
+
+# ID: bb09ad2f-1479-4547-8c35-b6298d8e391e
+def test_another_repository_is_judged_by_the_development_checkout(
+    dev: Path, tmp_path: Path
+) -> None:
+    other = tmp_path / "other"
+    other.mkdir()
+    _git(other, "init", "-q")
+    assert _hook(dev, "git commit -m x", cwd=other).returncode == 0
+    assert _audited(dev) == [f"{dev}|{dev}|{dev}/src"]
+
+
+# ID: 2873fd07-7209-4605-a961-ff8f19d1d4f0
+def test_an_audit_without_a_verdict_fails_closed(dev: Path) -> None:
+    (dev / "CRASH").write_text("")
+    refused = _hook(dev, "git commit -m x")
+    assert refused.returncode == 2
+    assert "audit result unreadable" in refused.stderr
+
+
+# ID: 43d2dd51-cdd7-4544-9982-92d395bb15ef
+@pytest.mark.parametrize("payload", ["{not json", "{}", '{"tool_input": {}}'])
+def test_an_unreadable_payload_is_refused(dev: Path, payload: str) -> None:
+    refused = _run(dev, payload)
+    assert refused.returncode == 2
+    assert "could not tell whether it commits" in refused.stderr
+    assert _audited(dev) == []

@@ -15,12 +15,18 @@
 #   3. core/develop not an ancestor of the HEAD being committed -> refuse,
 #      naming the remedy.
 #
-# The HEAD checked is the one the commit lands on: the tree the command runs
+# The HEAD checked is the one each commit lands on: the tree the command runs
 # in (the payload's cwd, then a `cd <dir>` or `git -C <dir>` in the command)
 # when that tree is this repository or one of its worktrees; otherwise this
 # repository's HEAD, as before. Checking only this repository's HEAD refused
 # every worktree commit whenever the development checkout lagged main, which
 # only the governor can fast-forward (governor 2026-10-13).
+#
+# Which commands commit, and in which tree, is decided by core-commit-target.py
+# beside this file (shared with core-verdict.sh): `git -C <dir> commit`,
+# `git -c k=v commit` and `/usr/bin/git commit` are commits. Commands built by
+# hand-quoting (`bash -c "git commit"`, eval, xargs) are out of scope. An
+# unreadable payload, or a detector that cannot run, refuses (fail closed).
 #
 # The installed copy lives in .claude/hooks/ (core-law, not in git); this
 # file in infra/claude-hooks/ is its source and what CI tests.
@@ -35,11 +41,12 @@ CLONE="${CORE_CLONE:-/opt/core/repo}"
 SAFE=(-c core.hooksPath=/dev/null -c core.fsmonitor=false)
 
 payload="$(cat)"
-cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty')"
 
-if ! printf '%s' "$cmd" | grep -Eq '(^|[;&|(][[:space:]]*|[[:space:]])git([[:space:]]+-[^[:space:]]+)*[[:space:]]+commit([[:space:]]|$)'; then
-  exit 0
+if ! trees="$(printf '%s' "$payload" | python3 -I "$(dirname "$0")/core-commit-target.py" "$REPO")"; then
+  echo "CORE ancestry: command refused — the hook could not tell whether it commits (see above)." >&2
+  exit 2
 fi
+[ -n "$trees" ] || exit 0
 
 [ -d "$CLONE/.git" ] || exit 0
 
@@ -52,41 +59,15 @@ if ! err="$(git -C "$REPO" "${SAFE[@]}" fetch --quiet --no-tags "$CLONE" develop
   exit 2
 fi
 
-# The directory the commit runs in: cwd, then the last `cd` before the
-# commit, then the commit's own `git -C`.
-target="$(printf '%s' "$payload" | python3 -I -c '
-import json, os, re, shlex, sys
-p = json.load(sys.stdin)
-cmd = (p.get("tool_input") or {}).get("command") or ""
-d = p.get("cwd") or ""
-m = re.search(r"(^|[;&|(]\s*|\s)git((\s+-\S+(\s+\S+)?)*?)\s+commit(\s|$)", cmd)
-if m:
-    try:
-        words = shlex.split(cmd[: m.start()], posix=True)
-    except ValueError:
-        words = []
-    for i, w in enumerate(words[:-1]):
-        if w == "cd":
-            d = os.path.join(d, words[i + 1])
-    opts = m.group(2).split()
-    for i, w in enumerate(opts[:-1]):
-        if w == "-C":
-            d = os.path.join(d, opts[i + 1].strip("\"\x27"))
-print(os.path.normpath(d) if d else "")
-' 2>/dev/null)"
-common() { git -C "$1" "${SAFE[@]}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null; }
-TREE="$REPO"
-if [ -n "$target" ] && [ -d "$target" ] && [ "$(common "$target")" = "$(common "$REPO")" ]; then
-  TREE="$target"
-fi
-
-if ! git -C "$TREE" "${SAFE[@]}" merge-base --is-ancestor refs/heads/core/develop HEAD; then
-  ahead="$(git -C "$TREE" "${SAFE[@]}" rev-list --count HEAD..refs/heads/core/develop 2>/dev/null || echo '?')"
-  {
-    echo "CORE ancestry: commit refused — HEAD of $TREE does not contain core/develop ($ahead CORE commit(s) missing)."
-    echo "Bring them in first: git merge --ff-only core/develop"
-    echo "(if your unpushed commits block the fast-forward, rebase them onto core/develop)."
-  } >&2
-  exit 2
-fi
+while IFS= read -r TREE; do
+  if ! git -C "$TREE" "${SAFE[@]}" merge-base --is-ancestor refs/heads/core/develop HEAD; then
+    ahead="$(git -C "$TREE" "${SAFE[@]}" rev-list --count HEAD..refs/heads/core/develop 2>/dev/null || echo '?')"
+    {
+      echo "CORE ancestry: commit refused — HEAD of $TREE does not contain core/develop ($ahead CORE commit(s) missing)."
+      echo "Bring them in first: git merge --ff-only core/develop"
+      echo "(if your unpushed commits block the fast-forward, rebase them onto core/develop)."
+    } >&2
+    exit 2
+  fi
+done <<<"$trees"
 exit 0
