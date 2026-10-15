@@ -56,7 +56,8 @@ LOG="$LOG_DIR/verdicts.jsonl"
 CORE_ADMIN="${CORE_ADMIN:-/opt/core/current/venv/bin/core-admin}"
 # The per-file gates (ruff, mypy, vulture) resolve from the release, then
 # the dev venv (the release has no dev tools); never "not installed".
-export PATH="$(dirname "$CORE_ADMIN"):$REPO/.venv/bin:$PATH"
+PATH="$(dirname "$CORE_ADMIN"):$REPO/.venv/bin:$PATH"
+export PATH
 
 payload="$(cat)"
 
