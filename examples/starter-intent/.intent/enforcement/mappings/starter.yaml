@@ -40,7 +40,7 @@ mappings:
     engine: regex_gate
     params:
       forbidden_patterns:
-        - "(?i)\\b(password|passwd|secret_key|api_key|access_token|auth_token)\\s*=\\s*['\"][^'\"\\s]{8,}['\"]"
+        - "(?i)\\b\\w*(?:password|passwd|pwd|secret_?key|client_?secret|api_?key|access_?token|auth_?token|private_?key)\\w*\\s*(?::\\s*[\\w\\[\\]., |]+)?=\\s*['\"][^'\"\\s]{4,}['\"]"
     scope:
       applies_to: ["**/*.py"]
       excludes: ["tests/**/*.py", "test/**/*.py", "**/test_*.py", "**/*_test.py", "**/venv/**", "**/.venv/**"]
