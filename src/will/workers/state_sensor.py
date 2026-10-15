@@ -30,6 +30,12 @@ Each cycle:
    /opt/core-law/venv (the core-admin ``law apply`` runs) is not the live
    release's wheel, compared by wheel hash. Report-only; resolves itself
    when they match. On a host without the runtime it does not apply.
+6. **Access register (ADR-068 amendment 2026-10-15, rule 5).**
+   ``governance::access_register::<what>`` for every account, group, sudo
+   rule, binding, governed-file mode or GitHub collaborator that differs
+   from the register (severity blocking). Each resolves itself when reality
+   matches again. What this account cannot read is reported in the run's
+   payload as not evaluated, never as passed.
 4. **Change attribution (D4).** Every ledger row carries the three D4 facts
    for each path changed since the previous row (core.state_changes, written
    by StateLedgerService). A committed ``.intent/`` change with no known
@@ -39,7 +45,8 @@ Each cycle:
 ADR-091 D2 Revision B resolution classification:
 - Subject prefixes:     governance::law_drift::, governance::stale_daemon::,
                         governance::stale_daemon_escalated::,
-                        governance::law_venv::
+                        governance::law_venv::,
+                        governance::access_register::
 - resolution_mechanism: self_resolve
 - Resolver path:        this sensor's run(): open findings whose condition did
                         not hold this cycle are resolved via
@@ -68,6 +75,7 @@ STALE_DAEMON_PREFIX = "governance::stale_daemon"
 STALE_ESCALATED_PREFIX = "governance::stale_daemon_escalated"
 UNATTRIBUTED_PREFIX = "governance::unattributed_change"
 LAW_VENV_PREFIX = "governance::law_venv"
+ACCESS_PREFIX = "governance::access_register"
 
 # The process this sensor runs in. Dedicated --only processes carry their own
 # gate (they suspend their acting worker and report it); the finding speaks
@@ -162,6 +170,7 @@ class StateSensor(ScheduledWorker):
         law_open, law_posted, law_resolved = await self._sync_law_drift(blackboard, law)
         stale = await self._sync_stale_daemon(blackboard)
         law_venv = await self._sync_law_venv(blackboard)
+        access = await self._sync_access(blackboard, repo_root)
         unattributed = await self._post_unattributed(changes or [])
 
         await self.post_report(
@@ -178,6 +187,7 @@ class StateSensor(ScheduledWorker):
                 "unattributed_posted": unattributed,
                 **stale,
                 **law_venv,
+                **access,
             },
         )
 
@@ -291,6 +301,52 @@ class StateSensor(ScheduledWorker):
                 resolution_mechanism="self_resolve",
             )
         return {"law_venv": "differs", "law_venv_posted": subject not in existing}
+
+    async def _sync_access(self, blackboard: Any, repo_root: Any) -> dict[str, Any]:
+        """Rule 5: post a blocking finding per difference; resolve the rest."""
+        from pathlib import Path
+
+        from body.services.access_register import (
+            check_github_access,
+            check_host,
+            load_register,
+        )
+        from shared.path_resolver import PathResolver
+
+        try:
+            register = load_register(PathResolver(Path(repo_root)).intent_root)
+            report = check_host(register, repo_root=Path(repo_root))
+            await check_github_access(register, report)
+        except Exception as exc:
+            logger.warning("StateSensor: access register not checked: %s", exc)
+            return {"access_register": f"not evaluated: {exc}"}
+        wanted = {f"{ACCESS_PREFIX}::{f.subject}": f for f in report.findings}
+        existing = await self._open_findings(blackboard, ACCESS_PREFIX)
+        posted = 0
+        for subject, finding in wanted.items():
+            if subject in existing:
+                continue
+            await self.post_finding(
+                subject=subject,
+                payload={
+                    "rule": "rbac.register_is_complete",
+                    "severity": "blocking",
+                    "message": finding.message,
+                },
+                resolution_mechanism="self_resolve",
+            )
+            posted += 1
+        resolved = 0
+        for subject, row in existing.items():
+            if subject not in wanted:
+                await blackboard.resolve_entries([row["id"]])
+                resolved += 1
+        return {
+            "access_findings": len(wanted),
+            "access_posted": posted,
+            "access_resolved": resolved,
+            "access_not_evaluated": report.not_evaluated,
+        }
 
     async def _sync_stale_daemon(self, blackboard: Any) -> dict[str, Any]:
         """ADR-030: post, escalate or resolve the stale-daemon findings."""

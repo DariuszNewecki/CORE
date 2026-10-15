@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-107 commands.
+108 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -24,7 +24,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`docs`](#docs) | 1 | Reader-facing documentation generated from live sources (the CLI trees). |
 | [`grc`](#grc) | 2 | Compliance gap-analysis: check a document corpus against a requirements catalog. |
 | [`interactive-test`](#interactive-test) | 2 | Interactive test generation with step-by-step approval |
-| [`law`](#law) | 8 | Grounded answers about this repository's law, with sources (ADR-168). |
+| [`law`](#law) | 9 | Grounded answers about this repository's law, with sources (ADR-168). |
 | [`llm-resources`](#llm-resources) | 2 | core.llm_resources authoring/validation surface (#821 Unit 3). |
 | [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant (ADR-168). |
 | [`project`](#project) | 3 | Operations for project lifecycle: scaffolding. |
@@ -1208,6 +1208,20 @@ Show information about interactive test generation.
 ## `core-admin law` {#law}
 
 Grounded answers about this repository's law, with sources (ADR-168).
+
+### `core-admin law access` {#law-access}
+
+```
+core-admin law access [OPTIONS]
+```
+
+Every account, group, sudo rule and GitHub collaborator not in the
+register is a blocking finding (ADR-068 amendment 2026-10-15, rule 5).
+Exit 1 on any finding.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--json` | off | Print one JSON line. |
 
 ### `core-admin law apply` {#law-apply}
 
