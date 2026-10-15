@@ -26,6 +26,10 @@ Each cycle:
    ``daemon.stale_code_escalation_minutes``, a
    ``governance::stale_daemon_escalated::core-daemon`` finding is posted once.
    Both resolve themselves on the first cycle after a restart.
+5. **Law tool venv (#1018).** ``governance::law_venv::core-law`` while
+   /opt/core-law/venv (the core-admin ``law apply`` runs) is not the live
+   release's wheel, compared by wheel hash. Report-only; resolves itself
+   when they match. On a host without the runtime it does not apply.
 4. **Change attribution (D4).** Every ledger row carries the three D4 facts
    for each path changed since the previous row (core.state_changes, written
    by StateLedgerService). A committed ``.intent/`` change with no known
@@ -34,7 +38,8 @@ Each cycle:
 
 ADR-091 D2 Revision B resolution classification:
 - Subject prefixes:     governance::law_drift::, governance::stale_daemon::,
-                        governance::stale_daemon_escalated::
+                        governance::stale_daemon_escalated::,
+                        governance::law_venv::
 - resolution_mechanism: self_resolve
 - Resolver path:        this sensor's run(): open findings whose condition did
                         not hold this cycle are resolved via
@@ -51,6 +56,7 @@ from typing import Any
 from body.services.change_attribution import UNREADABLE_RANGE_PATH
 from shared.infrastructure.code_identity import code_drift, loaded_code_identity
 from shared.infrastructure.intent.law_state import LawState
+from shared.infrastructure.law_venv import check_law_venv
 from shared.logger import getLogger
 from shared.workers.scheduled_worker import ScheduledWorker
 
@@ -61,6 +67,7 @@ LAW_DRIFT_PREFIX = "governance::law_drift"
 STALE_DAEMON_PREFIX = "governance::stale_daemon"
 STALE_ESCALATED_PREFIX = "governance::stale_daemon_escalated"
 UNATTRIBUTED_PREFIX = "governance::unattributed_change"
+LAW_VENV_PREFIX = "governance::law_venv"
 
 # The process this sensor runs in. Dedicated --only processes carry their own
 # gate (they suspend their acting worker and report it); the finding speaks
@@ -154,6 +161,7 @@ class StateSensor(ScheduledWorker):
         law = observation.law_state
         law_open, law_posted, law_resolved = await self._sync_law_drift(blackboard, law)
         stale = await self._sync_stale_daemon(blackboard)
+        law_venv = await self._sync_law_venv(blackboard)
         unattributed = await self._post_unattributed(changes or [])
 
         await self.post_report(
@@ -169,6 +177,7 @@ class StateSensor(ScheduledWorker):
                 "changes_attributed": len(changes or []),
                 "unattributed_posted": unattributed,
                 **stale,
+                **law_venv,
             },
         )
 
@@ -252,6 +261,36 @@ class StateSensor(ScheduledWorker):
                 resolved += 1
                 logger.info("StateSensor: %s matches the law of record again", subject)
         return len(wanted), posted, resolved
+
+    async def _sync_law_venv(self, blackboard: Any) -> dict[str, Any]:
+        """#1018: post or resolve the law-venv finding (report-only)."""
+        state = check_law_venv()
+        subject = f"{LAW_VENV_PREFIX}::core-law"
+        existing = await self._open_findings(blackboard, LAW_VENV_PREFIX)
+        if not state.applies or state.problem is None:
+            for row in existing.values():
+                await blackboard.resolve_entries([row["id"]])
+            return {
+                "law_venv": "n/a" if not state.applies else "matches",
+                "law_venv_resolved": len(existing),
+            }
+        if subject not in existing:
+            await self.post_finding(
+                subject=subject,
+                payload={
+                    "rule": "governance.law_venv",
+                    "live_sha": state.live_sha,
+                    "venv_sha": state.venv_sha,
+                    "reason": state.problem,
+                    "resolution": "sudo core-law-setup --governor <you> --apply",
+                    "message": (
+                        "core-law's venv is not the live release's wheel: a manual "
+                        "`law apply` would run other code than the release (#1018)."
+                    ),
+                },
+                resolution_mechanism="self_resolve",
+            )
+        return {"law_venv": "differs", "law_venv_posted": subject not in existing}
 
     async def _sync_stale_daemon(self, blackboard: Any) -> dict[str, Any]:
         """ADR-030: post, escalate or resolve the stale-daemon findings."""

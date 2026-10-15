@@ -21,6 +21,7 @@ from body.services.change_attribution import UNREADABLE_RANGE_PATH, ChangeFact
 from body.services.state_ledger_service import StateObservation
 from shared.infrastructure.code_identity import CodeDrift
 from shared.infrastructure.intent.law_state import LawState
+from shared.infrastructure.law_venv import LawVenvState
 from will.workers.state_sensor import (
     StateSensor,
     escalation_due,
@@ -117,6 +118,7 @@ async def _cycle(
     *,
     escalation_minutes: int = 30,
     changes: list | None = None,
+    law_venv: LawVenvState | None = None,
 ) -> tuple[MagicMock, AsyncMock]:
     sensor, publisher = _sensor()
     observation = StateObservation(
@@ -137,6 +139,10 @@ async def _cycle(
             AsyncMock(return_value=blackboard),
         ),
         patch("will.workers.state_sensor.code_drift", return_value=code),
+        patch(
+            "will.workers.state_sensor.check_law_venv",
+            return_value=law_venv or LawVenvState(applies=False),
+        ),
         patch.object(
             StateSensor, "_escalation_minutes", return_value=escalation_minutes
         ),
@@ -302,3 +308,35 @@ async def test_unchanged_state_reports_no_ledger_row() -> None:
     publisher, _ = await _cycle(_MATCH, _CODE_MATCH, _Blackboard(), changes=None)
     report = publisher.post_report.await_args.args[1]
     assert report["ledger_row_appended"] is False
+
+
+# -- #1018: core-law's venv against the live release -------------------------
+
+_VENV_STALE = LawVenvState(
+    applies=True,
+    problem="core-law venv runs release 50526e33c645, the live release is 0a1649ebfb61",
+    live_sha="0a1649eb" * 5,
+    venv_sha="50526e33" * 5,
+)
+
+
+async def test_a_stale_law_venv_is_posted_once() -> None:
+    publisher, _ = await _cycle(
+        _MATCH, _CODE_MATCH, _Blackboard(), law_venv=_VENV_STALE
+    )
+    assert _subjects(publisher) == ["governance::law_venv::core-law"]
+    payload = publisher.post_finding.await_args.args[1]
+    assert payload["rule"] == "governance.law_venv"
+    assert payload["live_sha"] == "0a1649eb" * 5
+
+    already = _Blackboard({"governance::law_venv::core-law": {"id": "v1"}})
+    again, _ = await _cycle(_MATCH, _CODE_MATCH, already, law_venv=_VENV_STALE)
+    assert _subjects(again) == []
+
+
+async def test_a_matching_or_absent_law_venv_resolves_the_finding() -> None:
+    for state in (LawVenvState(applies=True), LawVenvState(applies=False)):
+        board = _Blackboard({"governance::law_venv::core-law": {"id": "v1"}})
+        publisher, _ = await _cycle(_MATCH, _CODE_MATCH, board, law_venv=state)
+        assert board.resolved == ["governance::law_venv::core-law"]
+        assert _subjects(publisher) == []
