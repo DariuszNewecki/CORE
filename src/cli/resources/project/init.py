@@ -76,5 +76,6 @@ async def init_project_command(
     )
     console.print(
         "Next: [cyan]core-admin project adopt-pack core/starter-python --write[/cyan], "
-        "then [cyan]core-admin code audit --offline[/cyan]."
+        "commit .intent/ ([cyan]git add .intent && git commit[/cyan]), then "
+        "[cyan]core-admin code audit --offline[/cyan]."
     )
