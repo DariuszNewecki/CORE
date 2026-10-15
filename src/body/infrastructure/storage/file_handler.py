@@ -162,8 +162,9 @@ class FileHandler:
             strict_mode=settings.CORE_STRICT_MODE,
         )
 
-        self.log_dir.mkdir(parents=True, exist_ok=True)
-        self.pending_dir.mkdir(parents=True, exist_ok=True)
+        # #1052: created when first written, not here. Constructing a
+        # FileHandler (an offline audit does) left empty var/logs and
+        # var/workflows/pending_writes in the audited repository.
 
     # ---------------------------------------------------------------------
     # Internal Logic: The Paperwork (Auto-ID Generation)
@@ -385,6 +386,7 @@ class FileHandler:
         payload = {"prompt": prompt, "suggested_path": suggested_path, "code": code}
         fname = f"pw-{abs(hash(suggested_path + prompt))}.json"
         out = self.pending_dir / fname
+        self.pending_dir.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         return str(out)
 

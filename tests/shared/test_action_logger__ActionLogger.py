@@ -22,7 +22,9 @@ from shared.action_logger import ActionLogger
 
 class TestActionLogger:
     def test_init_with_valid_path_creates_directory(self):
-        """Test that ActionLogger creates parent directory when initialized with valid path."""
+        """The log's directory is made on the first event, not at construction
+        (#1052: a read-only audit constructs the logger and must leave no
+        directories behind)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             test_log_path = Path(tmpdir) / "subdir" / "actions.log"
 
@@ -33,6 +35,8 @@ class TestActionLogger:
                 logger = ActionLogger()
 
                 assert logger.log_path == test_log_path
+                assert not test_log_path.parent.exists()
+                logger.log_event("test.event", {})
                 assert test_log_path.parent.exists()
 
     def test_init_with_empty_path_sets_log_path_to_none(self):
