@@ -92,6 +92,18 @@ def observe_law_state(intent_root: Path) -> LawState:
     try:
         head_sha = git.get_current_commit()
         record = git.ls_tree_blobs("HEAD", rel)
+        if not record:
+            # Law delivered but never committed (#1027: after `project init`
+            # and `adopt-pack`, every file was reported as drift, 31 findings).
+            # One known state, like a repository with no commit (#958).
+            return LawState(
+                relationship="UNKNOWN",
+                head_sha=head_sha,
+                reason=(
+                    f"{rel}/ is not committed yet, so there is no law of record; "
+                    f"commit {rel}/ to establish it"
+                ),
+            )
         evaluated = git.hash_working_paths(rel)
         record_digest = law_digest(record)
         evaluated_digest = law_digest(evaluated)

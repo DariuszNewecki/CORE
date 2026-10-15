@@ -140,3 +140,28 @@ def test_digest_is_order_independent_and_content_sensitive() -> None:
 def test_to_dict_round_trips() -> None:
     state = LawState(relationship="DRIFT", head_sha="h", drift_paths=["p"])
     assert LawState(**state.to_dict()) == state
+
+
+def test_law_never_committed_is_one_unknown_finding_not_one_per_file(
+    tmp_path: Path,
+) -> None:
+    """#1027 (proof run): after `project init` + `adopt-pack` in a repository
+    with history, every new .intent/ file was a separate DRIFT finding (31).
+    No law at HEAD is one known state: commit .intent/ to establish it."""
+    _git(tmp_path, "init", "-q")
+    (tmp_path / "app.py").write_text("x = 1\n")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "commit", "-q", "-m", "code before CORE")
+    for i in range(5):
+        (tmp_path / f".intent/META/f{i}.json").parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / f".intent/META/f{i}.json").write_text("{}\n")
+
+    state = observe_law_state(tmp_path / ".intent")
+
+    assert state.relationship == "UNKNOWN"
+    assert state.head_sha and "not committed yet" in (state.reason or "")
+    [finding] = law_drift_findings(state)
+    assert "commit .intent/" in finding.message
+    _git(tmp_path, "add", ".intent")
+    _git(tmp_path, "commit", "-q", "-m", "adopt CORE")
+    assert observe_law_state(tmp_path / ".intent").relationship == "MATCH"
