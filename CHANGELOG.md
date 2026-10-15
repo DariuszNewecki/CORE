@@ -8,6 +8,25 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.14.5] — 2026-10-15
+
+Patch release. No database migrations. Fixes from the second 'Prove it' run.
+
+### Added
+
+- **`core-admin project init` and `project new` write CORE's GitHub Action workflow (#1043)**
+  (`.github/workflows/core-audit.yml`, pinned to the installed release, never overwriting a file), so an adopter
+  repository has the authoritative audit on every pull request.
+
+### Fixed
+
+- **Uncommitted law no longer hides a proven blocking violation (#1045):** it is FAIL, with the law-drift finding
+  alongside; drift alone stays DEGRADED. Other DEGRADED causes keep their precedence.
+- **`starter.no_secrets` finds prefixed names and short values (#1042)**, e.g. `DB_PASSWORD = "hunter2"`;
+  `core/starter-python` and `core/python-hygiene` 1.2.0 (re-adopt the pack to get it).
+- **The MCP server says how a change lands (#1044):** without a running CORE, `change_verdict` then commit and the
+  pull request's audit decides; `validate_change`/`submit_change` only for projects that run CORE.
+
 ## [2.14.4] — 2026-10-15
 
 Patch release. No database migrations. Fixes from the first 'Prove it' run (a fresh project, from PyPI).
@@ -1217,7 +1236,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.14.4...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.14.5...HEAD
+[2.14.5]: https://github.com/DariuszNewecki/CORE/compare/v2.14.4...v2.14.5
 [2.14.4]: https://github.com/DariuszNewecki/CORE/compare/v2.14.3...v2.14.4
 [2.14.3]: https://github.com/DariuszNewecki/CORE/compare/v2.14.2...v2.14.3
 [2.14.2]: https://github.com/DariuszNewecki/CORE/compare/v2.14.1...v2.14.2
