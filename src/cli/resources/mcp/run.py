@@ -49,9 +49,11 @@ async def mcp_run(
     ),
 ) -> None:
     """
-    Serve the assistant surface over stdio for one project. Every tool only
-    reads; none can act as the governor. The assistant starts this itself;
-    see docs/connect-an-assistant.md for the configuration.
+    Serve the assistant surface over stdio for one project. Five tools only
+    read; validate_change and submit_change ask a running CORE to check a
+    change and record it as a pending proposal. None can act as the
+    governor. The assistant starts this itself; configuration:
+    https://dariusznewecki.github.io/CORE/connect-an-assistant/
 
     Example: claude mcp add --scope project core -- core-admin mcp run
     """
