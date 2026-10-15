@@ -17,6 +17,11 @@ call. ``validate_change`` asks CORE to check a patch in general mode;
 PENDING proposal. Both reach CORE only over its API (CORE does the writing,
 as itself) and only on the routes in ``_SUBMIT_ROUTES``. None approves,
 rejects or executes; none can record governor authority (D3).
+
+``core_status`` reads CORE's state through its API (``GET
+/v1/status/health``): read.state for the Governor and Producers, who never
+read the database themselves (ADR-068 amendment 2026-10-15, rule 3). It
+writes nothing; without a running CORE it says so.
 """
 
 from __future__ import annotations
@@ -48,7 +53,8 @@ class AssistantTool:
 
     ``reads_only`` is False for the two tools that ask CORE's API to act
     (start a check run, record a pending proposal); clients must not treat
-    them as read-only.
+    them as read-only. ``reaches_core`` is True for a read tool that asks
+    CORE's API rather than reading the repository.
     """
 
     name: str
@@ -56,6 +62,7 @@ class AssistantTool:
     input_schema: dict[str, Any]
     handler: Handler
     reads_only: bool = True
+    reaches_core: bool = False
 
 
 def _text(arguments: dict[str, Any], key: str) -> str:
@@ -203,6 +210,17 @@ async def _submit_change(repo_root: Path, arguments: dict[str, Any]) -> dict[str
     return {"submitted": True, **proposal}
 
 
+async def _core_status(repo_root: Path, arguments: dict[str, Any]) -> dict[str, Any]:
+    try:
+        health = await CoreApiClient()._request("GET", "/v1/status/health")
+    except Exception as exc:
+        return {
+            "available": False,
+            "reason": f"CORE's API could not be reached: {type(exc).__name__}: {exc}",
+        }
+    return {"available": True, **health}
+
+
 _STRING = {"type": "string"}
 
 TOOLS: dict[str, AssistantTool] = {
@@ -347,6 +365,23 @@ TOOLS: dict[str, AssistantTool] = {
             },
             handler=_submit_change,
             reads_only=False,
+        ),
+        AssistantTool(
+            name="core_status",
+            description=(
+                "CORE's runtime state at a glance, read through its API: workers "
+                "with heartbeat ages and liveness, open blackboard entries, the "
+                "oldest open finding, stuck signals, live proposals, and findings "
+                "created vs resolved in 7 days. Read-only; without a running CORE "
+                "it answers available: false."
+            ),
+            input_schema={
+                "type": "object",
+                "properties": {},
+                "additionalProperties": False,
+            },
+            handler=_core_status,
+            reaches_core=True,
         ),
     )
 }

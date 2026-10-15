@@ -68,6 +68,94 @@ logger = getLogger(__name__)
 # ---------- /status -------------------------------------------------------
 
 
+_OPEN = "status NOT IN ('resolved', 'abandoned')"
+_STUCK_SUBJECTS = (
+    "subject LIKE 'proposal.stuck%' OR subject LIKE 'proposal.repeated_failure::%' "
+    "OR subject LIKE 'blackboard.entry_stale::%' OR subject LIKE 'worker.silent::%'"
+)
+
+
+# ID: 6a9260d7-49db-4717-9219-5ded2910da83
+async def get_health(session: Any) -> dict:
+    """One read-only health picture (``core status``): workers with real
+    heartbeat ages, blackboard counts, the oldest open finding, stuck
+    signals, live proposals, and findings created vs resolved in 7 days.
+
+    Each part fails on its own: an ``error`` in that part, the rest still
+    answers. Nothing is written.
+    """
+    from will.governance.daemon_runner import get_status
+
+    health: dict[str, Any] = {"workers": await get_status(None)}
+
+    async def _part(name: str, sql: str, shape) -> None:
+        try:
+            # A savepoint per part: one failed query must not abort the
+            # transaction the other parts read in.
+            async with session.begin_nested():
+                rows = (await session.execute(text(sql))).fetchall()
+            health[name] = shape(rows)
+        except Exception as exc:
+            health[name] = {"error": f"{type(exc).__name__}: {exc}"}
+
+    await _part(
+        "blackboard",
+        "SELECT entry_type, status, count(*) FROM core.blackboard_entries "
+        f"WHERE {_OPEN} GROUP BY 1, 2 ORDER BY 1, 2",
+        lambda rows: [
+            {"entry_type": r[0], "status": r[1], "count": r[2]} for r in rows
+        ],
+    )
+    await _part(
+        "oldest_open_finding",
+        "SELECT subject, created_at, EXTRACT(EPOCH FROM (now() - created_at))::int "
+        "FROM core.blackboard_entries WHERE entry_type = 'finding' AND status = 'open' "
+        "ORDER BY created_at LIMIT 1",
+        lambda rows: (
+            {
+                "subject": rows[0][0],
+                "created_at": rows[0][1].isoformat(),
+                "age_sec": rows[0][2],
+            }
+            if rows
+            else None
+        ),
+    )
+    await _part(
+        "stuck",
+        "SELECT split_part(subject, '::', 1), count(*), "
+        "EXTRACT(EPOCH FROM (now() - min(created_at)))::int "
+        f"FROM core.blackboard_entries WHERE entry_type = 'finding' AND {_OPEN} "
+        f"AND ({_STUCK_SUBJECTS}) GROUP BY 1 ORDER BY 1",
+        lambda rows: [
+            {"signal": r[0], "open": r[1], "oldest_age_sec": r[2]} for r in rows
+        ],
+    )
+    await _part(
+        "proposals",
+        "SELECT status, count(*), EXTRACT(EPOCH FROM (now() - min(created_at)))::int "
+        "FROM core.autonomous_proposals "
+        "WHERE status IN ('pending', 'approved', 'executing', 'finalizing') "
+        "GROUP BY 1 ORDER BY 1",
+        lambda rows: [
+            {"status": r[0], "count": r[1], "oldest_age_sec": r[2]} for r in rows
+        ],
+    )
+    await _part(
+        "last_7_days",
+        "SELECT count(*) FILTER (WHERE created_at > now() - interval '7 days'), "
+        "count(*) FILTER (WHERE status = 'resolved' AND resolved_at > now() - interval '7 days'), "
+        "count(*) FILTER (WHERE status = 'abandoned' AND updated_at > now() - interval '7 days') "
+        "FROM core.blackboard_entries WHERE entry_type = 'finding'",
+        lambda rows: {
+            "findings_created": rows[0][0],
+            "findings_resolved": rows[0][1],
+            "findings_abandoned": rows[0][2],
+        },
+    )
+    return health
+
+
 # ID: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
 async def get_db_status(session: Any) -> dict:
     """Probe DB connectivity and migration head.

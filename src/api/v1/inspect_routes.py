@@ -40,6 +40,7 @@ from will.governance.inspect_runner import (
     get_decisions,
     get_decisions_patterns,
     get_drift_status,
+    get_health,
     get_refusals,
     get_refusals_stats,
     get_search_capabilities,
@@ -94,6 +95,23 @@ search_router = APIRouter(prefix="/search")
 async def status_db(session: AsyncSession = Depends(get_api_session)) -> dict:
     """Return DB connection and schema state."""
     return await get_db_status(session)
+
+
+@status_router.get(
+    "/health",
+    summary="Workers, blackboard and proposals at a glance (core status)",
+    description=(
+        "Read-only: workers with heartbeat ages and liveness, open blackboard "
+        "entries by type and status, the oldest open finding, stuck signals "
+        "(proposal.stuck_*, blackboard.entry_stale, worker.silent), live "
+        "proposals, and findings created vs resolved in the last 7 days. The "
+        "same answer as the MCP tool core_status."
+    ),
+)
+# ID: 8a827edf-0511-40a9-a50d-ca26b91709bc
+async def status_health(session: AsyncSession = Depends(get_api_session)) -> dict:
+    """Return the runtime health picture."""
+    return await get_health(session)
 
 
 @status_router.get(

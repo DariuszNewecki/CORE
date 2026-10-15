@@ -45,6 +45,10 @@ async def test_lists_exactly_the_allowlisted_tools_read_only_unless_they_ask_cor
         # auto-allow it).
         expected = tool.name not in ("validate_change", "submit_change")
         assert tool.annotations.read_only_hint is expected
+        # Only the repository tools stay inside the repository.
+        assert tool.annotations.open_world_hint is (
+            tool.name in ("validate_change", "submit_change", "core_status")
+        )
 
 
 @pytest.mark.asyncio
