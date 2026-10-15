@@ -263,8 +263,10 @@ async def adopt_pack_command(
         console.print(f"  Updated {tree_yaml.name}: packs: section")
 
     console.print(
-        "\n[bold green]Pack applied.[/bold green] "
-        "Run 'core-admin code audit --offline' to see findings."
+        "\n[bold green]Pack applied.[/bold green] Commit .intent/ "
+        "('git add .intent && git commit'), then run "
+        "'core-admin code audit --offline' to see findings: until the law is "
+        "committed the verdict is DEGRADED."
     )
 
 

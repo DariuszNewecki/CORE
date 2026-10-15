@@ -250,3 +250,41 @@ def test_rule_names_the_engine_check_when_no_code_path_is_given(repo: Path) -> N
     assert mechanism["engine"] == "ast_gate"
     assert mechanism["check"] == "no_print_statements"
     assert mechanism["enforced_by"] is None
+
+
+def test_rules_lists_every_declared_rule_with_its_mechanism(repo: Path) -> None:
+    """#1029 (proof run): an assistant could not ask which rules apply."""
+    answer = LawFacts(repo).rules().as_dict()
+    assert answer["class"] == LAW
+    [row] = [r for r in answer["answer"]["rules"] if r["rule_id"] == _RULE_ID]
+    assert row["enforcement"] == "blocking"
+    assert row["statement"] == ".intent/** MUST be treated as immutable."
+    assert row["engine"] == "passive_gate"
+    assert row["file"] == ".intent/rules/architecture/safety.json"
+
+
+def test_rules_filter_by_prefix_or_pack_and_unknown_says_so(repo: Path) -> None:
+    pack = repo / ".intent" / "rules" / "packs"
+    pack.mkdir(parents=True)
+    (pack / "core_starter_python.json").write_text(
+        json.dumps(
+            {
+                "rules": [
+                    {
+                        "id": "starter.no_print",
+                        "statement": "No print().",
+                        "enforcement": "reporting",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    facts = LawFacts(repo)
+    by_pack = facts.rules("core/starter-python").as_dict()["answer"]["rules"]
+    assert [r["rule_id"] for r in by_pack] == ["starter.no_print"]
+    by_prefix = facts.rules("starter.").as_dict()["answer"]["rules"]
+    assert [r["rule_id"] for r in by_prefix] == ["starter.no_print"]
+    none = facts.rules("nothing.").as_dict()
+    assert none["class"] == UNKNOWN and none["answer"]["count"] == 0
+    assert "law_rules" in facts.rule("core/starter-python").as_dict()["limits"][1]

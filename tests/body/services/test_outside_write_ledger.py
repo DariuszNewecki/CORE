@@ -10,6 +10,7 @@ reported unrecorded."""
 from __future__ import annotations
 
 import hashlib
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -145,7 +146,9 @@ async def test_standalone_install_neither_requires_nor_records(
     tmp_path: Path, standalone, caplog: pytest.LogCaptureFixture
 ) -> None:
     """The boundary: no CORE database configured -> no ledger to require; the
-    writes proceed and the unrecorded paths are named, never silently."""
+    writes proceed and the unrecorded paths are named in the debug log. Not a
+    warning: a standalone install has no ledger by design (#1028, proof run)."""
+    caplog.set_level(logging.DEBUG, logger="body.services.outside_write_ledger")
     (tmp_path / "a").write_text("1")
     log = OutsideWriteLog(tmp_path, produced_by="project.new")
     with _registry_down():  # any session attempt would raise
@@ -155,4 +158,5 @@ async def test_standalone_install_neither_requires_nor_records(
 
     assert "standalone install" in caplog.text
     assert "not recorded" in caplog.text
+    assert {r.levelno for r in caplog.records} == {logging.DEBUG}
     assert log.entries == []

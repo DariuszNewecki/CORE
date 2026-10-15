@@ -10,7 +10,23 @@ UNIX Philosophy: CLI provides atomic resource actions; Makefile composes them.
 
 from __future__ import annotations
 
+import os
 import sys
+
+
+# #1021 (proof run): every command printed the runtime's INFO logs (intent
+# validation, git service, rule extraction ...) around its own output. A
+# person or an assistant running core-admin sees warnings and errors only,
+# unless LOG_LEVEL says otherwise; set before shared.logger configures the
+# root logger at import. Only for this process's own invocation (core-admin
+# or `python -m cli.admin_cli`), and never for the daemon, whose level comes
+# from core.env.
+if (
+    "LOG_LEVEL" not in os.environ
+    and os.path.basename(sys.argv[0]) in {"core-admin", "admin_cli.py"}
+    and sys.argv[1:3] != ["daemon", "start"]
+):
+    os.environ["LOG_LEVEL"] = "WARNING"
 
 from cli.runtime_external_run import matches_route as matches_external_run
 from cli.runtime_external_run import run as run_external_run
@@ -79,7 +95,7 @@ from shared.infrastructure.intent.errors import GovernanceError
 console = Console()
 app = typer.Typer(
     name="core-admin",
-    help="CORE: The Self-Improving System Architect's Toolkit.",
+    help="CORE: executable constitutional governance for AI-assisted software development.",
     no_args_is_help=False,
 )
 

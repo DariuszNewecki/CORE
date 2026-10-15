@@ -1,6 +1,6 @@
 kind: governance_pack
 id: "core/python-hygiene"
-version: "1.0.0"
+version: "1.1.0"
 title: "Python Hygiene (Intermediate)"
 description: >
   Stricter baseline for teams that have outgrown the starter pack and want
@@ -97,12 +97,9 @@ rules:
 enforcement_mappings:
   # Inherited starter mappings (scope widened to **/*.py for any repo layout)
   starter.no_bare_except:
-    engine: regex_gate
+    engine: ast_gate
     params:
-      forbidden_patterns:
-        - "except:\\s*pass"
-        - "except Exception:\\s*pass"
-        - "except BaseException:\\s*pass"
+      check_type: no_swallowed_exceptions
     scope:
       applies_to: ["**/*.py"]
       excludes:

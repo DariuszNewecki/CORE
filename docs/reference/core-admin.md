@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-106 commands.
+107 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -24,7 +24,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`docs`](#docs) | 1 | Reader-facing documentation generated from live sources (the CLI trees). |
 | [`grc`](#grc) | 2 | Compliance gap-analysis: check a document corpus against a requirements catalog. |
 | [`interactive-test`](#interactive-test) | 2 | Interactive test generation with step-by-step approval |
-| [`law`](#law) | 7 | Grounded answers about this repository's law, with sources (ADR-168). |
+| [`law`](#law) | 8 | Grounded answers about this repository's law, with sources (ADR-168). |
 | [`llm-resources`](#llm-resources) | 2 | core.llm_resources authoring/validation surface (#821 Unit 3). |
 | [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant (ADR-168). |
 | [`project`](#project) | 3 | Operations for project lifecycle: scaffolding. |
@@ -1319,6 +1319,21 @@ List law applied in the last HOURS from the ledger, record-only first.
 |---|---|---|
 | `--hours` | `24` | How far back to look. |
 | `--repo` |  | Development tree (default: discovered from cwd). |
+
+### `core-admin law list` {#law-list}
+
+```
+core-admin law list [MATCH]
+```
+
+List the rules declared in this repository: id, enforcement, a one-line
+statement, the engine and check that run it, and the file.
+
+Example: core-admin law list core/starter-python
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `MATCH` |  | Rule-id prefix (starter.) or pack id (core/starter-python). |
 
 ### `core-admin law show` {#law-show}
 

@@ -127,7 +127,8 @@ class OutsideWriteLog:
         ledger to require: the writes proceed and are reported unrecorded.
         """
         if not database_is_configured():
-            logger.warning(
+            # Standalone by design: debug, not a warning on every write (#1028).
+            logger.debug(
                 "outside-write ledger: no CORE database is configured "
                 "(standalone install); %s will write under %s WITHOUT a "
                 "ledger record (ADR-169 D5 applies to installations with a "
@@ -155,14 +156,16 @@ class OutsideWriteLog:
 
         Raises OutsideWritesUnrecorded, naming every path, when the ledger
         cannot be reached; the entries stay on the log, never dropped. With no
-        CORE database configured, logs the unrecorded paths and clears them.
+        CORE database configured, logs the unrecorded paths (debug) and clears them.
         """
         if not self.entries:
             return
         entries = list(self.entries)
         root = Path(self.target_root).resolve().as_posix()
         if not database_is_configured():
-            logger.warning(
+            # A standalone install has no ledger by design: the paths are kept
+            # in the debug log, not shown as a warning on every write (#1028).
+            logger.debug(
                 "outside-write ledger: %d write(s) by %s under %s not recorded "
                 "-- no CORE database is configured (standalone install): %s",
                 len(entries),

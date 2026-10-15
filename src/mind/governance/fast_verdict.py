@@ -13,6 +13,8 @@ What it does:
   included, or an explicit file list.
 - **Per-file rules** run on the files in scope, through the same stateless
   audit the offline gate uses, so the rules and their findings are identical.
+- **What was evaluated is named** (``evaluated``), with the non-blocking
+  findings in scope (``other_findings``), so "clear" is checkable (#1030).
 - **Everything not evaluated is named**: whole-repository (context-level)
   rules, which a file-scoped run cannot evaluate; rules that need services;
   rules that failed; checks that reported themselves unavailable.
@@ -37,6 +39,7 @@ from mind.governance.stateless_audit import run_stateless_audit
 from shared.infrastructure.git_service import GitService
 from shared.infrastructure.intent.errors import GovernanceError
 from shared.infrastructure.intent.intent_repository import IntentRepository
+from shared.infrastructure.intent.law_state import LAW_DRIFT_CHECK_ID
 from shared.logger import getLogger
 from shared.models.audit_rendering import NOT_EVALUATED_FINDING_TYPES
 
@@ -76,6 +79,8 @@ async def run_fast_verdict(
             "note": _AUTHORITY_NOTE,
             "scope": {"files": [], "removed": removed},
             "blocking": [],
+            "other_findings": [],
+            "evaluated": [],
             "not_evaluated": {},
         }
 
@@ -87,6 +92,15 @@ async def run_fast_verdict(
         _finding_summary(f)
         for f in findings
         if str(f.get("severity", "")).lower() in _BLOCKING and not _not_evaluated(f)
+    ]
+    # #1030 (proof run): CLEAR_IN_SCOPE did not say which rules were checked,
+    # and reporting findings in scope (no_print ...) were not shown at all.
+    other_findings = [
+        _finding_summary(f) | {"severity": str(f.get("severity", "")).lower()}
+        for f in findings
+        if str(f.get("severity", "")).lower() not in _BLOCKING
+        and not _not_evaluated(f)
+        and f.get("check_id") != LAW_DRIFT_CHECK_ID
     ]
     unavailable = sorted(
         {
@@ -126,6 +140,8 @@ async def run_fast_verdict(
         "note": _AUTHORITY_NOTE,
         "scope": {"files": in_scope, "removed": removed},
         "blocking": blocking,
+        "other_findings": other_findings,
+        "evaluated": list(result.get("executed_rule_ids") or []),
         "not_evaluated": not_evaluated,
         "law": {
             "relationship": law.get("relationship"),

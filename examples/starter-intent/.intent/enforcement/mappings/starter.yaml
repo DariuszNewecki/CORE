@@ -10,12 +10,9 @@ mappings:
 
   # 1. No silently-swallowed exceptions.  (blocking — demo rule)
   starter.no_bare_except:
-    engine: regex_gate
+    engine: ast_gate
     params:
-      forbidden_patterns:
-        - "except:\\s*pass"
-        - "except Exception:\\s*pass"
-        - "except BaseException:\\s*pass"
+      check_type: no_swallowed_exceptions
     scope:
       applies_to: ["**/*.py"]
       excludes: ["**/venv/**", "**/.venv/**", "**/build/**", "**/dist/**"]

@@ -436,6 +436,18 @@ def _render_text_summary(
                 f"  [yellow]{entry.get('rule_id')}[/yellow] "
                 f"[dim]({entry.get('engine')}) — {entry.get('reason')}[/dim]"
             )
+    # #1027: law drift is why a verdict is DEGRADED; its findings are MEDIUM
+    # and fall below the default --severity, so name it next to the verdict.
+    law = result.get("law_state") or {}
+    if law.get("relationship") in {"DRIFT", "UNKNOWN"}:
+        reason = law.get("reason") or (
+            f"{len(law.get('drift_paths') or [])} file(s) under .intent/ differ "
+            "from the last commit; commit or revert them"
+        )
+        console.print(
+            "[bold yellow]Law not committed (verdict DEGRADED, not PASS):"
+            f"[/bold yellow] {reason}, then audit again."
+        )
     if skipped:
         console.print(
             f"[dim]Skipped {len(skipped)} rule(s) "

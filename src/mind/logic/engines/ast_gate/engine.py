@@ -103,6 +103,7 @@ class ASTGateEngine(BaseEngine):
             "no_module_level_async_engine",
             "no_task_return_from_sync_cli",
             "no_print_statements",
+            "no_swallowed_exceptions",
             "test_file_naming",
             "max_file_lines",
             "max_function_length",
@@ -387,6 +388,8 @@ class ASTGateEngine(BaseEngine):
 
         elif check_type == "no_print_statements":
             violations.extend(PurityChecks.check_no_print_statements(tree))
+        elif check_type == "no_swallowed_exceptions":
+            violations.extend(PurityChecks.check_no_swallowed_exceptions(tree))
 
         elif check_type == "tempfile_default_dir":
             violations.extend(PurityChecks.check_tempfile_default_dir(tree))

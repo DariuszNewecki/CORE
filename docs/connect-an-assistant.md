@@ -13,6 +13,7 @@ Submitting a change needs a running CORE (see [Run the full runtime](getting-sta
 
 | Tool | Question it answers |
 |---|---|
+| `law_rules` | Which rules are in force (optionally one pack or id prefix), how strict each is, and what checks it? |
 | `law_rule` | What does this rule say, how is it enforced, and where is it declared? |
 | `law_can_write` | May I write this path? What the law says, and what actually enforces it. |
 | `decision_adr` | What did this architecture decision record (ADR) decide? |
@@ -21,12 +22,13 @@ Submitting a change needs a running CORE (see [Run the full runtime](getting-sta
 | `validate_change` | Does my patch pass CORE's full checks? (starts a check run; a few minutes) |
 | `submit_change` | If it passed, record it as a pending proposal for the governor. |
 
-Five tools only read. Two, `validate_change` and `submit_change`, ask CORE to check a change and to record it as a pending proposal. None can approve, waive, or act as the governor.
+Six tools only read. Two, `validate_change` and `submit_change`, ask CORE to check a change and to record it as a pending proposal. None can approve, waive, or act as the governor.
 
 The same answers are available from the shell, which is the quickest way to
 see what the assistant will see:
 
 ```bash
+core-admin law list
 core-admin law show governance.constitution.read_only
 core-admin law check .intent/rules/example.json
 core-admin decisions list --status accepted
@@ -77,7 +79,7 @@ directly after `-p` and the list after it:
 
 ```bash
 claude -p "Run change_verdict on my current change before I commit." \
-  --allowedTools "mcp__core__law_rule,mcp__core__law_can_write,mcp__core__decision_adr,mcp__core__decision_adrs,mcp__core__change_verdict"
+  --allowedTools "mcp__core__law_rules,mcp__core__law_rule,mcp__core__law_can_write,mcp__core__decision_adr,mcp__core__decision_adrs,mcp__core__change_verdict"
 ```
 
 This list leaves out `validate_change` and `submit_change`, so a non-interactive run cannot submit a change unless you add them.
