@@ -28,6 +28,7 @@ Nothing is ever git-added into CORE's repository.
 
 from __future__ import annotations
 
+import importlib.metadata
 import keyword
 import re
 import shutil
@@ -49,6 +50,46 @@ logger = getLogger(__name__)
 
 _INTENT_DIR = ".intent"
 _NAME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")
+# The GitHub Action that runs the full audit on every pull request (#1043:
+# an adopter repo had no authoritative verdict anywhere; "CI decides" named
+# a CI that did not exist).
+AUDIT_WORKFLOW = ".github/workflows/core-audit.yml"
+_RELEASE = re.compile(r"^\d+\.\d+\.\d+$")
+
+
+# ID: c5276db2-d259-4452-8383-91ca06646faf
+def render_audit_workflow(version: str | None = None) -> str:
+    """The workflow file for CORE's GitHub Action, pinned to the installed
+    release (``main`` when the installed version is not a release)."""
+    if version is None:
+        try:
+            version = importlib.metadata.version("core-runtime")
+        except importlib.metadata.PackageNotFoundError:
+            version = ""
+    ref = f"v{version}" if _RELEASE.match(version or "") else "main"
+    return (
+        "# CORE audits every pull request against this repository's .intent/.\n"
+        "# Written by `core-admin project init`; the verdict here is the\n"
+        "# authoritative one (change_verdict and pre-commit checks are feedback).\n"
+        "name: CORE audit\n"
+        "\n"
+        "on:\n"
+        "  pull_request:\n"
+        "  push:\n"
+        "    branches: [main]\n"
+        "\n"
+        "permissions:\n"
+        "  contents: read\n"
+        "\n"
+        "jobs:\n"
+        "  audit:\n"
+        "    runs-on: ubuntu-latest\n"
+        "    steps:\n"
+        "      - uses: actions/checkout@v4\n"
+        f"      - uses: DariuszNewecki/CORE@{ref}\n"
+        "        with:\n"
+        "          severity: block\n"
+    )
 
 
 @dataclass(frozen=True)
@@ -104,6 +145,7 @@ def plan_new_project(name: str, parent: Path, core_root: Path | None) -> NewProj
         ("README.md", _render_readme(name)),
         (f"src/{package}/__init__.py", f'"""{name}."""\n'),
         ("tests/__init__.py", ""),
+        (AUDIT_WORKFLOW, render_audit_workflow()),
     )
     return NewProjectPlan(
         name=name,
@@ -191,6 +233,9 @@ class InitPlan:
 
     target_root: Path
     floor_copies: tuple[tuple[Path, str], ...]
+    workflow: tuple[str, str] = (AUDIT_WORKFLOW, "")
+    """(target-relative path, text): CORE's GitHub Action, written unless a
+    file is already there (#1043)."""
 
 
 # ID: 8f485883-8756-4dba-a165-c0048f5ba34f
@@ -212,6 +257,7 @@ def plan_init(target: Path, core_root: Path | None) -> InitPlan:
             (src, f"{_INTENT_DIR}/{src.relative_to(floor_dir).as_posix()}")
             for src in _machinery_floor_files(floor_dir)
         ),
+        workflow=(AUDIT_WORKFLOW, render_audit_workflow()),
     )
 
 
@@ -227,7 +273,8 @@ def write_init(
     Refuses (``typer.Exit(1)``), in dry-run as well, when the target overlaps
     CORE's own repository or is a system directory, is not an existing
     directory, or already has a ``.intent/`` (ADR-111 D3: never overwrite a
-    constitution). Returns the file count.
+    constitution). Also writes CORE's GitHub Action workflow unless a file
+    is already at its path. Returns the floor file count.
     """
     target = plan.target_root
     _reject_unsafe_target(
@@ -261,6 +308,17 @@ def write_init(
             "Delivery incomplete at %s; missing: %s", target, ", ".join(missing)
         )
         raise typer.Exit(code=1)
+    rel, text = plan.workflow
+    workflow = target / rel
+    if not workflow.exists():
+        try:
+            workflow.parent.mkdir(parents=True, exist_ok=True)
+            workflow.write_text(text, encoding="utf-8")
+        except OSError as exc:
+            logger.error("Could not write %s: %s", workflow, exc)
+            raise typer.Exit(code=1) from exc
+        if outside is not None:
+            outside.wrote(workflow)
     return len(plan.floor_copies)
 
 

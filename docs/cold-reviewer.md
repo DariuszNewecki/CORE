@@ -43,9 +43,9 @@ No daemon runs. No database is provisioned. The action is the stateless audit pa
 
 ## Minimum setup
 
-Your repository needs a `.intent/` directory at the root. If you don't have one, scaffold it with `core project onboard` (see above) before adding the workflow.
+Your repository needs a `.intent/` directory at the root. If you don't have one, `pip install core-runtime` and run `core-admin project init . --write` in the repository: it delivers `.intent/` and this workflow.
 
-Add this workflow at `.github/workflows/core-audit.yml`:
+`core-admin project init . --write` (and `project new`) writes this workflow for you, pinned to the installed release. To add it by hand, put it at `.github/workflows/core-audit.yml`:
 
 ```yaml
 name: CORE constitutional audit

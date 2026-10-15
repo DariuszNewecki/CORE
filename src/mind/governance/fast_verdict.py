@@ -54,7 +54,8 @@ NOT_EVALUATED = "NOT_EVALUATED"
 _BLOCKING = {"block", "blocking"}
 _AUTHORITY_NOTE = (
     "Producer feedback, not the authoritative verdict. PASS is given only by the "
-    "full audit (CI), which evaluates every rule."
+    "full audit, which evaluates every rule: `core-admin code audit --offline` "
+    "locally, and CORE's GitHub Action on every pull request (#1043)."
 )
 
 

@@ -70,6 +70,8 @@ def test_skeleton_is_minimal_and_neutral(parent: Path, core_root: Path) -> None:
         "README.md",
         "src/my_app/__init__.py",
         "tests/__init__.py",
+        # #1043: CORE's GitHub Action, the authoritative verdict per PR.
+        ".github/workflows/core-audit.yml",
     }
     assert 'name = "my-app"' in skeleton["pyproject.toml"]
     assert "dependencies = []" in skeleton["pyproject.toml"]
