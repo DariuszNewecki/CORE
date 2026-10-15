@@ -39,10 +39,15 @@ _INSTRUCTIONS = (
     "limits. Before committing, call change_verdict on your change: BLOCKED "
     "means a blocking rule is violated; CLEAR_IN_SCOPE means none of the rules "
     "it evaluated is, and it names the rules it did not evaluate. It never says "
-    "PASS; the full audit (CI) is authoritative. To submit a change, "
-    "validate_change asks CORE to check a patch and submit_change records it as "
-    "a pending proposal; both need a running CORE. No tool can approve, waive or "
-    "act as the governor."
+    "PASS: the full audit is authoritative (`core-admin code audit --offline`, "
+    "and CORE's GitHub Action on every pull request). How a change lands "
+    "(#1044): without a running CORE (a plain pip install), call change_verdict, "
+    "commit only if it is not BLOCKED, and let the pull request's audit decide. "
+    "Use validate_change and submit_change only when this project runs CORE "
+    "(its API): validate_change has CORE check a patch in full and "
+    "submit_change records it as a pending proposal that the governor approves "
+    "instead of you committing it; without a running CORE both report that "
+    "they cannot reach it. No tool can approve, waive or act as the governor."
 )
 
 # The read tools only read the repository; none reaches outside it.

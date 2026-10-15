@@ -24,6 +24,8 @@ Submitting a change needs a running CORE (see [Run the full runtime](getting-sta
 
 Six tools only read. Two, `validate_change` and `submit_change`, ask CORE to check a change and to record it as a pending proposal. None can approve, waive, or act as the governor.
 
+Which path a change takes: with a plain `pip install` (no running CORE), the assistant calls `change_verdict` and commits only if it is not BLOCKED; the full audit then runs on the pull request through CORE's GitHub Action (`core-admin project init` sets it up). Only a project that runs CORE (its API) uses `validate_change` and `submit_change`, which turn the change into a proposal you approve instead of a direct commit.
+
 The same answers are available from the shell, which is the quickest way to
 see what the assistant will see:
 
