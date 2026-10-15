@@ -92,3 +92,45 @@ async def test_run_systemctl_generic_exception_returns_error() -> None:
 
     assert result["ok"] is False
     assert "permission denied" in result["error"]
+
+
+# -- get_status: liveness from the registry's real keys (2026-10-15) -----------
+
+
+async def test_get_status_reads_worker_uuid_and_only_live_workers_are_alive() -> None:
+    from datetime import UTC, datetime
+
+    from will.governance.daemon_runner import get_status
+
+    now = datetime(2026, 10, 15, tzinfo=UTC)
+    registered = [
+        {
+            "worker_uuid": "u-live",
+            "worker_name": "Live",
+            "worker_class": "sensing",
+            "phase": "audit",
+            "last_heartbeat": now,
+            "seconds_silent": 12,
+        },
+        {
+            "worker_uuid": "u-june",
+            "worker_name": "June",
+            "worker_class": "acting",
+            "phase": "execution",
+            "last_heartbeat": now,
+            "seconds_silent": 9_000_000,
+        },
+    ]
+    alive = [registered[0]]
+    service = AsyncMock()
+    service.fetch_registered_workers.return_value = registered
+    service.fetch_alive_workers.return_value = alive
+    with patch(
+        "will.governance.daemon_runner.WorkerRegistryService", return_value=service
+    ):
+        status = await get_status(None)
+    by_name = {w["name"]: w for w in status["workers"]}
+    assert by_name["Live"]["alive"] is True
+    assert by_name["June"]["alive"] is False
+    assert by_name["June"]["age_sec"] == 9_000_000
+    assert by_name["Live"]["class"] == "sensing"

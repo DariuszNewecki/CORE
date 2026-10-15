@@ -78,7 +78,7 @@ def _default_alive_threshold_sec() -> int:
 
 
 # ID: 4e1a8f6b-0d5c-4f2e-a9ba-3c4d5e6f7890
-async def get_status(context: CoreContext) -> dict:
+async def get_status(context: CoreContext | None) -> dict:
     """Return current daemon liveness + per-worker health.
 
     `context` is accepted for parity with the other Will-layer runners
@@ -104,21 +104,27 @@ async def get_status(context: CoreContext) -> dict:
         logger.warning("daemon_runner: fetch_alive_workers failed: %s", exc)
         alive = []
 
-    alive_uuids = {w.get("uuid") for w in alive}
+    # The registry rows carry worker_uuid / worker_name. This read uuid/name,
+    # got None for every worker, and None was in the alive set, so every
+    # registered worker -- heartbeats from June included -- read "alive"
+    # (2026-10-15). A worker without a uuid is never alive.
+    alive_uuids = {w.get("worker_uuid") for w in alive} - {None}
     workers: list[dict[str, Any]] = []
     for w in registered:
-        uuid_val = w.get("uuid")
+        uuid_val = w.get("worker_uuid")
         workers.append(
             {
                 "uuid": str(uuid_val) if uuid_val is not None else None,
-                "name": w.get("name"),
+                "name": w.get("worker_name"),
+                "class": w.get("worker_class"),
                 "phase": w.get("phase"),
                 "last_heartbeat": (
                     w["last_heartbeat"].isoformat()
                     if w.get("last_heartbeat") is not None
                     else None
                 ),
-                "alive": uuid_val in alive_uuids,
+                "age_sec": w.get("seconds_silent"),
+                "alive": uuid_val is not None and uuid_val in alive_uuids,
             }
         )
 

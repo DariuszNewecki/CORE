@@ -7,8 +7,9 @@ on. It lists exactly the allowlisted tools of ``cli.logic.assistant_tools``
 and answers each call through the same ``invoke`` the CLI commands use, so the
 MCP and CLI answers are identical (D2 amendment 2026-10-06).
 
-Local first: no database, no API, no other service. Every tool is read-only,
-and none can record governor authority (D3). The SDK's stdio transport points
+Local first: the repository tools need no database, API or other service;
+validate_change, submit_change and core_status reach CORE's API. None can
+record governor authority (D3). The SDK's stdio transport points
 fd 1 at stderr while serving, so CORE's logging never reaches the protocol.
 """
 
@@ -50,12 +51,20 @@ _INSTRUCTIONS = (
     "they cannot reach it. No tool can approve, waive or act as the governor."
 )
 
-# The read tools only read the repository; none reaches outside it.
+# The read tools that only read the repository; none reaches outside it.
 _READ_ONLY = types.ToolAnnotations(
     read_only_hint=True,
     destructive_hint=False,
     idempotent_hint=True,
     open_world_hint=False,
+)
+# core_status reads CORE's state through its API: read-only, but outside the
+# repository.
+_READS_CORE = types.ToolAnnotations(
+    read_only_hint=True,
+    destructive_hint=False,
+    idempotent_hint=True,
+    open_world_hint=True,
 )
 # validate_change and submit_change ask CORE's API to act (a check run, a
 # pending proposal): not read-only, so a client must not auto-allow them.
@@ -88,7 +97,13 @@ def build_server(repo_root: Path) -> Server[Any]:
                     name=tool.name,
                     description=tool.description,
                     input_schema=tool.input_schema,
-                    annotations=_READ_ONLY if tool.reads_only else _ASKS_CORE,
+                    annotations=(
+                        _ASKS_CORE
+                        if not tool.reads_only
+                        else _READS_CORE
+                        if tool.reaches_core
+                        else _READ_ONLY
+                    ),
                 )
                 for tool in TOOLS.values()
             ]

@@ -22,7 +22,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -40,7 +40,9 @@ _READ_TOOLS = {
 }
 # ADR-168 Amendment 2026-10-10 A1: the one write — submitting a change.
 _SUBMIT_TOOLS = {"validate_change", "submit_change"}
-_ALLOWLIST = _READ_TOOLS | _SUBMIT_TOOLS
+# ADR-068 amendment 2026-10-15: read.state through CORE's API.
+_STATE_TOOLS = {"core_status"}
+_ALLOWLIST = _READ_TOOLS | _SUBMIT_TOOLS | _STATE_TOOLS
 
 # One call per tool, with the arguments each needs.
 _CALLS = {
@@ -320,3 +322,24 @@ async def test_the_patch_reaches_core_byte_for_byte(repo: Path) -> None:
 
     assert sent[0]["params"]["patch"] == diff
     assert sent[-1]["patch"] == diff
+
+
+@pytest.mark.asyncio
+async def test_core_status_reads_the_health_route_and_writes_nothing(
+    repo: Path,
+) -> None:
+    health = {"workers": {"workers": []}, "blackboard": []}
+    request = AsyncMock(return_value=health)
+    with patch("cli.logic.assistant_tools.CoreApiClient._request", request):
+        out = await invoke("core_status", {}, repo)
+    assert out == {"available": True, **health}
+    request.assert_awaited_once_with("GET", "/v1/status/health")
+
+
+@pytest.mark.asyncio
+async def test_core_status_without_a_running_core_says_so(repo: Path) -> None:
+    request = AsyncMock(side_effect=ConnectionError("refused"))
+    with patch("cli.logic.assistant_tools.CoreApiClient._request", request):
+        out = await invoke("core_status", {}, repo)
+    assert out["available"] is False
+    assert "refused" in out["reason"]
