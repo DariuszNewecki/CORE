@@ -86,3 +86,14 @@ async def test_core_admin_mcp_run_serves_over_stdio(repo: Path) -> None:
 
     assert [t.name for t in listed] == list(TOOLS)
     assert result.structured_content == await invoke("law_can_write", arguments, repo)
+
+
+def test_instructions_say_how_a_change_lands() -> None:
+    """#1044 (proof run 2): the assistant could not tell whether to commit
+    directly or go through validate_change/submit_change."""
+    from cli.logic.mcp_server import _INSTRUCTIONS
+
+    assert "without a running CORE" in _INSTRUCTIONS
+    assert "commit only if it is not BLOCKED" in _INSTRUCTIONS
+    assert "only when this project runs CORE" in _INSTRUCTIONS
+    assert "core-admin code audit --offline" in _INSTRUCTIONS
