@@ -1,12 +1,12 @@
-"""Which trees does this Bash command commit in? Shared by the commit hooks.
+"""Which trees does this Bash command commit in? Used by the commit hook.
 
-Claude Code PreToolUse hooks (core-develop-ancestry.sh, core-verdict.sh) pipe
-their payload here: ``python3 -I core-commit-target.py <repo>``.
+The Claude Code PreToolUse hook core-verdict.sh pipes its payload here:
+``python3 -I core-commit-target.py <repo>``.
 
 Output, one line per tree a `git commit` in the command lands in (deduplicated,
 in order); no output when the command commits nothing. Exit 2 with a message
-on stderr when the payload is not the JSON Claude Code sends; the hooks then
-refuse rather than pass.
+on stderr when the payload is not the JSON Claude Code sends; the hook then
+refuses rather than passes.
 
 Detection works on the shell words, not a pattern over the text:
 - the command is split into simple commands at `;`, `&&`, `||`, `|`, `&`,
