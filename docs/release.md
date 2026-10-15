@@ -63,7 +63,7 @@ Once the one-time setup is complete:
 4. Once the bump is merged, start the full CI run on the merge commit before tagging:
    `gh workflow run core-ci.yml --ref main -f sha=<merge sha>`. The PyPI publish refuses a
    tag without a green push run *and* a green full (workflow_dispatch) run on that SHA;
-   the Docker images follow the PyPI publish (`workflow_run`).
+   the Docker images are built by the same run, after the PyPI publish.
 5. Tag the merge commit: `git tag -a vX.Y.Z -m "core-runtime X.Y.Z" <merge sha> && git push origin vX.Y.Z`.
 6. Create the GitHub release, so the repository page shows it as Latest:
    `gh release create vX.Y.Z --verify-tag --latest --title "vX.Y.Z — <summary>" --notes-file <the CHANGELOG section>`.
