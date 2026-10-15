@@ -17,6 +17,8 @@ CONSTITUTIONAL ALIGNMENT:
 
 from __future__ import annotations
 
+import hashlib
+import subprocess
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -25,7 +27,12 @@ from typing import Any
 
 from body.governance.law_custody.checks import run_checks_in_child
 from body.governance.law_custody.law_warnings import LawWarning, compute_warnings
-from body.governance.law_custody.ledger import build_ledger_line, signed_line_bytes
+from body.governance.law_custody.ledger import (
+    REMOVED,
+    build_ledger_line,
+    recorded_hashes,
+    signed_line_bytes,
+)
 from body.governance.law_custody.proposal import LawProposal, read_proposal
 from body.governance.law_custody.writer import (
     CUSTODIAN_ACCOUNT,
@@ -52,6 +59,10 @@ class PreparedApply:
     refusals: list[dict[str, str]]
     computed_warnings: list[LawWarning]
     shown_utc: str
+    #: What the ledger counts changes against: ``old``, except for a path an
+    #: earlier failed attempt already wrote, which is compared with its last
+    #: committed version (#966).
+    baseline: dict[str, bytes | None] = field(default_factory=dict)
 
 
 @dataclass
@@ -112,6 +123,7 @@ def prepare(
         remove_scratch_tree(tree)
     new: dict[str, bytes | None] = {f.path: f.content for f in proposal.files}
     new.update({path: None for path in proposal.removals})
+    baseline, unrecorded = rerun_baseline(repo_root, old, new)
     return PreparedApply(
         proposal=proposal,
         repo_root=repo_root,
@@ -119,9 +131,104 @@ def prepare(
         old=old,
         checks=dict(report.get("checks") or {}),
         refusals=list(report.get("refusals") or []),
-        computed_warnings=compute_warnings(old, new),
+        computed_warnings=compute_warnings(baseline, new) + unrecorded,
         shown_utc=_utc_now(),
+        baseline=baseline,
     )
+
+
+# ID: ba8f8bce-64bd-4488-8b7a-1e03e4817400
+def rerun_baseline(
+    repo_root: Path,
+    old: dict[str, bytes | None],
+    new: dict[str, bytes | None],
+) -> tuple[dict[str, bytes | None], list[LawWarning]]:
+    """What a proposal is compared against, and the paths a failed attempt wrote.
+
+    #966: a failed ``--write`` leaves the new bytes in the destinations it
+    reached and records no ledger line. A rerun then read those bytes as
+    the current law: its report and ledger line compared new with new
+    (lines_changed 0, the assistant_contract warning of 0025 lost). A path
+    whose current bytes already equal the proposal's, with that hash in no
+    ledger line, is such a leftover: it is compared with its last committed
+    version (git HEAD) and named in a warning, so the governor sees it.
+    """
+    baseline = dict(old)
+    warnings: list[LawWarning] = []
+    recorded = recorded_hashes(repo_root)
+    for path, content in sorted(new.items()):
+        if old.get(path) != content:
+            continue
+        mark = REMOVED if content is None else hashlib.sha256(content).hexdigest()
+        if mark in recorded.get(path, set()):
+            continue
+        committed = _committed_bytes(repo_root, path)
+        note = "compared with its last committed version"
+        if committed is _UNKNOWN:
+            note = "its earlier version is unknown (no git); compared with itself"
+        else:
+            baseline[path] = committed  # type: ignore[assignment]
+        warnings.append(
+            LawWarning(
+                "unrecorded_prior_write",
+                path,
+                (
+                    "is already removed"
+                    if content is None
+                    else "already holds these bytes"
+                )
+                + " from an earlier attempt that wrote no ledger line; "
+                + note,
+            )
+        )
+    return baseline, warnings
+
+
+_UNKNOWN = object()
+
+
+def _committed_bytes(repo_root: Path, rel: str) -> object:
+    """``rel`` at git HEAD in ``repo_root``; None when HEAD has no such file;
+    ``_UNKNOWN`` when git cannot answer."""
+    try:
+        listed = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repo_root),
+                "-c",
+                "core.hooksPath=/dev/null",
+                "ls-tree",
+                "--name-only",
+                "HEAD",
+                "--",
+                rel,
+            ],
+            capture_output=True,
+            check=False,
+            timeout=30,
+        )
+        if listed.returncode != 0:
+            return _UNKNOWN
+        if not listed.stdout.strip():
+            return None
+        shown = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repo_root),
+                "-c",
+                "core.hooksPath=/dev/null",
+                "show",
+                f"HEAD:{rel}",
+            ],
+            capture_output=True,
+            check=False,
+            timeout=30,
+        )
+        return shown.stdout if shown.returncode == 0 else _UNKNOWN
+    except (OSError, subprocess.TimeoutExpired):
+        return _UNKNOWN
 
 
 # ID: abfd270e-e1e0-4027-bf61-54add9cade5e
@@ -147,7 +254,7 @@ def apply_prepared(
         destinations=prepared.destinations,
         checks=prepared.checks,
         computed_warnings=prepared.computed_warnings,
-        old=prepared.old,
+        old=prepared.baseline or prepared.old,
     )
     signed = signed_line_bytes(line, key_path)
     outcomes = write_destinations(

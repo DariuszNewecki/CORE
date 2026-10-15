@@ -457,3 +457,70 @@ def test_a_code_tree_that_is_not_an_absolute_directory_is_refused(
             run_checks=_clean_checks,
             code_tree=code,
         )
+
+
+def _git(repo: Path, *args: str) -> None:
+    subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+    )
+
+
+def test_a_rerun_after_a_failed_write_compares_with_the_committed_law(
+    tmp_path: Path, key: Path
+) -> None:
+    """#966 (law 0025): the failed first attempt left the new bytes in the
+    dev tree and wrote no ledger line; the rerun read them as current and
+    recorded lines_changed 0 and no computed warnings."""
+    repo = _repo(tmp_path)
+    (repo / ".git").rmdir()
+    _git(repo, "init", "-q")
+    _git(repo, "add", ".specs")
+    _git(repo, "commit", "-qm", "law of record")
+    missing = tmp_path / "no-such-law"
+
+    first = service.apply_prepared(
+        _prepare(repo, tmp_path, [repo, missing]),
+        approver="darek",
+        key_path=key,
+        custodian=ME,
+    )
+    assert not first.ok()  # repo written, second destination failed, no ledger line
+    assert (repo / ".specs" / "a.md").read_text() == "new a\n"
+
+    rerun = _prepare(repo, tmp_path, [repo])
+    leftovers = [
+        w for w in rerun.computed_warnings if w.category == "unrecorded_prior_write"
+    ]
+    assert {w.path for w in leftovers} == {
+        ".specs/a.md",
+        ".specs/b.md",
+        ".specs/gone.md",
+    }
+    outcome = service.apply_prepared(
+        rerun, approver="darek", key_path=key, custodian=ME
+    )
+    assert outcome.ok()
+    line = json.loads(outcome.ledger_line)
+    # a.md: old a -> new a (2 lines), b.md new (1), gone.md removed (1)
+    assert line["lines_changed"] == 4
+    assert {w["category"] for w in line["warnings_computed"]} >= {
+        "unrecorded_prior_write"
+    }
+
+
+def test_a_recorded_identical_apply_is_not_a_leftover(
+    tmp_path: Path, key: Path
+) -> None:
+    repo = _repo(tmp_path)
+    first = service.apply_prepared(
+        _prepare(repo, tmp_path, [repo]), approver="darek", key_path=key, custodian=ME
+    )
+    assert first.ok()
+    (repo / ".specs" / "gone.md").write_text("to remove\n")  # let it apply again
+    again = _prepare(repo, tmp_path, [repo])
+    assert not [
+        w for w in again.computed_warnings if w.category == "unrecorded_prior_write"
+    ]
