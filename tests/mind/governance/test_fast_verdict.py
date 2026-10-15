@@ -40,6 +40,7 @@ def _audit_result(findings: list[dict], **stats) -> dict:
         },
         "skipped_rules": stats.get("services", []),
         "law_state": {"relationship": "MATCH", "drift_paths": []},
+        "executed_rule_ids": stats.get("executed", []),
     }
 
 
@@ -229,3 +230,30 @@ async def test_context_level_skip_is_listed_once(tmp_path: Path) -> None:
     ne = out["not_evaluated"]
     assert ne["context_level"] == [{"rule_id": "ctx.rule", "enforcement": "blocking"}]
     assert ne["needs_services"] == [{"rule_id": "db.rule", "enforcement": "blocking"}]
+
+
+@pytest.mark.asyncio
+async def test_clear_names_the_rules_evaluated_and_the_reporting_findings(
+    tmp_path: Path,
+) -> None:
+    """#1030 (proof run): CLEAR_IN_SCOPE did not say which rules ran, and a
+    reporting finding in the changed file (no_print) was not shown."""
+    report = _block("starter.no_print") | {"severity": "info"}
+    drift = _block("governance.law_drift") | {"severity": "medium"}
+    out = await _judge(
+        tmp_path,
+        _audit_result(
+            [report, drift], executed=["starter.no_bare_except", "starter.no_print"]
+        ),
+    )
+    assert out["verdict"] == CLEAR_IN_SCOPE
+    assert out["evaluated"] == ["starter.no_bare_except", "starter.no_print"]
+    assert out["other_findings"] == [
+        {
+            "rule_id": "starter.no_print",
+            "file": "src/a.py",
+            "line": 3,
+            "message": "m",
+            "severity": "info",
+        }
+    ]
