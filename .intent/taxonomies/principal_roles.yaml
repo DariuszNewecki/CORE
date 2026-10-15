@@ -1,4 +1,4 @@
-version: "3.0.0"
+version: "3.1.0"
 status: active
 authority: constitutional
 title: CORE Principal Role Taxonomy and Access Register
@@ -97,6 +97,7 @@ identities:
   github_accounts:
     DariuszNewecki: principal.governor
     core-claude-bot: principal.producer
+    erykpiotrov: principal.producer
 
 # Host administration is not a CORE role (rule 6).
 host_administration:
