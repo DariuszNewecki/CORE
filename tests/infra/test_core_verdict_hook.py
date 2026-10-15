@@ -57,8 +57,12 @@ def dev(tmp_path: Path) -> Path:
     dev.mkdir()
     _git(dev, "init", "-q")
     (dev / "base").write_text("base")
-    _git(dev, "add", "base")
+    # A CORE tree (src/cli/admin_cli.py) runs its own code: PYTHONPATH=<tree>/src.
+    (dev / "src" / "cli").mkdir(parents=True)
+    (dev / "src" / "cli" / "admin_cli.py").write_text("")
+    _git(dev, "add", "base", "src")
     _git(dev, "commit", "-q", "-m", "base")
+    # Stands in for the deployed release's core-admin (CORE_ADMIN below).
     audit = dev / ".venv" / "bin" / "core-admin"
     audit.parent.mkdir(parents=True)
     audit.write_text(FAKE_AUDIT)
@@ -77,6 +81,7 @@ def _run(dev: Path, payload: str) -> subprocess.CompletedProcess[str]:
     env = {
         **os.environ,
         "CLAUDE_PROJECT_DIR": str(dev),
+        "CORE_ADMIN": str(dev / ".venv" / "bin" / "core-admin"),
         "FAKE_AUDIT_RECORD": str(dev / "audits.txt"),
     }
     return subprocess.run(
@@ -181,14 +186,46 @@ def test_every_commit_spelling_in_a_blocked_worktree_is_refused(
 
 
 # ID: bb09ad2f-1479-4547-8c35-b6298d8e391e
-def test_another_repository_is_judged_by_the_development_checkout(
+def test_another_governed_repository_is_judged_by_its_own_law(
     dev: Path, tmp_path: Path
 ) -> None:
+    """2026-10-15: a commit elsewhere was judged against the development
+    checkout. A repository with .intent/ is judged itself, with the
+    release's code (no PYTHONPATH); one without .intent/ is not judged."""
     other = tmp_path / "other"
-    other.mkdir()
+    (other / ".intent").mkdir(parents=True)
     _git(other, "init", "-q")
     assert _hook(dev, "git commit -m x", cwd=other).returncode == 0
-    assert _audited(dev) == [f"{dev}|{dev}|{dev}/src"]
+    assert _audited(dev) == [f"{other}|{other}|"]
+
+    plain = tmp_path / "plain"
+    plain.mkdir()
+    _git(plain, "init", "-q")
+    assert _hook(dev, "git commit -m x", cwd=plain).returncode == 0
+    assert _audited(dev) == [f"{other}|{other}|"]
+
+
+# ID: deee4a04-040d-4622-98b8-024a4e3d09df
+def test_a_missing_release_refuses(dev: Path) -> None:
+    payload = json.dumps(
+        {
+            "tool_input": {"command": "git commit -m x"},
+            "cwd": str(dev),
+            "session_id": "s",
+        }
+    )
+    env = {
+        **os.environ,
+        "CLAUDE_PROJECT_DIR": str(dev),
+        "CORE_ADMIN": str(dev / "no-such-core-admin"),
+        "FAKE_AUDIT_RECORD": str(dev / "audits.txt"),
+    }
+    refused = subprocess.run(
+        ["bash", str(HOOK)], input=payload, env=env, capture_output=True, text=True
+    )
+    assert refused.returncode == 2
+    assert "no deployed core-admin" in refused.stderr
+    assert _audited(dev) == []
 
 
 # ID: 2873fd07-7209-4605-a961-ff8f19d1d4f0

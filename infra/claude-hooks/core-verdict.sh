@@ -25,12 +25,16 @@
 # D4.2 (required CI + branch protection), not this hook.
 #
 # The tree judged is the one each commit lands on, decided by
-# core-commit-target.py beside this file:
-# the payload's cwd, then a `cd <dir>` or `git -C <dir>` in the command, when
-# that tree is this repository or one of its worktrees; otherwise this
-# repository. The check runs there with REPO_PATH and PYTHONPATH naming that
-# tree, so it judges the tree's own law and code, not the development
-# checkout's.
+# core-commit-target.py beside this file: the payload's cwd, then a `cd <dir>`
+# or `git -C <dir>` in the command. A worktree of this repository is judged
+# with REPO_PATH and PYTHONPATH naming it (its own law and code); another
+# repository governed by CORE (it has .intent/) is judged with REPO_PATH only;
+# a repository without .intent/ is not judged.
+#
+# The check runs the DEPLOYED release's core-admin (/opt/core/current), not
+# the development checkout's .venv: the checkout lags main and its .env is
+# not the assistant's to read (governor 2026-10-15, #942). CORE_ADMIN
+# overrides the path (tests). A missing release refuses (fail closed).
 #
 # `git -C <dir> commit`, `git -c k=v commit` and `/usr/bin/git commit` are
 # commits. Commands built by hand-quoting (`bash -c "git commit"`, eval, xargs)
@@ -49,9 +53,11 @@ set -uo pipefail
 REPO="${CLAUDE_PROJECT_DIR:-/opt/dev/CORE}"
 LOG_DIR="$REPO/var/experiments/adr168"
 LOG="$LOG_DIR/verdicts.jsonl"
-# The per-file gates (ruff, mypy, vulture) must resolve from the venv, as in
-# CI; otherwise they report "tool not installed" findings.
-export PATH="$REPO/.venv/bin:$PATH"
+CORE_ADMIN="${CORE_ADMIN:-/opt/core/current/venv/bin/core-admin}"
+# The per-file gates (ruff, mypy, vulture) resolve from the release, then
+# the dev venv (the release has no dev tools); never "not installed".
+PATH="$(dirname "$CORE_ADMIN"):$REPO/.venv/bin:$PATH"
+export PATH
 
 payload="$(cat)"
 
@@ -62,6 +68,11 @@ if ! trees="$(printf '%s' "$payload" | python3 -I "$(dirname "$0")/core-commit-t
 fi
 [ -n "$trees" ] || exit 0
 
+if [ ! -x "$CORE_ADMIN" ]; then
+  echo "CORE verdict: commit refused — no deployed core-admin at $CORE_ADMIN." >&2
+  exit 2
+fi
+
 mkdir -p "$LOG_DIR"
 result="$LOG_DIR/last-verdict.json"
 errlog="$LOG_DIR/last-verdict.err"
@@ -69,7 +80,10 @@ payload_file="$LOG_DIR/last-payload.json"
 printf '%s' "$payload" >"$payload_file"
 while IFS= read -r TREE; do
   start=$(date +%s)
-  ( cd "$TREE" && REPO_PATH="$TREE" PYTHONPATH="$TREE/src" timeout 180 "$REPO/.venv/bin/core-admin" code verify >"$result" 2>"$errlog" )
+  # A CORE tree runs its own code (PYTHONPATH); any other repository runs
+  # the release's.
+  if [ -f "$TREE/src/cli/admin_cli.py" ]; then pypath="$TREE/src"; else pypath=""; fi
+  ( cd "$TREE" && REPO_PATH="$TREE" PYTHONPATH="$pypath" timeout 180 "$CORE_ADMIN" code verify >"$result" 2>"$errlog" )
   raw_exit=$?
   duration=$(( $(date +%s) - start ))
   python3 -I - "$result" "$raw_exit" "$duration" "$LOG" "$TREE" "$payload_file" <<'PY' || exit 2

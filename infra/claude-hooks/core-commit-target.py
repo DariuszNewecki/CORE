@@ -27,8 +27,11 @@ only after another round of parsing this file does not do.
 The tree of each commit: the payload's cwd, then every `cd`/`pushd` before it
 in the command, then the commit's own `-C` options. It counts only when it is
 inside this repository or one of its worktrees (same git-common-dir); then its
-top level is printed. Otherwise the repository itself is printed, so a commit
-elsewhere is judged by the development checkout, as before.
+top level is printed. A commit in another repository prints that repository's
+top level when it is governed by CORE (it has a .intent/), so it is judged by
+its own law; a repository without .intent/ is not judged and prints nothing.
+It used to print the development checkout, which judged a commit elsewhere
+against CORE's own, unrelated tree.
 
 The installed copy lives in .claude/hooks/ (core-law, not in git); this file
 in infra/claude-hooks/ is its source and what CI tests.
@@ -170,7 +173,10 @@ def _tree(target: str, repo: str, repo_common: str) -> str:
     common = _git(target, "rev-parse", "--path-format=absolute", "--git-common-dir")
     if common and common == repo_common:
         return _git(target, "rev-parse", "--show-toplevel") or repo
-    return repo
+    top = _git(target, "rev-parse", "--show-toplevel")
+    if top and os.path.isdir(os.path.join(top, ".intent")):
+        return top
+    return ""
 
 
 def main() -> int:
@@ -188,7 +194,7 @@ def main() -> int:
     trees: list[str] = []
     for target in _commit_dirs(command, cwd):
         tree = _tree(target, repo, repo_common)
-        if tree not in trees:
+        if tree and tree not in trees:
             trees.append(tree)
     print("\n".join(trees))
     return 0
