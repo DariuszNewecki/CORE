@@ -136,6 +136,11 @@ class FakeHost(cd.Host):
         self.law_diff = b""  # git diff --name-status -z output for governed text
         self.law_rc = 0
         self.law_runs: list[dict] = []
+        self.governors = ["darek"]
+        self.setup_rc = 0
+        self.law_setup_rc = 0
+        self.setup_runs: list[list[str]] = []
+        self.claude_source: dict[str, bytes] = {}  # infra/claude-hooks/<name>
 
     # -- processes --------------------------------------------------------
     def run(self, cmd, *, user=None, input=None, check=True):
@@ -153,10 +158,19 @@ class FakeHost(cd.Host):
                 out = SHA.encode() + b"\n"
             elif "archive" in cmd:
                 out = _archive(SOURCE)
+            elif "ls-tree" in cmd:
+                out = b"".join(
+                    f"infra/claude-hooks/{n}".encode() + b"\0"
+                    for n in self.claude_source
+                )
             elif "diff" in cmd and "--name-only" in cmd:
                 out = self.setup_diff
             elif "diff" in cmd:
                 out = self.law_diff
+            elif "show" in cmd and cmd[-1].split(":", 1)[-1].startswith(
+                "infra/claude-hooks/"
+            ):
+                out = self.claude_source[cmd[-1].rsplit("/", 1)[-1]]
             elif "show" in cmd and cmd[-1].split(":", 1)[-1].startswith("infra/core-"):
                 out = b"#!/bin/sh\n# " + cmd[-1].encode() + b"\n"
             elif "show" in cmd and cmd[-1].split(":", 1)[-1].startswith(
@@ -175,11 +189,8 @@ class FakeHost(cd.Host):
                 self.wheel_scripts,
             )
         elif "apply-merge" in cmd:
-            assert cmd[:3] == [
-                "env",
-                "--chdir=/opt/dev/CORE",
-                "REPO_PATH=/opt/dev/CORE",
-            ]
+            assert cmd[0] == "env" and cmd[1].startswith("--chdir=/")
+            assert cmd[2] == "REPO_PATH=" + cmd[1].split("=", 1)[1]
             env_code = cmd[3]
             assert env_code.startswith("CORE_LAW_CODE_TREE=")
             code = Path(env_code.split("=", 1)[1])
@@ -206,6 +217,13 @@ class FakeHost(cd.Host):
                 }
             )
             rc = self.law_rc
+        elif len(cmd) > 1 and "/core-setup-" in cmd[1] and user is None:
+            assert Path(cmd[1]).read_bytes().startswith(b"#!/bin/sh")
+            self.setup_runs.append([cmd[0], Path(cmd[1]).name, *cmd[2:]])
+            rc = self.setup_rc
+        elif cmd[0].endswith("sbin/core-law-setup") and user is None:
+            self.setup_runs.append(["core-law-setup", *cmd[1:]])
+            rc = self.law_setup_rc
         elif cmd[:4] == ["/usr/bin/python3", "-I", "-m", "venv"] and user is None:
             (Path(cmd[4]) / "bin").mkdir(parents=True)
         elif cmd[0] == "systemd-run":
@@ -267,6 +285,10 @@ class FakeHost(cd.Host):
 
     def now(self):
         return self.clock
+
+    def group_members(self, group):
+        assert group == "core-gov"
+        return list(self.governors)
 
     def sleep(self, seconds):
         pass
@@ -832,22 +854,169 @@ def test_a_switched_back_deploy_updates_no_host_script(root: Path) -> None:
     assert not list((root / "sbin").iterdir())
 
 
-def test_a_merge_changing_host_setup_is_refused_with_the_commands(
+def _ledger(root: Path) -> dict:
+    return json.loads((root / "deploy-ledger.jsonl").read_text().splitlines()[-1])
+
+
+def _index(host: FakeHost, predicate) -> int:
+    return next(i for i, (_, c) in enumerate(host.calls) if predicate(c))
+
+
+def test_a_merge_changing_units_runs_core_runtime_setup_before_building(
+    root: Path,
+) -> None:
+    """Governor 2026-10-15: a merge is the only approval; the host setup it
+    changes is applied by the deploy, from the deployed commit."""
+    _with_previous(root)
+    host = FakeHost(root)
+    host.setup_diff = b"infra/systemd/d2/core-api.service\n"
+    assert _deploy(root, host) == 0
+    assert host.setup_runs == [
+        [
+            "/usr/bin/python3",
+            "core-runtime-setup",
+            "--ref",
+            SHA,
+            "--governor",
+            "darek",
+            "--apply",
+        ]
+    ]
+    setup = _index(host, lambda c: len(c) > 1 and "/core-setup-" in c[1])
+    build = _index(host, lambda c: "--wheel-dir" in c)
+    assert setup < build
+    assert not Path(host.calls[setup][1][1]).parent.exists()  # temp copy removed
+    assert _ledger(root)["host_setup"] == ["core-runtime-setup"]
+    assert _current(root) == SHA
+
+
+def test_a_merge_changing_the_one_path_setup_runs_it(root: Path) -> None:
+    _with_previous(root)
+    host = FakeHost(root)
+    host.setup_diff = b"infra/core-one-path-setup\n"
+    assert _deploy(root, host) == 0
+    assert host.setup_runs == [["/bin/bash", "core-one-path-setup", "--ref", SHA]]
+
+
+def test_a_failed_host_setup_refuses_before_anything_is_built(
     root: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     _with_previous(root)
     host = FakeHost(root)
-    host.setup_diff = b"infra/systemd/d2/core-api.service\n"
+    host.setup_diff = b"infra/core-runtime-setup\n"
+    host.setup_rc = 1
     assert _deploy(root, host) == 1
-    err = capsys.readouterr().err
-    assert "host setup" in err and "infra/systemd/d2/core-api.service" in err
-    assert f"sudo core-deploy {SHA} --migrate --host-setup-applied" in err
+    assert "host setup core-runtime-setup failed" in capsys.readouterr().err
+    assert not host.commands("pip") and not any(
+        "--wheel-dir" in c for _, c in host.calls
+    )
     assert not (root / "releases" / SHA).exists()
     assert _current(root) == OLD
 
 
-def test_host_setup_applied_lets_it_deploy(root: Path) -> None:
+@pytest.mark.parametrize("governors", [[], ["darek", "other"]])
+def test_host_setup_needs_exactly_one_governor(
+    root: Path, governors: list[str]
+) -> None:
     _with_previous(root)
     host = FakeHost(root)
-    host.setup_diff = b"infra/systemd/d2/core-api.service\n"
-    assert _deploy(root, host, "--host-setup-applied") == 0
+    host.setup_diff = b"infra/systemd/sandbox/core-sandbox.socket\n"
+    host.governors = governors
+    assert _deploy(root, host) == 1
+    assert host.setup_runs == []
+    assert _current(root) == OLD
+
+
+def test_a_merge_changing_core_law_setup_runs_it_after_the_switch(root: Path) -> None:
+    _with_previous(root)
+    host = FakeHost(root)
+    host.setup_diff = b"infra/core-law-setup\n"
+    assert _deploy(root, host) == 0
+    assert host.setup_runs == [["core-law-setup", "--governor", "darek", "--apply"]]
+    law_setup = _index(host, lambda c: c[0].endswith("sbin/core-law-setup"))
+    restart = _index(host, lambda c: c[0] == "systemctl" and c[4] == "restart")
+    assert restart < law_setup
+    entry = _ledger(root)
+    assert (entry["host_setup"], entry["law_setup"]) == ([], "applied")
+
+
+def test_a_failed_core_law_setup_does_not_undo_the_deploy(root: Path) -> None:
+    _with_previous(root)
+    host = FakeHost(root)
+    host.setup_diff = b"infra/core-law-setup\n"
+    host.law_setup_rc = 1
+    assert _deploy(root, host) == 0
+    assert _current(root) == SHA
+    assert _ledger(root)["law_setup"] == "failed"
+
+
+def test_no_host_setup_change_runs_no_setup(root: Path) -> None:
+    _with_previous(root)
+    host = FakeHost(root)
+    assert _deploy(root, host) == 0
+    assert host.setup_runs == []
+    assert _ledger(root)["law_setup"] is None
+
+
+def test_the_host_setup_applied_option_is_gone(root: Path) -> None:
+    with pytest.raises(SystemExit):
+        _deploy(root, FakeHost(root), "--host-setup-applied")
+
+
+# -- the assistant's .claude/ from infra/claude-hooks/ -----------------------
+
+
+def _dev_with_claude(root: Path) -> Path:
+    dev = root / "dev"
+    hooks = dev / ".claude" / "hooks"
+    hooks.mkdir(parents=True)
+    (dev / ".claude" / "settings.json").write_bytes(b'{"old": 1}\n')
+    (hooks / "core-verdict.sh").write_bytes(b"verdict\n")
+    (hooks / "core-develop-ancestry.sh").write_bytes(b"ancestry\n")
+    return dev
+
+
+def test_claude_is_made_equal_to_infra_claude_hooks_through_core_law(
+    root: Path,
+) -> None:
+    _with_previous(root)
+    dev = _dev_with_claude(root)
+    host = FakeHost(root)
+    host.claude_source = {
+        "settings.json": b'{"new": 1}\n',
+        "core-verdict.sh": b"verdict\n",  # equal: not written
+        "core-chat-length.sh": b"length\n",
+    }
+    assert _deploy(root, host, "--dev-repo", str(dev)) == 0
+    [run] = host.law_runs
+    assert run["user"] == "core-law"
+    assert run["files"] == [
+        ".claude/hooks/core-chat-length.sh",
+        ".claude/settings.json",
+    ]
+    assert "- `.claude/hooks/core-develop-ancestry.sh`" in run["proposal_md"]
+    assert _ledger(root)["law_applied"] is True
+
+
+def test_claude_already_equal_applies_nothing(root: Path) -> None:
+    _with_previous(root)
+    dev = _dev_with_claude(root)
+    (dev / ".claude" / "hooks" / "core-develop-ancestry.sh").unlink()
+    host = FakeHost(root)
+    host.claude_source = {
+        "settings.json": b'{"old": 1}\n',
+        "core-verdict.sh": b"verdict\n",
+    }
+    assert _deploy(root, host, "--dev-repo", str(dev)) == 0
+    assert host.law_runs == []
+
+
+def test_a_source_without_settings_leaves_claude_alone(root: Path) -> None:
+    """Commits before the source held settings.json do not define the set: a
+    rollback to one must not strip hooks the installed settings still name."""
+    _with_previous(root)
+    dev = _dev_with_claude(root)
+    host = FakeHost(root)
+    host.claude_source = {"core-verdict.sh": b"older verdict\n"}
+    assert _deploy(root, host, "--dev-repo", str(dev)) == 0
+    assert host.law_runs == []
