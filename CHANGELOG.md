@@ -8,14 +8,6 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
-### Fixed
-
-- **Law that was never committed is one finding, and the audit says so (#1027).** After `project init` and
-  `adopt-pack` in a repository with history, the first audit reported every new `.intent/` file as
-  `governance.law_drift` (31 findings, below the default severity) and DEGRADED with no visible reason. It is now one
-  finding ("`.intent/` is not committed yet"), the text output names the reason next to the verdict, and `init` /
-  `adopt-pack` say to commit `.intent/` before auditing.
-
 ## [2.14.3] — 2026-10-15
 
 Patch release. One database migration (`20261012_approver_original.sql`); `core-deploy --migrate` applies it.
