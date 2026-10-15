@@ -921,10 +921,20 @@ def load_operational_config() -> OperationalConfig:
                 "dict — using fallback defaults."
             )
     except Exception as exc:
-        logger.warning(
-            "operational_config: could not load .intent/enforcement/config/"
-            "operational_config.yaml (%s) — using fallback defaults.",
-            exc,
-        )
+        # #948: every module that reads the config calls this; a floor-less
+        # .intent/ logged the same warning 28 times, each with the full
+        # machinery-floor hint. Each distinct reason is logged once per
+        # process, short; the configuration error that follows carries the hint.
+        reason = (str(exc).strip().splitlines() or [type(exc).__name__])[0]
+        if reason not in _LOGGED_LOAD_FAILURES:
+            _LOGGED_LOAD_FAILURES.add(reason)
+            logger.warning(
+                "operational_config: could not load .intent/enforcement/config/"
+                "operational_config.yaml (%s) — using fallback defaults.",
+                reason,
+            )
 
     return _load_from_sec(raw, OperationalConfig)
+
+
+_LOGGED_LOAD_FAILURES: set[str] = set()
