@@ -8,12 +8,6 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
-### Fixed
-
-- **A standalone install no longer warns about the outside-write ledger on every write (#1028).** With no CORE
-  database configured there is no ledger by design; `project init`/`new`/`adopt-pack` printed a WARNING naming every
-  file. The paths are now in the debug log.
-
 ## [2.14.3] — 2026-10-15
 
 Patch release. One database migration (`20261012_approver_original.sql`); `core-deploy --migrate` applies it.
