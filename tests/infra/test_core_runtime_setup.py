@@ -60,15 +60,18 @@ class FakeHost(rs.Host):
         self.root = True
         self.accounts = {
             "core": SimpleNamespace(pw_shell="/bin/bash", pw_dir=str(home / "core")),
+            "core-darek": SimpleNamespace(
+                pw_shell="/bin/bash", pw_dir=str(home / "core-darek")
+            ),
             "darek": SimpleNamespace(pw_shell="/bin/bash", pw_dir=str(home / "darek")),
             "core-claude": SimpleNamespace(
                 pw_shell="/bin/bash", pw_dir=str(home / "core-claude")
             ),
         }
-        self.groups: dict[str, list[str]] = {}
+        self.groups: dict[str, list[str]] = {"darek": ["darek", "sudo", "users"]}
         self.group_table: dict[str, list[str]] = {}
         # Who can list the API socket directory (the real kernel decides).
-        self.enters_api_dir: set[str] = {"darek"}
+        self.enters_api_dir: set[str] = {"core-darek"}
         self.owners: dict[Path, tuple[str, str]] = {}
         self.calls: list[tuple[list[str], str | None]] = []
         self.fetched: list[str] = []
@@ -177,7 +180,7 @@ def world(tmp_path: Path):
     return SimpleNamespace(layout=layout, host=host, units=units, tmp=tmp_path)
 
 
-def _run(world, *extra: str, governor: str = "darek") -> int:
+def _run(world, *extra: str, governor: str = "core-darek") -> int:
     return rs.main(
         ["--ref", SHA, "--governor", governor, *extra],
         host=world.host,
@@ -421,13 +424,28 @@ def test_a_probe_that_reads_etc_fails(world) -> None:
     assert _run(world, "--apply") == 1
 
 
-# -- the governor's socket and binding (ADR-132 D10.3 as amended, D10.9) --------
+# -- the governor's socket and binding (ADR-068 register, 2026-10-15) ----------
 
 
-@pytest.mark.parametrize("name", ["core-darek", "core-claude", "core", "root", ""])
-def test_refuses_a_governor_a_model_or_service_runs_as(world, name: str) -> None:
+@pytest.mark.parametrize(
+    "name", ["darek", "core-claude", "core", "core-law", "core-runner", "root", ""]
+)
+def test_refuses_a_governor_outside_the_register(world, name: str) -> None:
+    """Another role's account, root, or a host administrator (rule 6)."""
     assert _run(world, "--apply", governor=name) == 1
     assert world.host.calls == []
+
+
+def test_refuses_a_governor_in_a_root_equivalent_group(world) -> None:
+    world.host.groups["core-darek"] = ["core-darek", "docker"]
+    assert _run(world, "--apply") == 1
+    assert world.host.calls == []
+
+
+def test_the_governor_defaults_to_core_darek(world) -> None:
+    assert rs.main(["--ref", SHA, "--apply"], host=world.host, layout=world.layout) == 0
+    binding = world.layout.etc_core / "principals.yaml"
+    assert binding.read_bytes() == b"principals:\n  core-darek: principal.governor\n"
 
 
 def test_refuses_an_unknown_governor_account(world) -> None:
@@ -438,10 +456,10 @@ def test_refuses_an_unknown_governor_account(world) -> None:
 def test_binding_group_and_socket_directory(world) -> None:
     assert _run(world, "--apply") == 0
     binding = world.layout.etc_core / "principals.yaml"
-    assert binding.read_bytes() == b"principals:\n  darek: principal.governor\n"
+    assert binding.read_bytes() == b"principals:\n  core-darek: principal.governor\n"
     assert world.host.owners[binding] == ("root", "root")
     assert _mode(binding) == 0o644
-    assert world.host.group_table["core-gov"] == ["darek"]
+    assert world.host.group_table["core-gov"] == ["core-darek"]
     conf = world.layout.tmpfiles / "core-api.conf"
     assert b"d /run/core/api 2750 core core-gov -" in conf.read_bytes()
     assert [c[0] for c in _ran(world, "systemd-tmpfiles")] == [
@@ -457,7 +475,7 @@ def test_binding_is_loadable_by_core(world, tmp_path: Path) -> None:
     document = yaml.safe_load(
         (world.layout.etc_core / "principals.yaml").read_text(encoding="utf-8")
     )
-    assert document == {"principals": {"darek": "principal.governor"}}
+    assert document == {"principals": {"core-darek": "principal.governor"}}
 
 
 def test_an_existing_different_binding_is_never_replaced(world) -> None:

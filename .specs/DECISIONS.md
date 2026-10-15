@@ -592,13 +592,22 @@ Enforced by: architecture.namespace.no_direct_protected_access
 ## ADR-068 — Principal Role Taxonomy
 
 2026-05-22 · was `ADR-068-principal-role-taxonomy.md`  
-D1 — Three-layer separation is constitutional; roles are flat; D2 — Two roles: principal.governor
-(the one human) and principal.system (CORE, including coding assistants); D3 — Separation of duties
-removed until there is a second human; D4 — Replaced by three operation modes (solo, solo-separated,
-platform); this deployment is solo-separated; D5 — proposal_approval_authority:
-risk_classification.safe_auto_approval | principal.governor.  
+D1 — Three-layer separation is constitutional; roles are flat; D2 — RBAC: a closed list of ten
+permissions held by six roles (Governor, Producer, Operator, Custodian, Deployer, Executor), never
+by an identity; identities: core-darek and GitHub DariuszNewecki are the Governor, core-claude and
+core-claude-bot Producers, core the Operator, core-law the Custodian, core-runner the Deployer,
+core-build and core-sandbox Executors; D3 — no identity holds both propose.change and
+approve.change; only the Operator reads secrets; write.law only after approve.law; D4 — Three
+operation modes (solo, solo-separated, platform); this deployment is solo-separated; D5 —
+proposal_approval_authority: risk_classification.safe_auto_approval | principal.governor; D6 —
+Host administration (darek, root) is not a CORE role, performs no governance act and is outside
+CORE's trust boundary; any account, group, sudo rule or GitHub collaborator not in the register is
+a blocking finding.  
 Amended: amendment 2026-10-11 (A1–A3, A6.1; D4 superseded); governor redesign 2026-10-12, 2492cb8c
-(operator, auditor and producer removed). Source: .intent/taxonomies/principal_roles.yaml 2.0.0.  
+(two roles); amendment 2026-10-15, the governor's final RBAC proposal (D2, D3, D6; core-darek
+replaces darek as the governor's account and needs no sudo; supersedes A4's account table and
+D10.9's "never an account a model session runs as"). Source:
+.intent/taxonomies/principal_roles.yaml 3.0.0.  
 Enforced by: src/body/services/proposal_submission_service.py,
   src/mind/logic/engines/artifact_gate.py, src/shared/infrastructure/intent/cognitive_roles.py (+5
   more src/ files)
@@ -1170,7 +1179,9 @@ socket, bound in root-owned /etc/core/principals.yaml; TCP never performs a gove
 clause is withdrawn; services run an installed release; repository code runs only in the sandbox;
 the gate is live (D10.17, 27265f2c, 2026-10-12). D8 no longer passes everything: a dangerous write
 needs a governor-approved proposal (e422df7a, 2026-10-12). Approvals stamp approved_by = governor
-and keep the OS account in approved_by_original (555d35a9, 2026-10-12).  
+and keep the OS account in approved_by_original (555d35a9, 2026-10-12) The account
+bound to principal.governor is core-darek, per the register in principal_roles.yaml (ADR-068
+amendment 2026-10-15); D10.9's human-only account no longer holds.  
 Enforced by: architecture.api.route_module_must_declare_exposure,
   architecture.api.router_exposure_must_match_dependencies,
   architecture.sandbox.tests_run_in_sandbox, governance.logic_mutation.governed,
@@ -1496,5 +1507,7 @@ is `law apply <id> --write` with a fresh sudo password every time. For a change 
 pull request the merge is the recorded approval: core-deploy applies it as core-law with law
 apply-merge (5e2c366e, 2026-10-12), and the governor's approval of the pull request's exact last
 commit counts as the merge (d5af8d7a, 2026-10-13). Record-only .specs/ proposals apply themselves
-(8259af3f, 2026-10-12). The ledger of record is /opt/core/custody (97cafcf5, 2026-10-13).  
+(8259af3f, 2026-10-12). The ledger of record is /opt/core/custody (97cafcf5, 2026-10-13). The
+merge is the only approval of law: the governor's sudo rule for law apply is removed and the
+governor holds no sudo (ADR-068 amendment 2026-10-15; D6 superseded).  
 Enforced by: governance.logic_mutation.governed, governance.mutation_surface.filehandler_required

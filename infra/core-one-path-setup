@@ -26,8 +26,8 @@
 #  6. /etc/sudoers.d/core-runner, checked with visudo: core-runner may run exactly
 #     /usr/local/sbin/core-deploy as root and /usr/local/sbin/core-sandbox-check (no arguments)
 #     as core, without a password. Nothing else, no shell;
-#  7. /etc/sudoers.d/core-law: your manual `law apply` now runs the deployed release's core-admin
-#     (/opt/core/current/venv) instead of the PyPI venv; still your password and the typed id;
+#  7. removes /etc/sudoers.d/core-law: the merge is the only approval of law, and the governor
+#     (core-darek) holds no sudo (ADR-068 amendment 2026-10-15);
 #  8. core-pipeline.service + core-pipeline.timer (every 2 minutes), enabled and started;
 #  9. probes: what core-runner may run with sudo, and that it cannot read /opt/core/etc.
 set -euo pipefail
@@ -166,16 +166,11 @@ visudo -c -q -f "$rules"
 write_file /etc/sudoers.d/core-runner root root 0440 < "$rules"
 rm -f "$rules"
 
-say "7. /etc/sudoers.d/core-law: manual law apply runs the deployed release"
-if grep -q '/opt/core/current/venv/bin/core-admin law apply' /etc/sudoers.d/core-law; then
-  say "  ok"
+say "7. /etc/sudoers.d/core-law: removed (the merge approves law)"
+if [[ -e /etc/sudoers.d/core-law ]]; then
+  do_ rm -f /etc/sudoers.d/core-law
 else
-  rules="$(mktemp)"
-  sed 's#/opt/core-law/venv/bin/core-admin law apply#/opt/core/current/venv/bin/core-admin law apply#' \
-    /etc/sudoers.d/core-law > "$rules"
-  visudo -c -q -f "$rules"
-  write_file /etc/sudoers.d/core-law root root 0440 < "$rules"
-  rm -f "$rules"
+  say "  ok: none"
 fi
 
 say "8. core-pipeline timer"

@@ -17,11 +17,12 @@ permissive default.
 File shape::
 
     principals:
-      darek: principal.governor
+      core-darek: principal.governor
 
 Keys are OS account names, resolved to uids at load time. ADR-068: at most
-one account is bound to ``principal.governor``; ADR-132 D10.9: it is an
-account only the human uses, never one a model session runs as.
+one account is bound to ``principal.governor``, the Governor's account in
+the register (``.intent/taxonomies/principal_roles.yaml``, amendment
+2026-10-15): ``core-darek``, which holds no host administration.
 """
 
 from __future__ import annotations

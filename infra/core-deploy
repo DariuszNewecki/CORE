@@ -1052,7 +1052,7 @@ class Deployer:
         ]
 
     def governor_account(self) -> str:
-        """The human's account: the one member of ``core-gov``."""
+        """The Governor's account (core-darek): the one member of ``core-gov``."""
         members = self.host.group_members(GOVERNOR_GROUP)
         if len(members) != 1:
             raise Refused(

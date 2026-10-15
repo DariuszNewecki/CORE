@@ -36,8 +36,10 @@ What it does (the D2 checklist, then the sandbox steps, in one run):
     enabled and started;
  7. the governor's socket and binding (ADR-132 D10.3 as amended, D10.9):
     group ``core-gov`` holding only the governor (``--governor``, by
-    default the account that ran sudo; never a ``core*`` account, which a
-    model session or a service runs as); ``/run/core/api`` (tmpfiles:
+    default ``core-darek``, the Governor in the register of
+    ``.intent/taxonomies/principal_roles.yaml``; never an account bound to
+    another role, and never a host administrator: root or a member of a
+    root-equivalent group such as ``sudo``); ``/run/core/api`` (tmpfiles:
     ``core:core-gov 2750``) for the API's Unix socket; and
     ``/etc/core/principals.yaml`` binding that account to
     ``principal.governor`` (root-owned; an existing different file is
@@ -89,6 +91,17 @@ SANDBOX = "core-sandbox"
 GOVERNOR_GROUP = "core-gov"
 ASSISTANT = "core-claude"
 GOVERNOR_ROLE = "principal.governor"
+# The register (ADR-068 amendment 2026-10-15): the Governor's OS account.
+DEFAULT_GOVERNOR = "core-darek"
+# Accounts the register binds to a role other than Governor.
+OTHER_ROLE_ACCOUNTS = frozenset(
+    {"core", "core-claude", "core-law", "core-runner", "core-build", "core-sandbox"}
+)
+# Rule 6: host administration is not a CORE role. Members of these groups are
+# root with or without a password, so they are host administrators.
+ROOT_EQUIVALENT_GROUPS = frozenset(
+    {"sudo", "admin", "wheel", "docker", "lxd", "libvirt", "disk"}
+)
 API_SOCKET_DIR = "/run/core/api"
 # The governor's CLI: a published wheel, never built here (no build backend runs).
 CORE_CLI = "core-cli==2.1.0"
@@ -384,18 +397,25 @@ class Setup:
             existing = self.host.account(name)
             if existing is not None and existing.pw_shell not in NO_LOGIN:
                 raise Refused(f"{name} exists with a login shell; not ours")
-        # ADR-132 D10.9: the governor is an account only the human uses; every
-        # core* account is a service or a model session.
+        # The register (ADR-068 amendment 2026-10-15): the governor's account
+        # holds no other role and no host administration (rule 6).
         if (
             not self.governor
             or self.governor == "root"
-            or self.governor.startswith("core")
+            or self.governor in OTHER_ROLE_ACCOUNTS
         ):
             raise Refused(
-                f"--governor must name the human's own account, not {self.governor!r}"
+                f"--governor must name the Governor's account, not {self.governor!r}"
             )
         if self.host.account(self.governor) is None:
             raise Refused(f"the governor account {self.governor!r} does not exist")
+        admin = sorted(ROOT_EQUIVALENT_GROUPS & set(self.host.groups_of(self.governor)))
+        if admin:
+            raise Refused(
+                f"the governor account {self.governor!r} administers the host "
+                f"(member of {', '.join(admin)}); host administration is not a "
+                "CORE role (rule 6)"
+            )
 
     def fetch_files(self) -> None:
         self.say(f"fetching the files to install from GitHub at {self.ref[:12]}")
@@ -678,7 +698,7 @@ class Setup:
     def governor_access(self) -> None:
         name = self.governor
         assert name is not None
-        self.say(f"7. the governor's socket and binding (ADR-132 D10.9): {name}")
+        self.say(f"7. the governor's socket and binding (ADR-068 register): {name}")
         members = self.host.group_members(GOVERNOR_GROUP)
         if members is None:
             if self.act(f"create system group {GOVERNOR_GROUP}"):
@@ -883,9 +903,9 @@ def main(
     parser.add_argument("--apply", action="store_true", help="make the changes")
     parser.add_argument(
         "--governor",
-        default=os.environ.get("SUDO_USER"),
-        help="the human's own account, bound to principal.governor "
-        "(default: the account that ran sudo)",
+        default=DEFAULT_GOVERNOR,
+        help="the Governor's account, bound to principal.governor "
+        f"(default: {DEFAULT_GOVERNOR})",
     )
     args = parser.parse_args(argv)
     os.umask(0o022)
