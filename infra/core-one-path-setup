@@ -63,6 +63,27 @@ write_file() {  # path owner group mode  (content on stdin)
   rm -f "$tmp"
 }
 
+# The GitHub token for failure reports, asked only at a terminal: core-deploy
+# runs this script with empty stdin after a merge (governor 2026-10-15), where
+# `read` would fail under set -e and refuse the deploy.
+ask_token() {  # token-file
+  local path="$1" token
+  if [[ -f "$path" ]]; then
+    say "  ok: GitHub token present"
+  elif [[ $DRY -eq 1 ]]; then
+    say "  would ask for a GitHub token (issues: write) for failure reports; Enter skips"
+  elif [[ ! -t 0 ]]; then
+    say "  skipped (no terminal): failures will be written to status.json only"
+  else
+    read -r -s -p "  GitHub token that may open issues (Enter to skip): " token; echo
+    if [[ -n "$token" ]]; then
+      printf '%s\n' "$token" | write_file "$path" root core-runner 0640
+    else
+      say "  skipped: failures will be written to status.json only"
+    fi
+  fi
+}
+
 say "1. scripts from GitHub at $REF"
 for name in core-deploy core-pipeline core-sandbox-check; do
   url="https://raw.githubusercontent.com/$REPO/$REF/infra/$name"
@@ -96,18 +117,7 @@ GOVERNOR_GITHUB=$GOVERNOR_GITHUB
 BRANCH=main
 TOKEN_FILE=/etc/core/pipeline-github-token
 EOF
-if [[ -f /etc/core/pipeline-github-token ]]; then
-  say "  ok: GitHub token present"
-elif [[ $DRY -eq 1 ]]; then
-  say "  would ask for a GitHub token (issues: write) for failure reports; Enter skips"
-else
-  read -r -s -p "  GitHub token that may open issues (Enter to skip): " token; echo
-  if [[ -n "$token" ]]; then
-    printf '%s\n' "$token" | write_file /etc/core/pipeline-github-token root core-runner 0640
-  else
-    say "  skipped: failures will be written to status.json only"
-  fi
-fi
+ask_token /etc/core/pipeline-github-token
 
 say "5. /opt/core/etc/deploy.conf: DEPLOY_BRANCH=main"
 if grep -qx 'DEPLOY_BRANCH=main' /opt/core/etc/deploy.conf 2>/dev/null; then
