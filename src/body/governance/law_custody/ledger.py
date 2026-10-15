@@ -68,6 +68,35 @@ class LedgerSignError(Exception):
     """The line could not be signed; nothing is written."""
 
 
+# ID: 6dc8b10c-1764-4f0f-b68e-36c313853195
+def recorded_hashes(repo_root: Path) -> dict[str, set[str]]:
+    """Every sha256 the custody ledger records for each path (#966), and
+    ``REMOVED`` for a path a line removed.
+
+    Read from the ledger ``law apply`` appends to. Unreadable lines are
+    skipped: the set says what is known to be recorded, nothing more.
+    """
+    recorded: dict[str, set[str]] = {}
+    try:
+        text = ledger_file(repo_root).read_text(encoding="utf-8")
+    except OSError:
+        return recorded
+    for raw in text.splitlines():
+        try:
+            entry = json.loads(raw)
+        except ValueError:
+            continue
+        for path, digest in (entry.get("paths") or {}).items():
+            recorded.setdefault(path, set()).add(str(digest))
+        for path in entry.get("removed") or []:
+            recorded.setdefault(path, set()).add(REMOVED)
+    return recorded
+
+
+#: The marker recorded_hashes uses for a path a ledger line removed.
+REMOVED = "removed"
+
+
 # ID: bfe98803-219f-4f70-a290-967f8857cd3c
 def count_changed_lines(old: bytes | None, new: bytes | None) -> int:
     """Lines added plus lines removed between *old* and *new* (text only)."""
