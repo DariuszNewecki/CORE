@@ -22,13 +22,12 @@ class ActionLogger:
     """Handles writing structured JSON events to the CORE_ACTION_LOG_PATH."""
 
     def __init__(self):
-        """Initializes the logger, ensuring the log file's parent directory exists."""
+        """Initializes the logger; the log's directory is made on the first event."""
         try:
             log_path_str = settings.CORE_ACTION_LOG_PATH
             if not log_path_str:
                 raise ValueError("CORE_ACTION_LOG_PATH is not set in the environment.")
             self.log_path = settings.REPO_PATH / log_path_str
-            self.log_path.parent.mkdir(parents=True, exist_ok=True)
         except (ValueError, AttributeError) as e:
             logger.error(
                 "ActionLogger failed to initialize: %s. Logging will be disabled.", e
@@ -55,6 +54,9 @@ class ActionLogger:
         # Variable-receiver pathlib open; detection-inert in no_direct_writes sensor.
         # Registered under ADR-137 D2.
         try:
+            # #1052: made here, not at construction (a read-only audit
+            # constructs the logger and must leave no directories behind).
+            self.log_path.parent.mkdir(parents=True, exist_ok=True)
             with self.log_path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(log_entry) + "\n")
         except Exception as e:
