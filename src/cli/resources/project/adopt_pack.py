@@ -133,9 +133,9 @@ async def adopt_pack_command(
         console.print(
             f"[bold red]{target_dir} has no machinery floor[/bold red] "
             "(.intent/META is missing), so CORE could not audit it.\n"
-            "Deliver the floor first: [cyan]core-admin project new <name> --write"
-            "[/cyan] for a new repository, or [cyan]core project onboard <path> "
-            "--write[/cyan] (core-cli, needs a running CORE API) for an existing one."
+            "Deliver the floor first: [cyan]core-admin project init <path> --write"
+            "[/cyan] for an existing repository, or [cyan]core-admin project new "
+            "<name> --write[/cyan] for a new one."
         )
         raise typer.Exit(1)
 

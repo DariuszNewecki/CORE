@@ -2,7 +2,8 @@
 """
 `core-admin project new` — the Generate bootstrap stage (ADR-119 Amendment 2026-10-02, #892).
 
-Creates a new repository that can host project law, and nothing more:
+Creates a new repository that can host project law, and nothing more
+(``project init`` delivers the same floor into an existing repository):
 
 - the bundled machinery floor (``shared._machinery_floor``, ADR-108 D3) copied
   byte-for-byte into ``<target>/.intent/``, the same file selection and copy semantics
@@ -181,6 +182,86 @@ def write_new_project(
         )
         raise typer.Exit(code=1)
     return plan.file_count
+
+
+@dataclass(frozen=True)
+# ID: b6f4644b-fc35-4fa3-ae41-9c1aebc40e9d
+class InitPlan:
+    """What `project init` would deliver into an existing repository."""
+
+    target_root: Path
+    floor_copies: tuple[tuple[Path, str], ...]
+
+
+# ID: 8f485883-8756-4dba-a165-c0048f5ba34f
+def plan_init(target: Path, core_root: Path | None) -> InitPlan:
+    """Plan the machinery floor for the existing repository at ``target``.
+
+    The same bundled floor and file selection as ``project new`` and
+    ``project onboard``; no skeleton, no rules. Pure: writes nothing. Raises
+    ``typer.Exit(1)`` when the bundled floor cannot be found.
+    """
+    try:
+        floor_dir = _resolve_machinery_floor(core_root)
+    except RuntimeError as exc:
+        logger.error("%s", exc)
+        raise typer.Exit(code=1) from exc
+    return InitPlan(
+        target_root=target.expanduser().resolve(),
+        floor_copies=tuple(
+            (src, f"{_INTENT_DIR}/{src.relative_to(floor_dir).as_posix()}")
+            for src in _machinery_floor_files(floor_dir)
+        ),
+    )
+
+
+# ID: 277e67bb-1486-47a8-9fe7-bc916957bd39
+def write_init(
+    plan: InitPlan,
+    core_root: Path | None,
+    write: bool,
+    outside: OutsideWriteLog | None = None,
+) -> int:
+    """Check the target and, with ``write=True``, copy the floor into it.
+
+    Refuses (``typer.Exit(1)``), in dry-run as well, when the target overlaps
+    CORE's own repository or is a system directory, is not an existing
+    directory, or already has a ``.intent/`` (ADR-111 D3: never overwrite a
+    constitution). Returns the file count.
+    """
+    target = plan.target_root
+    _reject_unsafe_target(
+        target, core_root.resolve() if core_root is not None else None
+    )
+    if not target.is_dir():
+        logger.error("Refusing target %s: it is not an existing directory.", target)
+        raise typer.Exit(code=1)
+    if (target / _INTENT_DIR).exists():
+        logger.error(
+            "Refusing target %s: it already has a .intent/. CORE never overwrites "
+            "an existing constitution; remove it first to start again.",
+            target,
+        )
+        raise typer.Exit(code=1)
+    if not write:
+        return len(plan.floor_copies)
+    try:
+        for src, rel in plan.floor_copies:
+            dest = target / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dest)
+            if outside is not None:
+                outside.wrote(dest)
+    except OSError as exc:
+        logger.error("Could not write the machinery floor into %s: %s", target, exc)
+        raise typer.Exit(code=1) from exc
+    missing = [rel for _, rel in plan.floor_copies if not (target / rel).is_file()]
+    if missing:
+        logger.error(
+            "Delivery incomplete at %s; missing: %s", target, ", ".join(missing)
+        )
+        raise typer.Exit(code=1)
+    return len(plan.floor_copies)
 
 
 def _render_pyproject(name: str, package: str) -> str:

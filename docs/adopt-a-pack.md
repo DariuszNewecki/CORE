@@ -5,9 +5,9 @@ copies it into your repository's `.intent/`, where it becomes your law: you can 
 change it, or remove it like any rule you wrote yourself.
 
 **You need:** Python 3.12+, `core-runtime` 2.11.0 or later, and a repository that
-already carries a `.intent/` machinery floor — one made by
-[`core-admin project new`](start-a-project.md) or delivered by
-[`core project onboard`](byor-quickstart.md). No services are needed.
+already carries a `.intent/` machinery floor — `core-admin project init . --write` for
+an existing repository, or [`core-admin project new`](start-a-project.md) for a new
+one. No services are needed.
 
 ## Adopt a pack
 

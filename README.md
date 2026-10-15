@@ -28,14 +28,16 @@ This gives you the `core-admin` CLI. In a repository that already has a
 core-admin code audit --offline
 ```
 
-To bring CORE into an existing repository, onboard it (this uses the `core`
-CLI from `pip install core-cli` and a running CORE API):
+To bring CORE into an existing repository, no services are needed either:
 
 ```bash
-core project onboard
+cd your-repo
+core-admin project init . --write
+core-admin project adopt-pack core/starter-python --write
+core-admin code audit --offline
 ```
 
-A new project needs no services at all:
+A new project:
 
 ```bash
 core-admin project new myproject --write

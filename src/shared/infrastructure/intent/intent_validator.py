@@ -42,7 +42,7 @@ def _machinery_floor_hint() -> str:
     return (
         "\nA project's .intent/ must contain CORE's machinery floor (META/, "
         "taxonomies/, enforcement/config/) next to its rules -- ADR-108 D3. "
-        "New project: `core-admin project new` or `core project onboard`. "
+        "New project: `core-admin project new`; existing repository: `core-admin project init`. "
         f"Existing .intent/: copy the missing floor files from {floor} into "
         ".intent/ (do not overwrite your own files)."
     )
