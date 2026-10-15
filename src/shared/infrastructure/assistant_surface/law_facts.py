@@ -107,7 +107,10 @@ class LawFacts:
                 question,
                 UNKNOWN,
                 {"rule_id": rule_id, "declared": False},
-                limits=(f"No rule {rule_id!r} is declared in this repository's law.",),
+                limits=(
+                    f"No rule {rule_id!r} is declared in this repository's law.",
+                    "law_rules lists the declared rules, by id prefix or pack id.",
+                ),
             )
         content = ref.content
         mapping, mapping_path = self._mapping_for(rule_id)
@@ -133,6 +136,54 @@ class LawFacts:
         else:
             limits.append("No enforcement mapping names a mechanism for this rule.")
         return Answer(question, LAW, answer, tuple(sources), tuple(limits))
+
+    # ID: fe99bca9-7706-4a92-a850-9574af3462bc
+    def rules(self, match: str | None = None) -> Answer:
+        """Every declared rule: id, enforcement, a one-line statement, the
+        engine and check that run it, and its file. ``match`` keeps the rules
+        whose id starts with it, or whose rule file is that pack (a pack id
+        such as ``core/starter-python``). #1029: an assistant had no way to
+        ask which rules apply and read ``.intent/`` itself."""
+        question = "Which rules are declared" + (f" for {match}?" if match else "?")
+        pack_slug = match.replace("/", "_").replace("-", "_") if match else None
+        rows: list[dict[str, Any]] = []
+        files: set[str] = set()
+        for rule_id in sorted(self._intent.known_rule_ids()):
+            ref = self._intent.get_rule(rule_id)
+            rel = self._rel(ref.source_path)
+            if match and not (rule_id.startswith(match) or Path(rel).stem == pack_slug):
+                continue
+            mapping, _path = self._mapping_for(rule_id)
+            params = (mapping or {}).get("params") or {}
+            statement = _squash(ref.content.get("statement")) or ""
+            rows.append(
+                {
+                    "rule_id": rule_id,
+                    "enforcement": ref.content.get("enforcement"),
+                    "statement": statement[:200],
+                    "engine": (mapping or {}).get("engine"),
+                    "check": params.get("check_type"),
+                    "file": rel,
+                }
+            )
+            files.add(rel)
+        limits: list[str] = []
+        if not rows:
+            limits.append(
+                f"No declared rule matches {match!r}."
+                if match
+                else "This repository declares no rules."
+            )
+        limits.append(
+            "Statements are cut to 200 characters; law_rule gives the full rule."
+        )
+        return Answer(
+            question,
+            LAW if rows else UNKNOWN,
+            {"rules": rows, "count": len(rows)},
+            tuple(Source(f) for f in sorted(files)),
+            tuple(limits),
+        )
 
     # ID: 10a1ca3e-61c7-41d1-9c88-1f52dadc2d3e
     def can_write(self, path: str) -> Answer:

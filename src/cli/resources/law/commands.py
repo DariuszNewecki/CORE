@@ -1,9 +1,9 @@
 # src/cli/resources/law/commands.py
 
-"""``core-admin law show`` / ``law check`` — law answers with provenance (ADR-168 D4.3).
+"""``core-admin law show`` / ``law list`` / ``law check`` — law answers with provenance (ADR-168 D4.3).
 
 Read-only and service-free: no database, no LLM. Output is the same JSON the
-MCP tools ``law_rule`` and ``law_can_write`` return.
+MCP tools ``law_rule``, ``law_rules`` and ``law_can_write`` return.
 """
 
 from __future__ import annotations
@@ -45,6 +45,31 @@ async def law_show(
     Example: core-admin law show governance.constitution.read_only
     """
     await run_tool("law_rule", {"rule_id": rule_id})
+
+
+@app.command("list")
+@command_meta(
+    canonical_name="law.list",
+    behavior=CommandBehavior.READ,
+    layer=CommandLayer.MIND,
+    exposure=CommandExposure.USER_FACING,
+    summary="Every declared rule: id, enforcement, statement, engine, file.",
+)
+@core_command(dangerous=False, requires_context=False, requires_brain_services=False)
+# ID: 3f13a957-a7b4-4f27-8fb1-606965b9d3c0
+async def law_list(
+    ctx: typer.Context,
+    match: str = typer.Argument(
+        None, help="Rule-id prefix (starter.) or pack id (core/starter-python)."
+    ),
+) -> None:
+    """
+    List the rules declared in this repository: id, enforcement, a one-line
+    statement, the engine and check that run it, and the file.
+
+    Example: core-admin law list core/starter-python
+    """
+    await run_tool("law_rules", {"match": match} if match else {})
 
 
 @app.command("check")

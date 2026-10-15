@@ -32,7 +32,8 @@ logger = getLogger(__name__)
 SERVER_NAME = "core"
 
 _INSTRUCTIONS = (
-    "CORE governs this repository. Ask it before you guess: law_rule and "
+    "CORE governs this repository. Ask it before you guess: law_rules lists "
+    "the rules in force; law_rule and "
     "law_can_write answer from the repository's law, decision_adr and "
     "decision_adrs from its decision history, each with its sources and its "
     "limits. Before committing, call change_verdict on your change: BLOCKED "
