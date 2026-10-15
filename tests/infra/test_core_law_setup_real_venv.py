@@ -4,13 +4,13 @@ test_core_law_setup.py simulates processes; that hid a real defect: the
 venv was built at ``venv.new`` and renamed, and a venv records its own path
 in its entry points, so the installed ``core-admin`` pointed at a directory
 that no longer existed. Here the venv step runs for real -- ``python -m
-venv``, ``pip install`` of a hash-pinned wheel from a local folder, and the
-installed ``core-admin`` executed -- and a failing upgrade must put the
+venv``, ``pip install`` of the live release's hash-checked wheel file, and
+the installed ``core-admin`` executed -- and a failing upgrade must put the
 previous venv back with its entry point still working. The sudoers text is
 checked by the real ``visudo``.
 
 The wheel is a stand-in named core-runtime with a ``core-admin`` console
-script; no network. The account switch (``runuser -u core-law``) is the only
+script, laid out in a release as core-deploy leaves it; no network. The account switch (``runuser -u core-law``) is the only
 part not real: the command runs as the test's own account.
 """
 
@@ -74,39 +74,23 @@ def _wheel(folder: Path, version: str, body: str) -> tuple[Path, str]:
     return path, hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-class RealVenvHost(cls.Host):
-    """Runs processes for real, as the test's own account; PyPI is a dict."""
+# The stand-in has no runtime dependencies. A dev-only package is listed
+# whose wheel exists nowhere: installing it would fail offline, so a passing
+# install proves dev packages are never attempted.
+LOCK = (
+    b'[[package]]\nname = "dev-only-tool"\nversion = "9.9"\ngroups = ["dev"]\n'
+    b'files = [{file = "dev_only_tool-9.9-py3-none-any.whl", hash = "sha256:0000"}]\n'
+)
 
-    def __init__(self, pypi: dict[str, str], wheels: Path) -> None:
-        self.pypi = pypi
-        self.wheels = wheels
+
+class RealVenvHost(cls.Host):
+    """Runs processes for real, as the test's own account."""
+
+    def __init__(self) -> None:
         self.ran: list[list[str]] = []
 
     def is_root(self) -> bool:
         return True
-
-    def fetch(self, url: str, timeout: float = 30.0) -> bytes:
-        if url.startswith(cls.PYPI):
-            version = url.split("/")[-2]
-            return json.dumps(
-                {
-                    "info": {"version": version},
-                    "urls": [
-                        {
-                            "packagetype": "bdist_wheel",
-                            "filename": f"core_runtime-{version}-py3-none-any.whl",
-                            "digests": {"sha256": self.pypi[version]},
-                        }
-                    ],
-                }
-            ).encode()
-        # The stand-in has no runtime dependencies. A dev-only package is
-        # listed whose wheel exists nowhere: installing it would fail offline,
-        # so a passing install proves dev packages are never attempted.
-        return (
-            b'[[package]]\nname = "dev-only-tool"\nversion = "9.9"\ngroups = ["dev"]\n'
-            b'files = [{file = "dev_only_tool-9.9-py3-none-any.whl", hash = "sha256:0000"}]\n'
-        )
 
     def run(self, cmd, *, user=None, cwd=None, input=None, check=True):  # type: ignore[override]
         self.ran.append(list(cmd))
@@ -118,16 +102,38 @@ class RealVenvHost(cls.Host):
         return result
 
 
-def _setup(tmp_path: Path, host: RealVenvHost, version: str) -> object:
-    layout = cls.Layout(law_home=tmp_path / "core-law", repo=tmp_path)
+def _deploy(
+    tmp_path: Path, sha: str, wheel: Path, recorded_sha: str | None = None
+) -> None:
+    """Lay *wheel* out as release *sha* the way core-deploy does; make it live."""
+    core = tmp_path / "core"
+    release = core / "releases" / sha
+    (release / "venv").mkdir(parents=True)
+    record = {
+        "sha": sha,
+        "wheel_sha256": recorded_sha or hashlib.sha256(wheel.read_bytes()).hexdigest(),
+    }
+    (release / "venv" / "core-release.json").write_text(json.dumps(record) + "\n")
+    (release / "dist").mkdir()
+    shutil.copyfile(wheel, release / "dist" / wheel.name)
+    (release / "dist" / "poetry.lock").write_bytes(LOCK)
+    current = core / "current"
+    if current.is_symlink():
+        current.unlink()
+    current.symlink_to(Path("releases") / sha)
+
+
+def _setup(tmp_path: Path, host: RealVenvHost) -> object:
+    layout = cls.Layout(
+        law_home=tmp_path / "core-law", repo=tmp_path, core_root=tmp_path / "core"
+    )
     layout.build.mkdir(parents=True, exist_ok=True)
     return cls.Setup(
         layout=layout,
         host=host,
-        version=version,
         governor="darek",
         apply=True,
-        pip_source=("--no-index", "--find-links", str(host.wheels)),
+        pip_source=("--no-index",),
     )
 
 
@@ -145,36 +151,44 @@ def _core_admin(layout: object) -> str:
 def test_installed_core_admin_runs_from_the_final_path(tmp_path: Path) -> None:
     wheels = tmp_path / "wheels"
     wheels.mkdir()
-    _wheel_path, sha = _wheel(wheels, "2.14.0", "release 2.14.0")
-    host = RealVenvHost({"2.14.0": sha}, wheels)
-    setup = _setup(tmp_path, host, "2.14.0")
+    wheel, sha = _wheel(wheels, "2.14.0", "release A")
+    _deploy(tmp_path, "a" * 40, wheel)
+    host = RealVenvHost()
+    setup = _setup(tmp_path, host)
 
     setup.venv()
 
     layout = setup.layout
-    assert _core_admin(layout) == "release 2.14.0"
+    assert _core_admin(layout) == "release A"
     shebang = (layout.venv / "bin" / "core-admin").read_text().splitlines()[0]
     assert shebang == f"#!{layout.venv}/bin/python"
     assert not layout.venv.with_name("venv.new").exists()
     assert ["--require-hashes"] == [a for a in host.ran[-2] if a == "--require-hashes"]
+    assert cls.installed_wheel_sha256(layout.venv) == sha  # pip's own record
+    assert (
+        json.loads((layout.venv / "core-release.json").read_text())["sha"] == "a" * 40
+    )
+    assert cls.venv_problems(layout.venv, cls.live_release(layout)) == []
 
 
-def test_a_failed_upgrade_restores_the_previous_venv(tmp_path: Path) -> None:
+def test_a_wheel_that_is_not_the_recorded_one_is_refused_before_the_swap(
+    tmp_path: Path,
+) -> None:
     wheels = tmp_path / "wheels"
     wheels.mkdir()
-    _w, sha_old = _wheel(wheels, "2.14.0", "release 2.14.0")
-    host = RealVenvHost({"2.14.0": sha_old}, wheels)
-    _setup(tmp_path, host, "2.14.0").venv()
+    wheel_a, _sha = _wheel(wheels, "2.14.0", "release A")
+    _deploy(tmp_path, "a" * 40, wheel_a)
+    host = RealVenvHost()
+    _setup(tmp_path, host).venv()
 
-    # 2.15.0's published hash does not match the wheel pip finds: pip refuses.
-    _w, _sha_new = _wheel(wheels, "2.15.0", "release 2.15.0")
-    host.pypi["2.15.0"] = "0" * 64
-    setup = _setup(tmp_path, host, "2.15.0")
-    with pytest.raises(cls.Refused, match="previous venv was restored"):
+    # Release B's record names another hash than the wheel it keeps.
+    wheel_b, _sha_b = _wheel(wheels, "2.15.0", "release B")
+    _deploy(tmp_path, "b" * 40, wheel_b, recorded_sha="0" * 64)
+    setup = _setup(tmp_path, host)
+    with pytest.raises(cls.Refused, match="not the wheel core-deploy built"):
         setup.venv()
 
-    assert _core_admin(setup.layout) == "release 2.14.0"
-    assert cls.installed_version(setup.layout.venv) == "2.14.0"
+    assert _core_admin(setup.layout) == "release A"
     assert not setup.layout.venv.with_name("venv.old").exists()
 
 
@@ -183,9 +197,10 @@ def test_an_entry_point_that_does_not_run_restores_the_previous_venv(
 ) -> None:
     wheels = tmp_path / "wheels"
     wheels.mkdir()
-    _w, sha_old = _wheel(wheels, "2.14.0", "release 2.14.0")
-    host = RealVenvHost({"2.14.0": sha_old}, wheels)
-    _setup(tmp_path, host, "2.14.0").venv()
+    wheel_a, _sha = _wheel(wheels, "2.14.0", "release A")
+    _deploy(tmp_path, "a" * 40, wheel_a)
+    host = RealVenvHost()
+    _setup(tmp_path, host).venv()
 
     broken, _sha_broken = _wheel(wheels, "2.15.0", "unused")
     # Rewrite the console script to a module that does not exist.
@@ -198,11 +213,15 @@ def test_an_entry_point_that_does_not_run_restores_the_previous_venv(
     with zipfile.ZipFile(broken, "w") as zf:
         for name, data in members.items():
             zf.writestr(name, data)
-    host.pypi["2.15.0"] = hashlib.sha256(broken.read_bytes()).hexdigest()
-    setup = _setup(tmp_path, host, "2.15.0")
+    _deploy(tmp_path, "b" * 40, broken)
+    setup = _setup(tmp_path, host)
     with pytest.raises(cls.Refused, match="previous venv was restored"):
         setup.venv()
-    assert _core_admin(setup.layout) == "release 2.14.0"
+    assert _core_admin(setup.layout) == "release A"
+    assert (
+        json.loads((setup.layout.venv / "core-release.json").read_text())["sha"]
+        == "a" * 40
+    )
 
 
 @pytest.mark.skipif(
@@ -242,7 +261,6 @@ def test_a_rule_without_the_fresh_password_is_refused(
     setup = cls.Setup(
         layout=cls.Layout(law_home=tmp_path / "l", sudoers=tmp_path / "s"),
         host=SimpleNamespace(),
-        version="2.14.0",
         governor="darek",
         apply=True,
     )

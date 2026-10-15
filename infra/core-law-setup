@@ -5,8 +5,8 @@ core-law-setup — create the law's custodian (ADR-170 D2-D6, Stage 1).
 
 Usage (the governor, as root, from their own account):
 
-    sudo core-law-setup --version 2.14.0 --governor darek            # plan only
-    sudo core-law-setup --version 2.14.0 --governor darek --apply    # do it
+    sudo core-law-setup --governor darek            # plan only
+    sudo core-law-setup --governor darek --apply    # do it
 
 Without ``--apply`` it prints what it would do and changes nothing. Every
 step is safe to run again: what is already right is left alone, and the
@@ -15,11 +15,16 @@ signing key, once made, is never replaced.
 What it does:
 
  1. the account ``core-law``: system account, no login shell, no password;
- 2. ``/opt/core-law/venv``: the released ``core-runtime==<version>`` wheel,
-    its sha256 taken from PyPI, every dependency hash-pinned from that
-    release's ``poetry.lock`` (fetched over HTTPS, never through git; the
-    runtime ``main`` group only),
-    binary wheels only (installing a wheel runs no package code). Owned by
+ 2. ``/opt/core-law/venv``: exactly the wheel core-deploy built for the
+    live release (``/opt/core/current``), taken from ``releases/<sha>/dist/``
+    and accepted only when its sha256 equals ``wheel_sha256`` in that
+    release's ``core-release.json``; every dependency hash-pinned from the
+    ``poetry.lock`` core-deploy kept beside it (read through core's git when
+    the release was built; the runtime ``main`` group only). Nothing comes
+    from the development tree or a PyPI release of core-runtime: the custodian
+    runs the code the services run. The venv gets a copy of
+    ``core-release.json``, so an audit can compare it with the live release.
+    Binary wheels only (installing a wheel runs no package code). Owned by
     root, so core-law cannot change the code it runs. Refused when anything
     in it points outside the venv (a ``.pth`` file, an editable install).
     Installed at its final path, because a venv records its own path in its
@@ -80,7 +85,6 @@ import stat
 import subprocess
 import sys
 import tomllib
-import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -100,8 +104,6 @@ NOT_HANDED_OVER = re.compile(r"^(\.env.*|\.secrets)$")
 # Committed, non-secret files that the exclusion above would otherwise catch.
 # Allowed by name only; every other .env* file stays with its owner.
 HANDED_OVER_ENV_FILES = frozenset({".env.example", ".env.test"})
-GITHUB_RAW = "https://raw.githubusercontent.com/DariuszNewecki/CORE"
-PYPI = "https://pypi.org/pypi/core-runtime"
 NAMESPACE = "core-law-ledger"
 PROBES = (
     ("write .intent", "touch .intent/.custody-probe"),
@@ -165,9 +167,17 @@ class Layout:
     def law_root(self) -> Path:
         return self.core_root / "law"
 
+    @property
+    def current(self) -> Path:
+        return self.core_root / "current"
+
+    @property
+    def releases(self) -> Path:
+        return self.core_root / "releases"
+
 
 # ---------------------------------------------------------------------------
-# Host: accounts, ownership, processes and HTTP go through here, so the tests
+# Host: accounts, ownership and processes go through here, so the tests
 # can run the whole procedure unprivileged against a temporary layout.
 # ---------------------------------------------------------------------------
 
@@ -222,11 +232,6 @@ class Host:
             )
         return result
 
-    def fetch(self, url: str, timeout: float = 30.0) -> bytes:
-        request = urllib.request.Request(url, headers={"User-Agent": "core-law-setup"})
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return response.read()
-
     def owner(self, path: Path) -> tuple[str, str]:
         info = os.lstat(path)
         return pwd.getpwuid(info.st_uid).pw_name, grp.getgrgid(info.st_gid).gr_name
@@ -244,10 +249,6 @@ class Host:
 # ---------------------------------------------------------------------------
 # Pure helpers
 # ---------------------------------------------------------------------------
-
-
-def valid_version(version: str) -> bool:
-    return bool(re.fullmatch(r"\d+\.\d+\.\d+", version))
 
 
 def requirements_from_lock(lock_bytes: bytes) -> str:
@@ -275,22 +276,60 @@ def requirements_from_lock(lock_bytes: bytes) -> str:
     return "\n".join(lines) + "\n"
 
 
-def release_wheel(pypi_json: bytes, version: str) -> tuple[str, str]:
-    """(filename, sha256) of the release's one py3 wheel on PyPI."""
-    data = json.loads(pypi_json)
-    if data.get("info", {}).get("version") != version:
-        raise Refused(f"PyPI does not describe core-runtime {version}")
-    wheels = [
-        u
-        for u in data.get("urls", [])
-        if u.get("packagetype") == "bdist_wheel"
-        and u.get("filename", "").endswith(".whl")
-    ]
-    if len(wheels) != 1:
+@dataclass(frozen=True)
+class Release:
+    """The live release as core-deploy left it: its record, wheel and lock."""
+
+    sha: str
+    record: bytes  # core-release.json, verbatim
+    wheel_sha256: str
+    wheel: Path
+    lock: Path
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def live_release(layout: Layout) -> Release:
+    """The release ``current`` points at, its wheel checked against its record."""
+    link = layout.current
+    if not link.is_symlink():
+        raise Refused(f"{link} is not a symlink to a release: nothing is deployed")
+    release = link.resolve()
+    sha = release.name
+    if release.parent != layout.releases.resolve() or not re.fullmatch(
+        r"[0-9a-f]{40}", sha
+    ):
+        raise Refused(f"{link} points at {release}, not at a release")
+    record_path = release / "venv" / "core-release.json"
+    try:
+        record = record_path.read_bytes()
+        meta = json.loads(record)
+    except (OSError, ValueError) as exc:
+        raise Refused(f"{record_path} unreadable: {exc}") from exc
+    wheel_sha = meta.get("wheel_sha256") if isinstance(meta, dict) else None
+    if meta.get("sha") != sha or not re.fullmatch(r"[0-9a-f]{64}", str(wheel_sha)):
+        raise Refused(f"{record_path} does not describe release {sha}")
+    dist = release / "dist"
+    wheels = sorted(dist.glob("*.whl"))
+    lock = dist / "poetry.lock"
+    if len(wheels) != 1 or not lock.is_file():
         raise Refused(
-            f"expected one wheel for core-runtime {version}, found {len(wheels)}"
+            f"release {sha} keeps no wheel and lock in {dist} (deployed before "
+            "core-deploy kept them): deploy a later commit, then run this again"
         )
-    return wheels[0]["filename"], wheels[0]["digests"]["sha256"]
+    actual = sha256_file(wheels[0])
+    if actual != wheel_sha:
+        raise Refused(
+            f"{wheels[0].name} has sha256 {actual}, but core-release.json says "
+            f"{wheel_sha}: not the wheel core-deploy built"
+        )
+    return Release(sha, record, str(wheel_sha), wheels[0], lock)
 
 
 def site_packages(venv: Path) -> Path:
@@ -312,24 +351,46 @@ def installed_version(venv: Path) -> str | None:
     return None
 
 
-def venv_problems(venv: Path, version: str) -> list[str]:
-    """Reasons the venv is not exactly the released code; empty when it is."""
+def installed_wheel_sha256(venv: Path) -> str | None:
+    """The sha256 pip recorded for the installed core-runtime wheel file."""
+    try:
+        sp = site_packages(venv)
+    except Refused:
+        return None
+    found = sorted(sp.glob("core_runtime-*.dist-info/direct_url.json"))
+    if len(found) != 1:
+        return None
+    try:
+        info = json.loads(found[0].read_text())
+        return str(info["archive_info"]["hashes"]["sha256"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def venv_problems(venv: Path, release: Release) -> list[str]:
+    """Reasons the venv is not exactly the release's code; empty when it is."""
     problems: list[str] = []
     try:
         sp = site_packages(venv)
     except Refused as exc:
         return [str(exc)]
-    if installed_version(venv) != version:
+    installed = installed_wheel_sha256(venv)
+    if installed != release.wheel_sha256:
         problems.append(
-            f"core-runtime {installed_version(venv)} installed, not {version}"
+            f"core-runtime wheel sha256 {installed} installed, not release "
+            f"{release.sha}'s {release.wheel_sha256}"
         )
+    record = venv / "core-release.json"
+    if not record.is_file() or record.read_bytes() != release.record:
+        problems.append(f"core-release.json is not release {release.sha}'s")
     for pth in sp.glob("*.pth"):
         if pth.name != "distutils-precedence.pth":
             problems.append(f"{pth.name}: a .pth file can load code from elsewhere")
     for direct in sp.glob("*.dist-info/direct_url.json"):
-        problems.append(
-            f"{direct.parent.name}: installed from a path or URL, not a release"
-        )
+        if not direct.parent.name.startswith("core_runtime-"):
+            problems.append(
+                f"{direct.parent.name}: installed from a path or URL, not the lock"
+            )
     admin = venv / "bin" / "core-admin"
     if not admin.is_file():
         problems.append("bin/core-admin is missing")
@@ -412,10 +473,10 @@ def tree_digest(root: Path) -> str:
 class Setup:
     layout: Layout
     host: Host
-    version: str
     governor: str
     apply: bool
-    # Where pip finds wheels; empty means PyPI. Tests point it at a local folder.
+    # Where pip finds the dependency wheels; empty means PyPI. Tests point it
+    # at a local folder. core-runtime itself is always the release's file.
     pip_source: tuple[str, ...] = ()
     log: list[str] = field(default_factory=list)
     failures: list[str] = field(default_factory=list)
@@ -435,8 +496,6 @@ class Setup:
     def preflight(self) -> None:
         if not self.host.is_root():
             raise Refused("run it as root (sudo)")
-        if not valid_version(self.version):
-            raise Refused(f"not a release version: {self.version!r}")
         if self.governor in NOT_A_GOVERNOR or self.host.account(self.governor) is None:
             raise Refused(
                 f"{self.governor!r} is not a human governor account "
@@ -576,17 +635,16 @@ class Setup:
             os.chmod(path, mode)
 
     def venv(self) -> None:
-        self.say(f"2b. venv: core-runtime=={self.version}, released wheel only")
+        release = live_release(self.layout)
+        self.say(
+            f"2b. venv: release {release.sha}, wheel {release.wheel.name} "
+            f"sha256 {release.wheel_sha256} (checked against core-release.json)"
+        )
         venv = self.layout.venv
-        if venv.is_dir() and not venv_problems(venv, self.version):
+        if venv.is_dir() and not venv_problems(venv, release):
             self.say("  ok: installed and verified")
             return
-        filename, wheel_sha = release_wheel(
-            self.host.fetch(f"{PYPI}/{self.version}/json"), self.version
-        )
-        self.say(f"  release wheel {filename} sha256 {wheel_sha}")
-        lock = self.host.fetch(f"{GITHUB_RAW}/v{self.version}/poetry.lock")
-        requirements = requirements_from_lock(lock)
+        requirements = requirements_from_lock(release.lock.read_bytes())
         if not self.act(
             f"install into {venv} itself (a venv records its own path), keeping the "
             "previous venv aside until the new one runs"
@@ -594,8 +652,13 @@ class Setup:
             return
         reqs = self.layout.build / "requirements.txt"
         reqs.write_text(requirements)
+        # A root-owned copy, hashed again: what pip installs is what was checked.
+        wheel = self.layout.build / release.wheel.name
+        shutil.copyfile(release.wheel, wheel)
+        if sha256_file(wheel) != release.wheel_sha256:
+            raise Refused(f"{wheel} changed while it was copied")
         pinned = self.layout.build / "core-runtime.txt"
-        pinned.write_text(f"core-runtime=={self.version} --hash=sha256:{wheel_sha}\n")
+        pinned.write_text(f"{wheel} --hash=sha256:{release.wheel_sha256}\n")
         old = venv.with_name("venv.old")
         if venv.exists():
             if old.exists():
@@ -614,11 +677,11 @@ class Setup:
                 "--only-binary=:all:",
                 "--require-hashes",
                 "--no-deps",
-                *self.pip_source,
             ]
-            self.host.run([*pip, "-r", str(reqs)])
-            self.host.run([*pip, "-r", str(pinned)])
-            problems = venv_problems(venv, self.version)
+            self.host.run([*pip, *self.pip_source, "-r", str(reqs)])
+            self.host.run([*pip, "--no-index", "-r", str(pinned)])
+            (venv / "core-release.json").write_bytes(release.record)
+            problems = venv_problems(venv, release)
             if problems:
                 raise Refused(
                     "the new venv is not the released code:\n  " + "\n  ".join(problems)
@@ -939,9 +1002,6 @@ def main(
     parser = argparse.ArgumentParser(
         prog="core-law-setup", description=__doc__.split("\n\n")[0]
     )
-    parser.add_argument(
-        "--version", required=True, help="core-runtime release, e.g. 2.14.0"
-    )
     parser.add_argument("--governor", required=True, help="the human governor account")
     parser.add_argument("--repo", type=Path, default=Layout.repo)
     parser.add_argument("--apply", action="store_true", help="make the changes")
@@ -950,7 +1010,6 @@ def main(
     setup = Setup(
         layout=layout or Layout(repo=args.repo),
         host=host or Host(),
-        version=args.version,
         governor=args.governor,
         apply=args.apply,
     )

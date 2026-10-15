@@ -11,6 +11,7 @@ own probes (step 8) and ADR-170 acceptance checks 3-9.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.machinery
 import importlib.util
 import json
@@ -26,8 +27,11 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "infra" / "core-law-setup"
-VERSION = "2.14.0"
-WHEEL_SHA = "4" * 64
+RELEASE = "a" * 40
+WHEEL = b"the wheel core-deploy built"
+WHEEL_NAME = "core_runtime-2.14.2-py3-none-any.whl"
+WHEEL_SHA = hashlib.sha256(WHEEL).hexdigest()
+RECORD = json.dumps({"sha": RELEASE, "wheel_sha256": WHEEL_SHA}).encode() + b"\n"
 
 
 def _load(name: str, path: Path) -> ModuleType:
@@ -51,19 +55,6 @@ files = [{file = "PyYAML-6.0.2-cp312-cp312-manylinux.whl", hash = "sha256:aaa"}]
 """
 
 
-def _pypi(version: str = VERSION, wheels: int = 1) -> bytes:
-    urls = [
-        {
-            "packagetype": "bdist_wheel",
-            "filename": f"core_runtime-{version}-py3-none-any.whl",
-            "digests": {"sha256": WHEEL_SHA},
-        }
-    ] * wheels + [
-        {"packagetype": "sdist", "filename": "x.tar.gz", "digests": {"sha256": "0"}}
-    ]
-    return json.dumps({"info": {"version": version}, "urls": urls}).encode()
-
-
 class FakeHost(cls.Host):
     def __init__(self) -> None:
         self.root = True
@@ -73,8 +64,8 @@ class FakeHost(cls.Host):
         }
         self.owners: dict[Path, tuple[str, str]] = {}
         self.calls: list[tuple[list[str], str | None]] = []
-        self.fetched: list[str] = []
-        self.install_version = VERSION
+        # The sha256 pip records for the core-runtime file it installs.
+        self.install_sha = WHEEL_SHA
         self.inject_pth = False
         self.allowed_probes: set[tuple[str, str]] = set()
         self.groups = {"core-darek": ["core-darek", "core-dev", "docker", "sudo"]}
@@ -87,10 +78,6 @@ class FakeHost(cls.Host):
 
     def account(self, name: str):  # type: ignore[override]
         return self.accounts.get(name)
-
-    def fetch(self, url: str, timeout: float = 30.0) -> bytes:
-        self.fetched.append(url)
-        return _pypi() if url.startswith(cls.PYPI) else LOCK
 
     def owner(self, path: Path) -> tuple[str, str]:
         return self.owners.get(path, ("core", "core-dev"))
@@ -118,10 +105,16 @@ class FakeHost(cls.Host):
             (venv / "bin" / "core-admin").write_text("#!/bin/sh\n")
         elif "pip" in cmd and str(cmd[-1]).endswith("core-runtime.txt"):
             sp = Path(cmd[0]).parents[1] / "lib" / "python3.12" / "site-packages"
-            meta = sp / f"core_runtime-{self.install_version}.dist-info"
+            meta = sp / "core_runtime-2.14.2.dist-info"
             meta.mkdir()
-            (meta / "METADATA").write_text(
-                f"Name: core-runtime\nVersion: {self.install_version}\n"
+            (meta / "METADATA").write_text("Name: core-runtime\nVersion: 2.14.2\n")
+            (meta / "direct_url.json").write_text(
+                json.dumps(
+                    {
+                        "archive_info": {"hashes": {"sha256": self.install_sha}},
+                        "url": f"file://{Path(cmd[-1]).parent / WHEEL_NAME}",
+                    }
+                )
             )
             if self.inject_pth:
                 (sp / "dev.pth").write_text("/opt/dev/CORE/src\n")
@@ -170,14 +163,29 @@ def world(tmp_path: Path) -> tuple[FakeHost, object]:
     )
     layout.sudoers.parent.mkdir(parents=True)
     layout.system_units.mkdir(parents=True)
+    _release(layout)
     return FakeHost(), layout
+
+
+def _release(layout, sha: str = RELEASE, wheel: bytes = WHEEL) -> Path:
+    """A release as core-deploy leaves it, made live."""
+    release = layout.releases / sha
+    (release / "venv").mkdir(parents=True)
+    (release / "venv" / "core-release.json").write_bytes(
+        json.dumps({"sha": sha, "wheel_sha256": WHEEL_SHA}).encode() + b"\n"
+    )
+    (release / "dist").mkdir()
+    (release / "dist" / WHEEL_NAME).write_bytes(wheel)
+    (release / "dist" / "poetry.lock").write_bytes(LOCK)
+    if layout.current.is_symlink():
+        layout.current.unlink()
+    layout.current.symlink_to(Path("releases") / sha)
+    return release
 
 
 def _main(world, *extra: str) -> int:
     host, layout = world
-    return cls.main(
-        ["--version", VERSION, "--governor", "darek", *extra], host=host, layout=layout
-    )
+    return cls.main(["--governor", "darek", *extra], host=host, layout=layout)
 
 
 def _mode(path: Path) -> int:
@@ -190,11 +198,8 @@ def test_plan_only_changes_nothing(world) -> None:
     assert not layout.law_home.exists() and not layout.sudoers.exists()
     assert host.owners == {}
     assert all(cmd[0] not in ("useradd", "ssh-keygen") for cmd, _ in host.calls)
-    # It still checks the release exists, over HTTPS, without git.
-    assert host.fetched == [
-        f"{cls.PYPI}/{VERSION}/json",
-        f"{cls.GITHUB_RAW}/v{VERSION}/poetry.lock",
-    ]
+    # It still checks the live release's wheel, and installs nothing.
+    assert not any("pip" in cmd for cmd, _ in host.calls)
 
 
 def test_apply_creates_the_custodian(world) -> None:
@@ -208,13 +213,17 @@ def test_apply_creates_the_custodian(world) -> None:
     assert host.owners[layout.key] == ("core-law", "core-law")
     assert not layout.key.is_relative_to(layout.repo)
 
-    # Released code only: hash-pinned binary wheels, then verified and swapped.
+    # The live release's wheel only: hash-pinned binary wheels, verified, swapped.
     pins = [c for c, _ in host.calls if "pip" in c]
     assert all("--require-hashes" in c and "--only-binary=:all:" in c for c in pins)
+    assert "--no-index" in pins[-1]  # core-runtime never comes from an index
+    copy = layout.build / WHEEL_NAME
+    assert copy.read_bytes() == WHEEL
     assert (layout.build / "core-runtime.txt").read_text() == (
-        f"core-runtime=={VERSION} --hash=sha256:{WHEEL_SHA}\n"
+        f"{copy} --hash=sha256:{WHEEL_SHA}\n"
     )
-    assert cls.installed_version(layout.venv) == VERSION
+    assert cls.installed_wheel_sha256(layout.venv) == WHEEL_SHA
+    assert (layout.venv / "core-release.json").read_bytes() == RECORD
     assert host.owners.get(layout.venv) is None  # root's, never core-law's
     assert not any(c[0] == "git" for c, _ in host.calls)
 
@@ -267,12 +276,10 @@ def test_rerun_keeps_the_key_and_the_venv(world) -> None:
     assert _main(world, "--apply") == 0
     layout.key.write_text("PRIVATE-FROM-FIRST-RUN\n")
     host.calls.clear()
-    host.fetched.clear()
     assert _main(world, "--apply") == 0
     assert layout.key.read_text() == "PRIVATE-FROM-FIRST-RUN\n"
     assert not any(c[0] in ("useradd", "ssh-keygen") for c, _ in host.calls)
     assert not any("venv" in c for c, _ in host.calls)
-    assert host.fetched == []
 
 
 def test_a_lost_public_key_is_rederived_not_regenerated(world) -> None:
@@ -290,22 +297,18 @@ def test_a_lost_public_key_is_rederived_not_regenerated(world) -> None:
 def test_refuses_a_governor_that_is_not_human(world, governor: str) -> None:
     host, layout = world
     code = cls.main(
-        ["--version", VERSION, "--governor", governor, "--apply"],
+        ["--governor", governor, "--apply"],
         host=host,
         layout=layout,
     )
     assert code == 1 and not layout.law_home.exists()
 
 
-def test_refuses_without_root_or_with_a_bad_version_or_foreign_account(world) -> None:
+def test_refuses_without_root_or_with_a_foreign_account(world) -> None:
     host, layout = world
     host.root = False
     assert _main(world, "--apply") == 1
     host.root = True
-    assert (
-        cls.main(["--version", "main", "--governor", "darek"], host=host, layout=layout)
-        == 1
-    )
     host.accounts["core-law"] = SimpleNamespace(
         pw_shell="/bin/bash", pw_dir="/home/core-law"
     )
@@ -319,8 +322,9 @@ def test_a_venv_that_reaches_outside_itself_is_refused_and_not_swapped(world) ->
     assert _main(world, "--apply") == 1
     assert not layout.venv.exists()
     host.inject_pth = False
-    host.install_version = "2.13.0"
+    host.install_sha = "0" * 64  # pip installed some other file
     assert _main(world, "--apply") == 1
+    assert not layout.venv.exists()
 
 
 def test_symlink_in_governed_text_is_refused(world) -> None:
@@ -344,12 +348,50 @@ def test_release_law_that_differs_is_reported(world) -> None:
     assert _main(world, "--apply") == 1
 
 
-def test_release_wheel_needs_exactly_one_wheel_of_that_version() -> None:
-    assert cls.release_wheel(_pypi(), VERSION)[1] == WHEEL_SHA
-    with pytest.raises(cls.Refused):
-        cls.release_wheel(_pypi("2.13.0"), VERSION)
-    with pytest.raises(cls.Refused):
-        cls.release_wheel(_pypi(wheels=2), VERSION)
+def test_only_the_wheel_core_deploy_hashed_for_the_live_release_is_accepted(
+    world, capsys
+) -> None:
+    host, layout = world
+    release = cls.live_release(layout)
+    assert (release.sha, release.wheel_sha256) == (RELEASE, WHEEL_SHA)
+
+    wheel = layout.releases / RELEASE / "dist" / WHEEL_NAME
+    wheel.write_bytes(b"a different wheel")
+    assert _main(world) == 1
+    assert "not the wheel core-deploy built" in capsys.readouterr().err
+    wheel.write_bytes(WHEEL)
+
+    record = layout.releases / RELEASE / "venv" / "core-release.json"
+    record.write_text(json.dumps({"sha": "b" * 40, "wheel_sha256": WHEEL_SHA}))
+    assert _main(world) == 1
+    assert "does not describe release" in capsys.readouterr().err
+    record.write_bytes(RECORD)
+
+    # A release deployed before core-deploy kept its wheel.
+    old = _release(layout, sha="c" * 40)
+    for kept in (old / "dist").iterdir():
+        kept.unlink()
+    assert _main(world) == 1
+    assert "keeps no wheel and lock" in capsys.readouterr().err
+
+    layout.current.unlink()
+    assert _main(world) == 1
+    assert "nothing is deployed" in capsys.readouterr().err
+    assert not any("pip" in cmd for cmd, _ in host.calls)
+
+
+def test_a_venv_from_another_wheel_is_replaced_by_the_live_release(world) -> None:
+    host, layout = world
+    assert _main(world, "--apply") == 0
+    # The venv a PyPI install left: no recorded file hash, no release record.
+    sp = cls.site_packages(layout.venv)
+    (sp / "core_runtime-2.14.2.dist-info" / "direct_url.json").unlink()
+    (layout.venv / "core-release.json").unlink()
+    host.calls.clear()
+    assert _main(world, "--apply") == 0
+    assert any("pip" in cmd for cmd, _ in host.calls)
+    assert cls.installed_wheel_sha256(layout.venv) == WHEEL_SHA
+    assert (layout.venv / "core-release.json").read_bytes() == RECORD
 
 
 def test_lock_pinning_is_core_deploys_for_the_runtime_group_only() -> None:
