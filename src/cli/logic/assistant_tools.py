@@ -261,7 +261,8 @@ TOOLS: dict[str, AssistantTool] = {
             description=(
                 "Fast verdict on the current change (every path that differs from "
                 "HEAD, or the given files): BLOCKED, CLEAR_IN_SCOPE, NO_CHANGES or "
-                "NOT_EVALUATED (nothing could be judged; see 'error'), naming every "
+                "NOT_EVALUATED (nothing could be judged; see 'error'), naming the "
+                "rules it evaluated, the non-blocking findings in scope, and every "
                 "rule it did not evaluate. Producer feedback, never "
                 "PASS: the full audit (CI) stays authoritative."
             ),
