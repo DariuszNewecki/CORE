@@ -119,3 +119,38 @@ async def test_after_init_a_pack_can_be_adopted(tmp_path: Path) -> None:
             pack_id="core/starter-python", target_dir=repo, write=True, override=[]
         )
     assert (repo / ".intent" / "rules" / "packs" / "core_starter_python.json").is_file()
+
+
+# ID: 9ff1ec9b-393c-4a50-a139-e9f7e5214e25
+async def test_init_writes_cores_github_action_pinned_to_the_release(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#1043 (proof run 2): an adopter repo had no authoritative verdict; the
+    tools said 'CI decides' and there was no CI."""
+    monkeypatch.setattr(
+        "cli.logic.project_scaffold.importlib.metadata.version", lambda _n: "2.14.5"
+    )
+    repo = _existing_repo(tmp_path)
+    await init_project_command(_ctx(), repo, True)
+    workflow = (repo / ".github" / "workflows" / "core-audit.yml").read_text()
+    assert "uses: DariuszNewecki/CORE@v2.14.5" in workflow
+    assert "pull_request:" in workflow
+
+
+# ID: 2ecdcba6-c576-4adf-8c61-ca5ccb7010ac
+async def test_an_existing_workflow_file_is_left_alone(tmp_path: Path) -> None:
+    repo = _existing_repo(tmp_path)
+    mine = repo / ".github" / "workflows" / "core-audit.yml"
+    mine.parent.mkdir(parents=True)
+    mine.write_text("name: mine\n")
+    await init_project_command(_ctx(), repo, True)
+    assert mine.read_text() == "name: mine\n"
+    assert (repo / ".intent" / "META").is_dir()
+
+
+# ID: 44d85b26-0d20-4224-90fc-5b1abf2118a0
+def test_a_development_install_pins_the_action_to_main() -> None:
+    from cli.logic.project_scaffold import render_audit_workflow
+
+    assert "CORE@main" in render_audit_workflow("2.14.5.dev3")
+    assert "CORE@v2.14.5" in render_audit_workflow("2.14.5")

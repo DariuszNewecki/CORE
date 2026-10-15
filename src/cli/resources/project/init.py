@@ -66,7 +66,8 @@ async def init_project_command(
     if not write:
         console.print(
             f"[bold cyan]Preview:[/bold cyan] {count} machinery-floor files would be "
-            f"copied into {plan.target_root / '.intent'}."
+            f"copied into {plan.target_root / '.intent'}, and CORE's GitHub Action "
+            f"workflow written to {plan.workflow[0]} unless one is there."
         )
         console.print("Pass [cyan]--write[/cyan] to copy them.")
         return
@@ -74,8 +75,19 @@ async def init_project_command(
         f"[bold green]Machinery floor delivered:[/bold green] {plan.target_root} "
         f"({count} files in .intent/)."
     )
+    workflow = plan.workflow[0]
+    if (plan.target_root / workflow).read_text(encoding="utf-8") == plan.workflow[1]:
+        console.print(
+            f"CORE's GitHub Action: [cyan]{workflow}[/cyan] audits every pull "
+            "request once committed; its verdict is the authoritative one."
+        )
+    else:
+        console.print(
+            f"[yellow]{workflow} already exists and was left as it is.[/yellow]"
+        )
     console.print(
         "Next: [cyan]core-admin project adopt-pack core/starter-python --write[/cyan], "
-        "commit .intent/ ([cyan]git add .intent && git commit[/cyan]), then "
+        "commit .intent/ and the workflow ([cyan]git add .intent .github && git "
+        "commit[/cyan]), then "
         "[cyan]core-admin code audit --offline[/cyan]."
     )
