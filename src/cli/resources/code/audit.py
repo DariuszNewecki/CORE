@@ -110,7 +110,7 @@ async def audit_command(
         help=(
             "#688: path to an external repo to audit. Requires --offline. "
             "The repo must have a .intent/ directory (produced by "
-            "`core-admin project new` or `core project onboard`). When omitted, "
+            "`core-admin project new` or `core-admin project init`). When omitted, "
             "the audit runs "
             "against the repo found by walking up from the current directory."
         ),

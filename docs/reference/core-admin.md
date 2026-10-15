@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-105 commands.
+106 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -27,7 +27,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`law`](#law) | 7 | Grounded answers about this repository's law, with sources (ADR-168). |
 | [`llm-resources`](#llm-resources) | 2 | core.llm_resources authoring/validation surface (#821 Unit 3). |
 | [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant (ADR-168). |
-| [`project`](#project) | 2 | Operations for project lifecycle: scaffolding. |
+| [`project`](#project) | 3 | Operations for project lifecycle: scaffolding. |
 | [`refactor`](#refactor) | 4 | Refactoring analysis and suggestions |
 | [`runtime`](#runtime) | 4 | Runtime state and health of the running CORE system. |
 | [`secrets`](#secrets) | 4 | Manage encrypted secrets in the database. |
@@ -257,7 +257,7 @@ With --offline: stateless invocation without daemon/DB (F-10 CI gate).
 | `--classify` | off | Print context build commands for all findings. |
 | `--force-llm` | off | Bypass the ADR-044 llm_gate verdict cache for this run. Every llm_gate rule re-evaluates every pre-selected file via Ollama; cache rows are still updated with fresh verdicts. Use after suspect cache state or to validate a model upgrade. |
 | `--offline` | off | F-10.1b: run the constitutional audit without core-api / core-daemon / Postgres / Qdrant. Used by the F-10 CI/CD gate and the F-10.5 pre-commit hook. Rules requiring the knowledge graph or LLM (knowledge_gate, llm_gate) are skipped with a structured reason and surfaced in skipped_rules. See ADR-085 §D5 for the F-10 exit criterion this serves. |
-| `--target` |  | #688: path to an external repo to audit. Requires --offline. The repo must have a .intent/ directory (produced by `core-admin project new` or `core project onboard`). When omitted, the audit runs against the repo found by walking up from the current directory. |
+| `--target` |  | #688: path to an external repo to audit. Requires --offline. The repo must have a .intent/ directory (produced by `core-admin project new` or `core-admin project init`). When omitted, the audit runs against the repo found by walking up from the current directory. |
 | `--format` | `text` | F-10.1b / F-10.2: output format. `text` (default) renders the human-readable Rich output. `json` emits the F-10.1a payload verbatim on stdout (schema documented in #535). `github-annotations` emits GitHub Actions workflow-command lines so findings surface inline in PR diff view (#529 / F-10.2). `codeclimate` emits CodeClimate JSON for GitLab MR quality reports via `artifacts: reports: codequality:` (F-10.P2). Non-text formats require --offline; the daemon-driven path has a different result shape. |
 
 ### `core-admin code clarity` {#code-clarity}
@@ -1421,6 +1421,24 @@ findings against the pack's rules.
 | `--target-dir`, `-t` | `.` | Root of the target repo. Defaults to CWD. |
 | `--write` | off | Apply changes. Without --write, previews what would be written. |
 | `--override` |  | Downgrade a rule's enforcement. Format: 'rule_id:enforcement', e.g. 'starter.no_bare_except:reporting'. |
+
+### `core-admin project init` {#project-init}
+
+```
+core-admin project init [PATH] [OPTIONS]
+```
+
+Prepare an existing repository to host project law (no law is created).
+
+Copies CORE's machinery floor into &lt;path>/.intent/. The repository is not
+auditable until a governance pack is adopted or rules are authored.
+
+Example: core-admin project init . --write
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `PATH` | `.` | The existing repository (default: the current directory). |
+| `--write` | off | Actually copy the machinery floor. |
 
 ### `core-admin project new` {#project-new}
 
