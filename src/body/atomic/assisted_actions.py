@@ -480,7 +480,7 @@ async def action_assisted_validate_diff(
         worktree.cleanup()
 
 
-# The commit gate's acceptance terms (.claude/hooks/core-verdict.sh, #907):
+# The CI gate's acceptance terms for the full audit (#907):
 # verdict PASS or DEGRADED, and no finding of blocking severity.
 _GATE_VERDICTS = frozenset({"PASS", "DEGRADED"})
 _BLOCK_SEVERITIES = frozenset({"block", "blocking"})

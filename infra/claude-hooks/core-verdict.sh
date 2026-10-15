@@ -2,24 +2,35 @@
 # CORE verdict before commit — ADR-168 D4.1 experiment (draft ADR, started 2026-10-04).
 #
 # Claude Code PreToolUse hook (matcher: Bash). When the assistant's command
-# runs `git commit`, the same blocking offline audit CI runs is executed first,
-# and the commit is refused on the same terms as the CI gate (#907 policy):
-# continue only on verdict PASS/DEGRADED with zero BLOCK-severity findings;
-# fail closed on anything else (crash, timeout, malformed JSON, unknown verdict).
+# runs `git commit`, CORE's per-file change check runs first — the
+# change_verdict tool, through `core-admin code verify` — and the commit is
+# refused when it says BLOCKED. It is continued only on CLEAR_IN_SCOPE or
+# NO_CHANGES; anything else fails closed (NOT_EVALUATED, crash, timeout,
+# malformed JSON, unknown verdict).
+#
+# This is fast producer feedback, not the authoritative verdict. The full
+# offline audit, including the whole-repository rules this check names as not
+# evaluated, runs in CI and gates the merge (#907). The hook ran that full
+# audit until 2026-10-15; it took minutes per commit and duplicated CI.
+#
+# The files judged are the commit's change as far as it can be known before
+# git runs: every path in the tree that differs from HEAD, untracked included
+# (so `git add new.py && git commit` judges new.py). It reads the working
+# tree, not the index: unstaged edits count, and a file staged then edited is
+# judged as edited.
 #
 # Scope, honestly: this governs the assistant's normal commit path only. It is
 # producer-side configuration — the governor's own shell (`! git commit ...`)
 # is not hooked, which is the deliberate escape hatch. Bypass resistance is
 # D4.2 (required CI + branch protection), not this hook.
 #
-# The tree audited is the one each commit lands on, decided by
+# The tree judged is the one each commit lands on, decided by
 # core-commit-target.py beside this file (shared with core-develop-ancestry.sh):
 # the payload's cwd, then a `cd <dir>` or `git -C <dir>` in the command, when
 # that tree is this repository or one of its worktrees; otherwise this
-# repository. The audit runs there with REPO_PATH and PYTHONPATH naming that
+# repository. The check runs there with REPO_PATH and PYTHONPATH naming that
 # tree, so it judges the tree's own law and code, not the development
-# checkout's. It still reads the working tree, not the index: unstaged edits
-# count, and a file staged then edited is judged as edited.
+# checkout's.
 #
 # `git -C <dir> commit`, `git -c k=v commit` and `/usr/bin/git commit` are
 # commits. Commands built by hand-quoting (`bash -c "git commit"`, eval, xargs)
@@ -37,8 +48,8 @@ set -uo pipefail
 REPO="${CLAUDE_PROJECT_DIR:-/opt/dev/CORE}"
 LOG_DIR="$REPO/var/experiments/adr168"
 LOG="$LOG_DIR/verdicts.jsonl"
-# The audit gates (ruff, mypy, vulture) must resolve from the venv, as in CI;
-# otherwise they report "tool not installed" findings.
+# The per-file gates (ruff, mypy, vulture) must resolve from the venv, as in
+# CI; otherwise they report "tool not installed" findings.
 export PATH="$REPO/.venv/bin:$PATH"
 
 payload="$(cat)"
@@ -51,13 +62,13 @@ fi
 [ -n "$trees" ] || exit 0
 
 mkdir -p "$LOG_DIR"
-result="$LOG_DIR/last-audit.json"
-errlog="$LOG_DIR/last-audit.err"
+result="$LOG_DIR/last-verdict.json"
+errlog="$LOG_DIR/last-verdict.err"
 payload_file="$LOG_DIR/last-payload.json"
 printf '%s' "$payload" >"$payload_file"
 while IFS= read -r TREE; do
   start=$(date +%s)
-  ( cd "$TREE" && REPO_PATH="$TREE" PYTHONPATH="$TREE/src" timeout 540 "$REPO/.venv/bin/core-admin" code audit --offline --severity=block --format=json >"$result" 2>"$errlog" )
+  ( cd "$TREE" && REPO_PATH="$TREE" PYTHONPATH="$TREE/src" timeout 180 "$REPO/.venv/bin/core-admin" code verify >"$result" 2>"$errlog" )
   raw_exit=$?
   duration=$(( $(date +%s) - start ))
   python3 -I - "$result" "$raw_exit" "$duration" "$LOG" "$TREE" "$payload_file" <<'PY' || exit 2
@@ -69,28 +80,27 @@ with open(payload_path, encoding="utf-8") as fh:
 session = str(payload.get("session_id") or "")
 cmd = payload["tool_input"]["command"]
 raw_exit, duration = int(raw_exit), int(duration)
-ACCEPTED = {"PASS", "DEGRADED"}
-BLOCK = {"block", "blocking"}
+ACCEPTED = {"CLEAR_IN_SCOPE", "NO_CHANGES"}
 
-verdict, blocking, reason = None, [], None
+verdict, blocking, files, reason = None, [], [], None
 try:
     with open(result_path, encoding="utf-8") as fh:
         data = json.load(fh)
     verdict = data.get("verdict")
-    findings = data.get("findings") or []
-    blocking = [f for f in findings if str(f.get("severity", "")).lower() in BLOCK]
+    blocking = data.get("blocking") or []
+    files = (data.get("scope") or {}).get("files") or []
     if raw_exit == 124:
-        reason = "audit timed out (540s)"
+        reason = "change check timed out (180s)"
+    elif verdict == "BLOCKED":
+        reason = f"{len(blocking)} blocking violation(s) in the changed files"
     elif verdict not in ACCEPTED:
         reason = f"verdict={verdict!r} is not an accepted verdict {sorted(ACCEPTED)}"
-    elif blocking:
-        reason = f"{len(blocking)} BLOCK-severity finding(s) (verdict {verdict})"
-    elif verdict == "PASS" and raw_exit != 0:
-        reason = f"verdict PASS but audit exited {raw_exit}"
-    elif verdict == "DEGRADED" and raw_exit not in (0, 1):
-        reason = f"verdict DEGRADED but audit exited {raw_exit}"
+        if data.get("error"):
+            reason += f": {str(data['error'])[:300]}"
+    elif raw_exit != 0:
+        reason = f"verdict {verdict} but the change check exited {raw_exit}"
 except Exception as exc:  # crash, missing or malformed JSON -> fail closed
-    reason = f"audit result unreadable ({type(exc).__name__}: {exc}); raw exit {raw_exit}"
+    reason = f"change check result unreadable ({type(exc).__name__}: {exc}); raw exit {raw_exit}"
 
 decision = "deny" if reason else "allow"
 entry = {
@@ -100,7 +110,9 @@ entry = {
     "command": cmd[:300],
     "verdict": verdict,
     "block_count": len(blocking),
-    "block_rules": sorted({str(f.get("check_id") or f.get("rule_id")) for f in blocking}),
+    "block_rules": sorted({str(f.get("rule_id")) for f in blocking}),
+    "check": "change_verdict",
+    "file_count": len(files),
     "raw_exit": raw_exit,
     "duration_sec": duration,
     "decision": decision,
@@ -112,9 +124,9 @@ with open(log_path, "a", encoding="utf-8") as fh:
 if reason:
     lines = [f"CORE verdict: commit refused — {reason} (audited {tree})."]
     for f in blocking[:10]:
-        lines.append(f"  - {f.get('check_id') or f.get('rule_id')}: {f.get('file_path')}:{f.get('line_number') or ''} — {str(f.get('message'))[:300]}")
+        lines.append(f"  - {f.get('rule_id')}: {f.get('file')}:{f.get('line') or ''} — {str(f.get('message'))[:300]}")
     if len(blocking) > 10:
-        lines.append(f"  … and {len(blocking) - 10} more (see var/experiments/adr168/last-audit.json)")
+        lines.append(f"  … and {len(blocking) - 10} more (see var/experiments/adr168/last-verdict.json)")
     lines.append("Fix the finding, or ask the governor; the governor can commit from their own shell.")
     print("\n".join(lines), file=sys.stderr)
     sys.exit(2)

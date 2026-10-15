@@ -4,7 +4,7 @@
 
 Producer feedback, not the authoritative audit: it says BLOCKED,
 CLEAR_IN_SCOPE, NO_CHANGES or NOT_EVALUATED, names every rule it did not
-evaluate, and never says PASS. ``code audit`` (the commit hook, CI) stays authoritative.
+evaluate, and never says PASS. ``code audit`` (CI) stays authoritative.
 Output is the same JSON the MCP tool ``change_verdict`` returns.
 """
 
