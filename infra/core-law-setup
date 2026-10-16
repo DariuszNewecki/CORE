@@ -56,6 +56,12 @@ What it does:
     act);
  6. ``/opt/core/law/{.intent,.specs}`` (ADR-132 D10.13): seeded once from
     the development tree, owned by core-law, under a root-owned parent;
+ 6b. ``/opt/core/law/private-names/``: the private-names hook's
+    configuration (process-governance-tool's privacy rule), seeded once from
+    the assistant's ``~/.config/core/private-names.conf`` and the names file
+    it names (only the assistant's own regular files), owned by core-law
+    (files 0644): the assistant reads it and cannot change or delete it;
+    kept on every later run (governor 2026-10-16);
  7. ``/etc/sudoers.d/core-law`` is removed: the merge is the only approval
     of law and core-law writes it on core-deploy's call, so no account may
     run core-law's ``law apply`` through sudo (ADR-068 amendment 2026-10-15:
@@ -148,6 +154,9 @@ class Layout:
     repo: Path = Path("/opt/dev/CORE")
     core_root: Path = Path("/opt/core")
     sudoers: Path = Path("/etc/sudoers.d/core-law")
+    # Where the assistant kept the private-names check's configuration before
+    # core-law took it over; read once, to seed.
+    private_names_seed: Path = Path("/home/core-claude/.config/core/private-names.conf")
     system_units: Path = Path("/etc/systemd/system")
     # The repository's parents are checked up to (not including) this one.
     ancestors_stop: Path = Path("/")
@@ -180,6 +189,10 @@ class Layout:
     @property
     def law_root(self) -> Path:
         return self.core_root / "law"
+
+    @property
+    def private_names(self) -> Path:
+        return self.law_root / "private-names"
 
     @property
     def current(self) -> Path:
@@ -853,6 +866,62 @@ class Setup:
                     self.host.chown(path, CUSTODIAN, CUSTODIAN)
                     os.chmod(path, 0o755 if path.is_dir() else 0o644)
 
+    # -- 6b. private names ---------------------------------------------------------
+
+    def private_names(self) -> None:
+        """The private-names hook's configuration, owned by core-law: the
+        assistant reads it and cannot change, rename or delete it (governor
+        2026-10-16). Seeded once from the assistant's own copy and the names
+        file it points to; kept on every later run."""
+        target = self.layout.private_names
+        conf = target / "private-names.conf"
+        self.say(f"6b. {target}: the private-names check's configuration")
+        if conf.exists():
+            for path in [target, *sorted(target.rglob("*"))]:
+                mode = 0o755 if path.is_dir() else 0o644
+                if self.host.owner(path) == (CUSTODIAN, CUSTODIAN) and (
+                    stat.S_IMODE(path.lstat().st_mode) == mode
+                ):
+                    continue
+                if self.act(f"make {path} core-law's, {mode:o}"):
+                    self.host.chown(path, CUSTODIAN, CUSTODIAN)
+                    os.chmod(path, mode)
+            self.say(f"  {conf.name}: kept")
+            return
+        seed = self.layout.private_names_seed
+        if not seed.is_file():
+            self.say(
+                f"  none: no {seed} to seed from; the assistant's commits and gh "
+                "writes stay refused until there is one"
+            )
+            return
+        values = {}
+        for line in seed.read_text(encoding="utf-8").splitlines():
+            if "=" in line and not line.lstrip().startswith("#"):
+                key, value = line.split("=", 1)
+                values[key.strip()] = value.strip()
+        names = Path(values["NAMES"]) if values.get("NAMES") else None
+        # Read as root: only the assistant's own regular files, never a link
+        # that would copy someone else's file somewhere the assistant reads.
+        for source in [seed, *([names] if names else [])]:
+            if source.is_symlink() or not source.is_file():
+                raise Refused(f"{source}: not a regular file; nothing seeded")
+            if self.host.owner(source)[0] != ASSISTANT:
+                raise Refused(f"{source}: not {ASSISTANT}'s; nothing seeded")
+        if not self.act(f"seed {target} from {seed}, owned by core-law"):
+            return
+        target.mkdir(mode=0o755, exist_ok=True)
+        if names:
+            shutil.copyfile(names, target / "names.txt", follow_symlinks=False)
+            values["NAMES"] = str(target / "names.txt")
+        conf.write_text(
+            "".join(f"{key}={value}\n" for key, value in values.items()),
+            encoding="utf-8",
+        )
+        for path in [target, *sorted(target.rglob("*"))]:
+            self.host.chown(path, CUSTODIAN, CUSTODIAN)
+            os.chmod(path, 0o755 if path.is_dir() else 0o644)
+
     # -- 7. sudoers --------------------------------------------------------------
 
     def sudoers(self) -> None:
@@ -963,6 +1032,7 @@ class Setup:
         self.ancestors()
         self.bypass_report()
         self.release_law()
+        self.private_names()
         self.sudoers()
         self.auto_apply_timers()
         self.probes()
