@@ -101,7 +101,23 @@ def resolve_default_repo_path() -> Path:
     a public API so the engine-side intent loaders can share it.
     """
     found = discover_law_root()
-    return found if found is not None else REPO_ROOT
+    return found if found is not None else fallback_repo_root()
+
+
+# ID: ea1f3e2d-f551-47f6-878d-a8e888df884e
+def fallback_repo_root(source_root: Path | None = None) -> Path:
+    """The repository when neither discovery nor REPO_PATH names one.
+
+    In a source tree that is the tree itself. In an installed wheel
+    ``source_root`` is ``<venv>/lib/python3.X`` — not a repository, and not
+    writable by anyone but the release's owner — so the working directory
+    decides instead (#1064): var/ must never be created inside the package.
+    ``source_root`` defaults to ``REPO_ROOT``.
+    """
+    root = source_root if source_root is not None else REPO_ROOT
+    if (root / "src" / "shared" / "config.py").is_file():
+        return root
+    return Path.cwd()
 
 
 # ID: 67c68ee8-6e04-4eaf-8d41-bc79e3a4d15a
@@ -177,7 +193,7 @@ class Settings(BaseSettings):
     CORE_ACTION_LOG_PATH: Path = Field(
         default_factory=lambda: (
             __import__("shared.path_resolver", fromlist=["PathResolver"])
-            .PathResolver.from_repo(REPO_ROOT)
+            .PathResolver.from_repo(fallback_repo_root())
             .logs_dir
             / "actions.jsonl"
         )
