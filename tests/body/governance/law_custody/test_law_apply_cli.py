@@ -41,3 +41,47 @@ def test_outside_a_repository_refuses_instead_of_crashing(
     assert result.exit_code == 1
     assert "REFUSED" in result.output and "--repo" in result.output
     assert result.exception is None or isinstance(result.exception, SystemExit)
+
+
+def test_an_applied_proposal_is_refused_before_anything_is_read_or_written(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """#1096: law apply refuses an id that already has a ledger line."""
+    import json
+
+    import cli.resources.law.apply as apply_mod
+
+    ledger = tmp_path / "custody" / "ledger.jsonl"
+    ledger.parent.mkdir()
+    ledger.write_text(
+        json.dumps(
+            {
+                "proposal": "0018-d2-release-runtime",
+                "approved_utc": "2026-10-15T09:22:47Z",
+                "approver": "auto:record-only",
+            }
+        )
+        + "\n"
+    )
+    monkeypatch.setenv("CORE_CUSTODY_LEDGER", str(ledger))
+    monkeypatch.setattr(apply_mod, "require_custodian", lambda env: "core-law")
+    monkeypatch.setattr(apply_mod, "get_repo_root", lambda start: tmp_path)
+    prepared: list[str] = []
+
+    def _prepare(**kw):
+        prepared.append(kw["proposal_id"])
+        raise apply_mod.ProposalError("stop here")
+
+    monkeypatch.setattr(apply_mod, "prepare", _prepare)
+
+    result = CliRunner().invoke(app, ["apply", "0018-d2-release-runtime", "--write"])
+    assert result.exit_code == 1
+    assert "already applied" in result.output
+    assert (
+        "2026-10-15T09:22:47Z" in result.output and "auto:record-only" in result.output
+    )
+    assert prepared == []  # refused before the proposal was even read
+
+    # An id with no ledger line goes on to be prepared as before.
+    CliRunner().invoke(app, ["apply", "0037-new"])
+    assert prepared == ["0037-new"]

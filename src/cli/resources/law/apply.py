@@ -202,6 +202,17 @@ async def law_apply(
             "tree (cd /opt/dev/CORE) or pass --repo."
         )
         raise typer.Exit(1)
+    # #1096: re-applying an applied proposal writes its old bytes over newer
+    # law (2026-10-15: nine deleted .specs files came back that way).
+    applied = _ledger_line(repo_root, proposal_id)
+    if applied is not None:
+        console.print(
+            f"[bold red]REFUSED -- nothing written:[/bold red] {proposal_id} is "
+            f"already applied (ledger line of {applied.get('approved_utc', '?')}, "
+            f"approver {applied.get('approver', '?')}). Law changes land as a "
+            "new proposal or a merged pull request."
+        )
+        raise typer.Exit(1)
     destinations = [repo_root]
     if release_law.is_dir():
         destinations.append(release_law)
@@ -259,15 +270,33 @@ async def law_apply(
     )
 
 
-def _applied_ids(repo_root: Path) -> set[str]:
+def _ledger_lines(repo_root: Path) -> list[dict]:
+    """The lines of the ledger of record (the durable ledger when the host
+    has one, otherwise the repository's own)."""
     ledger = ledger_file(repo_root)
     if not ledger.is_file():
-        return set()
-    ids: set[str] = set()
-    for line in ledger.read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            ids.add(json.loads(line).get("proposal", ""))
-    return ids
+        return []
+    return [
+        json.loads(line)
+        for line in ledger.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+
+def _applied_ids(repo_root: Path) -> set[str]:
+    return {line.get("proposal", "") for line in _ledger_lines(repo_root)}
+
+
+def _ledger_line(repo_root: Path, proposal_id: str) -> dict | None:
+    """The first ledger line that applied *proposal_id*, or None."""
+    return next(
+        (
+            line
+            for line in _ledger_lines(repo_root)
+            if line.get("proposal") == proposal_id
+        ),
+        None,
+    )
 
 
 @app.command("auto-apply")
