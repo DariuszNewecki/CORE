@@ -10,11 +10,14 @@ and the sandbox check.
 
 from __future__ import annotations
 
+import datetime
+import email.message
 import importlib.machinery
 import importlib.util
 import json
 import subprocess
 import sys
+import urllib.error
 from pathlib import Path
 from types import ModuleType
 
@@ -54,6 +57,12 @@ class FakeHost(cp.Host):
         self.ls_remote = 0
         self.api_heads = 0
         self.reviews: list[dict] = []
+        self.api_calls = 0
+        self.at = datetime.datetime(2026, 10, 15, 16, 55, tzinfo=datetime.UTC)
+        self.limited_until: datetime.datetime | None = None
+
+    def now(self):
+        return self.at
 
     def run(self, cmd):
         if cmd[:2] == ["git", "ls-remote"]:
@@ -71,6 +80,12 @@ class FakeHost(cp.Host):
         return subprocess.CompletedProcess(cmd, self.rc.get(key, 0), b"out", b"")
 
     def http(self, url, payload=None):
+        self.api_calls += 1
+        if self.limited_until is not None and self.at < self.limited_until:
+            headers = email.message.Message()
+            headers["X-RateLimit-Remaining"] = "0"
+            headers["X-RateLimit-Reset"] = str(int(self.limited_until.timestamp()))
+            raise urllib.error.HTTPError(url, 403, "rate limit exceeded", headers, None)
         if payload is not None:
             self.issues.append(payload)
             return {"html_url": "https://github.com/x/issues/1"}
@@ -338,4 +353,83 @@ def test_no_governor_approval_of_the_head_never_deploys(world, reviews) -> None:
     host.merger = "core-claude-bot"
     host.reviews = reviews
     assert _tick(world)["last"]["result"] == "skipped"
+    assert _privileged(host) == []
+
+
+def test_a_rate_limit_waits_for_its_reset_and_says_so(world) -> None:
+    """#1065, 2026-10-15: the unauthenticated limit ran out; every tick then
+    failed with HTTP 403 and the deploy stalled with state 'error'."""
+    host, _ = world
+    reset = host.at + datetime.timedelta(minutes=14)
+    host.limited_until = reset
+    status = _tick(world)
+    assert status["state"] == "rate limited"
+    assert status["until"] == reset.isoformat()
+    calls = host.api_calls
+    host.at += datetime.timedelta(minutes=2)
+    assert _tick(world)["state"] == "rate limited"
+    assert host.api_calls == calls  # waiting spends nothing
+    host.at = reset
+    assert _tick(world)["last"]["result"] == "live"
+    assert len(_privileged(host)) == 2
+
+
+def test_a_forbidden_call_that_is_not_the_rate_limit_stays_an_error(world) -> None:
+    host, _ = world
+
+    def forbidden(url, payload=None):
+        raise urllib.error.HTTPError(
+            url, 403, "Forbidden", email.message.Message(), None
+        )
+
+    host.http = forbidden  # type: ignore[method-assign]
+    assert _tick(world)["state"] == "error"
+
+
+def test_waiting_for_ci_costs_one_api_call_a_tick(world) -> None:
+    host, _ = world
+    host.runs = [{"status": "in_progress", "conclusion": None}]
+    _tick(world)
+    for _ in range(3):
+        before = host.api_calls
+        assert _tick(world)["state"] == "waiting for CI"
+        assert host.api_calls - before == 1
+
+
+def test_a_head_merged_by_someone_else_is_read_once(world) -> None:
+    """An auto-merge without the governor's approval was read again on every
+    tick: three calls each two minutes, more than the hourly limit."""
+    host, _ = world
+    host.merger = "core-claude-bot"
+    _tick(world)
+    before = host.api_calls
+    for _ in range(3):
+        assert _tick(world)["last"]["result"] == "skipped"
+    assert host.api_calls == before
+
+
+def test_a_head_no_pull_request_explains_is_dropped_after_the_settle_window(
+    world,
+) -> None:
+    host, _ = world
+    host.http = lambda url, payload=None: (  # type: ignore[method-assign]
+        [] if url.endswith("/pulls") else FakeHost.http(host, url, payload)
+    )
+    calls = 0
+    real_http = host.http
+
+    def counting(url, payload=None):
+        nonlocal calls
+        calls += 1
+        return real_http(url, payload)
+
+    host.http = counting  # type: ignore[method-assign]
+    _tick(world)
+    host.at += datetime.timedelta(minutes=10)
+    _tick(world)
+    assert calls == 2  # still settling: looked at again
+    host.at += cp.SETTLE
+    for _ in range(3):
+        assert _tick(world)["last"]["result"] == "skipped"
+    assert calls == 2
     assert _privileged(host) == []
