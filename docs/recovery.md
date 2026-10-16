@@ -82,7 +82,7 @@ What changed in the live VM before that backup, on 2026-10-16:
 
 "Same state as before" for this rerun, without anything recorded by hand:
 
-- `git -C /opt/dev/CORE rev-parse HEAD` on the clone equals `readlink /opt/core/current` on the clone
+- `runuser -l core-claude -c 'git -C /opt/dev/CORE rev-parse HEAD'` on the clone equals `readlink /opt/core/current` on the clone
   (the checkout follows the live release);
 - the clone's `/opt/core/custody/ledger.jsonl` is a prefix of the live VM's (lines added after 02:30
   are the only difference);
@@ -188,7 +188,7 @@ scheduled.
 3. Record the live commit (`readlink /opt/core/current`) and, for the check at the end, the
    pre-drill state:
    - `sha256sum /opt/core/custody/ledger.jsonl`;
-   - `git -C /opt/dev/CORE rev-parse HEAD`;
+   - `runuser -l core-claude -c 'git -C /opt/dev/CORE rev-parse HEAD'`;
    - the open-findings count from `core-admin runtime health`.
 4. Encrypt the archive and keep it off the host. The archive holds every secret CORE has.
 
@@ -245,4 +245,4 @@ neither. The checkout must be at the deployed commit, which every deploy now see
 | Services | `systemctl --user -M core@ status core-daemon core-api 'core-daemon-worker@*'` and `systemctl status core-sandbox.socket core-pipeline.timer core-law-auto-apply.timer core-law-digest.timer` | all active |
 | Sandbox | `sudo runuser -u core -- bash -c 'set -a; . /opt/core/etc/core.env; /opt/core/current/venv/bin/core-admin runtime sandbox-check --mode service'` | every row `passed` |
 | Pipeline | `core-admin runtime status` | the recorded commit is live |
-| Same state as before | `sha256sum /opt/core/custody/ledger.jsonl`, `git -C /opt/dev/CORE rev-parse HEAD`, the open-findings count from `core-admin runtime health` | equal to the values recorded at backup time |
+| Same state as before | `sha256sum /opt/core/custody/ledger.jsonl`, `runuser -l core-claude -c 'git -C /opt/dev/CORE rev-parse HEAD'`, the open-findings count from `core-admin runtime health` | equal to the values recorded at backup time |
