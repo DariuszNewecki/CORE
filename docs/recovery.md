@@ -41,7 +41,7 @@ the VM run as root through `qm guest exec <vmid> --`. The guest agent works on a
 | 4 | Drill clone only: `systemctl stop core-pipeline.timer core-law-auto-apply.timer core-law-digest.timer` | the backup restores them enabled ([#1090](https://github.com/DariuszNewecki/CORE/issues/1090)) |
 | 5 | Wait for PostgreSQL to finish crash recovery | about 2.5 minutes after boot |
 | 6 | `systemctl --user -M core@ restart core-api`, then check `curl http://127.0.0.1:8000/health` | needed until the API comes back by itself ([#1087](https://github.com/DariuszNewecki/CORE/issues/1087)). Without network, Qdrant is not reached until [#1088](https://github.com/DariuszNewecki/CORE/issues/1088) is fixed |
-| 7 | The checks in [Check the result](#check-the-result) | which user runs the audit: [#1089](https://github.com/DariuszNewecki/CORE/issues/1089) |
+| 7 | The checks in [Check the result](#check-the-result) | the audit and the law check run as `core-claude` ([#1089](https://github.com/DariuszNewecki/CORE/issues/1089)) |
 | 8 | Drill only: `qm stop <vmid> && qm destroy <vmid> --purge 1 --destroy-unreferenced-disks 1` | leaves no disks, config or job entries |
 
 ## Drill record: 2026-10-16
@@ -173,10 +173,22 @@ the same PR, and run the drill again. #1070 allows no undocumented fixes.
 
 ## Check the result
 
+The audit and the law check run as `core-claude`, with the dev checkout's own environment
+`/opt/dev/CORE/.venv` ([#1089](https://github.com/DariuszNewecki/CORE/issues/1089)). Run them as
+root with `runuser -l`, so that `core-claude`'s home and git settings apply. Other accounts fail:
+
+- `core-law`: git refuses the repository, which root owns ("dubious ownership").
+- The release's `core-admin` (`/opt/core/current/venv`): it audits its own installed CLI, not the
+  checkout's, and lacks `core-cli`, so the CLI checks block.
+
+`core-claude` can read neither `/opt/dev/CORE/.env` nor the secrets; the offline audit needs
+neither. The checkout must be at the deployed commit, which every deploy now sees to
+([#1063](https://github.com/DariuszNewecki/CORE/issues/1063)).
+
 | Check | Command | Healthy |
 |---|---|---|
-| Audit | `core-admin code audit --offline` in `/opt/dev/CORE` | PASS, or DEGRADED with 0 blocking findings |
-| Law | `core-admin law check-tree` in `/opt/dev/CORE` | exit 0 |
+| Audit | `runuser -l core-claude -c 'cd /opt/dev/CORE && .venv/bin/core-admin code audit --offline'` | PASS, or DEGRADED with 0 blocking findings |
+| Law | `runuser -l core-claude -c 'cd /opt/dev/CORE && .venv/bin/core-admin law check-tree'` | exit 0 |
 | Database | `core-admin database status` | exit 0 (current) |
 | API | `curl http://127.0.0.1:8000/health` | `{"status":"ok"}` |
 | Workers | `curl http://127.0.0.1:8000/v1/daemon/status` | every worker alive, recent heartbeat |
