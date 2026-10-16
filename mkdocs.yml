@@ -37,6 +37,7 @@ nav:
               - Run the full runtime: getting-started.md
               - Run a GRC gap analysis: grc-gap-analysis.md
               - Upgrade a CORE database: upgrading.md
+              - Recover a CORE install: recovery.md
       - Reference:
               - CLI overview: cli-reference.md
               - core-admin: reference/core-admin.md
