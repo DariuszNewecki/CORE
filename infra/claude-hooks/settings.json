@@ -9,6 +9,12 @@
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/core-verdict.sh",
             "timeout": 600,
             "statusMessage": "CORE verdict (ADR-168 D4.1 experiment)\u2026"
+          },
+          {
+            "type": "command",
+            "command": "python3 -I \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/core-private-names.py",
+            "timeout": 60,
+            "statusMessage": "Private library names check\u2026"
           }
         ]
       }
