@@ -40,7 +40,7 @@ the VM run as root through `qm guest exec <vmid> --`. The guest agent works on a
 | 3 | `qm start <vmid>`, then wait until `qm agent <vmid> ping` answers | |
 | 4 | Drill clone only, as soon as the agent answers: `systemctl stop core-pipeline.timer core-law-auto-apply.timer core-law-digest.timer` | see [Timers on a restored VM](#timers-on-a-restored-vm) |
 | 5 | Wait for PostgreSQL to finish crash recovery | about 2.5 minutes after boot |
-| 6 | `systemctl --user -M core@ restart core-api`, then check `curl http://127.0.0.1:8000/health` | needed until the API comes back by itself ([#1087](https://github.com/DariuszNewecki/CORE/issues/1087)). Without network, Qdrant is not reached until [#1088](https://github.com/DariuszNewecki/CORE/issues/1088) is fixed |
+| 6 | Wait until `curl http://127.0.0.1:8000/health` answers `{"status":"ok"}`. Do not restart anything | the API retries by itself while PostgreSQL recovers, at most a minute apart ([#1092](https://github.com/DariuszNewecki/CORE/pull/1092)); it reaches Qdrant on loopback, with or without network ([#1088](https://github.com/DariuszNewecki/CORE/issues/1088)) |
 | 7 | The checks in [Check the result](#check-the-result) | the audit and the law check run as `core-claude` ([#1089](https://github.com/DariuszNewecki/CORE/issues/1089)) |
 | 8 | Drill only: `qm stop <vmid> && qm destroy <vmid> --purge 1 --destroy-unreferenced-disks 1` | leaves no disks, config or job entries |
 
@@ -58,6 +58,36 @@ because that would mean editing the VM's disk from `pve` ([#1090](https://github
 - **Real restore (replaces VM 200):** leave them enabled. The restored VM is CORE again, and the
   pipeline then deploys what was merged after the backup. The Services check confirms they are
   active.
+
+## Rerun: 2026-10-17
+
+The rerun restores the nightly backup of 2026-10-17 02:30, `vzdump-qemu-200-2026_10_17-02_30_*.vma.zst`,
+with the restore steps above and nothing else. It is a clean pass when:
+
+- step 6 needs no restart and no address alias: the proof for [#1092](https://github.com/DariuszNewecki/CORE/pull/1092) and [#1088](https://github.com/DariuszNewecki/CORE/issues/1088);
+- every row in [Check the result](#check-the-result) is healthy, the audit included: PASS, with the
+  user and command named there;
+- the data check finds `core.blackboard_entries` rows up to the backup's start;
+- no step needs a fix that is not written on this page.
+
+What changed in the live VM before that backup, on 2026-10-16:
+
+- The dev checkout follows each deploy ([#1063](https://github.com/DariuszNewecki/CORE/issues/1063)). The 3f3ab7fa deploy moved it from 354d17fd;
+  its offline audit is PASS and `law check-tree` exits 0.
+- Nine stale `.specs/` files and a duplicate custody line were removed from `/opt/dev/CORE` and
+  `/opt/core/law` (host admin, once). They came from proposals that predate main's deletions.
+- All 36 law proposals are superseded by main and moved to `/opt/dev/CORE/var/law-proposals-withdrawn/`,
+  so neither `law apply` nor the timer can apply one again ([#1096](https://github.com/DariuszNewecki/CORE/issues/1096) adds the guard).
+- `QDRANT_URL` is moved to loopback by core-runtime-setup ([#1088](https://github.com/DariuszNewecki/CORE/issues/1088)).
+
+"Same state as before" for this rerun, without anything recorded by hand:
+
+- `git -C /opt/dev/CORE rev-parse HEAD` on the clone equals `readlink /opt/core/current` on the clone
+  (the checkout follows the live release);
+- the clone's `/opt/core/custody/ledger.jsonl` is a prefix of the live VM's (lines added after 02:30
+  are the only difference);
+- the open-findings count from `core-admin runtime health` is compared with the live VM's; a
+  difference must be explained by work after 02:30.
 
 ## Drill record: 2026-10-16
 
@@ -97,12 +127,15 @@ because that would mean editing the VM's disk from `pve` ([#1090](https://github
    affected: on 2026-10-16 at 13:44 the live VM rebooted, and the API answered after 64 s with 0
    restarts. [#1092](https://github.com/DariuszNewecki/CORE/pull/1092) fixes it; the #1070 rerun
    is the proof.
-3. `QDRANT_URL` points at the VM's LAN address, not loopback ([#1088](https://github.com/DariuszNewecki/CORE/issues/1088)).
-4. The audit is DEGRADED because three `.intent/` files that core-law changed on 2026-10-15 are
-   uncommitted ([#1063](https://github.com/DariuszNewecki/CORE/issues/1063)). The restore did not cause this; the live checkout shows the same.
-5. No single user and command run the offline audit on a restored host ([#1089](https://github.com/DariuszNewecki/CORE/issues/1089)).
+3. `QDRANT_URL` pointed at the VM's LAN address, not loopback ([#1088](https://github.com/DariuszNewecki/CORE/issues/1088)). Fixed: core-runtime-setup
+   moves it to loopback.
+4. The audit was DEGRADED because three `.intent/` files that core-law changed on 2026-10-15 were
+   uncommitted ([#1063](https://github.com/DariuszNewecki/CORE/issues/1063)). The restore did not cause this; the live checkout showed the same.
+   Fixed: each deploy moves the checkout to the deployed commit.
+5. No single user and command ran the offline audit on a restored host ([#1089](https://github.com/DariuszNewecki/CORE/issues/1089)). Fixed: `core-claude`
+   with the checkout's `.venv`, see [Check the result](#check-the-result).
 6. A restored VM starts with every timer enabled. On the isolated clone, the pipeline ran once and
-   failed on DNS ([#1090](https://github.com/DariuszNewecki/CORE/issues/1090)).
+   failed on DNS ([#1090](https://github.com/DariuszNewecki/CORE/issues/1090)). Settled: see [Timers on a restored VM](#timers-on-a-restored-vm).
 7. The clone was capped at 12 GB and 8 cores because the host had about 28 GB free, so it did not
    match production (24 GB, 12 cores).
 
@@ -126,7 +159,7 @@ holds all of them; the last column says what else exists.
 | Pipeline config | `/etc/core/pipeline.conf` | rebuildable | core-one-path-setup writes it |
 | Pipeline token | `/etc/core/pipeline-github-token` (optional) | re-issuable | nightly VM backup; it can also be issued again on GitHub |
 | Private-names config | `/opt/core/law/private-names/` (`private-names.conf`, `names.txt`) | unique | nightly VM backup. Without it, the assistant's commits and gh writes are refused |
-| On-disk history | `/opt/dev/CORE/var/law-proposals/`, `/var/lib/core-pipeline/logs/`, `/opt/dev/CORE/.intent/keys/` | unique | nightly VM backup |
+| On-disk history | `/opt/dev/CORE/var/law-proposals/`, `/opt/dev/CORE/var/law-proposals-withdrawn/`, `/var/lib/core-pipeline/logs/`, `/opt/dev/CORE/.intent/keys/` | unique | nightly VM backup |
 | Releases | `/opt/core/releases/<sha>/`, `/opt/core/current` | rebuildable | core-deploy builds them by SHA |
 | Custodian venv | `/opt/core-law/venv` | rebuildable | core-law-setup installs it from the live release (its second run on a fresh host) |
 | Service units | core's user units in `~core/.config/systemd/user/` (sources in `infra/systemd/d2/`); system units in `/etc/systemd/system/`: the sandbox units (`infra/systemd/sandbox/`), the pipeline and law timers (generated by `infra/core-one-path-setup` and `infra/core-law-setup`) | rebuildable | the setup scripts write them |
@@ -150,7 +183,8 @@ scheduled.
    - `/opt/core-law/home/.ssh/`;
    - `/opt/core/law/private-names/`;
    - `/etc/core/pipeline-github-token` (if present);
-   - `/opt/dev/CORE/var/law-proposals/`, `/var/lib/core-pipeline/`.
+   - `/opt/dev/CORE/var/law-proposals/`, `/opt/dev/CORE/var/law-proposals-withdrawn/`,
+     `/var/lib/core-pipeline/`.
 3. Record the live commit (`readlink /opt/core/current`) and, for the check at the end, the
    pre-drill state:
    - `sha256sum /opt/core/custody/ledger.jsonl`;
@@ -179,7 +213,7 @@ Write each step's start and end time in the drill record. The total is the time 
 | 9 | `sudo core-deploy <sha>` (core-runtime-setup installed it): builds the release, switches `/opt/core/current`, starts the services | host admin (darek, outside CORE) runs it; the units then run as `core` |
 | 10 | `sudo /opt/dev/CORE/infra/core-law-setup --governor core-darek --apply` again: it installs the custodian venv from the live release and the law timers | host admin (darek, outside CORE) |
 | 11 | `sudo bash /opt/dev/CORE/infra/core-one-path-setup --ref <sha>`: the pipeline account, `/etc/core/pipeline.conf`, the timer, `BACKUP_COMMAND` if missing. Restore `/etc/core/pipeline-github-token` if one is used | host admin (darek, outside CORE) runs it; the timer runs as `core-runner` |
-| 12 | Restore `/opt/core/deploy-ledger.jsonl`, `/opt/dev/CORE/var/law-proposals/` and `/var/lib/core-pipeline/` from the backup | host admin (darek, outside CORE) |
+| 12 | Restore `/opt/core/deploy-ledger.jsonl`, `/opt/dev/CORE/var/law-proposals/`, `/opt/dev/CORE/var/law-proposals-withdrawn/` and `/var/lib/core-pipeline/` from the backup | host admin (darek, outside CORE) |
 | 13 | Check the result (next section) | host admin (darek, outside CORE) runs the root checks; `core` runs the rest |
 | 14 | Destroy the VM: `qm stop <drill-vmid>`, then `qm destroy <drill-vmid> --purge`. Delete the decrypted backup copy | host admin (darek, outside CORE) |
 
@@ -205,6 +239,7 @@ neither. The checkout must be at the deployed commit, which every deploy now see
 | Audit | `runuser -l core-claude -c 'cd /opt/dev/CORE && .venv/bin/core-admin code audit --offline'` | PASS, or DEGRADED with 0 blocking findings |
 | Law | `runuser -l core-claude -c 'cd /opt/dev/CORE && .venv/bin/core-admin law check-tree'` | exit 0 |
 | Database | `core-admin database status` | exit 0 (current) |
+| Data | `docker exec core_postgres_db psql -U <db-user> -d <db-name> -Atc "select max(created_at) from core.blackboard_entries"` (user and database from `DATABASE_URL` in `/opt/core/etc/secrets.env`) | a time within minutes before the backup started |
 | API | `curl http://127.0.0.1:8000/health` | `{"status":"ok"}` |
 | Workers | `curl http://127.0.0.1:8000/v1/daemon/status` | every worker alive, recent heartbeat |
 | Services | `systemctl --user -M core@ status core-daemon core-api 'core-daemon-worker@*'` and `systemctl status core-sandbox.socket core-pipeline.timer core-law-auto-apply.timer core-law-digest.timer` | all active |
