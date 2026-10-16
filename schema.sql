@@ -6664,4 +6664,5 @@ INSERT INTO core._migrations (id, reconciled) VALUES ('20261005_adr169_state_obs
 INSERT INTO core._migrations (id, reconciled) VALUES ('20261005b_adr169_cycle_trigger.sql', false);
 INSERT INTO core._migrations (id, reconciled) VALUES ('20261005c_adr169_changes_and_outside_writes.sql', false);
 INSERT INTO core._migrations (id, reconciled) VALUES ('20261012_approver_original.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20261016_1105_remove_test_worker_rows.sql', false);
 -- CORE-LEDGER-SEED-END
