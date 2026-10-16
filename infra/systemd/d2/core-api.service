@@ -6,8 +6,10 @@
 Description=CORE API Server (loopback only, release runtime)
 After=network.target core-daemon.service
 PartOf=core-daemon.service
-StartLimitBurst=5
-StartLimitIntervalSec=300
+# Never give up restarting (#1087): after a cold boot the database can need
+# minutes of crash recovery (2.5 min in the 2026-10-16 drill), longer than any
+# start limit of a few tries. The restart delay grows instead (below).
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
@@ -21,8 +23,12 @@ ExecStart=/opt/core/current/venv/bin/python -I -m api.serve \
     --host 127.0.0.1 \
     --port 8000 \
     --log-level info
+# api.serve exits 3 when startup fails (the database not up yet), so
+# on-failure restarts it: 5 s at first, growing to one try a minute.
 Restart=on-failure
 RestartSec=5
+RestartSteps=5
+RestartMaxDelaySec=60
 NoNewPrivileges=yes
 UMask=0027
 StandardOutput=journal

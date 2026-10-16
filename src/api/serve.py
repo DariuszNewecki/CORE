@@ -41,6 +41,8 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 PEER_CRED_EXTENSION = "peer_cred"
+# uvicorn's exit code for a failed startup (uvicorn.main.STARTUP_FAILURE).
+STARTUP_FAILURE = 3
 _UCRED = struct.Struct("3i")
 
 
@@ -118,8 +120,14 @@ def build_config(app: Any = "api.main:app", log_level: str = "info") -> uvicorn.
 
 
 # ID: d1afafa9-7a13-4904-8263-2978ded03074
-def main(argv: list[str] | None = None) -> None:
-    """Serve the API on TCP (user-facing) and a Unix socket (identity-bearing)."""
+def main(argv: list[str] | None = None, app: Any = "api.main:app") -> None:
+    """Serve the API on TCP (user-facing) and a Unix socket (identity-bearing).
+
+    A startup that fails (the database not up yet after a boot, #1087) exits
+    with uvicorn's own code 3, not 0: ``Server.run`` returns quietly when the
+    lifespan startup fails (only ``uvicorn.run`` turns that into an exit
+    code), and systemd's ``Restart=on-failure`` never restarts an exit 0.
+    """
     parser = argparse.ArgumentParser(prog="python -m api.serve")
     parser.add_argument("--uds", type=Path, required=True)
     parser.add_argument("--host", default="127.0.0.1")
@@ -129,7 +137,13 @@ def main(argv: list[str] | None = None) -> None:
 
     sockets = [bind_tcp_socket(args.host, args.port), bind_unix_socket(args.uds)]
     logger.info("core-api listening on %s:%d and %s", args.host, args.port, args.uds)
-    uvicorn.Server(build_config(log_level=args.log_level)).run(sockets=sockets)
+    server = uvicorn.Server(build_config(app, log_level=args.log_level))
+    server.run(sockets=sockets)
+    if not server.started:
+        logger.error(
+            "core-api did not start; exiting %d so systemd restarts it", STARTUP_FAILURE
+        )
+        raise SystemExit(STARTUP_FAILURE)
 
 
 if __name__ == "__main__":
