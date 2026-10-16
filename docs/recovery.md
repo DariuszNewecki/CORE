@@ -38,11 +38,26 @@ the VM run as root through `qm guest exec <vmid> --`. The guest agent works on a
 | 1 | `qmrestore <archive> <vmid> --storage ZFS-pool --unique 1` | a drill uses a new `<vmid>`; a real restore replaces VM 200 |
 | 2 | Before the first boot: `qm set <vmid> --delete ide2,cicustom,ipconfig0,nameserver,searchdomain` (remove the cloud-init drive). A drill clone also gets `qm set <vmid> --net0 <…>,link_down=1 --onboot 0` | without step 2, cloud-init would run its setup again: reset passwords, upgrade packages, re-own `/mnt/vector_db`. The drill clone must not reach the network next to the live VM |
 | 3 | `qm start <vmid>`, then wait until `qm agent <vmid> ping` answers | |
-| 4 | Drill clone only: `systemctl stop core-pipeline.timer core-law-auto-apply.timer core-law-digest.timer` | the backup restores them enabled ([#1090](https://github.com/DariuszNewecki/CORE/issues/1090)) |
+| 4 | Drill clone only, as soon as the agent answers: `systemctl stop core-pipeline.timer core-law-auto-apply.timer core-law-digest.timer` | see [Timers on a restored VM](#timers-on-a-restored-vm) |
 | 5 | Wait for PostgreSQL to finish crash recovery | about 2.5 minutes after boot |
 | 6 | `systemctl --user -M core@ restart core-api`, then check `curl http://127.0.0.1:8000/health` | needed until the API comes back by itself ([#1087](https://github.com/DariuszNewecki/CORE/issues/1087)). Without network, Qdrant is not reached until [#1088](https://github.com/DariuszNewecki/CORE/issues/1088) is fixed |
 | 7 | The checks in [Check the result](#check-the-result) | the audit and the law check run as `core-claude` ([#1089](https://github.com/DariuszNewecki/CORE/issues/1089)) |
 | 8 | Drill only: `qm stop <vmid> && qm destroy <vmid> --purge 1 --destroy-unreferenced-disks 1` | leaves no disks, config or job entries |
+
+### Timers on a restored VM
+
+The backup restores three timers enabled: `core-pipeline` (deploys merged commits, first run 2
+minutes after boot), `core-law-auto-apply` (applies record-only law, first run 5 minutes after
+boot) and `core-law-digest` (a daily read-only digest). They are not stopped before the first boot,
+because that would mean editing the VM's disk from `pve` ([#1090](https://github.com/DariuszNewecki/CORE/issues/1090)).
+
+- **Drill clone:** step 2 takes its network down before the first boot. The pipeline cannot reach
+  GitHub, so it can neither fetch nor deploy, and law auto-apply writes only the clone's own disk,
+  which step 8 destroys. Step 4 stops all three as soon as the guest agent answers (about 40 s
+  after boot), before the first one is due. They are not started again: the clone is destroyed.
+- **Real restore (replaces VM 200):** leave them enabled. The restored VM is CORE again, and the
+  pipeline then deploys what was merged after the backup. The Services check confirms they are
+  active.
 
 ## Drill record: 2026-10-16
 
