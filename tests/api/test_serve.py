@@ -7,6 +7,8 @@ import asyncio
 import os
 import socket
 import stat
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -17,9 +19,11 @@ from fastapi import FastAPI, Request
 
 from api.serve import (
     PEER_CRED_EXTENSION,
+    STARTUP_FAILURE,
     bind_tcp_socket,
     bind_unix_socket,
     build_config,
+    main,
     read_peer_cred,
 )
 
@@ -103,3 +107,42 @@ def test_read_peer_cred_ignores_non_unix_sockets() -> None:
     assert read_peer_cred(None) is None
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp:
         assert read_peer_cred(tcp) is None
+
+
+def _database_down_app() -> FastAPI:
+    """An app whose startup fails the way core's does before PostgreSQL is up."""
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        raise ConnectionRefusedError("database not ready")
+        yield  # pragma: no cover
+
+    return FastAPI(lifespan=lifespan)
+
+
+def test_a_failed_startup_exits_non_zero_so_systemd_restarts_it(
+    short_dir: Path,
+) -> None:
+    # #1087: Server.run returns quietly when startup fails; exit 0 meant
+    # Restart=on-failure never fired and the API stayed down after a boot.
+    argv = [
+        "--uds",
+        str(short_dir / "api.sock"),
+        "--port",
+        "0",
+        "--log-level",
+        "critical",
+    ]
+    with pytest.raises(SystemExit) as exit_info:
+        main(argv, app=_database_down_app())
+    assert exit_info.value.code == STARTUP_FAILURE != 0
+
+
+def test_a_server_that_started_returns_normally(
+    short_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def started_then_stopped(self: uvicorn.Server, sockets: Any = None) -> None:
+        self.started = True
+
+    monkeypatch.setattr(uvicorn.Server, "run", started_then_stopped)
+    main(["--uds", str(short_dir / "api.sock"), "--port", "0"], app=_whoami_app())
