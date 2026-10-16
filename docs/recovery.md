@@ -76,7 +76,12 @@ the VM run as root through `qm guest exec <vmid> --`. The guest agent works on a
 
 1. A restored clone would run cloud-init's setup again. Removing the cloud-init drive before the
    first boot is now step 2 of the restore.
-2. The API does not come back by itself after a cold boot: it starts before PostgreSQL is ready, exits 0, and `Restart=on-failure` does not restart it ([#1087](https://github.com/DariuszNewecki/CORE/issues/1087)). This affects the live VM after any host reboot too.
+2. The API did not come back by itself when PostgreSQL started slowly, as after a restore or a
+   power loss: it started before PostgreSQL was ready, exited 0, and `Restart=on-failure` did not
+   restart it ([#1087](https://github.com/DariuszNewecki/CORE/issues/1087)). A clean reboot is not
+   affected: on 2026-10-16 at 13:44 the live VM rebooted, and the API answered after 64 s with 0
+   restarts. [#1092](https://github.com/DariuszNewecki/CORE/pull/1092) fixes it; the #1070 rerun
+   is the proof.
 3. `QDRANT_URL` points at the VM's LAN address, not loopback ([#1088](https://github.com/DariuszNewecki/CORE/issues/1088)).
 4. The audit is DEGRADED because three `.intent/` files that core-law changed on 2026-10-15 are
    uncommitted ([#1063](https://github.com/DariuszNewecki/CORE/issues/1063)). The restore did not cause this; the live checkout shows the same.
