@@ -19,10 +19,14 @@ So does anything the hook cannot check: a body read from stdin, an
 unreadable body file, a missing enforcer or an enforcer that fails.
 
 Configuration, KEY=VALUE, one repository per file, in
-$CORE_PRIVATE_NAMES_CONF or ~/.config/core/private-names.conf:
-GITHUB_REPO (owner/name), CHECKOUT (a local clone), LIBRARY (the private
-library) and optionally NAMES (people named only inside documents). No file:
-this host holds no private library and the hook passes everything.
+/opt/core/law/private-names/private-names.conf (CORE_PRIVATE_NAMES_CONF in
+tests): GITHUB_REPO (owner/name), CHECKOUT (a local clone), LIBRARY (the
+private library) and optionally NAMES (people named only inside documents).
+It is core-law's (core-law-setup seeds it), so the assistant can read it but
+not change, rename or delete it. On a CORE host (a live /opt/core/current) a
+missing file blocks every commit and gh write: deleting the configuration
+must not switch the check off (governor 2026-10-16). Elsewhere the hook
+passes everything.
 
 Scope, honestly: like core-verdict.sh this governs the assistant's commands
 only; commands built by hand-quoting (bash -c, eval, xargs) are out of scope.
@@ -57,6 +61,9 @@ _API_WRITES = re.compile(
 _FILE_OPTIONS = {"--body-file", "--input"}
 _FIELD_OPTIONS = {"-F", "--field"}
 _MAX_UNTRACKED = 1_000_000
+# Owned by core-law (core-law-setup seeds it): the assistant reads it and
+# cannot change, rename or delete it.
+DEFAULT_CONF = "/opt/core/law/private-names/private-names.conf"
 
 
 def _refuse(message: str) -> int:
@@ -65,10 +72,7 @@ def _refuse(message: str) -> int:
 
 
 def _conf() -> dict[str, str] | None:
-    path = Path(
-        os.environ.get("CORE_PRIVATE_NAMES_CONF")
-        or Path.home() / ".config" / "core" / "private-names.conf"
-    )
+    path = Path(os.environ.get("CORE_PRIVATE_NAMES_CONF") or DEFAULT_CONF)
     if not path.is_file():
         return None
     out = {}
@@ -77,6 +81,11 @@ def _conf() -> dict[str, str] | None:
             key, value = line.split("=", 1)
             out[key.strip()] = os.path.expanduser(value.strip())
     return out
+
+
+def _core_host() -> bool:
+    """A host CORE is deployed on (it has a live release)."""
+    return Path(os.environ.get("CORE_ROOT", "/opt/core"), "current").exists()
 
 
 def _git(tree: str, *args: str) -> subprocess.CompletedProcess[str]:
@@ -183,12 +192,6 @@ def _check(conf: dict[str, str], text: str, where: str, scratch: str) -> int:
 
 def main() -> int:
     raw = sys.stdin.read()
-    conf = _conf()
-    if conf is None:
-        return 0
-    missing = [k for k in ("GITHUB_REPO", "CHECKOUT", "LIBRARY") if not conf.get(k)]
-    if missing:
-        return _refuse(f"private-names.conf lacks {', '.join(missing)}")
     try:
         payload = json.loads(raw)
         command = payload["tool_input"]["command"]
@@ -196,14 +199,32 @@ def main() -> int:
     except (ValueError, KeyError, TypeError) as exc:
         return _refuse(f"unreadable hook payload ({type(exc).__name__})")
     repo = os.environ.get("CLAUDE_PROJECT_DIR", "/opt/dev/CORE")
-    scratch = Path(repo, "var", "tmp")
-    scratch.mkdir(parents=True, exist_ok=True)
-    target = _common_dir(conf["CHECKOUT"])
-
     try:
         trees = _commit_trees(raw, repo)
     except RuntimeError as exc:
         return _refuse(f"could not tell where the command commits ({exc})")
+    gh_write = bool(
+        _GH_WRITE.search(command)
+        or (_GH_API.search(command) and _API_WRITES.search(command))
+    )
+    if not trees and not gh_write:
+        return 0
+
+    conf = _conf()
+    if conf is None:
+        if _core_host():
+            where = os.environ.get("CORE_PRIVATE_NAMES_CONF") or DEFAULT_CONF
+            return _refuse(
+                f"no {where}; core-law-setup installs it (governor 2026-10-16)"
+            )
+        return 0
+    missing = [k for k in ("GITHUB_REPO", "CHECKOUT", "LIBRARY") if not conf.get(k)]
+    if missing:
+        return _refuse(f"private-names.conf lacks {', '.join(missing)}")
+    scratch = Path(repo, "var", "tmp")
+    scratch.mkdir(parents=True, exist_ok=True)
+    target = _common_dir(conf["CHECKOUT"])
+
     for tree in trees:
         if target and _common_dir(tree) == target:
             status = _check(
@@ -212,18 +233,13 @@ def main() -> int:
             if status:
                 return status
 
-    if _GH_WRITE.search(command) or (
-        _GH_API.search(command) and _API_WRITES.search(command)
-    ):
-        if _aims_at(command, cwd, conf):
-            try:
-                files = _body_files(command, cwd)
-                bodies = [f.read_text(encoding="utf-8") for f in files]
-            except (OSError, ValueError) as exc:
-                return _refuse(str(exc))
-            return _check(
-                conf, "\n".join([command, *bodies]), "this gh text", str(scratch)
-            )
+    if gh_write and _aims_at(command, cwd, conf):
+        try:
+            files = _body_files(command, cwd)
+            bodies = [f.read_text(encoding="utf-8") for f in files]
+        except (OSError, ValueError) as exc:
+            return _refuse(str(exc))
+        return _check(conf, "\n".join([command, *bodies]), "this gh text", str(scratch))
     return 0
 
 

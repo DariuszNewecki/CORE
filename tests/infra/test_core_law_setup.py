@@ -163,6 +163,7 @@ def world(tmp_path: Path) -> tuple[FakeHost, object]:
         sudoers=tmp_path / "etc" / "sudoers.d" / "core-law",
         system_units=tmp_path / "etc" / "systemd" / "system",
         ancestors_stop=tmp_path,
+        private_names_seed=tmp_path / "home" / "core-claude" / "private-names.conf",
     )
     layout.sudoers.parent.mkdir(parents=True)
     layout.system_units.mkdir(parents=True)
@@ -522,3 +523,70 @@ def test_auto_apply_timers_are_left_alone_on_a_rerun(world) -> None:
     host.calls.clear()
     assert _main(world, "--apply") == 0
     assert not [c for c in host.calls if c[0][:2] == ["systemctl", "daemon-reload"]]
+
+
+def _private_seed(world, *, owner: str = "core-claude") -> Path:
+    """The assistant's own copy of the private-names configuration."""
+    host, layout = world
+    seed = layout.private_names_seed
+    seed.parent.mkdir(parents=True)
+    names = seed.parent / "names.txt"
+    names.write_text("Osric Pell\n")
+    seed.write_text(
+        f"GITHUB_REPO=o/tool\nCHECKOUT=/opt/dev/tool\nLIBRARY=/opt/dev/lib\nNAMES={names}\n"
+    )
+    host.owners[seed] = host.owners[names] = (owner, owner)
+    return names
+
+
+def test_private_names_are_seeded_once_and_owned_by_core_law(world) -> None:
+    host, layout = world
+    _private_seed(world)
+    assert _main(world, "--apply") == 0
+    target = layout.private_names
+    conf = (target / "private-names.conf").read_text()
+    assert f"NAMES={target / 'names.txt'}\n" in conf
+    assert "LIBRARY=/opt/dev/lib\n" in conf
+    assert (target / "names.txt").read_text() == "Osric Pell\n"
+    for path in (target, target / "private-names.conf", target / "names.txt"):
+        assert host.owners[path] == ("core-law", "core-law")
+    assert _mode(target) == 0o755 and _mode(target / "names.txt") == 0o644
+    assert host.owners[layout.law_root] == ("root", "root")
+    # Kept on a re-run: a changed seed does not replace core-law's copy.
+    layout.private_names_seed.write_text("GITHUB_REPO=o/other\n")
+    assert _main(world, "--apply") == 0
+    assert "GITHUB_REPO=o/tool\n" in (target / "private-names.conf").read_text()
+
+
+def test_private_names_plan_only_seeds_nothing(world) -> None:
+    _, layout = world
+    _private_seed(world)
+    assert _main(world) == 0
+    assert not layout.private_names.exists()
+
+
+def test_a_private_names_seed_that_is_not_the_assistants_is_refused(world) -> None:
+    host, layout = world
+    names = _private_seed(world)
+    host.owners[names] = ("root", "root")  # e.g. NAMES=/etc/shadow
+    assert _main(world, "--apply") == 1
+    assert not (layout.private_names / "private-names.conf").exists()
+
+
+def test_a_private_names_seed_that_is_a_link_is_refused(world) -> None:
+    host, layout = world
+    names = _private_seed(world)
+    names.unlink()
+    names.symlink_to(layout.repo / ".env")
+    host.owners[names] = ("core-claude", "core-claude")
+    assert _main(world, "--apply") == 1
+    assert not (layout.private_names / "private-names.conf").exists()
+
+
+def test_without_a_seed_nothing_is_made_and_the_run_still_succeeds(
+    world, capsys
+) -> None:
+    _, layout = world
+    assert _main(world, "--apply") == 0
+    assert not layout.private_names.exists()
+    assert "stay refused until there is one" in capsys.readouterr().out

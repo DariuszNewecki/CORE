@@ -74,11 +74,20 @@ def host(tmp_path: Path) -> dict[str, Path]:
 
 
 def _hook(
-    host: dict[str, Path], command: str, cwd: Path | None = None, conf: bool = True
+    host: dict[str, Path],
+    command: str,
+    cwd: Path | None = None,
+    conf: bool = True,
+    core_host: bool = False,
 ) -> subprocess.CompletedProcess[str]:
+    core_root = host["tmp"] / "opt-core"
+    if core_host:
+        (core_root / "current").mkdir(parents=True, exist_ok=True)
     env = {
         **os.environ,
         "CLAUDE_PROJECT_DIR": str(host["dev"]),
+        # Hermetic: this host's own /opt/core never decides a test.
+        "CORE_ROOT": str(core_root),
         "CORE_PRIVATE_NAMES_CONF": str(host["conf"] if conf else host["tmp"] / "none"),
         "CORE_PRIVATE_NAMES_PYTHON": sys.executable,
     }
@@ -95,9 +104,25 @@ def _hook(
 
 
 # ID: 890275f4-3414-4891-9a6e-c833481f8098
-def test_a_host_without_a_private_library_passes_everything(host) -> None:
+def test_a_host_without_core_or_a_private_library_passes_everything(host) -> None:
     command = "gh issue create -R owner/pgt-tool --body 'Quarry_Plan'"
     assert _hook(host, command, conf=False).returncode == 0
+
+
+# ID: bfa9cf22-0bb7-4da9-b5db-240c5445f659
+def test_on_a_core_host_a_missing_configuration_blocks_commits_and_gh_writes(
+    host,
+) -> None:
+    for command in (
+        "git commit -m x",
+        "gh issue create -R owner/other --body hi",
+        "gh api repos/owner/other/issues -f title=x",
+    ):
+        refused = _hook(host, command, conf=False, core_host=True)
+        assert refused.returncode == 2, command
+        assert "core-law-setup installs it" in refused.stderr
+    for command in ("git status", "gh issue view 1", "ls"):
+        assert _hook(host, command, conf=False, core_host=True).returncode == 0, command
 
 
 # ID: c8038ebf-a57e-41b8-92b6-dc49b0a65ae2
