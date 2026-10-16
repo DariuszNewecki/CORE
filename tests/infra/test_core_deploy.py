@@ -323,7 +323,11 @@ def _with_previous(root: Path) -> None:
 def _deploy(root: Path, host: FakeHost, *extra: str) -> int:
     sbin = root / "sbin"
     sbin.mkdir(exist_ok=True)
-    return cd.main([SHA, "--root", str(root), "--sbin", str(sbin), *extra], host=host)
+    # No dev checkout: the host's own /opt/dev/CORE never takes part.
+    dev = ["--dev-repo", str(root / "no-dev-checkout")]
+    return cd.main(
+        [SHA, "--root", str(root), "--sbin", str(sbin), *dev, *extra], host=host
+    )
 
 
 def _current(root: Path) -> str | None:
@@ -1020,3 +1024,109 @@ def test_a_source_without_settings_leaves_claude_alone(root: Path) -> None:
     host.claude_source = {"core-verdict.sh": b"older verdict\n"}
     assert _deploy(root, host, "--dev-repo", str(dev)) == 0
     assert host.law_runs == []
+
+
+# -- 8a. the dev checkout follows the deploy (#1063) ----------------------------
+
+
+class DevGitHost(FakeHost):
+    """FakeHost whose git in the dev checkout is real git (the account ignored)."""
+
+    def __init__(self, root: Path, dev: Path) -> None:
+        super().__init__(root)
+        self.dev = dev
+
+    def run(self, cmd, *, user=None, input=None, check=True):
+        if cmd[:3] != ["git", "-C", str(self.dev)]:
+            return super().run(cmd, user=user, input=input, check=check)
+        self.calls.append((user, list(cmd)))
+        result = subprocess.run(cmd, input=input, capture_output=True)
+        if check and result.returncode:
+            raise cd.Refused(result.stderr.decode())
+        return result
+
+
+def _git(dev: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(dev), *args], check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+
+def _dev_checkout(tmp_path: Path) -> tuple[Path, str, str]:
+    """A dev checkout at commit A; commit B changes code and governed text."""
+    dev = tmp_path / "dev"
+    (dev / "src").mkdir(parents=True)
+    (dev / ".intent").mkdir()
+    _git(dev.parent, "init", "-q", "-b", "main", str(dev))
+    _git(dev, "config", "user.email", "t@example.com")
+    _git(dev, "config", "user.name", "t")
+    (dev / "src" / "a.py").write_text("a = 1\n")
+    (dev / ".intent" / "rule.yaml").write_text("v: 1\n")
+    _git(dev, "add", "-A")
+    _git(dev, "commit", "-q", "-m", "A")
+    a = _git(dev, "rev-parse", "HEAD")
+    (dev / "src" / "a.py").write_text("a = 2\n")
+    (dev / "src" / "b.py").write_text("b = 1\n")
+    (dev / ".intent" / "rule.yaml").write_text("v: 2\n")
+    _git(dev, "add", "-A")
+    _git(dev, "commit", "-q", "-m", "B")
+    b = _git(dev, "rev-parse", "HEAD")
+    _git(dev, "reset", "-q", "--hard", a)
+    return dev, a, b
+
+
+def _follower(root: Path, dev: Path) -> cd.Deployer:
+    return cd.Deployer(
+        DevGitHost(root, dev), cd.Layout(root, root / "sbin"), cd.Options(dev_repo=dev)
+    )
+
+
+def test_the_dev_checkout_follows_the_deploy_once_its_law_is_applied(
+    root: Path, tmp_path: Path
+) -> None:
+    dev, _a, b = _dev_checkout(tmp_path)
+    (dev / ".intent" / "rule.yaml").write_text("v: 2\n")  # core-law applied it
+    (dev / "notes.txt").write_text("someone's untracked file\n")
+    deployer = _follower(root, dev)
+
+    assert deployer.follow_dev_checkout(b) == f"moved {_a[:12]} -> {b[:12]}"
+    assert _git(dev, "rev-parse", "HEAD") == b
+    assert _git(dev, "status", "--porcelain") == "?? notes.txt"
+    assert (dev / "src" / "b.py").read_text() == "b = 1\n"
+    # git ran as the owner of the working files, never as root.
+    dev_git = [u for u, c in deployer.host.calls if c[:3] == ["git", "-C", str(dev)]]
+    assert dev_git and set(dev_git) == {"core-claude"}
+    assert deployer.follow_dev_checkout(b) is None  # already there
+
+
+def test_the_dev_checkout_stays_while_its_governed_text_differs(
+    root: Path, tmp_path: Path
+) -> None:
+    dev, a, b = _dev_checkout(tmp_path)  # .intent/rule.yaml still at A
+    assert _follower(root, dev).follow_dev_checkout(b) == (
+        "not moved: governed text differs"
+    )
+    assert _git(dev, "rev-parse", "HEAD") == a
+    assert (dev / "src" / "a.py").read_text() == "a = 1\n"
+
+
+def test_the_dev_checkout_is_not_moved_back_or_over_local_work(
+    root: Path, tmp_path: Path
+) -> None:
+    dev, a, b = _dev_checkout(tmp_path)
+    (dev / ".intent" / "rule.yaml").write_text("v: 2\n")
+    (dev / "src" / "b.py").write_text("untracked work\n")  # B would overwrite it
+    deployer = _follower(root, dev)
+    assert deployer.follow_dev_checkout(b) == "not moved: git refused"
+    assert _git(dev, "rev-parse", "HEAD") == a
+    assert (dev / "src" / "b.py").read_text() == "untracked work\n"
+
+    (dev / "src" / "b.py").unlink()
+    assert deployer.follow_dev_checkout(b).startswith("moved")
+    # A rollback deploys an older commit: the checkout stays where it is.
+    assert deployer.follow_dev_checkout(a) == "not moved: not behind"
+    assert _git(dev, "rev-parse", "HEAD") == b
+
+
+def test_without_a_dev_checkout_nothing_is_done(root: Path) -> None:
+    assert _deployer(root, root / "absent").follow_dev_checkout(SHA) is None
