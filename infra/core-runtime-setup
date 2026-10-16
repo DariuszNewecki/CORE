@@ -30,7 +30,10 @@ What it does (the D2 checklist, then the sandbox steps, in one run):
  4. configuration in ``/opt/core/etc``: ``core.env`` from the example,
     ``deploy.conf`` from the example, ``secrets.env`` from the
     development tree's ``.secrets/core.env`` plus ``DATABASE_URL`` from its
-    ``.env`` (refused unless it then holds DATABASE_URL and CORE_MASTER_KEY);
+    ``.env`` (refused unless it then holds DATABASE_URL and CORE_MASTER_KEY).
+    A kept ``core.env`` whose ``QDRANT_URL`` names one of this host's own
+    addresses is moved to loopback, so a restored VM reaches its Qdrant on
+    any address or with no network (#1088);
  5. ``/usr/local/sbin/core-deploy``;
  6. the sandbox: its inbox in the clone, the two system units, the socket
     enabled and started;
@@ -72,13 +75,16 @@ import argparse
 import datetime
 import grp
 import hashlib
+import json
 import os
 import pwd
 import re
 import shutil
+import socket
 import stat
 import subprocess
 import sys
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -254,6 +260,21 @@ class Host:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return response.read()
 
+    def own_addresses(self) -> set[str]:
+        """This host's names and non-loopback addresses."""
+        names = {socket.gethostname(), socket.getfqdn()}
+        out = subprocess.run(
+            ["ip", "-j", "addr", "show"], capture_output=True, check=False
+        ).stdout
+        try:
+            links = json.loads(out or b"[]")
+        except ValueError:
+            links = []
+        for link in links:
+            for info in link.get("addr_info", []):
+                names.add(str(info.get("local", "")))
+        return {n for n in names if n and not n.startswith("127.") and n != "::1"}
+
     def owner(self, path: Path) -> tuple[str, str]:
         info = os.lstat(path)
         return pwd.getpwuid(info.st_uid).pw_name, grp.getgrgid(info.st_gid).gr_name
@@ -284,6 +305,25 @@ def env_keys(text: str) -> dict[str, str]:
         key, value = line.split("=", 1)
         values[key.strip()] = value.strip().strip('"').strip("'")
     return values
+
+
+def qdrant_on_loopback(text: str, own: set[str]) -> str | None:
+    """*text* with QDRANT_URL moved to 127.0.0.1 when it names one of *own*
+    (this host's addresses, #1088); None when nothing changes."""
+    lines = text.splitlines(keepends=True)
+    for i, raw in enumerate(lines):
+        key, sep, value = raw.strip().partition("=")
+        if key.strip() != "QDRANT_URL" or not sep:
+            continue
+        url = urllib.parse.urlsplit(value.strip().strip('"').strip("'"))
+        if url.hostname not in own:
+            return None
+        netloc = "127.0.0.1" + (f":{url.port}" if url.port else "")
+        lines[i] = (
+            f"QDRANT_URL={urllib.parse.urlunsplit(url._replace(netloc=netloc))}\n"
+        )
+        return "".join(lines)
+    return None
 
 
 def sha256(data: bytes) -> str:
@@ -579,9 +619,14 @@ class Setup:
             self.say(
                 f"  ok: {core_env} kept" + (f"; lacks {missing}" if missing else "")
             )
-            self._install_file(
-                core_env, core_env.read_bytes(), SERVICES, SERVICES, 0o600
-            )
+            data = core_env.read_bytes()
+            moved = qdrant_on_loopback(data.decode(), self.host.own_addresses())
+            if moved is not None:
+                self.say(
+                    "  QDRANT_URL names this host's own address: moved to loopback (#1088)"
+                )
+                data = moved.encode()
+            self._install_file(core_env, data, SERVICES, SERVICES, 0o600)
         else:
             self._install_file(core_env, example, SERVICES, SERVICES, 0o600)
 
