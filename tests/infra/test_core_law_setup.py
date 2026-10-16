@@ -377,10 +377,37 @@ def test_only_the_wheel_core_deploy_hashed_for_the_live_release_is_accepted(
     assert _main(world) == 1
     assert "keeps no wheel and lock" in capsys.readouterr().err
 
+    # Something at `current` that is not a link to a release.
     layout.current.unlink()
+    layout.current.mkdir()
     assert _main(world) == 1
     assert "nothing is deployed" in capsys.readouterr().err
     assert not any("pip" in cmd for cmd, _ in host.calls)
+
+
+def test_a_fresh_host_seeds_the_law_before_anything_is_deployed(world, capsys) -> None:
+    """#1085: core-law-setup, core-runtime-setup, core-deploy, core-law-setup."""
+    host, layout = world
+    layout.current.unlink()
+    assert _main(world, "--apply") == 0
+    out = capsys.readouterr().out
+    assert "nothing deployed yet" in out
+    assert "After the first core-deploy, run core-law-setup --apply again" in out
+    # What core-runtime-setup needs is there ...
+    assert (layout.law_root / ".intent" / "rules" / "a.json").read_text() == "{}\n"
+    assert host.owners[layout.law_root / ".intent"] == ("core-law", "core-law")
+    assert host.accounts["core-law"].pw_shell == "/usr/sbin/nologin"
+    # ... and nothing that needs a release: no venv, no timers that would run it.
+    assert not layout.venv.exists()
+    assert not any("pip" in cmd for cmd, _ in host.calls)
+    assert not any(layout.system_units.iterdir())
+
+    # After the first core-deploy, the second run completes the setup.
+    layout.current.symlink_to(Path("releases") / RELEASE)
+    assert _main(world, "--apply") == 0
+    assert "core-law-setup --apply again" not in capsys.readouterr().out
+    assert cls.installed_wheel_sha256(layout.venv) == WHEEL_SHA
+    assert (layout.system_units / "core-law-auto-apply.timer").is_file()
 
 
 def test_a_venv_from_another_wheel_is_replaced_by_the_live_release(world) -> None:
