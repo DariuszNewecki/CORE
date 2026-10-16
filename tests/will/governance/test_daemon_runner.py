@@ -125,12 +125,27 @@ async def test_get_status_reads_worker_uuid_and_only_live_workers_are_alive() ->
     service = AsyncMock()
     service.fetch_registered_workers.return_value = registered
     service.fetch_alive_workers.return_value = alive
-    with patch(
-        "will.governance.daemon_runner.WorkerRegistryService", return_value=service
+    from shared.workers.schedule import WorkerScheduleState
+
+    declared = WorkerScheduleState(
+        thresholds={"u-live": 132, "u-june": 132},
+        active_uuids=frozenset({"u-live", "u-june"}),
+        fallback_sec=900,
+    )
+    with (
+        patch(
+            "will.governance.daemon_runner.WorkerRegistryService",
+            return_value=service,
+        ),
+        patch(
+            "will.governance.daemon_runner.load_worker_schedule_state",
+            return_value=declared,
+        ),
     ):
         status = await get_status(None)
     by_name = {w["name"]: w for w in status["workers"]}
     assert by_name["Live"]["alive"] is True
     assert by_name["June"]["alive"] is False
+    assert by_name["June"]["state"] == "overdue"
     assert by_name["June"]["age_sec"] == 9_000_000
     assert by_name["Live"]["class"] == "sensing"

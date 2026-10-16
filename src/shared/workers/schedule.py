@@ -151,3 +151,43 @@ def load_worker_schedule_state(
         fallback_sec=_CFG.fallback_threshold_sec,
         on_demand_uuids=frozenset(on_demand_uuids),
     )
+
+
+# The verdicts of worker_liveness (#1103).
+ALIVE, IDLE, ON_DEMAND, OVERDUE, RETIRED = (
+    "alive",
+    "idle",
+    "on_demand",
+    "overdue",
+    "retired",
+)
+
+
+# ID: d5885a05-a785-4cea-9e64-c1147a601e32
+def worker_liveness(
+    uuid: str,
+    seconds_silent: float | None,
+    state: WorkerScheduleState,
+    recent_sec: float,
+) -> str:
+    """One registry row judged against its own declaration (#1103).
+
+    - ``retired``: no active declaration names the row (test registrations,
+      removed or paused workers); not a worker to count.
+    - ``on_demand``: runs only when a caller starts it; never overdue.
+    - ``alive``: reported within *recent_sec* (the governed liveness window).
+    - ``idle``: quiet longer than that, but within its own schedule
+      (``max_interval + glide_off``, or ``fallback_sec`` without a schedule).
+    - ``overdue``: past its own schedule, or never reported.
+    """
+    if uuid in state.on_demand_uuids:
+        return ON_DEMAND
+    if uuid not in state.active_uuids:
+        return RETIRED
+    if seconds_silent is None:
+        return OVERDUE
+    if seconds_silent <= recent_sec:
+        return ALIVE
+    if seconds_silent <= state.thresholds.get(uuid, state.fallback_sec):
+        return IDLE
+    return OVERDUE
