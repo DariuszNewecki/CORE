@@ -495,3 +495,85 @@ async def test_transcripts_behind_a_closed_directory_are_unavailable(
         closed.chmod(0o700)
     assert taken.measures.waste_per_change is None
     assert any("claude code transcripts" in u for u in taken.unavailable)
+
+
+# -- #1107: telemetry samples are not findings ---------------------------------
+
+
+def test_telemetry_patterns_match_the_prefix_literally() -> None:
+    import re
+
+    from body.services.thesis.measure import _telemetry_patterns
+
+    (pattern,) = _telemetry_patterns(("loop_hold.sample::",))
+    assert pattern == "loop\\_hold.sample::%"
+
+    def like(value: str, pat: str) -> bool:  # PostgreSQL LIKE, backslash escape
+        rx = re.sub(
+            r"\\(.)|(%)|(_)|(.)",
+            lambda m: (
+                re.escape(m.group(1))
+                if m.group(1)
+                else ".*"
+                if m.group(2)
+                else "."
+                if m.group(3)
+                else re.escape(m.group(4))
+            ),
+            pat,
+        )
+        return re.fullmatch(rx, value, re.S) is not None
+
+    assert like("loop_hold.sample::DbSyncWorker", pattern)
+    assert not like("loopXhold.sample::DbSyncWorker", pattern)  # _ is literal
+    assert not like("audit.violation::loop_hold.sample::x", pattern)
+
+
+async def test_convergence_leaves_telemetry_out_and_says_how_much(monkeypatch) -> None:
+    from contextlib import asynccontextmanager
+
+    from body.services import service_registry as registry_module
+    from body.services.thesis import measure as measure_module
+
+    calls: list[tuple[str, dict]] = []
+
+    class _Result:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def one(self):
+            return self.rows[0]
+
+        def all(self):
+            return self.rows
+
+    class _Session:
+        async def execute(self, statement, params=None):
+            sql = str(statement)
+            calls.append((sql, params or {}))
+            if "FILTER" in sql:
+                return _Result([(1917, 1459)])
+            if "GROUP BY status" in sql:
+                return _Result([("resolved", 1943)])
+            return _Result([])
+
+    @asynccontextmanager
+    async def _session():
+        yield _Session()
+
+    monkeypatch.setattr(registry_module.ServiceRegistry, "session", _session)
+    value, counts = await measure_module._convergence(date(2026, 10, 9))
+
+    assert counts == {
+        "created": 1917,
+        "resolved": 1943,
+        "abandoned": 0,
+        "telemetry_excluded": 1459,
+    }
+    assert value == round(1943 / 1917, 3)
+    created_sql, created_params = calls[1]
+    closed_sql, closed_params = calls[2]
+    assert (
+        "NOT subject LIKE ANY" in created_sql and "NOT subject LIKE ANY" in closed_sql
+    )
+    assert created_params["t"] == ["loop\\_hold.sample::%"] == closed_params["t"]
