@@ -64,6 +64,7 @@ def test_the_register_is_the_governors_proposal(register) -> None:
     assert register.github_accounts == {
         "DariuszNewecki": "principal.governor",
         "core-claude-bot": "principal.producer",
+        "erykpiotrov": "principal.producer",
     }
     assert register.host_admins == {"darek", "root"}
 
@@ -174,6 +175,7 @@ def test_unregistered_github_collaborators_are_findings(register) -> None:
     people = [
         {"login": "DariuszNewecki", "role_name": "admin"},
         {"login": "core-claude-bot", "role_name": "write"},
+        {"login": "erykpiotrov", "role_name": "write"},
         {"login": "someone", "role_name": "write"},
     ]
     assert [f.subject for f in check_github(register, people)] == [
