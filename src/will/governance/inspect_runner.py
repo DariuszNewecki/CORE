@@ -69,6 +69,13 @@ logger = getLogger(__name__)
 
 
 _OPEN = "status NOT IN ('resolved', 'abandoned')"
+# The rule a finding belongs to: the rule id of an audit violation
+# (audit.violation::<rule>::<file>), otherwise the subject's first segment.
+_RULE_OF_SUBJECT = (
+    "CASE WHEN subject LIKE 'audit.violation::%' THEN split_part(subject, '::', 2) "
+    "ELSE split_part(subject, '::', 1) END"
+)
+_WEEK = "now() - interval '7 days'"
 _STUCK_SUBJECTS = (
     "subject LIKE 'proposal.stuck%' OR subject LIKE 'proposal.repeated_failure::%' "
     "OR subject LIKE 'blackboard.entry_stale::%' OR subject LIKE 'worker.silent::%'"
@@ -79,7 +86,8 @@ _STUCK_SUBJECTS = (
 async def get_health(session: Any) -> dict:
     """One read-only health picture (``core status``): workers with real
     heartbeat ages, blackboard counts, the oldest open finding, stuck
-    signals, live proposals, and findings created vs resolved in 7 days.
+    signals, live proposals, findings created vs resolved in 7 days, and
+    the ten rules with the most findings abandoned in those 7 days.
 
     Each part fails on its own: an ``error`` in that part, the rest still
     answers. Nothing is written.
@@ -152,6 +160,29 @@ async def get_health(session: Any) -> dict:
             "findings_resolved": rows[0][1],
             "findings_abandoned": rows[0][2],
         },
+    )
+    # Per rule: a rule that keeps re-creating findings on the same subjects
+    # shows many created per subject and many abandoned.
+    await _part(
+        "last_7_days_by_rule",
+        f"SELECT {_RULE_OF_SUBJECT}, "
+        f"count(*) FILTER (WHERE created_at > {_WEEK}), "
+        f"count(DISTINCT subject) FILTER (WHERE created_at > {_WEEK}), "
+        f"count(*) FILTER (WHERE status = 'resolved' AND resolved_at > {_WEEK}), "
+        f"count(*) FILTER (WHERE status = 'abandoned' AND updated_at > {_WEEK}) "
+        "FROM core.blackboard_entries WHERE entry_type = 'finding' "
+        f"AND (created_at > {_WEEK} OR updated_at > {_WEEK} OR resolved_at > {_WEEK}) "
+        "GROUP BY 1 ORDER BY 5 DESC, 2 DESC, 1 LIMIT 10",
+        lambda rows: [
+            {
+                "rule": r[0],
+                "findings_created": r[1],
+                "subjects_created": r[2],
+                "findings_resolved": r[3],
+                "findings_abandoned": r[4],
+            }
+            for r in rows
+        ],
     )
     return health
 

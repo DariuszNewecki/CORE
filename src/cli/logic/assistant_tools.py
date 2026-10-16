@@ -372,7 +372,8 @@ TOOLS: dict[str, AssistantTool] = {
                 "CORE's runtime state at a glance, read through its API: workers "
                 "with heartbeat ages and liveness, open blackboard entries, the "
                 "oldest open finding, stuck signals, live proposals, and findings "
-                "created vs resolved in 7 days. Read-only; without a running CORE "
+                "created vs resolved in 7 days, with the ten rules that abandoned "
+                "the most findings in those days. Read-only; without a running CORE "
                 "it answers available: false."
             ),
             input_schema={

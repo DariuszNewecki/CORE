@@ -43,6 +43,7 @@ async def test_one_failing_part_does_not_hide_the_others() -> None:
     created = datetime(2026, 10, 1, tzinfo=UTC)
     session = _Session(
         {
+            "count(DISTINCT subject)": [],
             "GROUP BY 1, 2": [("finding", "open", 3)],
             "ORDER BY created_at LIMIT 1": [("x::y", created, 600)],
             "split_part": [("proposal.stuck_approved", 1, 60)],
@@ -67,4 +68,42 @@ async def test_one_failing_part_does_not_hide_the_others() -> None:
         "findings_resolved": 7,
         "findings_abandoned": 1,
     }
-    assert session.savepoints == 5
+    assert session.savepoints == 6
+
+
+async def test_findings_per_rule_name_the_rule_and_count_repeats() -> None:
+    session = _Session(
+        {
+            "count(DISTINCT subject)": [
+                ("architecture.intent.references_resolve", 40, 2, 0, 38),
+                ("thesis.broken", 3, 3, 1, 0),
+            ],
+            "GROUP BY 1, 2": [],
+            "ORDER BY created_at LIMIT 1": [],
+            "split_part(subject, '::', 1), count(*), ": [],
+            "core.autonomous_proposals": [],
+            "FILTER": [(43, 1, 38)],
+        },
+        failing="never-matches",
+    )
+    with patch(
+        "will.governance.daemon_runner.get_status",
+        AsyncMock(return_value={"workers": []}),
+    ):
+        health = await get_health(session)
+
+    assert health["last_7_days_by_rule"][0] == {
+        "rule": "architecture.intent.references_resolve",
+        "findings_created": 40,
+        "subjects_created": 2,
+        "findings_resolved": 0,
+        "findings_abandoned": 38,
+    }
+    assert len(health["last_7_days_by_rule"]) == 2
+
+
+def test_an_audit_finding_belongs_to_its_rule_not_to_audit_violation() -> None:
+    from will.governance import inspect_runner
+
+    sql = inspect_runner._RULE_OF_SUBJECT
+    assert "audit.violation::%" in sql and "split_part(subject, '::', 2)" in sql
