@@ -95,14 +95,14 @@ def configured_repo_root() -> Path:
     REPO_PATH naming an external target therefore does not displace CORE's
     own law for a process started inside CORE's checkout.
     """
-    from shared.config import REPO_ROOT, discover_law_root, settings
+    from shared.config import discover_law_root, fallback_repo_root, settings
 
     found = discover_law_root()
     if found is not None:
         return found
     if "REPO_PATH" in settings.model_fields_set:
         return Path(settings.REPO_PATH)
-    return REPO_ROOT
+    return fallback_repo_root()
 
 
 # ID: 01eab0cd-f2c9-4768-b40c-bcbce556977a
