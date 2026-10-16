@@ -434,41 +434,68 @@ async def _merged_prs(gh: GitHub, since: date) -> dict[str, dict[str, Any]]:
         after = info.get("endCursor")
 
 
+def _telemetry_patterns(prefixes: tuple[str, ...]) -> list[str]:
+    """LIKE patterns for subjects that begin with one of *prefixes*: telemetry
+    samples, not findings (#1107). ``_``, ``%`` and ``\\`` are escaped."""
+    return [
+        p.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+        for p in prefixes
+    ]
+
+
 async def _convergence(since: date) -> tuple[float | None, dict[str, int]]:
+    """Resolved / created findings since *since*. Telemetry samples
+    (``blackboard.telemetry_subject_prefixes``, e.g. ``loop_hold.sample::``)
+    are left out on both sides: they are never resolved, only expire, so
+    counting them reads as findings abandoned (#1107). How many were left
+    out is reported as ``telemetry_excluded``."""
     from sqlalchemy import text
 
     from body.services.service_registry import ServiceRegistry
+    from shared.infrastructure.intent.operational_config import (
+        load_operational_config,
+    )
 
+    patterns = _telemetry_patterns(
+        tuple(load_operational_config().blackboard.telemetry_subject_prefixes)
+    )
+    telemetry = "subject LIKE ANY(CAST(:t AS text[]))"
     start = datetime.combine(since, time(), tzinfo=UTC)
+    params = {"s": start, "t": patterns}
     async with ServiceRegistry.session() as session:
         await session.execute(text("SET TRANSACTION READ ONLY"))
-        created = (
+        created, excluded = (
             await session.execute(
                 text(
-                    "SELECT count(*) FROM core.blackboard_entries "
+                    f"SELECT count(*) FILTER (WHERE NOT {telemetry}), "
+                    f"count(*) FILTER (WHERE {telemetry}) "
+                    "FROM core.blackboard_entries "
                     "WHERE entry_type = 'finding' AND created_at >= :s"
                 ),
-                {"s": start},
+                params,
             )
-        ).scalar() or 0
+        ).one()
         closed = dict(
             (
                 await session.execute(
                     text(
                         "SELECT status, count(*) FROM core.blackboard_entries "
                         "WHERE entry_type = 'finding' AND updated_at >= :s "
-                        "AND status IN ('resolved', 'abandoned') GROUP BY status"
+                        "AND status IN ('resolved', 'abandoned') "
+                        f"AND NOT {telemetry} GROUP BY status"
                     ),
-                    {"s": start},
+                    params,
                 )
             ).all()
         )
+    created = int(created or 0)
     counts = {
-        "created": int(created),
+        "created": created,
         "resolved": int(closed.get("resolved", 0)),
         "abandoned": int(closed.get("abandoned", 0)),
+        "telemetry_excluded": int(excluded or 0),
     }
-    value = round(counts["resolved"] / counts["created"], 3) if created else None
+    value = round(counts["resolved"] / created, 3) if created else None
     return value, counts
 
 
