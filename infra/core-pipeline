@@ -26,6 +26,13 @@ commit, or merging it, on GitHub. This runner, on a timer, as the account
     (``sudo -n core-deploy --rollback``) and opens an issue;
  6. writes ``status.json`` for ``core-admin runtime status``.
 
+GitHub's API allows 60 calls an hour without a token (#1065). A tick that
+finds nothing new costs none; a merge's facts are read once and kept in the
+state file; a head no pull request explains is looked at again only while
+GitHub may still be settling (``SETTLE``). When the limit runs out anyway,
+the runner waits for its reset and says so in ``status.json``
+(``state: rate limited``, ``until``) instead of failing every tick.
+
 Privileges (sudoers from one-path-setup.sh): core-runner may run exactly
 ``/usr/local/sbin/core-deploy`` as root and ``/usr/local/sbin/core-sandbox-check``
 as core, without a password and without a shell. It holds no database
@@ -45,6 +52,7 @@ import json
 import os
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -54,6 +62,8 @@ GREEN = {"success", "skipped", "neutral"}
 CORE_DEPLOY = "/usr/local/sbin/core-deploy"
 SANDBOX_CHECK = "/usr/local/sbin/core-sandbox-check"
 EX_DEPLOY_GOVERNOR = 3
+# How long a head whose merger GitHub has not reported is looked at again.
+SETTLE = datetime.timedelta(minutes=15)
 
 
 @dataclass(frozen=True)
@@ -105,6 +115,26 @@ class Host:
 
     def now(self) -> datetime.datetime:
         return datetime.datetime.now(datetime.UTC)
+
+
+def rate_limit_reset(
+    exc: urllib.error.HTTPError, now: datetime.datetime
+) -> datetime.datetime | None:
+    """When GitHub will answer again, if *exc* is its rate limit; else None.
+
+    A 403 that is not a rate limit (no permission) stays an error."""
+    if exc.code not in (403, 429):
+        return None
+    headers = exc.headers or {}
+    retry_after = headers.get("Retry-After")
+    if retry_after and retry_after.isdigit():
+        return now + datetime.timedelta(seconds=int(retry_after))
+    reset = headers.get("X-RateLimit-Reset")
+    if headers.get("X-RateLimit-Remaining") == "0" and reset and reset.isdigit():
+        return datetime.datetime.fromtimestamp(int(reset), datetime.UTC)
+    if exc.code == 429:
+        return now + datetime.timedelta(minutes=1)
+    return None
 
 
 def read_conf(path: Path) -> dict[str, str]:
@@ -272,22 +302,64 @@ class Runner:
             "issue": url,
         }
 
+    def lookup(self, head: str) -> tuple[str | None, str | None]:
+        """``merge(head)``, read from GitHub once: a merge's merger and tested
+        head never change. An empty answer is not kept (GitHub may still be
+        settling)."""
+        cached = self.state.get("lookup") or {}
+        if cached.get("sha") == head:
+            return cached["merger"], cached["tested"]
+        merger, tested = self.merge(head)
+        if merger is not None:
+            self.state["lookup"] = {"sha": head, "merger": merger, "tested": tested}
+        return merger, tested
+
+    def settling(self, head: str) -> bool:
+        """True while *head*, first seen less than ``SETTLE`` ago, may still
+        get its merger from GitHub."""
+        first = self.state.get("first_seen")
+        if not first or first[0] != head:
+            self.state["first_seen"] = [head, self.host.now().isoformat()]
+            return True
+        return self.host.now() - datetime.datetime.fromisoformat(first[1]) < SETTLE
+
     def tick(self) -> None:
         self.load()
+        until = self.state.get("rate_limited_until")
+        if until and self.host.now() < datetime.datetime.fromisoformat(until):
+            self.write_status(state="rate limited", until=until)
+            return
+        self.state.pop("rate_limited_until", None)
+        try:
+            self.step()
+        except urllib.error.HTTPError as exc:
+            reset = rate_limit_reset(exc, self.host.now())
+            if reset is None:
+                raise
+            self.state["rate_limited_until"] = reset.isoformat()
+            self.save()
+            self.write_status(
+                state="rate limited", until=reset.isoformat(), error=str(exc)[:500]
+            )
+
+    def step(self) -> None:
         head = self.head()
         self.state["seen_head"] = head
-        # A skipped head is looked at again every tick: the merger lookup can
-        # come back empty (GitHub still settling) and must not lose a merge.
-        finished = (
-            head == self.state.get("done")
-            and (self.state.get("last") or {}).get("result") != "skipped"
+        # A skipped head is looked at again while its merger is unknown and
+        # GitHub may still be settling, so a merge read too early is not lost.
+        # A known merger is final: looking again would only spend API calls.
+        skipped = (self.state.get("last") or {}).get("result") == "skipped"
+        settled = (self.state.get("lookup") or {}).get("sha") == head
+        finished = head == self.state.get("done") and (
+            not skipped or settled or not self.settling(head)
         )
         if finished or head == self.live_sha():
             self.state["done"] = head
             self.save()
             self.write_status(state="idle")
             return
-        merger, tested = self.merge(head)
+        self.settling(head)
+        merger, tested = self.lookup(head)
         if merger != self.governor or not tested:
             note = f"skipped: merged by {merger!r}, not {self.governor!r}"
             if self.state.get("skip_note") != [head, note]:
@@ -306,7 +378,10 @@ class Runner:
         # the PR covers it (core-deploy re-checks: --tested-as). Otherwise the
         # PR was behind main, and CI's own run on the merge commit (CI runs on
         # pushes to main) is the one that counts.
-        same_tree = self.tree(head) == self.tree(tested)
+        cached = self.state["lookup"]
+        if "same_tree" not in cached:
+            cached["same_tree"] = self.tree(head) == self.tree(tested)
+        same_tree = bool(cached["same_tree"])
         ci_sha = tested if same_tree else head
         ci = self.ci(ci_sha)
         if ci == "pending":
