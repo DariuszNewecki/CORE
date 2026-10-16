@@ -92,6 +92,9 @@ class FakeHost(rs.Host):
         members = self.group_table.get(name)
         return None if members is None else sorted(members)
 
+    def own_addresses(self) -> set[str]:
+        return {"192.168.20.22", "core-host"}
+
     def fetch(self, url: str, timeout: float = 30.0) -> bytes:
         self.fetched.append(url)
         return _content(url.split(f"/{SHA}/", 1)[1])
@@ -529,3 +532,44 @@ def test_a_foreign_core_command_is_not_replaced(world) -> None:
     foreign.write_text("#!/bin/sh\n")
     assert _run(world, "--apply") == 1
     assert foreign.read_text() == "#!/bin/sh\n"
+
+
+# -- #1088: Qdrant on this host is reached through loopback ---------------------
+
+
+def test_a_kept_core_env_naming_this_host_reaches_qdrant_on_loopback(
+    world, capsys
+) -> None:
+    etc = world.layout.etc
+    etc.mkdir(parents=True)
+    (etc / "core.env").write_bytes(
+        b"CORE_UPSTREAM_URL=https://github.com/a/b.git\n"
+        b"QDRANT_URL=http://192.168.20.22:6333\nMINE=1\n"
+    )
+    assert _run(world, "--apply") == 0
+    assert (etc / "core.env").read_bytes() == (
+        b"CORE_UPSTREAM_URL=https://github.com/a/b.git\n"
+        b"QDRANT_URL=http://127.0.0.1:6333\nMINE=1\n"
+    )
+    assert "moved to loopback (#1088)" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    "line, moved",
+    [
+        ("QDRANT_URL=http://core-host:6333", "QDRANT_URL=http://127.0.0.1:6333"),
+        ('QDRANT_URL="http://192.168.20.22"', "QDRANT_URL=http://127.0.0.1"),
+        ("QDRANT_URL=http://127.0.0.1:6333", None),  # already loopback
+        ("QDRANT_URL=http://qdrant.example.net:6333", None),  # another host's
+        ("# QDRANT_URL=http://192.168.20.22:6333", None),  # a comment
+    ],
+)
+def test_only_this_hosts_own_address_is_moved(line: str, moved: str | None) -> None:
+    own = {"192.168.20.22", "core-host"}
+    result = rs.qdrant_on_loopback(f"A=1\n{line}\nB=2\n", own)
+    assert result == (None if moved is None else f"A=1\n{moved}\nB=2\n")
+
+
+def test_the_example_reaches_qdrant_on_loopback() -> None:
+    example = (REPO / "infra/systemd/d2/core.env.example").read_text()
+    assert rs.env_keys(example)["QDRANT_URL"] == "http://127.0.0.1:6333"
