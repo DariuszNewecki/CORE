@@ -30,6 +30,15 @@ from shared.infrastructure.intent.operational_config import (
 )
 from shared.logger import getLogger
 from shared.utils.subprocess_utils import run_command_async
+from shared.workers.schedule import (
+    ALIVE,
+    IDLE,
+    ON_DEMAND,
+    OVERDUE,
+    RETIRED,
+    load_worker_schedule_state,
+    worker_liveness,
+)
 
 
 __all__ = [
@@ -98,23 +107,21 @@ async def get_status(context: CoreContext | None) -> dict:
             "workers": [],
         }
 
-    try:
-        alive = await service.fetch_alive_workers(threshold_sec=threshold)
-    except Exception as exc:
-        logger.warning("daemon_runner: fetch_alive_workers failed: %s", exc)
-        alive = []
-
-    # The registry rows carry worker_uuid / worker_name. This read uuid/name,
-    # got None for every worker, and None was in the alive set, so every
-    # registered worker -- heartbeats from June included -- read "alive"
-    # (2026-10-15). A worker without a uuid is never alive.
-    alive_uuids = {w.get("worker_uuid") for w in alive} - {None}
+    # #1103: each worker is judged against its own declared schedule, not
+    # one fixed window; rows no active declaration names are not workers.
+    schedule = load_worker_schedule_state()
     workers: list[dict[str, Any]] = []
+    retired = 0
     for w in registered:
         uuid_val = w.get("worker_uuid")
+        uuid = str(uuid_val) if uuid_val is not None else ""
+        verdict = worker_liveness(uuid, w.get("seconds_silent"), schedule, threshold)
+        if verdict == RETIRED:
+            retired += 1
+            continue
         workers.append(
             {
-                "uuid": str(uuid_val) if uuid_val is not None else None,
+                "uuid": uuid,
                 "name": w.get("worker_name"),
                 "class": w.get("worker_class"),
                 "phase": w.get("phase"),
@@ -124,15 +131,26 @@ async def get_status(context: CoreContext | None) -> dict:
                     else None
                 ),
                 "age_sec": w.get("seconds_silent"),
-                "alive": uuid_val is not None and uuid_val in alive_uuids,
+                "schedule_sec": schedule.thresholds.get(uuid, schedule.fallback_sec)
+                if verdict != ON_DEMAND
+                else None,
+                "state": verdict,
+                "alive": verdict in (ALIVE, IDLE),
             }
         )
+
+    def _count(*states: str) -> int:
+        return sum(1 for w in workers if w["state"] in states)
 
     return {
         "available": True,
         "alive_threshold_sec": threshold,
         "worker_count": len(workers),
-        "alive_count": sum(1 for w in workers if w["alive"]),
+        "alive_count": _count(ALIVE, IDLE),
+        "idle_count": _count(IDLE),
+        "on_demand_count": _count(ON_DEMAND),
+        "overdue_count": _count(OVERDUE),
+        "retired_rows": retired,
         "workers": workers,
     }
 
