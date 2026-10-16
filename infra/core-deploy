@@ -62,6 +62,15 @@ Order (ADR-132 D10 · D2):
     then, when the merge changed it, core-law-setup runs (it installs the
     live release's wheel, so it runs after the switch; a failure is reported
     and never undoes the deploy);
+ 8a. the dev checkout (``/opt/dev/CORE``) follows: it is fast-forwarded to
+    the deployed commit, git running as core-claude, the owner of its
+    working files (#1063, governor 2026-10-16). Deploys write merged law
+    into it, so without this its code lags its law and its audit reads
+    DEGRADED. Files already equal to the commit (law core-law applied,
+    CLAUDE.md) are only staged; it is not moved when governed text it would
+    have to write still differs, when it is not behind the commit, or when
+    git refuses (uncommitted work in the way). That is reported and never
+    undoes the deploy;
  9. append a ledger line.
 
 Host setup (governor 2026-10-15: a merge is the only approval). A merge that
@@ -111,6 +120,8 @@ SERVICE_USER = "core"
 BUILD_USER = "core-build"
 SAFE_GIT = ("-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false")
 LAW_USER = "core-law"
+# Owns the dev checkout's working files; git there runs as this account.
+ASSISTANT = "core-claude"
 # Host scripts core-deploy keeps equal to the deployed commit (self-update).
 HOST_SCRIPTS = ("core-deploy", "core-law-setup", "core-pipeline", "core-sandbox-check")
 # Host setup: sudoers, accounts and units. A merge that changes these paths
@@ -1180,6 +1191,70 @@ class Deployer:
         self.say(f"CLAUDE.md updated from {sha[:12]}")
         return True
 
+    def _dev_git(
+        self, *args: str, check: bool = True
+    ) -> subprocess.CompletedProcess[bytes]:
+        dev = str(self.options.dev_repo)
+        return self.host.run(
+            ["git", "-C", dev, "-c", f"safe.directory={dev}", *SAFE_GIT, *args],
+            user=ASSISTANT,
+            check=check,
+        )
+
+    def follow_dev_checkout(self, sha: str) -> str | None:
+        """Fast-forward the dev checkout to *sha* (step 8a). Returns what
+        happened, for the ledger; None when there is nothing to do."""
+        if not (self.options.dev_repo / ".git").exists():
+            return None
+        try:
+            return self._follow_dev_checkout(sha)
+        except (Refused, OSError, KeyError) as exc:
+            self.say(f"dev checkout not moved: {exc}")
+            return "not moved: git failed"
+
+    def _follow_dev_checkout(self, sha: str) -> str | None:
+        head = self._dev_git("rev-parse", "HEAD").stdout.decode().strip()
+        if head == sha:
+            return None
+        if self._dev_git("cat-file", "-e", f"{sha}^{{commit}}", check=False).returncode:
+            self._dev_git("fetch", "--quiet", "origin", sha)
+        if self._dev_git(
+            "merge-base", "--is-ancestor", head, sha, check=False
+        ).returncode:
+            self.say(f"dev checkout not moved: {head[:12]} is not behind {sha[:12]}")
+            return "not moved: not behind"
+
+        def names(*args: str) -> list[str]:
+            out = self._dev_git("diff", "--name-only", "--no-renames", "-z", *args)
+            return [p for p in out.stdout.decode().split("\0") if p]
+
+        changed = names(head, sha)
+        # The working tree against the commit: what git would still have to write.
+        differs = set(names(sha, "--", *changed)) if changed else set()
+        settled = [p for p in changed if p not in differs]
+        governed = [
+            p
+            for p in sorted(differs)
+            if p.startswith((".intent/", ".specs/", ".claude/")) or p == "CLAUDE.md"
+        ]
+        if governed:
+            self.say(
+                "dev checkout not moved: governed text differs from "
+                f"{sha[:12]}: {', '.join(governed[:5])}"
+            )
+            return "not moved: governed text differs"
+        if settled:
+            self._dev_git("add", "-A", "-f", "--", *settled)
+        merged = self._dev_git("merge", "--ff-only", "--quiet", sha, check=False)
+        if merged.returncode:
+            self.say(
+                "dev checkout not moved: "
+                + merged.stderr.decode(errors="replace").strip()[-500:]
+            )
+            return "not moved: git refused"
+        self.say(f"dev checkout moved {head[:12]} -> {sha[:12]}")
+        return f"moved {head[:12]} -> {sha[:12]}"
+
     # -- entry points ---------------------------------------------------------
 
     def deploy(self, ref: str) -> int:
@@ -1244,6 +1319,7 @@ class Deployer:
         scripts = self.update_host_scripts(sha)
         law_setup = self.apply_law_setup(setup_changed)
         claude_md = self.update_claude_md(sha)
+        dev_checkout = self.follow_dev_checkout(sha)
         self.ledger(
             {
                 "action": "deploy",
@@ -1253,6 +1329,7 @@ class Deployer:
                 "host_setup": host_setup,
                 "law_setup": law_setup,
                 "claude_md_updated": claude_md,
+                "dev_checkout": dev_checkout,
                 "wheel_sha256": wheel_sha,
                 "previous": previous,
                 "migrations_applied": migrated,
