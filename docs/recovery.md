@@ -241,7 +241,7 @@ neither. The checkout must be at the deployed commit, which every deploy now see
 | Database | `core-admin database status` | exit 0 (current) |
 | Data | `docker exec core_postgres_db psql -U <db-user> -d <db-name> -Atc "select max(created_at) from core.blackboard_entries"` (user and database from `DATABASE_URL` in `/opt/core/etc/secrets.env`) | a time within minutes before the backup started |
 | API | `curl http://127.0.0.1:8000/health` | `{"status":"ok"}` |
-| Workers | `curl http://127.0.0.1:8000/v1/daemon/status` | every worker alive, recent heartbeat |
+| Workers | `curl http://127.0.0.1:8000/v1/daemon/status` | every worker whose last heartbeat before the backup was within its last hour is alive again, with a heartbeat after the boot. Rows last seen long before the backup (on 2026-10-16: 19 test registrations from June and the Goal Execution Worker, last seen 2026-09-13) are not counted |
 | Services | `systemctl --user -M core@ status core-daemon core-api 'core-daemon-worker@*'` and `systemctl status core-sandbox.socket core-pipeline.timer core-law-auto-apply.timer core-law-digest.timer` | all active |
 | Sandbox | `sudo runuser -u core -- bash -c 'set -a; . /opt/core/etc/core.env; /opt/core/current/venv/bin/core-admin runtime sandbox-check --mode service'` | every row `passed` |
 | Pipeline | `core-admin runtime status` | the recorded commit is live |
