@@ -104,8 +104,10 @@ async def status_db(session: AsyncSession = Depends(get_api_session)) -> dict:
         "Read-only: workers with heartbeat ages and liveness, open blackboard "
         "entries by type and status, the oldest open finding, stuck signals "
         "(proposal.stuck_*, blackboard.entry_stale, worker.silent), live "
-        "proposals, and findings created vs resolved in the last 7 days. The "
-        "same answer as the MCP tool core_status."
+        "proposals, findings created vs resolved in the last 7 days, and the "
+        "ten rules with the most findings abandoned in those days (created, "
+        "distinct subjects, resolved, abandoned per rule). The same answer as "
+        "the MCP tool core_status."
     ),
 )
 # ID: 8a827edf-0511-40a9-a50d-ca26b91709bc
