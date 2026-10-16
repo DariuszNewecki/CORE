@@ -1,8 +1,10 @@
 # Recover a CORE install
 
-This page describes how to rebuild a CORE production install from a backup. It is the procedure the
-recovery drill (#1070) follows: rebuild on a throwaway VM, check the result, then destroy the VM. It
-lists paths only. No secret value appears here.
+This page describes how to bring back a CORE production install. The backup is the Proxmox
+nightly backup of the whole CORE VM, and the first way back is to restore that image. The second
+way, rebuilding from parts, is for when no image is usable. The recovery drill (#1070) restores the
+image on a throwaway VM, checks it, then destroys the VM. The page lists paths only. No secret value
+appears here.
 
 Every step names who runs it:
 
@@ -13,32 +15,107 @@ Every step names who runs it:
   deploy pipeline). These accounts act on their own, through the units and scripts, once the host
   admin has set them up.
 
+## The backup: Proxmox nightly VM backup
+
+- **What:** the Proxmox backup job for VM 200, the CORE VM. It runs every night at 02:30 and makes a
+  `vzdump-qemu-200-<date>.vma.zst` archive (15.4 GB on 2026-10-16).
+- **Where:** on the Proxmox host `pve`, in storage `backup` (`/ZFS-pool/backup`). That is a
+  different disk from the VM's own (`local-lvm`).
+- **Contains:** the VM's whole disk, so every part in the table below, the unique ones included.
+- **Can lose:** up to 24 hours, that is everything since the last 02:30 run.
+- **Live snapshot:** the backup is taken while the VM runs. After a restore, PostgreSQL replays its
+  log on first start (about 2.5 minutes in the drill).
+- **Limit:** the archive sits on the same physical Proxmox host as the VM. Losing `pve` loses both.
+  How long archives are kept is set in the backup job on `pve`.
+
+## Restore from the VM backup
+
+Every step is the **host admin (darek, outside CORE)**'s: `qm` runs on `pve`, and commands inside
+the VM run as root through `qm guest exec <vmid> --`. The guest agent works on a restored VM.
+
+| # | Step | Note |
+|---|---|---|
+| 1 | `qmrestore <archive> <vmid> --storage ZFS-pool --unique 1` | a drill uses a new `<vmid>`; a real restore replaces VM 200 |
+| 2 | Before the first boot: `qm set <vmid> --delete ide2,cicustom,ipconfig0,nameserver,searchdomain` (remove the cloud-init drive). A drill clone also gets `qm set <vmid> --net0 <…>,link_down=1 --onboot 0` | without step 2, cloud-init would run its setup again: reset passwords, upgrade packages, re-own `/mnt/vector_db`. The drill clone must not reach the network next to the live VM |
+| 3 | `qm start <vmid>`, then wait until `qm agent <vmid> ping` answers | |
+| 4 | Drill clone only: `systemctl stop core-pipeline.timer core-law-auto-apply.timer core-law-digest.timer` | the backup restores them enabled ([#1090](https://github.com/DariuszNewecki/CORE/issues/1090)) |
+| 5 | Wait for PostgreSQL to finish crash recovery | about 2.5 minutes after boot |
+| 6 | `systemctl --user -M core@ restart core-api`, then check `curl http://127.0.0.1:8000/health` | needed until the API comes back by itself ([#1087](https://github.com/DariuszNewecki/CORE/issues/1087)). Without network, Qdrant is not reached until [#1088](https://github.com/DariuszNewecki/CORE/issues/1088) is fixed |
+| 7 | The checks in [Check the result](#check-the-result) | which user runs the audit: [#1089](https://github.com/DariuszNewecki/CORE/issues/1089) |
+| 8 | Drill only: `qm stop <vmid> && qm destroy <vmid> --purge 1 --destroy-unreferenced-disks 1` | leaves no disks, config or job entries |
+
+## Drill record: 2026-10-16
+
+- **Restored from:** `vzdump-qemu-200-2026_10_16-02_30_01.vma.zst` (15.4 GB, nightly job, TASK OK),
+  storage `backup` on `pve`.
+- **Restored to:** VM 990 `core-restore-drill` on `ZFS-pool`, a different disk from the live VM 200.
+  It was isolated from the network the whole time, then destroyed. VM 200 kept running throughout.
+
+| # | Step | Time | Result |
+|---|---|---|---|
+| 1 | Restore the archive | 7 min 48 s | ok |
+| 2 | Isolate before first boot (net link down, no onboot, 12 GB / 8 cores, cloud-init drive removed) | 3 s | ok |
+| 3 | Boot until the guest agent answers | 38 s | ok |
+| 4 | Stop the timers that write | under 5 s | ok |
+| 5 | PostgreSQL crash recovery | about 2.5 min | ok, automatic |
+| 6 | Start the API | 46 s | ok only after a manual restart ([#1087](https://github.com/DariuszNewecki/CORE/issues/1087)) and a loopback alias for Qdrant ([#1088](https://github.com/DariuszNewecki/CORE/issues/1088)) |
+| 7 | `core-admin law check-tree --json` | 18 s | exit 0: no refusals, law loads, 140 intent files valid, 0 dangling |
+| 8 | `core-admin code audit --offline --severity block` | 68 s | **DEGRADED**: three `.intent/` files differ from the last commit, as on the live checkout ([#1063](https://github.com/DariuszNewecki/CORE/issues/1063)) |
+| 9 | Data check: `core.blackboard_entries` | 4 s | 2,303 rows from the day of the backup, the last one 2 s before the backup started; 17,521 rows from the day before |
+| 10 | Destroy the clone | 5 s | nothing left |
+
+- **Total:** about 16 minutes of work, 12:33:42 to 12:57:59 including diagnosis. False starts are
+  not in the table (the audit first run as `core-law`, then as `core-claude`; `law check-tree`
+  without a path). The full log is `/root/drill-990.log` on `pve`.
+- **Time to recover once the findings are fixed:** about 13 minutes: restore 8 min, boot and
+  database recovery about 3 min, checks about 2 min.
+- **Result: not a clean pass.** The data is complete, but the API did not come back by itself and
+  the audit is DEGRADED. #1070 stays open until a rerun passes clean.
+
+**Findings**
+
+1. A restored clone would run cloud-init's setup again. Removing the cloud-init drive before the
+   first boot is now step 2 of the restore.
+2. The API does not come back by itself after a cold boot: it starts before PostgreSQL is ready, exits 0, and `Restart=on-failure` does not restart it ([#1087](https://github.com/DariuszNewecki/CORE/issues/1087)). This affects the live VM after any host reboot too.
+3. `QDRANT_URL` points at the VM's LAN address, not loopback ([#1088](https://github.com/DariuszNewecki/CORE/issues/1088)).
+4. The audit is DEGRADED because three `.intent/` files that core-law changed on 2026-10-15 are
+   uncommitted ([#1063](https://github.com/DariuszNewecki/CORE/issues/1063)). The restore did not cause this; the live checkout shows the same.
+5. No single user and command run the offline audit on a restored host ([#1089](https://github.com/DariuszNewecki/CORE/issues/1089)).
+6. A restored VM starts with every timer enabled. On the isolated clone, the pipeline ran once and
+   failed on DNS ([#1090](https://github.com/DariuszNewecki/CORE/issues/1090)).
+7. The clone was capped at 12 GB and 8 cores because the host had about 28 GB free, so it did not
+   match production (24 GB, 12 cores).
+
 ## What a complete backup contains
 
 Rebuildable means that git (by commit SHA), GitHub or PyPI can make the part again. Unique means
-that only a backup can bring it back.
+that only a backup can bring it back. Every part lives on the VM's disk, so the nightly VM backup
+holds all of them; the last column says what else exists.
 
-| Part | Where it lives | Kind | Backup today |
+| Part | Where it lives | Kind | Backup |
 |---|---|---|---|
-| Database | PostgreSQL container `core_postgres_db`, volume `core_postgres_data` (`docker-compose.yml`) | unique | **Partial**: a dump `/opt/core/backups/<stamp>-pre-<sha12>.dump`, taken only before a deploy that migrates. It stays on the same disk, is never pruned and leaves out roles and globals ([#1075](https://github.com/DariuszNewecki/CORE/issues/1075)) |
-| Vector store | Qdrant (`QDRANT_URL` in `/opt/core/etc/core.env`; `/mnt/vector_db/core_qdrant_db` in compose) | probably derived | **None**, and no verified rebuild ([#1081](https://github.com/DariuszNewecki/CORE/issues/1081)) |
+| Database | PostgreSQL container `core_postgres_db`, volume `core_postgres_data` (`docker-compose.yml`) | unique | nightly VM backup; also a dump `/opt/core/backups/<stamp>-pre-<sha12>.dump` before each deploy that migrates |
+| Vector store | Qdrant (`QDRANT_URL` in `/opt/core/etc/core.env`; `/mnt/vector_db/core_qdrant_db` in compose) | probably derived | in the nightly VM backup only if its storage is on the VM's disk; contents not checked, no verified rebuild ([#1081](https://github.com/DariuszNewecki/CORE/issues/1081)) |
 | Law, as committed | `/opt/dev/CORE/.intent`, `/opt/dev/CORE/.specs` | rebuildable | git (GitHub) |
 | Release law | `/opt/core/law/.intent`, `/opt/core/law/.specs` | rebuildable | from git; core-law writes it on each apply |
-| Custody ledger | `/opt/core/custody/ledger.jsonl` (only lines from before the move are in git, in `.intent/custody/ledger.jsonl`) | unique | **None** ([#1077](https://github.com/DariuszNewecki/CORE/issues/1077)) |
-| Ledger signing key | `/opt/core-law/home/.ssh/core_law_ledger` (the public half is in git as `.intent/custody/allowed_signers`) | unique | **None** ([#1078](https://github.com/DariuszNewecki/CORE/issues/1078)) |
-| Deploy ledger | `/opt/core/deploy-ledger.jsonl` (`core-deploy --rollback` reads it) | unique | **None** ([#1079](https://github.com/DariuszNewecki/CORE/issues/1079)) |
-| Runtime secrets | `/opt/core/etc/secrets.env` (`DATABASE_URL`, `CORE_MASTER_KEY`); its sources `/opt/dev/CORE/.env` and `/opt/dev/CORE/.secrets/core.env` | unique | **None** ([#1076](https://github.com/DariuszNewecki/CORE/issues/1076)). Without `CORE_MASTER_KEY`, the secrets stored in the database cannot be read |
-| Host config | `/opt/core/etc/deploy.conf`, `/opt/core/etc/core.env` | hand-edited | **None** ([#1082](https://github.com/DariuszNewecki/CORE/issues/1082)); the examples are in `infra/systemd/d2/` |
+| Custody ledger | `/opt/core/custody/ledger.jsonl` (only lines from before the move are in git, in `.intent/custody/ledger.jsonl`) | unique | nightly VM backup |
+| Ledger signing key | `/opt/core-law/home/.ssh/core_law_ledger` (the public half is in git as `.intent/custody/allowed_signers`) | unique | nightly VM backup |
+| Deploy ledger | `/opt/core/deploy-ledger.jsonl` (`core-deploy --rollback` reads it) | unique | nightly VM backup |
+| Runtime secrets | `/opt/core/etc/secrets.env` (`DATABASE_URL`, `CORE_MASTER_KEY`); its sources `/opt/dev/CORE/.env` and `/opt/dev/CORE/.secrets/core.env` | unique | nightly VM backup. Without `CORE_MASTER_KEY`, the secrets stored in the database cannot be read |
+| Host config | `/opt/core/etc/deploy.conf`, `/opt/core/etc/core.env` | hand-edited | nightly VM backup; the examples are in `infra/systemd/d2/` |
 | Pipeline config | `/etc/core/pipeline.conf` | rebuildable | core-one-path-setup writes it |
-| Pipeline token | `/etc/core/pipeline-github-token` (optional) | re-issuable | **None** ([#1083](https://github.com/DariuszNewecki/CORE/issues/1083)) |
-| Private-names config | `/opt/core/law/private-names/` (`private-names.conf`, `names.txt`) | unique | **None** ([#1080](https://github.com/DariuszNewecki/CORE/issues/1080)). Without it, the assistant's commits and gh writes are refused |
-| On-disk history | `/opt/dev/CORE/var/law-proposals/`, `/var/lib/core-pipeline/logs/`, `/opt/dev/CORE/.intent/keys/` | unique | **None** ([#1084](https://github.com/DariuszNewecki/CORE/issues/1084)) |
+| Pipeline token | `/etc/core/pipeline-github-token` (optional) | re-issuable | nightly VM backup; it can also be issued again on GitHub |
+| Private-names config | `/opt/core/law/private-names/` (`private-names.conf`, `names.txt`) | unique | nightly VM backup. Without it, the assistant's commits and gh writes are refused |
+| On-disk history | `/opt/dev/CORE/var/law-proposals/`, `/var/lib/core-pipeline/logs/`, `/opt/dev/CORE/.intent/keys/` | unique | nightly VM backup |
 | Releases | `/opt/core/releases/<sha>/`, `/opt/core/current` | rebuildable | core-deploy builds them by SHA |
 | Custodian venv | `/opt/core-law/venv` | rebuildable | core-law-setup installs it from the live release |
 | Service units | core's user units in `~core/.config/systemd/user/` (sources in `infra/systemd/d2/`); system units in `/etc/systemd/system/`: the sandbox units (`infra/systemd/sandbox/`), the pipeline and law timers (generated by `infra/core-one-path-setup` and `infra/core-law-setup`) | rebuildable | the setup scripts write them |
 | Accounts | `core`, `core-claude`, `core-darek`, group `core-dev` (no script creates them); `core-law`, `core-runner`, `core-build`, `core-sandbox`, group `core-gov` (the setup scripts create them) | rebuildable | listed here |
 
-## Take the backup
+## Backup by parts
+
+This is for when no VM image can be used, for example moving CORE to other hardware. It is not
+scheduled.
 
 **host admin (darek, outside CORE)**, on the live host, as root:
 
@@ -61,9 +138,9 @@ that only a backup can bring it back.
    - the open-findings count from `core-admin runtime health`.
 4. Encrypt the archive and keep it off the host. The archive holds every secret CORE has.
 
-## Rebuild on a throwaway VM
+## Rebuild from parts
 
-The VM is a Proxmox linked clone of `core-template`. That template is an Ubuntu VM prepared with
+Use this only without a usable VM image. The VM is a Proxmox linked clone of `core-template`. That template is an Ubuntu VM prepared with
 `scripts/coldroom-prep.sh`: Docker, Poetry, the Postgres and Qdrant images and the guest agent, but
 no CORE. The drill destroys the clone at the end.
 
