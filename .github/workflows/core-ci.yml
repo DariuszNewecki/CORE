@@ -79,6 +79,12 @@ jobs:
       - name: Install the declared core-cli release
         run: poetry run pip install --no-deps "core-cli==$(make -s core-cli-docs-version)"
 
+      # Type check with the project's [tool.mypy] config; 0 errors on main
+      # at b5ea5850, so any new error fails this required check.
+      - name: Type check (mypy)
+        timeout-minutes: 10
+        run: poetry run mypy src/
+
       # Constitutional audit, per push, blocking rules only. See ADR-115's
       # note on --offline: without it the CLI routes through CoreApiClient to
       # a core-api daemon that does not exist on a runner.
@@ -501,7 +507,7 @@ jobs:
       - name: Combine coverage from both jobs
         run: coverage combine .coverage.hermetic .coverage.integration
       - name: Coverage report (combined suite, enforced)
-        run: coverage report --fail-under=38
+        run: coverage report --fail-under=65
       - name: Coverage XML (combined, for Codecov)
         run: coverage xml -o coverage.xml
       - name: Upload coverage to Codecov
