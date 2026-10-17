@@ -17,6 +17,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from body.governance.law_custody.ledger import CUSTODY_LEDGER_ENV
+from body.governance.law_custody.ledger_watch import LedgerSignatureState
 from body.services.access_register import AccessFinding, AccessReport
 from body.services.change_attribution import UNREADABLE_RANGE_PATH, ChangeFact
 from body.services.state_ledger_service import StateObservation
@@ -43,6 +45,14 @@ _MATCH = LawState(
 )
 _CODE_MATCH = CodeDrift(state="match", loaded_identity="a", disk_identity="a")
 _CODE_STALE = CodeDrift(state="stale", loaded_identity="a", disk_identity="b")
+
+
+@pytest.fixture(autouse=True)
+def _no_durable_ledger(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A developer host may have /opt/core/custody; these tests must not read it."""
+    monkeypatch.setenv(
+        CUSTODY_LEDGER_ENV, str(tmp_path / "no-custody" / "ledger.jsonl")
+    )
 
 
 # -- pure helpers --------------------------------------------------------------
@@ -376,3 +386,81 @@ async def test_an_access_finding_resolves_when_reality_matches() -> None:
     publisher, _ = await _cycle(_MATCH, _CODE_MATCH, board, access=AccessReport())
     assert board.resolved == ["governance::access_register::binding"]
     assert _subjects(publisher) == []
+
+
+# -- #1112: custody ledger signatures ---------------------------------------------
+
+
+class _Watch:
+    """Hands the sensor one prepared state per cycle."""
+
+    def __init__(self, *states: LedgerSignatureState) -> None:
+        self.states = list(states)
+
+    def check(self, allowed_signers: Path) -> LedgerSignatureState:
+        return self.states.pop(0)
+
+
+def _signatures(*failing: int) -> LedgerSignatureState:
+    return LedgerSignatureState(
+        applies=True,
+        ledger="/opt/core/custody/ledger.jsonl",
+        sha256="f" * 64,
+        checked=41,
+        failures=tuple((n, "Signature verification failed") for n in failing),
+        rechecked=True,
+    )
+
+
+async def _sync_signatures(
+    watch: _Watch, board: _Blackboard
+) -> tuple[MagicMock, dict[str, Any]]:
+    sensor, publisher = _sensor()
+    sensor._ledger_watch = watch
+    result = await sensor._sync_ledger_signatures(board, "/repo")
+    return publisher, result
+
+
+async def test_a_failing_ledger_line_is_one_finding_posted_once() -> None:
+    board = _Blackboard()
+    publisher, result = await _sync_signatures(_Watch(_signatures(7, 9)), board)
+    assert _subjects(publisher) == [
+        "governance::ledger_signature::line-7",
+        "governance::ledger_signature::line-9",
+    ]
+    call = publisher.post_finding.await_args_list[0]
+    assert call.kwargs["resolution_mechanism"] == "self_resolve"
+    assert call.args[1]["rule"] == "governance.ledger_signature"
+    assert call.args[1]["line"] == 7
+    assert result["ledger_signatures_failed"] == 2
+
+    already = _Blackboard({"governance::ledger_signature::line-7": {"id": "s7"}})
+    again, _ = await _sync_signatures(_Watch(_signatures(7)), already)
+    assert _subjects(again) == []
+
+
+async def test_a_line_that_verifies_again_resolves_its_finding() -> None:
+    board = _Blackboard(
+        {
+            "governance::ledger_signature::line-7": {"id": "s7"},
+            "governance::ledger_signature::line-9": {"id": "s9"},
+        }
+    )
+    publisher, result = await _sync_signatures(_Watch(_signatures(9)), board)
+    assert board.resolved == ["governance::ledger_signature::line-7"]
+    assert _subjects(publisher) == []
+    assert result["ledger_signatures_resolved"] == 1
+
+
+async def test_unverifiable_ledger_changes_no_findings() -> None:
+    board = _Blackboard({"governance::ledger_signature::line-7": {"id": "s7"}})
+    problem = LedgerSignatureState(applies=True, problem="allowed signers not found")
+    publisher, result = await _sync_signatures(_Watch(problem), board)
+    assert result["ledger_signatures"].startswith("not evaluated")
+    assert board.resolved == [] and _subjects(publisher) == []
+
+
+async def test_run_reports_ledger_signatures_not_applicable_without_a_ledger() -> None:
+    publisher, _ = await _cycle(_MATCH, _CODE_MATCH, _Blackboard())
+    report = publisher.post_report.await_args.args[1]
+    assert report["ledger_signatures"] == "n/a"
