@@ -694,6 +694,81 @@ def _touched_paths(wt_path: Path) -> list[str]:
     return [p for p in listed.splitlines() if p]
 
 
+# Approval states in which the bound proposal may run its apply (``claim``
+# moves an approved proposal to ``executing`` before its actions run).
+_APPLY_STATUSES = ("approved", "executing")
+_GOVERNOR_AUTHORITY = "principal.governor"
+
+
+def _proposal_binds(
+    actions: Any, patch: str, patch_digest: str, validated_base_sha: str
+) -> bool:
+    """True when one of *actions* is this exact ``assisted.apply_diff``.
+
+    The stored patch must equal *patch* byte for byte; the stored digest and
+    base must equal the ones this call carries.
+    """
+    for action in actions if isinstance(actions, list) else []:
+        if not isinstance(action, dict):
+            continue
+        params = action.get("parameters") or {}
+        if (
+            action.get("action_id") == "assisted.apply_diff"
+            and params.get("patch") == patch
+            and params.get("patch_digest") == patch_digest
+            and params.get("validated_base_sha") == validated_base_sha
+        ):
+            return True
+    return False
+
+
+async def _approved_proposal_for(
+    patch: str, patch_digest: str, validated_base_sha: str
+) -> str | None:
+    """The governor-approved proposal that holds exactly this patch, or None.
+
+    Read from ``core.autonomous_proposals``: status approved or executing,
+    approved by ``principal.governor``. Caller-supplied digest and base alone
+    authorise nothing; the record must hold the same patch bytes.
+    """
+    from sqlalchemy import text
+
+    from shared.infrastructure.database.session_manager import get_session
+
+    needle = json.dumps(
+        [
+            {
+                "action_id": "assisted.apply_diff",
+                "parameters": {
+                    "patch_digest": patch_digest,
+                    "validated_base_sha": validated_base_sha,
+                },
+            }
+        ]
+    )
+    async with get_session() as session:
+        rows = (
+            await session.execute(
+                text(
+                    "SELECT proposal_id, actions FROM core.autonomous_proposals "
+                    "WHERE status = ANY(:statuses) "
+                    "AND approval_authority = :authority "
+                    "AND approved_at IS NOT NULL "
+                    "AND actions @> cast(:needle AS jsonb)"
+                ),
+                {
+                    "statuses": list(_APPLY_STATUSES),
+                    "authority": _GOVERNOR_AUTHORITY,
+                    "needle": needle,
+                },
+            )
+        ).all()
+    for proposal_id, actions in rows:
+        if _proposal_binds(actions, patch, patch_digest, validated_base_sha):
+            return str(proposal_id)
+    return None
+
+
 @register_action(
     action_id="assisted.apply_diff",
     description=(
@@ -720,6 +795,7 @@ async def action_assisted_apply_diff(
     patch: str | None = None,
     patch_digest: str | None = None,
     validated_base_sha: str | None = None,
+    write: bool = False,
     core_context: CoreContext | None = None,
     **kwargs: Any,
 ) -> ActionResult:
@@ -727,8 +803,13 @@ async def action_assisted_apply_diff(
 
     This is the write step that runs ONLY after the governor has approved the
     lane proposal. The validation gate (``assisted.validate_diff``) runs
-    earlier and is decoupled from this action. This action NEVER validates —
-    it assumes the governor's approval is the authorization.
+    earlier and is decoupled from this action. This action NEVER validates.
+
+    It refuses, before any file or git change, unless ``write`` is True AND
+    ``core.autonomous_proposals`` holds a governor-approved proposal (status
+    approved or executing) whose ``assisted.apply_diff`` carries exactly this
+    patch, digest and base SHA. Caller-supplied digest and base alone are not
+    an approval (external review F2).
 
     ADR-154 D2 fail-closed checks — approval binds the tuple
     ``patch_digest + production_set + validated_base_sha``; this action
@@ -758,6 +839,7 @@ async def action_assisted_apply_diff(
             Required — an apply with no bound digest is refused.
         validated_base_sha: the commit SHA the candidate was validated
             against. Required — an apply with no bound base SHA is refused.
+        write: must be True; a dry run never applies.
         core_context: injected by ActionExecutor; supplies ``git_service``.
     """
     started = time.perf_counter()
@@ -768,6 +850,17 @@ async def action_assisted_apply_diff(
             action_id=aid,
             ok=False,
             data={"error": "assisted.apply_diff requires 'patch'"},
+            impact=ActionImpact.WRITE_CODE,
+            duration_sec=time.perf_counter() - started,
+        )
+    if not write:
+        return ActionResult(
+            action_id=aid,
+            ok=False,
+            data={
+                "applied": False,
+                "error": "assisted.apply_diff applies only with write=True",
+            },
             impact=ActionImpact.WRITE_CODE,
             duration_sec=time.perf_counter() - started,
         )
@@ -840,6 +933,31 @@ async def action_assisted_apply_diff(
             duration_sec=time.perf_counter() - started,
         )
 
+    try:
+        proposal_id = await _approved_proposal_for(
+            patch, patch_digest, validated_base_sha
+        )
+    except Exception as exc:  # fail closed: no record read, no apply
+        proposal_id = None
+        lookup_error: str | None = f"approval record not readable: {exc}"
+    else:
+        lookup_error = None
+    if proposal_id is None:
+        return ActionResult(
+            action_id=aid,
+            ok=False,
+            data={
+                "applied": False,
+                "error": lookup_error
+                or (
+                    "No governor-approved proposal holds this exact patch, digest "
+                    "and base SHA; refusing (external review F2)."
+                ),
+            },
+            impact=ActionImpact.WRITE_CODE,
+            duration_sec=time.perf_counter() - started,
+        )
+
     result = ToolRunner.run_git(
         Path(core_context.git_service.repo_path),
         "apply",
@@ -878,6 +996,7 @@ async def action_assisted_apply_diff(
         data={
             "applied": ok,
             "error": error,
+            "proposal_id": proposal_id,
             # ADR-168 Amendment 2026-10-10 A3: the files this approved patch
             # deletes; the executor carries exactly these deletions to the
             # main tree and into the commit.
