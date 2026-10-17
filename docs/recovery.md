@@ -36,10 +36,10 @@ the VM run as root through `qm guest exec <vmid> --`. The guest agent works on a
 | # | Step | Note |
 |---|---|---|
 | 1 | `qmrestore <archive> <vmid> --storage ZFS-pool --unique 1` | a drill uses a new `<vmid>`; a real restore replaces VM 200 |
-| 2 | Before the first boot: `qm set <vmid> --delete ide2,cicustom,ipconfig0,nameserver,searchdomain` (remove the cloud-init drive). A drill clone also gets `qm set <vmid> --net0 <…>,link_down=1 --onboot 0` | without step 2, cloud-init would run its setup again: reset passwords, upgrade packages, re-own `/mnt/vector_db`. The drill clone must not reach the network next to the live VM |
+| 2 | Before the first boot: `qm set <vmid> --delete ide2,cicustom,ipconfig0,nameserver,searchdomain` (remove the cloud-init drive). A drill clone also gets `qm set <vmid> --name core-restore-drill --net0 <…>,link_down=1 --onboot 0` | without step 2, cloud-init would run its setup again: reset passwords, upgrade packages, re-own `/mnt/vector_db`. The drill clone must not reach the network next to the live VM. The new name is not needed for isolation (the guest keeps its hostname `core`, and its network is down); it keeps `qm list` and the Proxmox UI from showing two VMs named `core`. `qmrestore` has no `--name`, so step 2 sets it |
 | 3 | `qm start <vmid>`, then wait until `qm agent <vmid> ping` answers | |
 | 4 | Drill clone only, as soon as the agent answers: `systemctl stop core-pipeline.timer core-law-auto-apply.timer core-law-digest.timer` | see [Timers on a restored VM](#timers-on-a-restored-vm) |
-| 5 | Wait for PostgreSQL to finish crash recovery | about 2.5 minutes after boot |
+| 5 | Wait for PostgreSQL to finish crash recovery | about 2.5 minutes after boot; see [Startup on a restored VM](#startup-on-a-restored-vm) |
 | 6 | Wait until `curl http://127.0.0.1:8000/health` answers `{"status":"ok"}`. Do not restart anything | the API retries by itself while PostgreSQL recovers, at most a minute apart ([#1092](https://github.com/DariuszNewecki/CORE/pull/1092)); it reaches Qdrant on loopback, with or without network ([#1088](https://github.com/DariuszNewecki/CORE/issues/1088)) |
 | 7 | The checks in [Check the result](#check-the-result) | the audit and the law check run as `core-claude` ([#1089](https://github.com/DariuszNewecki/CORE/issues/1089)) |
 | 8 | Drill only: `qm stop <vmid> && qm destroy <vmid> --purge 1 --destroy-unreferenced-disks 1` | leaves no disks, config or job entries |
@@ -58,6 +58,17 @@ because that would mean editing the VM's disk from `pve` ([#1090](https://github
 - **Real restore (replaces VM 200):** leave them enabled. The restored VM is CORE again, and the
   pipeline then deploys what was merged after the backup. The Services check confirms they are
   active.
+
+### Startup on a restored VM
+
+While PostgreSQL replays its log, the services that need it restart on their own. In the
+2026-10-17 drill:
+
+- `core-api` restarted twice through its retry ([#1092](https://github.com/DariuszNewecki/CORE/pull/1092)), then answered `{"status":"ok"}`.
+- `core-daemon` and 15 `core-daemon-worker@` units restarted once each, on their 2-minute watchdog.
+
+This is expected. Everything came back without a manual step, so these restarts are not a gap.
+Restart nothing by hand (step 6).
 
 ## Rerun: 2026-10-17
 
@@ -86,7 +97,7 @@ What changed in the live VM before that backup, on 2026-10-16:
   (the checkout follows the live release);
 - the clone's `/opt/core/custody/ledger.jsonl` is a prefix of the live VM's (lines added after 02:30
   are the only difference);
-- the open-findings count from `core-admin runtime health` is compared with the live VM's; a
+- the open-findings count (the open-findings row in [Check the result](#check-the-result)) is compared with the live VM's; a
   difference must be explained by work after 02:30.
 
 ## Drill record: 2026-10-16
@@ -139,6 +150,49 @@ What changed in the live VM before that backup, on 2026-10-16:
 7. The clone was capped at 12 GB and 8 cores because the host had about 28 GB free, so it did not
    match production (24 GB, 12 cores).
 
+## Drill record: 2026-10-17
+
+- **Restored from:** `vzdump-qemu-200-2026_10_17-02_30_03.vma.zst`, storage `backup` on `pve`.
+- **Restored to:** VM 990 on `ZFS-pool`. It kept the name `core` (see step 2). It was isolated from
+  the network the whole time, then destroyed. VM 200 was not touched.
+
+| # | Step | Time | Result |
+|---|---|---|---|
+| 1 | Restore the archive | 10 min 46 s | ok |
+| 2 | Isolate before first boot | 2 s | ok |
+| 3 | Boot until the guest agent answers | 33 s | ok |
+| 4 | Stop the timers that write | 3 s | ok |
+| 5 | PostgreSQL crash recovery | ready 2 min 19 s after start | ok, automatic |
+| 6 | Start the API | `{"status":"ok"}` 4 min 29 s after start | ok, with no manual restart and no alias ([#1092](https://github.com/DariuszNewecki/CORE/pull/1092), [#1088](https://github.com/DariuszNewecki/CORE/issues/1088)) |
+| 7 | The checks | 2 min 56 s | see below |
+| 8 | Destroy the clone | 5 s | nothing left |
+
+- **Total:** 21 min 22 s; from the restore's start to the API, 15 min 48 s.
+- **Checks:**
+  - Audit: PASS, 0 blocking.
+  - Law: `law check-tree` exit 0.
+  - Workers: 37 of 38 alive; the Goal Execution Worker is not counted, as the Workers row says.
+  - Sandbox: 8 of 8 passed.
+  - Ledger: identical to VM 200's.
+  - Checkout: equals the live release b06e1444.
+  - Data: the last row at 02:29:51, 11 s before the backup.
+  - Not run: Database, Pipeline, open-findings.
+- **Logs:** `/root/drill-990-2026-10-17.log` and `/root/drill-990-2026-10-17-checks.txt` on `pve`.
+- **Result: not a clean pass**, because of the page gaps below. #1070 stays open.
+
+**Findings**
+
+1. `core-admin` is not on root's `PATH`, so the Database, Pipeline and open-findings checks did not
+   run. Fixed: every row in [Check the result](#check-the-result) names its user and full path.
+2. The Services row expected the three timers active, but step 4 stops them on a drill clone.
+   Fixed: the row states the drill exception.
+3. The Data query also counted rows the clone wrote after boot. Fixed: it stops at PostgreSQL's
+   start on the clone.
+4. At startup the API restarted twice and `core-daemon` and 15 workers once each, all by
+   themselves. Settled as expected: see [Startup on a restored VM](#startup-on-a-restored-vm).
+5. The page did not say whether a drill clone must be renamed; it kept the name `core`. Settled: it
+   need not be for isolation; step 2 renames it so the two VMs are told apart.
+
 ## What a complete backup contains
 
 Rebuildable means that git (by commit SHA), GitHub or PyPI can make the part again. Unique means
@@ -189,7 +243,7 @@ scheduled.
    pre-drill state:
    - `sha256sum /opt/core/custody/ledger.jsonl`;
    - `runuser -l core-claude -c 'git -C /opt/dev/CORE rev-parse HEAD'`;
-   - the open-findings count from `core-admin runtime health`.
+   - the open-findings count (the open-findings row in [Check the result](#check-the-result)).
 4. Encrypt the archive and keep it off the host. The archive holds every secret CORE has.
 
 ## Rebuild from parts
@@ -238,11 +292,12 @@ neither. The checkout must be at the deployed commit, which every deploy now see
 |---|---|---|
 | Audit | `runuser -l core-claude -c 'cd /opt/dev/CORE && .venv/bin/core-admin code audit --offline'` | PASS, or DEGRADED with 0 blocking findings |
 | Law | `runuser -l core-claude -c 'cd /opt/dev/CORE && .venv/bin/core-admin law check-tree'` | exit 0 |
-| Database | `core-admin database status` | exit 0 (current) |
-| Data | `docker exec core_postgres_db psql -U <db-user> -d <db-name> -Atc "select max(created_at) from core.blackboard_entries"` (user and database from `DATABASE_URL` in `/opt/core/etc/secrets.env`) | a time within minutes before the backup started |
+| Database | `sudo runuser -u core -- bash -c 'set -a; . /opt/core/etc/core.env; /opt/core/current/venv/bin/core-admin database status'` (`core` reads the database credential through `CORE_SECRETS_FILE` in `core.env`) | exit 0 (current) |
+| Data | `docker exec core_postgres_db psql -U <db-user> -d <db-name> -Atc "select max(created_at) from core.blackboard_entries where created_at < pg_postmaster_start_time()"` (user and database from `DATABASE_URL` in `/opt/core/etc/secrets.env`). Rows from after PostgreSQL started on the clone are the clone's own and are left out | a time within minutes before the backup started |
 | API | `curl http://127.0.0.1:8000/health` | `{"status":"ok"}` |
 | Workers | `curl http://127.0.0.1:8000/v1/daemon/status` | every worker whose last heartbeat before the backup was within its last hour is alive again, with a heartbeat after the boot. Rows last seen long before the backup (on 2026-10-16: 19 test registrations from June and the Goal Execution Worker, last seen 2026-09-13) are not counted |
-| Services | `systemctl --user -M core@ status core-daemon core-api 'core-daemon-worker@*'` and `systemctl status core-sandbox.socket core-pipeline.timer core-law-auto-apply.timer core-law-digest.timer` | all active |
+| Services | `systemctl --user -M core@ status core-daemon core-api 'core-daemon-worker@*'` and `systemctl status core-sandbox.socket core-pipeline.timer core-law-auto-apply.timer core-law-digest.timer` | all active. On a drill clone the three timers are inactive: step 4 stops them |
 | Sandbox | `sudo runuser -u core -- bash -c 'set -a; . /opt/core/etc/core.env; /opt/core/current/venv/bin/core-admin runtime sandbox-check --mode service'` | every row `passed` |
-| Pipeline | `core-admin runtime status` | the recorded commit is live |
-| Same state as before | `sha256sum /opt/core/custody/ledger.jsonl`, `runuser -l core-claude -c 'git -C /opt/dev/CORE rev-parse HEAD'`, the open-findings count from `core-admin runtime health` | equal to the values recorded at backup time |
+| Pipeline | `runuser -l core-claude -c '/opt/core/current/venv/bin/core-admin runtime status'` | `live commit` is the recorded commit. On a drill clone `main` cannot be read from GitHub (no network) |
+| Open findings | `curl -s http://127.0.0.1:8000/v1/status/health \| python3 -I -c 'import json,sys; print(sum(r["count"] for r in json.load(sys.stdin)["blackboard"] if r["entry_type"]=="finding" and r["status"]=="open"))'` | equal to the value recorded at backup time, or the difference explained |
+| Same state as before | `sha256sum /opt/core/custody/ledger.jsonl`, `runuser -l core-claude -c 'git -C /opt/dev/CORE rev-parse HEAD'`, the open-findings count (row above) | equal to the values recorded at backup time |
