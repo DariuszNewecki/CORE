@@ -16,7 +16,18 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .base import BaseEngine, EngineResult, EvidenceClass
+from .base import CONTENT_NOT_EVALUATED, BaseEngine, EngineResult, EvidenceClass
+
+
+def _decode_text(data: bytes) -> str | None:
+    """The file's text, or None when it is not UTF-8 text (a NUL byte, or
+    bytes that do not decode)."""
+    if b"\x00" in data:
+        return None
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
 
 
 # ID: 76df2589-c0fd-48e3-b359-7c58e1c5ff71
@@ -48,7 +59,7 @@ class RegexGateEngine(BaseEngine):
         # FACT 2: Check Content
         try:
             # Use to_thread to prevent blocking the event loop during file I/O.
-            content = await asyncio.to_thread(file_path.read_text, encoding="utf-8")
+            data = await asyncio.to_thread(file_path.read_bytes)
         except Exception as e:
             return EngineResult(
                 ok=False,
@@ -57,10 +68,31 @@ class RegexGateEngine(BaseEngine):
                 engine_id=self.engine_id,
             )
 
-        # 2a: Forbidden Patterns (Negative Check - e.g., Secrets/PII)
         forbidden = params.get("forbidden_patterns") or params.get("patterns", [])
         if isinstance(forbidden, str):
             forbidden = [forbidden]
+        required = params.get("required_patterns", [])
+        if isinstance(required, str):
+            required = [required]
+
+        content = _decode_text(data)
+        if content is None:
+            # #1050: a binary or non-UTF-8 file has no text to match. Its
+            # content is not evaluated (reported by the executor), which is
+            # neither a pass nor a failure; the naming check above still holds.
+            return EngineResult(
+                ok=not violations,
+                message="Content not evaluated: not UTF-8 text.",
+                violations=violations,
+                engine_id=self.engine_id,
+                extra=(
+                    {CONTENT_NOT_EVALUATED: "not UTF-8 text"}
+                    if forbidden or required
+                    else {}
+                ),
+            )
+
+        # 2a: Forbidden Patterns (Negative Check - e.g., Secrets/PII)
 
         for pattern in forbidden:
             matches = re.finditer(pattern, content, re.MULTILINE)
@@ -72,10 +104,6 @@ class RegexGateEngine(BaseEngine):
                 )
 
         # 2b: Required Patterns (Positive Check - e.g., File Headers)
-        required = params.get("required_patterns", [])
-        if isinstance(required, str):
-            required = [required]
-
         for pattern in required:
             if not re.search(pattern, content, re.MULTILINE):
                 violations.append(

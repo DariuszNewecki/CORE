@@ -18,7 +18,7 @@ async def test_RegexGateEngine_verify() -> None:
     file_path.name = "compliant_file.py"
 
     content = "line one\nline two\nhello world\n"
-    file_path.read_text = MagicMock(return_value=content)
+    file_path.read_bytes = MagicMock(return_value=content.encode("utf-8"))
 
     params = {
         "naming_pattern": r".*\.py$",
@@ -26,7 +26,9 @@ async def test_RegexGateEngine_verify() -> None:
         "forbidden_patterns": [r"secret_token"],
     }
 
-    with patch("asyncio.to_thread", new=AsyncMock(return_value=content)):
+    with patch(
+        "asyncio.to_thread", new=AsyncMock(return_value=content.encode("utf-8"))
+    ):
         result = await engine.verify(file_path, params)
 
     assert result.ok is True
@@ -43,7 +45,9 @@ def test_RegexGateEngine():
         engine = RegexGateEngine()
         target = MagicMock()
         target.name = "good_name.py"
-        target.read_text = MagicMock(return_value="import os\n# header\nprint('ok')\n")
+        target.read_bytes = MagicMock(
+            return_value=b"import os\n# header\nprint('ok')\n"
+        )
 
         params = {
             "naming_pattern": r"^good_name\.py$",

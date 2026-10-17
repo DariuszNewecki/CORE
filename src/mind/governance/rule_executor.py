@@ -12,6 +12,7 @@ from mind.governance.dispatch_integrity import (
     declared_check_types,
 )
 from mind.logic.engines.base import (
+    CONTENT_NOT_EVALUATED,
     extract_line_number,
     normalize_violation,
 )
@@ -305,6 +306,9 @@ async def execute_rule(
     # #309: store (rel_path, underlying_error_message) pairs so the
     # aggregate finding preserves the engine's diagnostic string.
     transient_llm_failures: list[tuple[str, str]] = []
+    # #1050: (rel_path, reason) for files whose content the engine could not
+    # evaluate (binary under a text scan); reported once below.
+    content_not_evaluated: list[tuple[str, str]] = []
 
     # ADR-039 Option F: evaluation cache is active when the engine's verdicts
     # are content-deterministic and the rule has a non-empty content hash.
@@ -351,6 +355,13 @@ async def execute_rule(
                 "_force_llm": getattr(context, "force_llm", False),
             }
             result = await engine.verify(file_path, params_with_context)
+            not_evaluated = (result.extra or {}).get(CONTENT_NOT_EVALUATED)
+            if not_evaluated:
+                content_not_evaluated.append(
+                    (str(file_path.relative_to(context.repo_path)), str(not_evaluated))
+                )
+                # Never cached: the report below is rebuilt every run.
+                eval_key = None
             if not result.ok:
                 # #306/#307: transient LLM infrastructure failures are
                 # aggregated, not emitted per-file. The marker is set by
@@ -482,6 +493,31 @@ async def execute_rule(
                         for path, err in transient_llm_failures[:5]
                     ],
                     "unique_error_messages": unique_errors[:5],
+                },
+            )
+        )
+
+    # #1050: files whose content could not be evaluated are one INFO finding
+    # per rule, not a failure: the rule did run, and its other checks (a
+    # naming pattern) still applied to them.
+    if content_not_evaluated:
+        reasons = sorted({reason for _, reason in content_not_evaluated})
+        findings.append(
+            AuditFinding(
+                check_id=f"{rule.rule_id}.content_not_evaluated",
+                severity=AuditSeverity.INFO,
+                message=(
+                    f"Rule '{rule.rule_id}' did not evaluate the content of "
+                    f"{len(content_not_evaluated)} file(s): {'; '.join(reasons)}."
+                ),
+                file_path="none",
+                context={
+                    "finding_type": "CONTENT_NOT_EVALUATED",
+                    "engine": rule.engine,
+                    "policy_id": rule.policy_id,
+                    "file_count": len(content_not_evaluated),
+                    "sample_files": [path for path, _ in content_not_evaluated[:5]],
+                    "reasons": reasons,
                 },
             )
         )
