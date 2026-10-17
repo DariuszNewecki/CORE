@@ -165,7 +165,7 @@ def _require_test_database_identity(request: pytest.FixtureRequest) -> None:
 
 # --- Skip DB-backed tests when the database is unreachable ----------------------
 #
-# `.env.test` points DATABASE_URL at a LAN Postgres (e.g. 192.168.20.23/core_test).
+# `.env.test` points DATABASE_URL at a LAN Postgres (the DB server .22, core_test).
 # That host is reachable from the dev box and the server, but NOT from an external
 # CI runner (GitHub-hosted runners cannot route to a private 192.168.x.x address).
 # Without a guard, every DB-backed test blocks on asyncpg's connect attempt until

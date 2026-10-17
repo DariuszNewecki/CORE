@@ -4,6 +4,8 @@ services:
     container_name: core_postgres_db
     environment:
       POSTGRES_USER: postgres
+      # Applies only when the data volume is first initialised; changing it later
+      # does nothing. Change it (and the role passwords) on any real install.
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: core
     ports:
