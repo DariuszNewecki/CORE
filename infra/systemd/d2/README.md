@@ -57,3 +57,4 @@ config.
 
 Known limit: the post-switch heartbeat check reads `GET /v1/daemon/status`. When
 `require_governor` goes live (D10.11 step 4), that check needs its own read-only channel.
+<!-- probe: host-change-stated must block; this PR is closed unmerged -->
