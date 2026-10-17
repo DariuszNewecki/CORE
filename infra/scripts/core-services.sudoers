@@ -1,0 +1,2 @@
+core-claude ALL=(core) NOPASSWD: /usr/local/bin/core-services
+core-darek ALL=(core) /usr/local/bin/core-services
