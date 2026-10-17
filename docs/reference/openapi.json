@@ -1653,7 +1653,7 @@
           "Fix"
         ],
         "summary": "Dispatch an atomic fix action",
-        "description": "Run an atomic action from the registry by `fix_id` (e.g. `fix.format`, `fix.imports`, `fix.docstrings`). Returns 422 if `fix_id` is unknown — the response body includes a registered ids count. Valid ids return 202 + a `run_id` to poll. `write=false` is the dry-run default (ADR-014) and is open; `write=true` needs the governor on CORE's Unix socket (403 otherwise). `params` carries action-specific kwargs (e.g. `fix.docstrings`'s `limit`) and is forwarded as `**kwargs` to ActionExecutor.execute.",
+        "description": "Run an atomic action from the registry by `fix_id` (e.g. `fix.format`, `fix.imports`, `fix.docstrings`). Returns 422 if `fix_id` is unknown — the response body includes a registered ids count. Valid ids return 202 + a `run_id` to poll. `write=false` is the dry-run default (ADR-014) and is open; `write=true`, or an action whose declared impact writes files, needs the governor on CORE's Unix socket (403 otherwise). `params` carries action-specific kwargs (e.g. `fix.docstrings`'s `limit`) and is forwarded as `**kwargs` to ActionExecutor.execute.",
         "operationId": "run_fix_v1_fix_run__fix_id__post",
         "parameters": [
           {

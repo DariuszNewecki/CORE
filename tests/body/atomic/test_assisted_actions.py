@@ -17,8 +17,12 @@ always refuse). The ``_touches_audit_engine`` tests are updated accordingly.
 from __future__ import annotations
 
 import hashlib
+import subprocess
+from contextlib import asynccontextmanager
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from body.atomic.assisted_actions import (
     _apply_to_index,
@@ -217,7 +221,7 @@ async def test_apply_diff_refuses_without_git_service() -> None:
     fn = action_assisted_apply_diff.__wrapped__
     ctx = MagicMock()
     ctx.git_service = None
-    result = await fn(patch="--- a/x\n+++ b/x\n", core_context=ctx)
+    result = await fn(patch="--- a/x\n+++ b/x\n", write=True, core_context=ctx)
     assert result.ok is False
     assert "git_service" in result.data["error"]
 
@@ -231,7 +235,10 @@ _APPLY_PATCH_DIGEST = hashlib.sha256(_APPLY_PATCH.encode("utf-8")).hexdigest()
 async def test_apply_diff_refuses_without_validated_base_sha() -> None:
     fn = action_assisted_apply_diff.__wrapped__
     result = await fn(
-        patch=_APPLY_PATCH, validated_base_sha=None, core_context=MagicMock()
+        patch=_APPLY_PATCH,
+        validated_base_sha=None,
+        write=True,
+        core_context=MagicMock(),
     )
     assert result.ok is False
     assert "validated_base_sha" in result.data["error"]
@@ -243,6 +250,7 @@ async def test_apply_diff_refuses_without_patch_digest() -> None:
         patch=_APPLY_PATCH,
         validated_base_sha="some-sha",
         patch_digest=None,
+        write=True,
         core_context=MagicMock(),
     )
     assert result.ok is False
@@ -262,6 +270,7 @@ async def test_apply_diff_refuses_on_intervening_commit() -> None:
             patch=_APPLY_PATCH,
             validated_base_sha="validated-sha",
             patch_digest=_APPLY_PATCH_DIGEST,
+            write=True,
             core_context=ctx,
         )
 
@@ -287,6 +296,7 @@ async def test_apply_diff_refuses_on_patch_digest_mismatch() -> None:
             patch=_APPLY_PATCH,
             validated_base_sha="same-sha",
             patch_digest="not-the-real-digest",
+            write=True,
             core_context=ctx,
         )
 
@@ -305,12 +315,19 @@ async def test_apply_diff_applies_when_base_sha_and_digest_both_match() -> None:
     ctx.git_service.get_current_commit.return_value = "same-sha"
     ctx.git_service.repo_path = "/repo"
 
-    with patch("body.atomic.assisted_actions.ToolRunner.run_git") as run_git:
+    with (
+        patch("body.atomic.assisted_actions.ToolRunner.run_git") as run_git,
+        patch(
+            "body.atomic.assisted_actions._approved_proposal_for",
+            AsyncMock(return_value="proposal-1"),
+        ),
+    ):
         run_git.return_value = MagicMock(returncode=0, stderr="")
         result = await fn(
             patch=_APPLY_PATCH,
             validated_base_sha="same-sha",
             patch_digest=_APPLY_PATCH_DIGEST,
+            write=True,
             core_context=ctx,
         )
 
@@ -318,6 +335,159 @@ async def test_apply_diff_applies_when_base_sha_and_digest_both_match() -> None:
     assert result.data["applied"] is True
     # The apply, then the check that the tree shows the patch's changes.
     assert [c.args[1] for c in run_git.call_args_list] == ["apply", "status"]
+
+
+# --- external review F2: apply only with write=True and an approved proposal ---
+
+
+def _f2_git(args: list[str], cwd: Path) -> str:
+    return subprocess.run(
+        ["git", *args], cwd=cwd, check=True, capture_output=True, text=True
+    ).stdout
+
+
+_F2_PATCH = (
+    "diff --git a/keep.py b/keep.py\n"
+    "--- a/keep.py\n"
+    "+++ b/keep.py\n"
+    "@@ -1 +1 @@\n"
+    "-x = 1\n"
+    "+x = 2\n"
+)
+_F2_DIGEST = hashlib.sha256(_F2_PATCH.encode("utf-8")).hexdigest()
+
+
+@pytest.fixture
+def f2_repo(tmp_path: Path) -> tuple[Path, MagicMock, str]:
+    """A real repository at a known commit; the context points at it."""
+    _f2_git(["init", "-q"], tmp_path)
+    _f2_git(["config", "user.email", "t@t.invalid"], tmp_path)
+    _f2_git(["config", "user.name", "t"], tmp_path)
+    _f2_git(["config", "commit.gpgsign", "false"], tmp_path)
+    (tmp_path / "keep.py").write_text("x = 1\n")
+    _f2_git(["add", "-A"], tmp_path)
+    _f2_git(["commit", "-q", "-m", "base"], tmp_path)
+    head = _f2_git(["rev-parse", "HEAD"], tmp_path).strip()
+    ctx = MagicMock()
+    ctx.git_service.repo_path = str(tmp_path)
+    ctx.git_service.get_current_commit.return_value = head
+    return tmp_path, ctx, head
+
+
+def _proposals_table(rows: list[tuple[str, list]]):
+    """A get_session stand-in whose query returns *rows* (proposal_id, actions)."""
+
+    @asynccontextmanager
+    async def _session():
+        session = MagicMock()
+        result = MagicMock()
+        result.all.return_value = rows
+        session.execute = AsyncMock(return_value=result)
+        yield session
+
+    return patch("shared.infrastructure.database.session_manager.get_session", _session)
+
+
+def _apply_action(patch_text: str, base: str) -> list:
+    return [
+        {
+            "action_id": "assisted.apply_diff",
+            "parameters": {
+                "patch": patch_text,
+                "patch_digest": hashlib.sha256(patch_text.encode()).hexdigest(),
+                "validated_base_sha": base,
+                "write": True,
+            },
+        }
+    ]
+
+
+def _unchanged(repo: Path, head: str) -> None:
+    assert (repo / "keep.py").read_text() == "x = 1\n"
+    assert _f2_git(["status", "--porcelain"], repo) == ""
+    assert _f2_git(["rev-parse", "HEAD"], repo).strip() == head
+
+
+async def test_f2_a_dry_run_with_matching_patch_digest_and_base_is_refused(
+    f2_repo: tuple[Path, MagicMock, str],
+) -> None:
+    """(a) write=false — even with an approved proposal holding the patch —
+    changes no file and no git state."""
+    repo, ctx, head = f2_repo
+    with _proposals_table([("p1", _apply_action(_F2_PATCH, head))]):
+        result = await action_assisted_apply_diff.__wrapped__(
+            patch=_F2_PATCH,
+            patch_digest=_F2_DIGEST,
+            validated_base_sha=head,
+            write=False,
+            core_context=ctx,
+        )
+    assert result.ok is False and result.data["applied"] is False
+    assert "write=True" in result.data["error"]
+    _unchanged(repo, head)
+
+
+async def test_f2_b_an_approved_proposal_holding_the_patch_applies(
+    f2_repo: tuple[Path, MagicMock, str],
+) -> None:
+    repo, ctx, head = f2_repo
+    with _proposals_table([("p1", _apply_action(_F2_PATCH, head))]):
+        result = await action_assisted_apply_diff.__wrapped__(
+            patch=_F2_PATCH,
+            patch_digest=_F2_DIGEST,
+            validated_base_sha=head,
+            write=True,
+            core_context=ctx,
+        )
+    assert result.ok is True, result.data
+    assert result.data["proposal_id"] == "p1"
+    assert (repo / "keep.py").read_text() == "x = 2\n"
+
+
+@pytest.mark.parametrize(
+    "rows",
+    [
+        [],
+        # A proposal with the same digest and base but other patch bytes.
+        [("p2", _apply_action(_F2_PATCH.replace("x = 2", "x = 3"), "b" * 40))],
+    ],
+    ids=["no-proposal", "different-patch"],
+)
+async def test_f2_c_without_an_approved_proposal_holding_the_patch_is_refused(
+    f2_repo: tuple[Path, MagicMock, str], rows: list
+) -> None:
+    repo, ctx, head = f2_repo
+    with _proposals_table(rows):
+        result = await action_assisted_apply_diff.__wrapped__(
+            patch=_F2_PATCH,
+            patch_digest=_F2_DIGEST,
+            validated_base_sha=head,
+            write=True,
+            core_context=ctx,
+        )
+    assert result.ok is False and result.data["applied"] is False
+    assert "No governor-approved proposal" in result.data["error"]
+    _unchanged(repo, head)
+
+
+async def test_f2_an_unreadable_approval_record_refuses(
+    f2_repo: tuple[Path, MagicMock, str],
+) -> None:
+    repo, ctx, head = f2_repo
+    with patch(
+        "body.atomic.assisted_actions._approved_proposal_for",
+        AsyncMock(side_effect=RuntimeError("db down")),
+    ):
+        result = await action_assisted_apply_diff.__wrapped__(
+            patch=_F2_PATCH,
+            patch_digest=_F2_DIGEST,
+            validated_base_sha=head,
+            write=True,
+            core_context=ctx,
+        )
+    assert result.ok is False
+    assert "not readable" in result.data["error"]
+    _unchanged(repo, head)
 
 
 # --- action_assisted_validate_diff records validated_base_sha (ADR-154 D2) ---

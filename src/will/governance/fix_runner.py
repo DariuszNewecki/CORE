@@ -159,6 +159,27 @@ def list_registered_action_ids() -> set[str]:
     return {definition.action_id for definition in action_registry.list_all()}
 
 
+# ID: 40909239-7562-4082-a78f-af1dcee25644
+def action_mutates_files(action_id: str) -> bool:
+    """Whether the action's declared impact writes files (external review F2).
+
+    Read from its ``@atomic_action`` metadata: WRITE_CODE or WRITE_METADATA,
+    the impacts ActionExecutor sandboxes. An unknown action, or one without
+    declared metadata, counts as mutating (fail closed).
+    """
+    import body.atomic  # noqa: F401 — triggers registration
+    from shared.action_types import ActionImpact
+    from shared.atomic_action import get_action_metadata
+
+    definition = action_registry.get(action_id)
+    if definition is None:
+        return True
+    metadata = get_action_metadata(definition.executor)
+    if metadata is None:
+        return True
+    return metadata.impact in (ActionImpact.WRITE_CODE, ActionImpact.WRITE_METADATA)
+
+
 # ID: d905c554-af70-49c5-85c3-82661d169fab
 def list_action_definitions(category: str | None = None) -> list[dict]:
     """Return serialised ActionDefinition metadata for every registered action.

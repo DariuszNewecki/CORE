@@ -103,9 +103,12 @@ async def test_run_fix_valid_id_returns_202_with_pending():
     bg = MagicMock(spec=BackgroundTasks)
     bg.add_task = MagicMock()
 
-    with patch(
-        "api.v1.fix_routes.list_registered_action_ids",
-        return_value=["fix.format"],
+    with (
+        patch(
+            "api.v1.fix_routes.list_registered_action_ids",
+            return_value=["fix.format"],
+        ),
+        patch("api.v1.fix_routes.action_mutates_files", return_value=False),
     ):
         out = await run_fix(
             fix_id="fix.format",
@@ -175,6 +178,83 @@ async def test_run_fix_write_is_refused_for_anyone_but_the_governor(
     assert exc.value.status_code == 403
     session.execute.assert_not_called()
     bg.add_task.assert_not_called()
+
+
+# ── external review F2: a file-mutating action needs the governor ────────────
+
+
+@pytest.mark.parametrize("caller", [ASSISTANT, TCP], ids=["assistant", "tcp"])
+async def test_a_file_mutating_action_is_refused_for_a_non_governor_dry_run(
+    caller: CallerPrincipal,
+) -> None:
+    """assisted.apply_diff with write=false and a matching patch/digest/base
+    is still refused (403) for anyone but the governor; nothing is queued."""
+    session = AsyncMock()
+    bg = MagicMock(spec=BackgroundTasks)
+    with pytest.raises(HTTPException) as exc:
+        await run_fix(
+            fix_id="assisted.apply_diff",
+            request=_mock_request(),
+            response=MagicMock(spec=Response),
+            background_tasks=bg,
+            payload=RunFixRequest(
+                write=False,
+                params={
+                    "patch": "--- a/x\n+++ b/x\n",
+                    "patch_digest": "d" * 64,
+                    "validated_base_sha": "b" * 40,
+                },
+            ),
+            session=session,
+            principal=caller,
+        )
+    assert exc.value.status_code == 403
+    session.execute.assert_not_called()
+    bg.add_task.assert_not_called()
+
+
+async def test_the_governor_may_dispatch_a_file_mutating_action() -> None:
+    run_id = uuid4()
+    session = _mock_session_returning(run_id)
+    bg = MagicMock(spec=BackgroundTasks)
+    bg.add_task = MagicMock()
+    out = await run_fix(
+        fix_id="assisted.apply_diff",
+        request=_mock_request(),
+        response=MagicMock(spec=Response),
+        background_tasks=bg,
+        payload=RunFixRequest(write=True),
+        session=session,
+        principal=GOVERNOR,
+    )
+    assert out["status"] == "pending"
+    bg.add_task.assert_called_once()
+
+
+async def test_a_read_only_or_validating_action_stays_open_for_a_dry_run() -> None:
+    """assisted.validate_diff (the assistant's validate_change) is not gated."""
+    run_id = uuid4()
+    session = _mock_session_returning(run_id)
+    bg = MagicMock(spec=BackgroundTasks)
+    bg.add_task = MagicMock()
+    out = await run_fix(
+        fix_id="assisted.validate_diff",
+        request=_mock_request(),
+        response=MagicMock(spec=Response),
+        background_tasks=bg,
+        payload=RunFixRequest(write=False),
+        session=session,
+        principal=ASSISTANT,
+    )
+    assert out["status"] == "pending"
+
+
+def test_action_mutates_files_reads_the_declared_impact() -> None:
+    from will.governance.fix_runner import action_mutates_files
+
+    assert action_mutates_files("assisted.apply_diff") is True
+    assert action_mutates_files("assisted.validate_diff") is False
+    assert action_mutates_files("no.such.action") is True
 
 
 # ── run_fix_all ───────────────────────────────────────────────────────────────

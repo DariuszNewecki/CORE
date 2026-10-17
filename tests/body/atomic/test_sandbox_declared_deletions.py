@@ -12,7 +12,7 @@ from __future__ import annotations
 import hashlib
 import subprocess
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -27,6 +27,16 @@ def _run(args: list[str], cwd: Path) -> str:
     return subprocess.run(
         args, cwd=cwd, check=True, capture_output=True, text=True
     ).stdout
+
+
+@pytest.fixture(autouse=True)
+def _approved() -> object:
+    """The patch is bound to a governor-approved proposal (F2 lookup)."""
+    with patch(
+        "body.atomic.assisted_actions._approved_proposal_for",
+        AsyncMock(return_value="proposal-1"),
+    ) as lookup:
+        yield lookup
 
 
 @pytest.fixture
@@ -81,6 +91,7 @@ async def _apply_in_sandbox(repo: Path) -> tuple[SandboxLifecycle, object, dict]
         patch=_PATCH,
         patch_digest=hashlib.sha256(_PATCH.encode()).hexdigest(),
         validated_base_sha=scoped_ctx.git_service.get_current_commit(),
+        write=True,
         core_context=scoped_ctx,
     )
     assert result.ok, result.data
@@ -157,6 +168,7 @@ async def test_apply_in_a_vanished_sandbox_fails_instead_of_reporting_success(
             patch=_PATCH,
             patch_digest=hashlib.sha256(_PATCH.encode()).hexdigest(),
             validated_base_sha=sha,
+            write=True,
             core_context=scoped_ctx,
         )
     finally:
