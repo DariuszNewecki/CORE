@@ -33,7 +33,8 @@ Order (ADR-132 D10 · D2):
     branch (``DEPLOY_BRANCH`` in deploy.conf; develop when unset, main for
     the one-path flow) and its CI check runs are all green;
  2. refuse if releases/<sha> exists;
- 3. build (core-build) and install (root) into releases/<sha>/venv, then
+ 3. build (core-build) and install (root) into releases/<sha>/venv, with
+    the pinned core-cli wheel (``CORE_CLI``, hash-checked, no deps), then
     write core-release.json {sha, wheel_sha256} (the C4 contract) and keep
     the hashed wheel and the commit's poetry.lock in releases/<sha>/dist/,
     from which core-law-setup installs the custodian's venv;
@@ -124,6 +125,12 @@ LAW_USER = "core-law"
 ASSISTANT = "core-claude"
 # Host scripts core-deploy keeps equal to the deployed commit (self-update).
 HOST_SCRIPTS = ("core-deploy", "core-law-setup", "core-pipeline", "core-sandbox-check")
+# ADR-167 D2: the core-cli release the docs correspond to (the Makefile's
+# CORE_CLI_DOCS_VERSION), installed into each release venv so the sandbox
+# audit can compare docs/reference/core.md. Wheel only, no dependencies,
+# checked against this hash; candidate code gets nothing it did not have.
+CORE_CLI = "core-cli==2.1.0"
+CORE_CLI_SHA256 = "d3d8665f755a3dd0016a0c759bd04300292056d42e2aa8c69159c5f2e30df158"
 # Host setup: sudoers, accounts and units. A merge that changes these paths
 # runs the setup script that applies them (the merge is the approval).
 HOST_SETUP_PATHS = (
@@ -619,6 +626,10 @@ class Deployer:
         pyproject = self.git("show", f"{sha}:pyproject.toml")
         requirements = build / "requirements.txt"
         requirements.write_text(requirements_from_lock(lock), encoding="utf-8")
+        core_cli = build / "core-cli.txt"
+        core_cli.write_text(
+            f"{CORE_CLI} --hash=sha256:{CORE_CLI_SHA256}\n", encoding="utf-8"
+        )
         self.host.chown(build, BUILD_USER, recursive=True)
 
         self.say("building as core-build")
@@ -653,6 +664,21 @@ class Deployer:
                 str(requirements),
                 "-d",
                 str(build / "wheelhouse"),
+            ],
+            user=BUILD_USER,
+        )
+        self.host.run(
+            [
+                pip,
+                "download",
+                "--no-cache-dir",
+                "--only-binary=:all:",
+                "--no-deps",
+                "--require-hashes",
+                "-r",
+                str(core_cli),
+                "-d",
+                str(build / "core-cli"),
             ],
             user=BUILD_USER,
         )
@@ -696,6 +722,24 @@ class Deployer:
                     "--no-index",
                     "--no-deps",
                     str(wheels[0]),
+                ]
+            )
+            self.host.run(
+                [
+                    python,
+                    "-I",
+                    "-m",
+                    "pip",
+                    "install",
+                    "--no-cache-dir",
+                    "--no-index",
+                    "--only-binary=:all:",
+                    "--no-deps",
+                    "--require-hashes",
+                    "--find-links",
+                    str(build / "core-cli"),
+                    "-r",
+                    str(core_cli),
                 ]
             )
             (venv / "core-release.json").write_text(

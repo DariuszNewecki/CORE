@@ -17,6 +17,7 @@ import importlib.machinery
 import importlib.util
 import io
 import json
+import re
 import subprocess
 import sys
 import tarfile
@@ -433,6 +434,40 @@ def test_each_step_runs_as_its_account(root: Path) -> None:
         for c in host.commands("systemd-run")
     )
     assert all(SAFE in host.commands("git")[0] for SAFE in cd.SAFE_GIT)
+
+
+# ID: 200232ef-a954-4a12-bf48-b573b5f887ef
+def test_the_release_venv_gets_the_pinned_core_cli_wheel_only(root: Path) -> None:
+    host = FakeHost(root)
+    assert _deploy(root, host) == 0
+    download = [
+        (u, c)
+        for u, c in host.calls
+        if "download" in c and any(a.endswith("core-cli.txt") for a in c)
+    ]
+    assert len(download) == 1
+    user, cmd = download[0]
+    assert user == "core-build"  # fetched by the build account, never root
+    for flag in ("--no-deps", "--require-hashes", "--only-binary=:all:"):
+        assert flag in cmd
+    install = [
+        (u, c)
+        for u, c in host.calls
+        if "install" in c and any(a.endswith("core-cli.txt") for a in c)
+    ]
+    assert len(install) == 1
+    user, cmd = install[0]
+    assert user is None and cmd[0].endswith(f"releases/{SHA}/venv/bin/python")
+    for flag in ("--no-deps", "--require-hashes", "--no-index", "--only-binary=:all:"):
+        assert flag in cmd
+
+
+# ID: fcdd72b8-2f48-4ef5-ad49-879809b0d018
+def test_core_cli_pin_is_the_docs_version_with_a_sha256() -> None:
+    makefile = (REPO / "Makefile").read_text()
+    match = re.search(r"^CORE_CLI_DOCS_VERSION\s*:=\s*(\S+)", makefile, re.M)
+    assert match and cd.CORE_CLI == f"core-cli=={match.group(1)}"
+    assert re.fullmatch(r"[0-9a-f]{64}", cd.CORE_CLI_SHA256)
 
 
 # ID: 9d035205-09eb-4efa-9137-437d94d6afe8
