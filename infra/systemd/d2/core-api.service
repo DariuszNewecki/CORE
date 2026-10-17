@@ -2,6 +2,9 @@
 # (ADR-132 D10 · D2), and on CORE's Unix socket, the only route to governor acts (ADR-132 D10.3 as
 # amended). /run/core/api is made by tmpfiles (core-runtime-setup): owned by core, group core-gov,
 # setgid, so the socket (mode 0660) is reachable by core-gov members (the governor) and nobody else.
+# A second socket for producers (the coding assistant) lives in /run/core/api-producer (group
+# core-producer, made by a host step); it carries the caller's identity the same way, and
+# api.serve skips it while that directory does not exist (external review F1).
 [Unit]
 Description=CORE API Server (loopback only, release runtime)
 After=network.target core-daemon.service
@@ -16,8 +19,9 @@ Type=simple
 WorkingDirectory=/opt/core/run
 EnvironmentFile=/opt/core/etc/core.env
 Environment=PATH=/opt/core/current/venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=CORE_API_PRODUCER_UDS=/run/core/api-producer/api.sock
 # A socket left by a crash would make api.serve refuse to start; the directory is core's own.
-ExecStartPre=/bin/rm -f /run/core/api/api.sock
+ExecStartPre=/bin/rm -f /run/core/api/api.sock /run/core/api-producer/api.sock
 ExecStart=/opt/core/current/venv/bin/python -I -m api.serve \
     --uds /run/core/api/api.sock \
     --host 127.0.0.1 \

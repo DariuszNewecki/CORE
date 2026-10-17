@@ -37,9 +37,11 @@ from pathlib import Path
 from typing import Any
 
 from body.sandbox.models import (
+    AUDIT_KIND,
     COLLECT_KIND,
     SandboxJob,
     SandboxResult,
+    classify_audit,
     classify_pytest,
 )
 from shared.logger import getLogger
@@ -66,6 +68,10 @@ def child_environment(work_dir: Path) -> dict[str, str]:
         "CORE_ENV": "test",
         "LLM_ENABLED": "false",
         "LOG_LEVEL": "WARNING",
+        # The audit's ruff and mypy keep their caches in the job's scratch:
+        # the snapshot is read-only.
+        "RUFF_CACHE_DIR": str(work_dir / ".ruff_cache"),
+        "MYPY_CACHE_DIR": str(work_dir / ".mypy_cache"),
     }
 
 
@@ -97,6 +103,8 @@ def run_job(
         "collect_only": job.kind == COLLECT_KIND,
         "coverage": job.coverage,
         "report_fd": report_w,
+        "kind": job.kind,
+        "audit_rules": list(job.audit_rules),
     }
     argv = [sys.executable, "-I", str(BOOTSTRAP), json.dumps(spec)]
     try:
@@ -120,13 +128,18 @@ def run_job(
     captured, timed_out = _collect(process, report_r, job.timeout_sec)
     exit_code = process.returncode
     report = _parse_report(captured.report)
-    status, completeness, reason = classify_pytest(
-        exit_code=exit_code,
-        timed_out=timed_out,
-        report=report,
-        exclude_integration=job.exclude_integration,
-        collect_only=job.kind == COLLECT_KIND,
-    )
+    if job.kind == AUDIT_KIND:
+        status, completeness, reason = classify_audit(
+            exit_code=exit_code, timed_out=timed_out, report=report
+        )
+    else:
+        status, completeness, reason = classify_pytest(
+            exit_code=exit_code,
+            timed_out=timed_out,
+            report=report,
+            exclude_integration=job.exclude_integration,
+            collect_only=job.kind == COLLECT_KIND,
+        )
     return SandboxResult(
         status=status,
         completeness=completeness,
@@ -138,6 +151,7 @@ def run_job(
         passed_ids=list((report or {}).get("passed_ids", [])),
         failed_ids=list((report or {}).get("failed_ids", [])),
         coverage=dict((report or {}).get("coverage", {})),
+        audit=dict((report or {}).get("audit") or {}),
         stdout=captured.stdout.decode(errors="replace"),
         stderr=captured.stderr.decode(errors="replace"),
         output_truncated=captured.truncated,

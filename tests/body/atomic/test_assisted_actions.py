@@ -33,6 +33,7 @@ from body.atomic.assisted_actions import (
     action_assisted_apply_diff,
     action_assisted_validate_diff,
 )
+from body.sandbox.models import SandboxResult
 
 
 async def test_refuses_without_patch() -> None:
@@ -737,15 +738,18 @@ async def test_validate_diff_subprocess_path_emits_per_rule_evidence() -> None:
             return_value=frozenset(),
         ),
         patch(
-            "body.atomic.assisted_actions.ToolRunner.run_audit_rule_subprocess",
-            return_value={
-                "ok": True,
-                "findings": [
-                    {"check_id": "rule.a", "file_path": engine_file},
-                ],
-                "error": None,
-            },
-        ),
+            "body.sandbox.repo_audit.run_audit_in_sandbox",
+            AsyncMock(
+                return_value=SandboxResult(
+                    status="passed",
+                    completeness="full",
+                    isolation="service",
+                    audit={
+                        "findings": [{"check_id": "rule.a", "file_path": engine_file}]
+                    },
+                )
+            ),
+        ) as sandboxed,
     ):
         result = await fn(
             patch="--- a/x\n+++ b/x\n",
@@ -759,6 +763,53 @@ async def test_validate_diff_subprocess_path_emits_per_rule_evidence() -> None:
     assert checks["subprocess_audit:rule.b"] is True  # no finding for rule.b
     assert result.ok is False
     assert checks["not_graph_engine"] is True
+    # The patched engine ran as a sandbox audit job (F1), with the rule ids.
+    assert sandboxed.await_args.kwargs["rule_ids"] == ["rule.a", "rule.b"]
+
+
+async def test_validate_diff_engine_audit_outside_the_sandbox_service_never_clears() -> (
+    None
+):
+    """F1: an engine-touching patch's audit runs candidate code. A result
+    not produced inside the sandbox service (here: local isolation, which
+    run_audit_in_sandbox refuses to start) clears no rule."""
+    fn = action_assisted_validate_diff.__wrapped__
+    worktree = MagicMock()
+    worktree.repo_path = "/tmp/fake-worktree"
+    worktree.get_current_commit.return_value = "sha-sub"
+    ctx = MagicMock()
+    ctx.git_service.create_worktree.return_value = worktree
+    engine_file = "src/mind/logic/engines/ast_gate.py"
+
+    def _run_git(_wt_path, *args, **kwargs):
+        if args[:1] == ("apply",):
+            return MagicMock(returncode=0, stderr="")
+        return MagicMock(stdout=f"{engine_file}\n")
+
+    with (
+        patch("body.atomic.assisted_actions.ToolRunner.run_git", side_effect=_run_git),
+        patch("body.atomic.assisted_actions.ToolRunner.run_ruff", return_value=True),
+        patch(
+            "mind.logic.engines.registry.EngineRegistry.engine_source_files",
+            return_value=frozenset({engine_file}),
+        ),
+        patch(
+            "mind.logic.engines.registry.EngineRegistry.graph_dependent_engine_files",
+            return_value=frozenset(),
+        ),
+        patch.dict("os.environ", {"CORE_SANDBOX_MODE": "local"}),
+        patch("body.sandbox.repo_audit.run_repo_code") as run_repo_code,
+    ):
+        result = await fn(
+            patch="--- a/x\n+++ b/x\n",
+            finding_rules=["rule.b"],
+            core_context=ctx,
+        )
+
+    run_repo_code.assert_not_called()  # candidate code never started
+    assert result.data["validation_results"]["subprocess_audit:rule.b"] is False
+    assert result.ok is False
+    assert "isolation 'local'" in result.data["subprocess_error"]
 
 
 def test_findings_by_rule_duplicate_rule_ids_normalize() -> None:

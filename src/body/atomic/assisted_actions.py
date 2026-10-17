@@ -41,20 +41,14 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 from body.atomic.registry import ActionCategory, register_action
-from body.atomic.tool_runner import (
-    AUDIT_SUBPROCESS_BOOTSTRAP,
-    FULL_AUDIT_SUBPROCESS_BOOTSTRAP,
-    ToolRunner,
-)
+from body.atomic.tool_runner import ToolRunner
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.logger import getLogger
-from shared.path_resolver import PathResolver
 from shared.utils.patch_facts import read_patch
 
 
@@ -179,6 +173,7 @@ def _touches_audit_engine(
     policies=["rules/code/purity"],
     requires_db=False,
     requires_vectors=False,
+    runs_candidate_code=True,
 )
 @atomic_action(
     action_id="assisted.validate_diff",
@@ -356,51 +351,24 @@ async def action_assisted_validate_diff(
         # (deleted files are touched but gone; run_ruff_paths skips them)
         checks["ruff"] = ToolRunner.run_ruff_paths(wt_path, touched_py)
 
-        # 3a. Graph-independent engine touch → subprocess audit (ADR-141 D3/D4).
-        #     Write bootstrap + input JSON to var/tmp via file_handler, spawn a
-        #     subprocess that prepends the worktree's src to sys.path and runs
-        #     run_filtered_audit with stateless=True AuditorContext.
+        # 3a. Graph-independent engine touch → the patched engine judges the
+        #     patch (ADR-141 D3/D4): candidate code, so it runs as a sandbox
+        #     audit job, and only a result from inside the sandbox service
+        #     counts (external review F1).
         if engine_touch.serviceable:
             checks["not_graph_engine"] = True
-            file_handler = core_context.file_handler
-            run_id = uuid.uuid4().hex[:8]
-            _tmp = PathResolver(file_handler.repo_path).tmp_dir.relative_to(
-                file_handler.repo_path
-            )
-            input_rel = str(_tmp / f"core-subaudit-input-{run_id}.json")
-            bootstrap_rel = str(_tmp / f"core-subaudit-runner-{run_id}.py")
-            file_handler.write_runtime_text(
-                input_rel,
-                json.dumps(
-                    {
-                        "worktree_path": str(wt_path),
-                        "rule_ids": rule_ids,
-                        "subject_files": subject_files or [],
-                    }
-                ),
-            )
-            file_handler.write_runtime_text(bootstrap_rel, AUDIT_SUBPROCESS_BOOTSTRAP)
-            bootstrap_abs = file_handler.repo_path / bootstrap_rel
-            input_abs = file_handler.repo_path / input_rel
-            try:
-                sub_result = ToolRunner.run_audit_rule_subprocess(
-                    bootstrap_abs, input_abs
-                )
-            finally:
-                file_handler.remove_file(bootstrap_rel)
-                file_handler.remove_file(input_rel)
+            from body.sandbox.repo_audit import isolated_audit, run_audit_in_sandbox
 
-            if sub_result.get("ok"):
-                sub_findings = sub_result.get("findings") or []
-                sub_by_rule = _findings_by_rule(sub_findings, rule_ids)
-                for rid in rule_ids:
-                    checks[f"subprocess_audit:{rid}"] = _rule_cleared(
-                        sub_by_rule[rid], subject_files, touched_py
-                    )
-            else:
-                for rid in rule_ids:
-                    checks[f"subprocess_audit:{rid}"] = False
-                subprocess_error = sub_result.get("error")
+            sub_audit, subprocess_error = isolated_audit(
+                await run_audit_in_sandbox(wt_path, rule_ids=rule_ids)
+            )
+            sub_by_rule = _findings_by_rule(
+                (sub_audit or {}).get("findings") or [], rule_ids
+            )
+            for rid in rule_ids:
+                checks[f"subprocess_audit:{rid}"] = sub_audit is not None and (
+                    _rule_cleared(sub_by_rule[rid], subject_files, touched_py)
+                )
 
         else:
             # 3b. No engine touch → in-process audit (original ADR-109 path).
@@ -531,10 +499,11 @@ async def _validate_general(
     touched_py = [p for p in touched if p.endswith(".py")]
     checks["ruff"] = ToolRunner.run_ruff_paths(wt_path, touched_py)
 
-    # The full audit over the patched tree, in a subprocess so a patched
-    # engine judges the patch (ADR-141 D3, extended to every rule).
+    # The full audit over the patched tree with the tree's own engine (ADR-141
+    # D3, extended to every rule): candidate code, so a sandbox job whose
+    # result counts only from inside the sandbox service (external review F1).
     present_py = [p for p in touched_py if (wt_path / p).is_file()]
-    audit, audit_error = _run_full_audit(wt_path, core_context, present_py)
+    audit, audit_error = await _run_full_audit(wt_path, present_py)
     blocking: list[dict[str, Any]] = []
     not_evaluated: list[dict[str, Any]] = []
     audit_verdict: str | None = None
@@ -600,35 +569,19 @@ async def _validate_general(
     )
 
 
-def _run_full_audit(
-    wt_path: Path, core_context: CoreContext, check_files: list[str]
+async def _run_full_audit(
+    wt_path: Path, check_files: list[str]
 ) -> tuple[dict[str, Any] | None, str | None]:
-    """Run the full stateless audit over *wt_path*, plus the Class B rules on
-    *check_files*; (result, None) or (None, error)."""
-    file_handler = core_context.file_handler
-    run_id = uuid.uuid4().hex[:8]
-    tmp = PathResolver(file_handler.repo_path).tmp_dir.relative_to(
-        file_handler.repo_path
+    """The full stateless audit over *wt_path*, plus the Class B rules on
+    *check_files*, run in the sandbox; (result, None) or (None, error)."""
+    from body.sandbox.repo_audit import isolated_audit, run_audit_in_sandbox
+
+    audit, error = isolated_audit(
+        await run_audit_in_sandbox(wt_path, check_files=check_files)
     )
-    input_rel = str(tmp / f"core-fullaudit-input-{run_id}.json")
-    bootstrap_rel = str(tmp / f"core-fullaudit-runner-{run_id}.py")
-    file_handler.write_runtime_text(
-        input_rel,
-        json.dumps({"worktree_path": str(wt_path), "check_files": check_files}),
-    )
-    file_handler.write_runtime_text(bootstrap_rel, FULL_AUDIT_SUBPROCESS_BOOTSTRAP)
-    try:
-        sub = ToolRunner.run_full_audit_subprocess(
-            file_handler.repo_path / bootstrap_rel,
-            file_handler.repo_path / input_rel,
-        )
-    finally:
-        file_handler.remove_file(bootstrap_rel)
-        file_handler.remove_file(input_rel)
-    result = sub.get("result")
-    if sub.get("ok") and isinstance(result, dict):
-        return result, None
-    return None, str(sub.get("error") or "full audit returned no result")
+    if audit is None:
+        return None, error or "full audit returned no result"
+    return audit, None
 
 
 def _general_test_targets(wt_path: Path, touched_py: list[str]) -> list[str]:

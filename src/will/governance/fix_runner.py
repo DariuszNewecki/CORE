@@ -180,6 +180,19 @@ def action_mutates_files(action_id: str) -> bool:
     return metadata.impact in (ActionImpact.WRITE_CODE, ActionImpact.WRITE_METADATA)
 
 
+# ID: 8fe4237f-8bb5-4033-9c6e-57f5053a2524
+def action_runs_candidate_code(action_id: str) -> bool:
+    """Whether the action declares that it runs code it was handed (F1).
+
+    Read from its registration (``runs_candidate_code``). An unknown action
+    counts as running candidate code (fail closed).
+    """
+    import body.atomic  # noqa: F401 — triggers registration
+
+    definition = action_registry.get(action_id)
+    return definition is None or definition.runs_candidate_code
+
+
 # ID: d905c554-af70-49c5-85c3-82661d169fab
 def list_action_definitions(category: str | None = None) -> list[dict]:
     """Return serialised ActionDefinition metadata for every registered action.

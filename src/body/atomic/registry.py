@@ -116,6 +116,14 @@ class ActionDefinition:
     Example: ["purity.stable_id_anchor", "linkage.assign_ids"]
     """
 
+    runs_candidate_code: bool = False
+    """
+    Whether this action imports or runs code it was handed (a candidate
+    patch's tree), even in the sandbox. The API dispatches such an action only
+    to an identified caller on CORE's Unix socket, never over TCP (external
+    review F1).
+    """
+
 
 # ID: 7f4b2c8e-9d3a-4e1f-8c7d-5a2b3c4d5e6f
 class ActionRegistry:
@@ -285,6 +293,7 @@ def register_action(
     requires_db: bool = False,
     requires_vectors: bool = False,
     remediates: list[str] | None = None,
+    runs_candidate_code: bool = False,
 ):
     """
     Decorator to register an action with constitutional enforcement.
@@ -304,6 +313,8 @@ def register_action(
                     ViolationRemediatorWorker uses this to close the audit loop
                     without any static YAML mapping. Example:
                     remediates=["purity.stable_id_anchor", "linkage.assign_ids"]
+        runs_candidate_code: the action imports or runs code it was handed;
+                    the API serves it only on the Unix socket (F1).
     """
 
     # ID: 5352e0e1-0d42-40e8-8ccb-7437a5c5fa18
@@ -322,6 +333,7 @@ def register_action(
             requires_db=requires_db,
             requires_vectors=requires_vectors,
             remediates=remediates or [],
+            runs_candidate_code=runs_candidate_code,
         )
         action_registry.register(definition)
 

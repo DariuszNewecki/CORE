@@ -27,19 +27,26 @@ from typing import Any, Literal
 from shared.utils.dataclass_dict import DataclassDict
 
 
-JobKind = Literal["pytest"]
+JobKind = Literal["pytest", "pytest-collect", "audit"]
 Status = Literal["passed", "failed", "error", "timeout", "not_run"]
 Completeness = Literal["full", "partial", "none"]
 Isolation = Literal["service", "local"]
 
 # "pytest-collect" only collects (pytest --collect-only): collection imports
 # every test module, which is running repository code all the same.
-JOB_KINDS: tuple[str, ...] = ("pytest", "pytest-collect")
+# "audit" runs CORE's stateless audit over the snapshot with the snapshot's
+# own src/ (a patched engine judges the patch, ADR-141 D3): candidate code,
+# so it runs here and nowhere else (external review F1). With ``audit_rules``
+# it runs those rules only; without, the full audit plus the Class B rules on
+# ``targets``.
+JOB_KINDS: tuple[str, ...] = ("pytest", "pytest-collect", "audit")
 COLLECT_KIND = "pytest-collect"
+AUDIT_KIND = "audit"
 MAX_TIMEOUT_SEC = 3600
 INTEGRATION_MARKER = "integration"
 
 _JOB_ID = re.compile(r"^[0-9a-f]{32}$")
+_RULE_ID = re.compile(r"^[a-z0-9_]+(\.[a-z0-9_]+)+$")
 
 
 # ID: ce96595c-e8bd-4e87-8e4d-f1ca59055f19
@@ -60,6 +67,8 @@ class SandboxJob:
     exclude_integration: bool = False
     # Measure coverage of src/ (coverage.py); the result carries it.
     coverage: bool = False
+    # An audit job: the rule ids to run (empty: the full audit).
+    audit_rules: tuple[str, ...] = ()
 
     # ID: 01ff4d11-916d-477c-8c06-61ad55280b2e
     def validate(self) -> None:
@@ -72,7 +81,15 @@ class SandboxJob:
             1 <= self.timeout_sec <= MAX_TIMEOUT_SEC
         ):
             raise JobRejected(f"timeout_sec must be 1..{MAX_TIMEOUT_SEC}")
-        if not self.targets:
+        if self.kind == AUDIT_KIND:
+            if self.markers is not None or self.coverage:
+                raise JobRejected("an audit job takes no markers and no coverage")
+            for rule_id in self.audit_rules:
+                if not _RULE_ID.match(rule_id):
+                    raise JobRejected(f"not a rule id: {rule_id!r}")
+        elif self.audit_rules:
+            raise JobRejected("audit_rules belong to an audit job")
+        elif not self.targets:
             raise JobRejected("a pytest job names at least one target")
         for target in self.targets:
             validate_target(target)
@@ -85,6 +102,7 @@ class SandboxJob:
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         data["targets"] = list(self.targets)
+        data["audit_rules"] = list(self.audit_rules)
         return data
 
     @classmethod
@@ -99,6 +117,7 @@ class SandboxJob:
                 markers=data.get("markers"),
                 exclude_integration=bool(data.get("exclude_integration", False)),
                 coverage=bool(data.get("coverage", False)),
+                audit_rules=tuple(str(r) for r in data.get("audit_rules") or ()),
             )
         except (KeyError, TypeError) as exc:
             raise JobRejected(f"malformed job: {exc}") from exc
@@ -145,6 +164,10 @@ class SandboxResult(DataclassDict):
     failed_ids: list[str] = field(default_factory=list)
     # A coverage job: {"total": %, "files": {path: %}, "text": table} or {"error": ...}.
     coverage: dict[str, Any] = field(default_factory=dict)
+    # An audit job: the audit's own result (full: verdict, findings,
+    # skipped_rules, class_b; rules: findings). Produced by candidate code,
+    # so a result is evidence only under ``isolation: service``.
+    audit: dict[str, Any] = field(default_factory=dict)
     stdout: str = ""
     stderr: str = ""
     output_truncated: bool = False
@@ -204,6 +227,26 @@ def classify_pytest(
         status = "passed"
     partial = exclude_integration and bool(report.get("excluded"))
     return status, ("partial" if partial else "full"), ""
+
+
+# ID: 00dcb6fc-2c31-436f-8398-120bfa8cb6ee
+def classify_audit(
+    *, exit_code: int | None, timed_out: bool, report: dict[str, Any] | None
+) -> tuple[str, str, str]:
+    """(status, completeness, reason) for an audit job.
+
+    ``passed`` means the audit ran to the end and reported a result; whether
+    that result clears a gate is the caller's judgement of its verdict.
+    """
+    if timed_out:
+        return "timeout", "none", "the job outlived its timeout"
+    if report is None:
+        return "error", "none", "the bootstrap produced no report"
+    if report.get("error"):
+        return "error", "none", str(report["error"])
+    if exit_code != 0 or not isinstance(report.get("audit"), dict):
+        return "error", "none", f"the audit did not finish (exit {exit_code})"
+    return "passed", "full", ""
 
 
 def _classify_collection(

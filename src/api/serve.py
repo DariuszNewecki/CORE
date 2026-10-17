@@ -17,6 +17,16 @@ pinned here and the API is launched with::
 
     python -m api.serve --uds <socket path> [--host 127.0.0.1] [--port 8000]
 
+``CORE_API_PRODUCER_UDS`` (a path, set in the unit) names a second
+identity-bearing socket in a directory whose group holds the producers (the
+coding assistant), never the governor's (external review F1): a producer
+reaches CORE with its identity without entering the governor's socket
+directory. The identity still comes only from the kernel; the variable only
+says where to listen. It is a variable, not an option, so a rollback to a
+release without it ignores it instead of refusing to start. When the
+socket's directory does not exist (the host step that creates it has not
+been taken) the socket is skipped with a warning, so the API still starts.
+
 The socket's directory and group are deployment concerns (D10.3 as amended:
 a ``core``-owned directory whose group excludes the assistant). This module
 only sets the socket's own mode to 0660.
@@ -41,6 +51,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 PEER_CRED_EXTENSION = "peer_cred"
+PRODUCER_UDS_ENV = "CORE_API_PRODUCER_UDS"
 # uvicorn's exit code for a failed startup (uvicorn.main.STARTUP_FAILURE).
 STARTUP_FAILURE = 3
 _UCRED = struct.Struct("3i")
@@ -103,6 +114,22 @@ def bind_unix_socket(path: Path) -> socket.socket:
     return sock
 
 
+# ID: b6d4023c-d0fc-4da4-853d-6661950e406c
+def producer_socket(path: Path | None) -> socket.socket | None:
+    """The producers' Unix socket at *path*, or None when there is none to bind:
+    no path given, or its directory not created yet (warned, not fatal)."""
+    if path is None:
+        return None
+    if not path.parent.is_dir():
+        logger.warning(
+            "core-api: producer socket skipped, %s does not exist", path.parent
+        )
+        return None
+    sock = bind_unix_socket(path)
+    logger.info("core-api listening for producers on %s", path)
+    return sock
+
+
 # ID: c01d3424-c64a-48ca-bf07-1a4fc2263ecb
 def bind_tcp_socket(host: str, port: int) -> socket.socket:
     """Bind a listening TCP socket on *host*:*port*."""
@@ -137,6 +164,10 @@ def main(argv: list[str] | None = None, app: Any = "api.main:app") -> None:
 
     sockets = [bind_tcp_socket(args.host, args.port), bind_unix_socket(args.uds)]
     logger.info("core-api listening on %s:%d and %s", args.host, args.port, args.uds)
+    producer_path = os.environ.get(PRODUCER_UDS_ENV, "").strip()
+    producer = producer_socket(Path(producer_path) if producer_path else None)
+    if producer is not None:
+        sockets.append(producer)
     server = uvicorn.Server(build_config(app, log_level=args.log_level))
     server.run(sockets=sockets)
     if not server.started:

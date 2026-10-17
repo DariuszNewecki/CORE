@@ -489,6 +489,38 @@ def test_an_existing_different_binding_is_never_replaced(world) -> None:
     assert binding.read_bytes() == b"principals:\n  someone: principal.governor\n"
 
 
+def test_a_binding_with_producer_lines_is_kept(world) -> None:
+    """The F1 host step adds the assistant as a producer; setup keeps it."""
+    binding = world.layout.etc_core / "principals.yaml"
+    binding.parent.mkdir(parents=True)
+    content = (
+        b"principals:\n  core-darek: principal.governor\n"
+        b"  core-claude: principal.producer\n"
+    )
+    binding.write_bytes(content)
+    assert _run(world, "--apply") == 0
+    assert binding.read_bytes() == content
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        b"  core-claude: principal.governor\n",
+        b"  core-claude: principal.operator\n",
+        b"  core-darek: principal.producer\n",
+        b"  core-claude: principal.producer\n  core-claude: principal.producer\n",
+    ],
+    ids=["second-governor", "other-role", "governor-as-producer", "duplicate"],
+)
+def test_a_binding_with_anything_but_producers_is_refused(world, extra: bytes) -> None:
+    binding = world.layout.etc_core / "principals.yaml"
+    binding.parent.mkdir(parents=True)
+    content = b"principals:\n  core-darek: principal.governor\n" + extra
+    binding.write_bytes(content)
+    assert _run(world, "--apply") == 1
+    assert binding.read_bytes() == content
+
+
 def test_another_member_of_the_governor_group_fails(world) -> None:
     world.host.group_table["core-gov"] = ["core-claude"]
     assert _run(world, "--apply") == 1

@@ -81,29 +81,16 @@ def test_run_ruff_paths_with_only_deleted_files_runs_nothing(tmp_path: Path) -> 
     mock_run.assert_not_called()
 
 
-# ID: 486a2a02-283a-413c-b442-551be83cbe86
-def test_full_audit_reads_the_last_stdout_line(tmp_path: Path) -> None:
-    out = 'log line\n{"ok": true, "error": null, "result": {"verdict": "PASS"}}\n'
-    with patch("body.atomic.tool_runner.subprocess.run") as mock_run:
-        mock_run.return_value = MagicMock(returncode=0, stdout=out, stderr="")
-        result = ToolRunner.run_full_audit_subprocess(
-            tmp_path / "b.py", tmp_path / "i.json"
-        )
-    assert result["result"] == {"verdict": "PASS"}
+# ID: 3a5779d7-dd2c-4f15-b400-c0851e57e0dd
+def test_tool_runner_runs_no_candidate_code() -> None:
+    """F1: the audit that imports a candidate's engine is a sandbox job; the
+    plain-subprocess runners and their bootstraps are gone."""
+    import body.atomic.tool_runner as tool_runner
 
-
-# ID: 29b84746-500f-4156-8897-e0d1f48ad9ef
-def test_full_audit_fails_closed_on_crash_and_timeout(tmp_path: Path) -> None:
-    import subprocess
-
-    with patch("body.atomic.tool_runner.subprocess.run") as mock_run:
-        mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="boom")
-        crashed = ToolRunner.run_full_audit_subprocess(
-            tmp_path / "b.py", tmp_path / "i.json"
-        )
-        mock_run.side_effect = subprocess.TimeoutExpired(cmd="x", timeout=1)
-        timed_out = ToolRunner.run_full_audit_subprocess(
-            tmp_path / "b.py", tmp_path / "i.json"
-        )
-    assert crashed["ok"] is False and crashed["result"] is None
-    assert timed_out["ok"] is False and "timed out" in timed_out["error"]
+    for gone in (
+        "run_full_audit_subprocess",
+        "run_audit_rule_subprocess",
+    ):
+        assert not hasattr(ToolRunner, gone)
+    for gone in ("FULL_AUDIT_SUBPROCESS_BOOTSTRAP", "AUDIT_SUBPROCESS_BOOTSTRAP"):
+        assert not hasattr(tool_runner, gone)

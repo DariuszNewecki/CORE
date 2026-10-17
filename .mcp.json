@@ -3,7 +3,8 @@
     "core": {
       "type": "stdio",
       "command": "core-admin",
-      "args": ["mcp", "run"]
+      "args": ["mcp", "run"],
+      "env": {"CORE_API_URL": "unix:///run/core/api-producer/api.sock"}
     }
   }
 }

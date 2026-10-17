@@ -97,6 +97,9 @@ SANDBOX = "core-sandbox"
 GOVERNOR_GROUP = "core-gov"
 ASSISTANT = "core-claude"
 GOVERNOR_ROLE = "principal.governor"
+# A binding may also name producers (the coding assistant), whose socket is
+# /run/core/api-producer (a host step, external review F1); nothing else.
+PRODUCER_BINDING_LINE = re.compile(r"  ([a-z][a-z0-9_-]*): principal\.producer")
 # The register (ADR-068 amendment 2026-10-15): the Governor's OS account.
 DEFAULT_GOVERNOR = "core-darek"
 # Accounts the register binds to a role other than Governor.
@@ -324,6 +327,24 @@ def qdrant_on_loopback(text: str, own: set[str]) -> str | None:
         )
         return "".join(lines)
     return None
+
+
+def binding_names_governor_and_producers(text: str, governor: str) -> bool:
+    """True when *text* binds *governor* first and then only producers.
+
+    The governor's own line is unchanged; every other line binds a distinct
+    account, never the governor, to ``principal.producer``.
+    """
+    lines = text.splitlines()
+    if lines[:2] != ["principals:", f"  {governor}: {GOVERNOR_ROLE}"]:
+        return False
+    seen = {governor}
+    for line in lines[2:]:
+        match = PRODUCER_BINDING_LINE.fullmatch(line)
+        if match is None or match.group(1) in seen:
+            return False
+        seen.add(match.group(1))
+    return True
 
 
 def sha256(data: bytes) -> str:
@@ -770,12 +791,16 @@ class Setup:
         binding = self.layout.etc_core / "principals.yaml"
         data = f"principals:\n  {name}: {GOVERNOR_ROLE}\n".encode()
         if binding.is_file() and binding.read_bytes() != data:
-            self.failures.append(
-                f"{binding} exists with other content; not replaced. Expected:\n"
-                + data.decode()
-            )
-            return
-        self._install_file(binding, data, "root", "root", 0o644)
+            if not binding_names_governor_and_producers(binding.read_text(), name):
+                self.failures.append(
+                    f"{binding} exists with other content; not replaced. Expected:\n"
+                    + data.decode()
+                    + "optionally followed by '  <account>: principal.producer' lines"
+                )
+                return
+            self.say(f"  ok: {binding} binds {name} and producers only")
+        else:
+            self._install_file(binding, data, "root", "root", 0o644)
         self._governor_cli()
 
     def _governor_cli(self) -> None:
