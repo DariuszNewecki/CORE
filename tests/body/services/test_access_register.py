@@ -46,6 +46,7 @@ def _host(**overrides) -> HostAccounts:
     members = {
         "core-gov": frozenset({"core-darek"}),
         "core-dev": frozenset({"core", "core-darek", "core-claude"}),
+        "core-producer": frozenset({"core-claude"}),
         "sudo": frozenset({"darek"}),
     }
     members.update(overrides.pop("members", {}))
@@ -225,3 +226,14 @@ def test_unreadable_sudoers_is_not_evaluated_never_passed(register, tmp_path) ->
     assert "sudo rules" in report.not_evaluated
     assert "sudo rules" not in report.evaluated
     assert [f.subject for f in report.findings] == ["binding"]
+
+
+def test_the_producer_socket_group_is_registered_before_the_host_has_it(
+    register,
+) -> None:
+    """F1: until the host step creates core-producer, the register names a
+    group the host lacks; the access check reports it (blocking)."""
+    host = _host()
+    del host.members["core-producer"]
+    findings = check_groups(register, host)
+    assert [f.subject for f in findings] == ["group::core-producer"]

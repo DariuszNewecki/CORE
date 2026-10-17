@@ -40,7 +40,11 @@ from body.introspection.generate_capability_docs import (
 from body.services.blackboard_service.blackboard_service import BlackboardService
 from body.services.consequence_log_service import ConsequenceLogService
 from shared.infrastructure.database.session_manager import get_db_session, get_session
-from shared.infrastructure.principal_binding import GOVERNOR, load_principal_binding
+from shared.infrastructure.principal_binding import (
+    GOVERNOR,
+    PRODUCER,
+    load_principal_binding,
+)
 from shared.infrastructure.secrets_service import SecretsService
 from shared.infrastructure.secrets_service import (
     get_secrets_service as _get_secrets_svc,
@@ -126,6 +130,38 @@ async def get_governor(
 
 
 require_governor = Depends(get_governor)
+
+# Who may have CORE run code they hand it (external review F1).
+CANDIDATE_CODE_ROLES: frozenset[str] = frozenset({GOVERNOR, PRODUCER})
+
+
+# ID: daccba1b-8b1b-4324-9609-17346d28f56a
+def require_identified_producer(principal: CallerPrincipal) -> str:
+    """The caller's account when it is identified on a Unix socket and bound to
+    the governor or a producer; otherwise 403 (external review F1).
+
+    TCP carries no identity, so it never passes: any local account can reach
+    127.0.0.1:8000.
+    """
+    if principal.uid is None:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Running a candidate's code is accepted only on CORE's Unix socket "
+                "(CORE_API_URL=unix:///run/core/api-producer/api.sock for a "
+                "producer); TCP carries no identity."
+            ),
+        )
+    if principal.role not in CANDIDATE_CODE_ROLES or principal.account is None:
+        reason = principal.binding_error or (
+            f"account {principal.account or principal.uid!s} is bound to "
+            f"{principal.role or 'no role'}"
+        )
+        raise HTTPException(
+            status_code=403,
+            detail=f"Not a producer or the governor: {reason}.",
+        )
+    return principal.account
 
 
 # ID: 7854c52e-6493-402f-ba18-08ecdcf1fd2b

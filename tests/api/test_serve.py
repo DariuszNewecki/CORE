@@ -24,6 +24,7 @@ from api.serve import (
     bind_unix_socket,
     build_config,
     main,
+    producer_socket,
     read_peer_cred,
 )
 
@@ -146,3 +147,43 @@ def test_a_server_that_started_returns_normally(
 
     monkeypatch.setattr(uvicorn.Server, "run", started_then_stopped)
     main(["--uds", str(short_dir / "api.sock"), "--port", "0"], app=_whoami_app())
+
+
+# -- the producers' socket (external review F1) -------------------------------
+
+
+def test_no_producer_socket_without_a_path_or_its_directory(short_dir: Path) -> None:
+    assert producer_socket(None) is None
+    # The host step that makes the directory has not been taken: the API
+    # still starts, without the producers' socket.
+    assert producer_socket(short_dir / "missing" / "api.sock") is None
+
+
+def test_the_producer_socket_is_a_0660_unix_socket(short_dir: Path) -> None:
+    path = short_dir / "api.sock"
+    sock = producer_socket(path)
+    try:
+        assert sock is not None and sock.family == socket.AF_UNIX
+        assert stat.S_IMODE(path.stat().st_mode) == 0o660
+    finally:
+        assert sock is not None
+        sock.close()
+
+
+def test_main_listens_on_the_producer_socket_named_in_the_environment(
+    short_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bound: list[Any] = []
+
+    def started_then_stopped(self: uvicorn.Server, sockets: Any = None) -> None:
+        bound.extend(sockets or [])
+        self.started = True
+
+    monkeypatch.setattr(uvicorn.Server, "run", started_then_stopped)
+    (short_dir / "p").mkdir()
+    monkeypatch.setenv("CORE_API_PRODUCER_UDS", str(short_dir / "p" / "api.sock"))
+    main(["--uds", str(short_dir / "api.sock"), "--port", "0"], app=_whoami_app())
+    unix = [s.getsockname() for s in bound if s.family == socket.AF_UNIX]
+    assert unix == [str(short_dir / "api.sock"), str(short_dir / "p" / "api.sock")]
+    for s in bound:
+        s.close()

@@ -18,7 +18,10 @@ dry run (``write=false``, ADR-014) so the coding assistant can validate a
 patch (``assisted.validate_diff``, ADR-168); ``write=true`` is checked in the
 handler and needs the governor. An action whose declared impact writes files
 (``action_mutates_files``) needs the governor whatever ``write`` says
-(external review F2). Run status reads are open.
+(external review F2). An action that runs code it is handed
+(``action_runs_candidate_code``: ``assisted.validate_diff``) is served only to
+an identified producer or the governor on a Unix socket, never over TCP
+(external review F1). Run status reads are open.
 
 * Synchronous dispatch — GET /fix/commands and GET /actions read the
   registry inline. POST /fix/ir writes a YAML scaffold via FileHandler
@@ -58,6 +61,7 @@ from api.dependencies import (
     get_governor,
     open_background_session,
     require_governor,
+    require_identified_producer,
 )
 from api.v1.schemas import (
     AsyncDispatchResponse,
@@ -69,6 +73,7 @@ from shared.context import CoreContext
 from shared.logger import getLogger
 from will.governance.fix_runner import (
     action_mutates_files,
+    action_runs_candidate_code,
     bootstrap_ir,
     list_action_definitions,
     list_registered_action_ids,
@@ -96,7 +101,9 @@ INTENTIONALLY_UNGATED: dict[str, str] = {
         "write=true, or any action whose declared impact writes files "
         "(action_mutates_files, external review F2), calls get_governor and "
         "is refused (403) for anyone but the governor on the Unix socket "
-        "(ADR-132 D10.11 step 4)."
+        "(ADR-132 D10.11 step 4). An action that runs code it is handed "
+        "(assisted.validate_diff) is refused over TCP and to any account not "
+        "bound to the producer or governor role (external review F1)."
     ),
 }
 # Top-level router for GET /actions (ADR-055 D2 places it outside the
@@ -168,7 +175,9 @@ class RunIRRequest(BaseModel):
         "ids count. Valid ids return 202 + a `run_id` to poll. `write=false` "
         "is the dry-run default (ADR-014) and is open; `write=true`, or an "
         "action whose declared impact writes files, needs the governor on "
-        "CORE's Unix socket (403 otherwise). `params` carries action-specific "
+        "CORE's Unix socket (403 otherwise). An action that runs code it is "
+        "handed (`assisted.validate_diff`) is served only on a Unix socket to "
+        "a producer or the governor. `params` carries action-specific "
         "kwargs (e.g. `fix.docstrings`'s `limit`) and is forwarded as "
         "`**kwargs` to ActionExecutor.execute."
     ),
@@ -196,6 +205,8 @@ async def run_fix(
             status_code=422,
             detail=f"Unknown fix_id: {fix_id!r}. {len(registered)} registered actions.",
         )
+    if action_runs_candidate_code(fix_id):
+        require_identified_producer(principal)
     if payload.write or action_mutates_files(fix_id):
         await get_governor(principal)
 

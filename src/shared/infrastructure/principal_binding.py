@@ -18,6 +18,7 @@ File shape::
 
     principals:
       core-darek: principal.governor
+      core-claude: principal.producer
 
 Keys are OS account names, resolved to uids at load time. ADR-068: at most
 one account is bound to ``principal.governor``, the Governor's account in
@@ -41,6 +42,7 @@ logger = getLogger(__name__)
 
 PRINCIPAL_BINDING_PATH = Path("/etc/core/principals.yaml")
 GOVERNOR = "principal.governor"
+PRODUCER = "principal.producer"
 
 
 @dataclass(frozen=True)

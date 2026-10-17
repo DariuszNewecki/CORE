@@ -31,7 +31,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from body.infrastructure.storage.file_handler import FileHandler
-from body.sandbox.models import COLLECT_KIND, JobRejected, SandboxJob, SandboxResult
+from body.sandbox.models import (
+    AUDIT_KIND,
+    COLLECT_KIND,
+    JobRejected,
+    SandboxJob,
+    SandboxResult,
+)
 from body.sandbox.protocol import (
     MAX_RESULT_BYTES,
     ProtocolError,
@@ -80,6 +86,11 @@ class SandboxRequest:
     collect_only: bool = False
     # Measure coverage of src/; the result's ``coverage`` carries it.
     coverage: bool = False
+    # Run CORE's stateless audit instead of pytest (external review F1):
+    # ``audit_rules`` only, or the full audit with the Class B rules on
+    # ``targets``. The result's ``audit`` carries it.
+    audit: bool = False
+    audit_rules: tuple[str, ...] = ()
 
 
 # ID: 7017d79f-4d5d-4892-8ff6-5f96a37a8e24
@@ -94,14 +105,19 @@ async def run_repo_code(
     that is a ``not_run`` result."""
     if mode not in MODES:
         return SandboxResult.not_run(mode, f"unknown sandbox mode: {mode!r}")
+    if request.audit:
+        kind = AUDIT_KIND
+    else:
+        kind = COLLECT_KIND if request.collect_only else "pytest"
     job = SandboxJob(
         job_id=uuid.uuid4().hex,
-        kind=COLLECT_KIND if request.collect_only else "pytest",
+        kind=kind,
         targets=tuple(request.targets),
         timeout_sec=request.timeout_sec,
         markers=request.markers,
-        exclude_integration=(mode == "service"),
+        exclude_integration=(mode == "service" and kind != AUDIT_KIND),
         coverage=request.coverage,
+        audit_rules=tuple(request.audit_rules),
     )
     try:
         job.validate()

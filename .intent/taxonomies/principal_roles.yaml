@@ -110,6 +110,9 @@ host_grants:
     core-gov:
       members: [core-darek]
       purpose: the governor's socket, /run/core/api (ADR-132 D10.3)
+    core-producer:
+      members: [core-claude]
+      purpose: the producers' socket, /run/core/api-producer (external review F1)
     core-dev:
       members: [core, core-darek, core-claude]
       purpose: the shared development tree

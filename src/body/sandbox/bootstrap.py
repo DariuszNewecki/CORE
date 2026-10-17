@@ -20,9 +20,15 @@ be mistaken for it). The report holds the counts, the tests the
 sandbox excluded, and an ``error`` when the candidate was not the code
 that ran.
 
-Stated limit: the counting plugin runs in the same process as the tests,
-so hostile test code can lie about its own results. The sandbox protects
-the credential, not the truthfulness of the code it runs.
+An ``audit`` job (``kind: audit``, external review F1) runs CORE's stateless
+audit over the snapshot instead, with the snapshot's own ``src/`` first on
+the path so a patched engine judges the patch (ADR-141 D3): the rules in
+``audit_rules``, or the full audit plus the Class B rules on ``targets``.
+Its result is written to the report as ``audit``.
+
+Stated limit: the counting plugin (and the audit) runs in the same process
+as the candidate code, so hostile code can lie about its own results. The
+sandbox protects the credential, not the truthfulness of the code it runs.
 
 CONSTITUTIONAL ALIGNMENT:
 - Runs only inside the sandbox (service: the core-sandbox account; local:
@@ -159,6 +165,105 @@ def _finish_coverage(cov: Any, snapshot: Path) -> dict[str, Any]:
     return {"total": round(float(total), 2), "files": files, "text": text.getvalue()}
 
 
+def _run_coroutine(coro: Any) -> Any:
+    """Run *coro* on a new event loop; this script is never inside one."""
+    import asyncio
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    if loop is not None and loop.is_running():
+        coro.close()
+        raise RuntimeError("the sandbox bootstrap runs outside any event loop")
+    return asyncio.run(coro)
+
+
+def _audit_rules(snapshot: Path, rule_ids: list[str]) -> dict[str, Any]:
+    """The named rules over the snapshot, stateless (ADR-141 D3/D5)."""
+    from mind.governance.audit_context import AuditorContext
+    from mind.governance.filtered_audit import run_filtered_audit
+
+    async def _run() -> list[Any]:
+        actx = AuditorContext(snapshot, stateless=True)
+        findings, _, _ = await run_filtered_audit(actx, rule_ids=rule_ids, files=None)
+        return findings
+
+    return {"findings": _run_coroutine(_run())}
+
+
+def _audit_full(snapshot: Path, check_files: list[str]) -> dict[str, Any]:
+    """The full stateless audit (the commit gate's and CI's), plus the Class B
+    write-time rules on *check_files* (ADR-168 Amendment 2026-10-10 A3)."""
+    from mind.governance.stateless_audit import run_stateless_audit
+    from shared.infrastructure.intent.intent_repository import IntentRepository
+    from shared.infrastructure.intent.law_roots import intent_root_for
+
+    async def _run() -> dict[str, Any]:
+        repo = IntentRepository(strict=True, root=intent_root_for(snapshot))
+        repo.initialize()
+        return await run_stateless_audit(intent_repo=repo, repo_path=snapshot)
+
+    result = _run_coroutine(_run())
+    result["class_b"] = _class_b(snapshot, check_files)
+    return result
+
+
+def _class_b(snapshot: Path, check_files: list[str]) -> dict[str, Any]:
+    """The Class B rules (passive_gate, attestation_class B), each within its
+    own declared scope, on every file of *check_files* they cover."""
+    from body.governance.intent_pattern_validators import PatternValidators
+    from mind.governance.audit_context import _include_matches
+    from mind.governance.enforcement_loader import EnforcementMappingLoader
+    from shared.infrastructure.intent.law_roots import intent_root_for
+
+    mappings = EnforcementMappingLoader(intent_root_for(snapshot)).load_all_mappings()
+    scopes = {
+        rule_id: list((entry.get("scope") or {}).get("applies_to") or [])
+        for rule_id, entry in mappings.items()
+        if isinstance(entry, dict)
+        and entry.get("engine") == "passive_gate"
+        and (entry.get("params") or {}).get("attestation_class") == "B"
+    }
+    globs = [g for rule_globs in scopes.values() for g in rule_globs]
+    checked, found = [], []
+    for rel in check_files:
+        if not any(_include_matches(rel, g) for g in globs):
+            continue
+        checked.append(rel)
+        code = (snapshot / rel).read_text(encoding="utf-8")
+        for v in PatternValidators.validate_test_file_pattern(code, rel):
+            rule_globs = scopes.get(v.rule_name)
+            if rule_globs is not None and not any(
+                _include_matches(rel, g) for g in rule_globs
+            ):
+                continue
+            found.append(
+                {"rule_id": v.rule_name, "file_path": rel, "message": v.message}
+            )
+    return {"rules": sorted(scopes), "checked": checked, "violations": found}
+
+
+def _run_audit(spec: dict[str, Any], snapshot: Path) -> dict[str, Any]:
+    """An audit job's report: the audit's result, or the error that stopped it."""
+    try:
+        rule_ids = [str(r) for r in spec.get("audit_rules") or []]
+        if rule_ids:
+            audit = _audit_rules(snapshot, rule_ids)
+        else:
+            audit = _audit_full(snapshot, [str(t) for t in spec["targets"]])
+    except Exception as exc:  # any failure is a report, never a silent pass
+        return {"audit": None, "error": f"audit raised {type(exc).__name__}: {exc}"}
+    return {"audit": audit, "error": _candidate_error(snapshot)}
+
+
+def _write_report(report_fd: int, report: dict[str, Any]) -> None:
+    payload = json.dumps(report, default=str).encode("utf-8")
+    while payload:
+        payload = payload[os.write(report_fd, payload) :]
+    os.close(report_fd)
+
+
 # ID: 68a00f92-cd3e-4d10-ab25-4d1952fae4d0
 def main(argv: list[str]) -> int:
     spec = json.loads(argv[1])
@@ -166,6 +271,11 @@ def main(argv: list[str]) -> int:
     report_fd = int(spec["report_fd"])
     sys.path[:0] = [str(snapshot / "src"), str(snapshot)]
     os.chdir(snapshot)
+
+    if spec.get("kind") == "audit":
+        audit_report = _run_audit(spec, snapshot)
+        _write_report(report_fd, audit_report)
+        return 0 if audit_report.get("audit") is not None else 1
 
     import pytest  # after the path change; pytest itself is the release's
 
@@ -204,10 +314,7 @@ def main(argv: list[str]) -> int:
     }
     if cov is not None:
         report["coverage"] = _finish_coverage(cov, snapshot)
-    payload = json.dumps(report).encode("utf-8")
-    while payload:
-        payload = payload[os.write(report_fd, payload) :]
-    os.close(report_fd)
+    _write_report(report_fd, report)
     return exit_code
 
 

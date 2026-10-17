@@ -34,6 +34,7 @@ from api.v1.fix_routes import (
 
 GOVERNOR = CallerPrincipal(uid=1004, account="darek", role="principal.governor")
 ASSISTANT = CallerPrincipal(uid=1001, account="core-claude", role=None)
+PRODUCER = CallerPrincipal(uid=1001, account="core-claude", role="principal.producer")
 TCP = CallerPrincipal(uid=None, account=None, role=None)
 
 
@@ -231,8 +232,12 @@ async def test_the_governor_may_dispatch_a_file_mutating_action() -> None:
     bg.add_task.assert_called_once()
 
 
-async def test_a_read_only_or_validating_action_stays_open_for_a_dry_run() -> None:
-    """assisted.validate_diff (the assistant's validate_change) is not gated."""
+@pytest.mark.parametrize("caller", [PRODUCER, GOVERNOR], ids=["producer", "governor"])
+async def test_validate_diff_is_served_to_a_producer_or_the_governor_on_a_socket(
+    caller: CallerPrincipal,
+) -> None:
+    """assisted.validate_diff (the assistant's validate_change) needs no
+    governor, only an identified producer or the governor (F1)."""
     run_id = uuid4()
     session = _mock_session_returning(run_id)
     bg = MagicMock(spec=BackgroundTasks)
@@ -244,9 +249,41 @@ async def test_a_read_only_or_validating_action_stays_open_for_a_dry_run() -> No
         background_tasks=bg,
         payload=RunFixRequest(write=False),
         session=session,
-        principal=ASSISTANT,
+        principal=caller,
     )
     assert out["status"] == "pending"
+
+
+@pytest.mark.parametrize("caller", [TCP, ASSISTANT], ids=["tcp", "unbound-socket"])
+async def test_validate_diff_is_refused_over_tcp_and_to_an_unbound_account(
+    caller: CallerPrincipal,
+) -> None:
+    """F1: running a candidate's code is never served over TCP (any local
+    account reaches 127.0.0.1:8000) nor to a socket caller without the
+    producer or governor role; nothing is queued."""
+    session = AsyncMock()
+    bg = MagicMock(spec=BackgroundTasks)
+    with pytest.raises(HTTPException) as exc:
+        await run_fix(
+            fix_id="assisted.validate_diff",
+            request=_mock_request(),
+            response=MagicMock(spec=Response),
+            background_tasks=bg,
+            payload=RunFixRequest(write=False, params={"patch": "x", "general": True}),
+            session=session,
+            principal=caller,
+        )
+    assert exc.value.status_code == 403
+    session.execute.assert_not_called()
+    bg.add_task.assert_not_called()
+
+
+def test_action_runs_candidate_code_reads_the_registration() -> None:
+    from will.governance.fix_runner import action_runs_candidate_code
+
+    assert action_runs_candidate_code("assisted.validate_diff") is True
+    assert action_runs_candidate_code("assisted.apply_diff") is False
+    assert action_runs_candidate_code("no.such.action") is True
 
 
 def test_action_mutates_files_reads_the_declared_impact() -> None:

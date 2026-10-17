@@ -3,7 +3,7 @@
 
 A change not born from a finding: CORE chooses the checks. These run against a
 real git repository (apply, touched set, ruff) with only the two slow or
-shared-state steps replaced — the full audit subprocess and pytest.
+shared-state steps replaced — the sandboxed full audit and pytest.
 """
 
 from __future__ import annotations
@@ -81,7 +81,7 @@ async def _validate(
 ) -> tuple[Any, AsyncMock, MagicMock]:
     fn = action_assisted_validate_diff.__wrapped__
     run_tests = AsyncMock(return_value=MagicMock(ok=tests_ok))
-    full_audit = MagicMock(return_value=audit)
+    full_audit = AsyncMock(return_value=audit)
     with (
         patch("body.atomic.assisted_actions._run_full_audit", full_audit),
         patch("body.sandbox.repo_tests.run_tests", run_tests),
@@ -145,7 +145,7 @@ async def test_general_passes_and_carries_added_modified_and_deleted(
     ]
     assert result.data["validated_base_sha"] == "base-sha"
     # Class B rules get the files that still exist — not the deleted one.
-    assert sorted(full_audit.call_args.args[2]) == ["old.py", "tests/test_new.py"]
+    assert sorted(full_audit.call_args.args[1]) == ["old.py", "tests/test_new.py"]
     assert result.data["validation_results"]["class_b_rules"] is True
 
 
