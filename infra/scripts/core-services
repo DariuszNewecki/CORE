@@ -1,0 +1,12 @@
+#!/bin/bash
+# Run as user core via sudo; lets core-dev members control CORE's user units only.
+set -euo pipefail
+action="${1:-}"; shift || true
+case "$action" in start|stop|restart|status|is-active|list-units|show) ;; *) echo "core-services: action not allowed: $action" >&2; exit 2;; esac
+# Only core-darek (the governor) may start, stop or restart; every other caller may only look.
+if [[ "${SUDO_USER:-}" != "core-darek" ]]; then
+  case "$action" in start|stop|restart) echo "core-services: service control is the governor's role only" >&2; exit 2;; esac
+fi
+for u in "$@"; do [[ "$u" =~ ^core[-a-z0-9@._]*$ || "$u" == "--no-pager" || "$u" == "--no-legend" || "$u" =~ ^--property=[A-Za-z,]+$ ]] || { echo "core-services: unit not allowed: $u" >&2; exit 2; }; done
+export XDG_RUNTIME_DIR="/run/user/$(id -u core)"
+exec systemctl --user "$action" "$@"
