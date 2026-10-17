@@ -1,0 +1,85 @@
+metadata:
+  id: core_role_register
+  title: CORE_ROLE register -- files allowed to declare a module role
+  authority: policy
+  status: active
+
+# A module-level `CORE_ROLE = "facade" | "algorithm" | "catalog"` (ADR-095 D3)
+# makes modularity.needs_split and modularity.class_too_large skip the file
+# (src/mind/logic/engines/ast_gate/checks/modularity_checks.py). This register
+# lists every src/ file allowed to carry that line, with its value and reason.
+# tests/mind/governance/test_core_role_register.py fails when src/ and this
+# list disagree, so a new self-exemption needs a change to this file.
+# Seeded (#1125) with exactly the files that declared CORE_ROLE on main at
+# 62559ff8; the reasons restate each module's own docstring.
+
+files:
+  src/body/governance/intent_guard.py:
+    role: facade
+    reason: Main orchestrator of the constitutional intent guard; one entry point for write-time checks.
+  src/body/governance/intent_pattern_validators.py:
+    role: catalog
+    reason: Table of pattern validators that IntentGuard.validate_generated_code dispatches to.
+  src/body/services/blackboard_service/blackboard_proposal_service.py:
+    role: facade
+    reason: Blackboard proposal-lifecycle methods implementing the finding-to-proposal contract.
+  src/body/services/blackboard_service/blackboard_query_service.py:
+    role: facade
+    reason: Blackboard read-only query methods (SELECT only).
+  src/body/services/blackboard_service/blackboard_service.py:
+    role: facade
+    reason: Blackboard state-transition write methods.
+  src/body/services/coherence_service.py:
+    role: facade
+    reason: Body-layer storage service for the coherence checker; CRUD only.
+  src/body/services/crawl_service/main_module.py:
+    role: facade
+    reason: Crawl data-access service; orchestration was split out to orchestrator.py (ADR-042 D1).
+  src/mind/logic/engines/ast_gate/checks/purity_checks.py:
+    role: catalog
+    reason: Table of deterministic AST purity checks.
+  src/mind/logic/engines/exclusion_gate.py:
+    role: facade
+    reason: Exclusion gate engine hosting the excludes_exempt_something check.
+  src/mind/logic/engines/knowledge_gate.py:
+    role: facade
+    reason: Knowledge-graph governance engine hosting its graph checks.
+  src/mind/logic/engines/reference_gate.py:
+    role: facade
+    reason: Reference gate engine hosting the intent_references_resolve check.
+  src/mind/logic/engines/taxonomy_gate.py:
+    role: facade
+    reason: Taxonomy gate engine hosting the cross-artifact taxonomy checks.
+  src/shared/infrastructure/context/builder.py:
+    role: algorithm
+    reason: ContextBuilder packet assembly pipeline (providers, redactor, validator, serializer).
+  src/shared/infrastructure/git_service.py:
+    role: facade
+    reason: GitService, the single wrapper around the git commands CORE uses.
+  src/shared/infrastructure/intent/intent_repository.py:
+    role: facade
+    reason: IntentRepository, the canonical read-only interface to .intent/.
+  src/shared/infrastructure/intent/operational_config.py:
+    role: catalog
+    reason: Typed loader for every knob in operational_config.yaml (ADR-040).
+  src/shared/infrastructure/intent/pack_loader.py:
+    role: catalog
+    reason: Loader for the packs/*.yaml governance pack registry (ADR-149).
+  src/shared/infrastructure/intent/rule_registry.py:
+    role: catalog
+    reason: RuleRegistry, the validated dictionary of rule ids from .intent/rules/.
+  src/shared/path_resolver.py:
+    role: catalog
+    reason: PathResolver, the single source of repository-relative paths.
+  src/will/agents/strategic_auditor/context_gatherer.py:
+    role: facade
+    reason: SystemContextGatherer, one entry point collecting system state for strategic reasoning.
+  src/will/remediation/ceremony.py:
+    role: algorithm
+    reason: RemediationCeremony, the LLM/crate/canary/commit sequence extracted from ViolationRemediator (ADR-153).
+  src/will/self_healing/remediation_interpretation/file_role_detector.py:
+    role: algorithm
+    reason: FileRoleDetector, a deterministic heuristic that infers a file's architectural role.
+  src/will/workers/intent_inspector.py:
+    role: algorithm
+    reason: IntentInspector, the multi-pass quality sensor over .intent/.
