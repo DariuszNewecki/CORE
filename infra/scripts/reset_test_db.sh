@@ -1,29 +1,33 @@
 #!/bin/bash
 # Recreates core_test schema from the live core database.
 #
-# IMPORTANT — pg_hba restriction:
-#   dropdb/createdb require a superuser connection. pg_hba on 192.168.20.23 blocks
-#   those commands from non-server hosts (including the dev container). Run this script
-#   directly on the DB server, e.g.:
-#     ssh <server> "bash /opt/dev/CORE/infra/scripts/reset_test_db.sh"
-#   or open an interactive psql session as postgres on the server.
+# IMPORTANT — run on the DB server (.22):
+#   pg_hba in the container trusts local and 127.0.0.1 connections; its last line
+#   allows all users from all addresses with scram-sha-256, and 5432 is published
+#   on 0.0.0.0. DB_HOST defaults to 127.0.0.1 because you run it on the DB server.
+#
+# The password comes from PGPASSWORD in the environment; there is no default:
+#   PGPASSWORD=... bash infra/scripts/reset_test_db.sh
 #
 # This script is idempotent: running it again fully resyncs core_test to the
 # current live schema without copying any live data.
 
 set -euo pipefail
 
-DB_HOST="192.168.20.23"
+DB_HOST="${DB_HOST:-127.0.0.1}"
 DB_USER="core"
-DB_PASS="core"
 LIVE_DB="core"
 TEST_DB="core_test"
 TEST_ROLE="core_test_db"
 SCHEMA_OUT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)/schema.sql"
 
-echo "Resetting ${TEST_DB} schema from ${LIVE_DB}..."
+if [ -z "${PGPASSWORD:-}" ]; then
+    echo "reset_test_db.sh: PGPASSWORD is not set; export the ${DB_USER} password and rerun." >&2
+    exit 2
+fi
+export PGPASSWORD
 
-export PGPASSWORD="${DB_PASS}"
+echo "Resetting ${TEST_DB} schema from ${LIVE_DB} on ${DB_HOST}..."
 
 # Drop and recreate the test DB (superuser required — see note above).
 dropdb -h "${DB_HOST}" -U "${DB_USER}" --if-exists "${TEST_DB}"
@@ -58,5 +62,4 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA core GRANT ALL ON TABLES TO ${TEST_ROLE};
 ALTER DEFAULT PRIVILEGES IN SCHEMA core GRANT ALL ON SEQUENCES TO ${TEST_ROLE};
 SQL
 
-unset PGPASSWORD
 echo "Done. ${TEST_DB} is schema-only from ${LIVE_DB}, granted to ${TEST_ROLE}."
