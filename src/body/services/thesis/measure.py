@@ -55,9 +55,11 @@ _MERGED_PRS = """query($owner:String!,$name:String!,$after:String){
     pageInfo{hasNextPage endCursor}
     nodes{number updatedAt mergedBy{login}
       mergeCommit{oid tree{oid} statusCheckRollup{state contexts(first:100){nodes{__typename
-        ... on CheckRun{status conclusion} ... on StatusContext{state}}}}}
+        ... on CheckRun{name startedAt status conclusion checkSuite{workflowRun{workflow{name}}}}
+        ... on StatusContext{state}}}}}
       commits(last:1){nodes{commit{oid tree{oid} statusCheckRollup{state contexts(first:100){nodes{__typename
-        ... on CheckRun{status conclusion} ... on StatusContext{state}}}}}}}
+        ... on CheckRun{name startedAt status conclusion checkSuite{workflowRun{workflow{name}}}}
+        ... on StatusContext{state}}}}}}}
       reviews(last:100){nodes{author{login} state commit{oid}}}}}}}"""
 
 _PR_TIMELINES = """query($owner:String!,$name:String!){repository(owner:$owner,name:$name){
@@ -102,6 +104,22 @@ def governor_approved(reviews: list[dict[str, Any]], governor: str, head: str) -
     return verdict == ("APPROVED", head)
 
 
+def _latest_runs(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The latest run of each check (workflow and job name); a run without a
+    name is kept as it is."""
+    latest: dict[Any, dict[str, Any]] = {}
+    for index, run in enumerate(runs):
+        name = run.get("name")
+        suite = (run.get("checkSuite") or {}).get("workflowRun") or {}
+        key = ((suite.get("workflow") or {}).get("name"), name) if name else index
+        kept = latest.get(key)
+        if kept is None or str(run.get("startedAt") or "") >= str(
+            kept.get("startedAt") or ""
+        ):
+            latest[key] = run
+    return list(latest.values())
+
+
 # ID: 3c0f6a1e-7d42-4b9a-a8c5-1f2e9d6b4a70
 def ci_state(commit: dict[str, Any] | None) -> str | None:
     """CI on *commit*: SUCCESS, PENDING, FAILURE, CANCELLED or None (no checks).
@@ -110,7 +128,11 @@ def ci_state(commit: dict[str, Any] | None) -> str | None:
     combined state reads FAILURE for a run cancelled when a newer merge
     superseded it, so the individual checks decide: any completed red one is
     FAILURE; else any still running is PENDING; else any cancelled is
-    CANCELLED, which is not a failure; else SUCCESS."""
+    CANCELLED, which is not a failure; else SUCCESS.
+
+    A check run again on the same commit (a pull request's description
+    edited, #1066, #1072, #1094) counts only by its latest run, as GitHub's
+    required checks and the runner's check-runs query (latest by default) do."""
     rollup = (commit or {}).get("statusCheckRollup") or {}
     state = rollup.get("state")
     if state == GREEN:
@@ -118,7 +140,7 @@ def ci_state(commit: dict[str, Any] | None) -> str | None:
     nodes = (rollup.get("contexts") or {}).get("nodes") or []
     if not nodes:
         return state
-    runs = [n for n in nodes if n.get("__typename") == "CheckRun"]
+    runs = _latest_runs([n for n in nodes if n.get("__typename") == "CheckRun"])
     statuses = [n.get("state") for n in nodes if n.get("__typename") == "StatusContext"]
     done = [r for r in runs if r.get("status") == "COMPLETED"]
     if any(r.get("conclusion") in CI_RED for r in done) or any(
@@ -206,7 +228,8 @@ def false_ci_breaches(
 ) -> list[dict[str, Any]]:
     """Stored breaches that were false: kept only because CI was read as red,
     and that ``merge_verdict`` no longer judges unverified (a run cancelled
-    when a newer merge superseded it, read as FAILURE before 2026-10-14).
+    when a newer merge superseded it, read as FAILURE before 2026-10-14; a
+    failed run that a later run of the same check replaced, before 2026-10-17).
 
     The stored rows are never changed or deleted; each false one gets a
     correction row naming it and why. A breach kept for any other reason
@@ -227,7 +250,8 @@ def false_ci_breaches(
                 "why_false": (
                     f"now judged {verdict} ({why}): only a completed red CI run "
                     "is a failure; a run cancelled by a newer merge is not "
-                    "(governor 2026-10-14)"
+                    "(governor 2026-10-14), nor one a later run of the same "
+                    "check replaced"
                 ),
                 "corrected_on": day.isoformat(),
             }
