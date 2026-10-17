@@ -371,6 +371,8 @@ classifications:
     governance_namespace: framework
   - path: .intent/enforcement/config/circuit_breaker.yaml
     governance_namespace: framework
+  - path: .intent/enforcement/config/core_role_register.yaml
+    governance_namespace: project::core
   - path: .intent/enforcement/config/dead_code_baseline.yaml
     governance_namespace: project::core
   - path: .intent/enforcement/config/governance_paths.yaml
