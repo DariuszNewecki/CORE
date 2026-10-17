@@ -36,6 +36,11 @@ Each cycle:
    from the register (severity blocking). Each resolves itself when reality
    matches again. What this account cannot read is reported in the run's
    payload as not evaluated, never as passed.
+7. **Ledger signatures (#1112).** ``governance::ledger_signature::line-<n>``
+   for every custody ledger line whose signature does not verify against
+   ``.intent/custody/allowed_signers``. Re-verified only when the ledger
+   changes; each resolves itself when its line verifies again. On a host
+   without the durable ledger it does not apply.
 4. **Change attribution (D4).** Every ledger row carries the three D4 facts
    for each path changed since the previous row (core.state_changes, written
    by StateLedgerService). A committed ``.intent/`` change with no known
@@ -46,7 +51,8 @@ ADR-091 D2 Revision B resolution classification:
 - Subject prefixes:     governance::law_drift::, governance::stale_daemon::,
                         governance::stale_daemon_escalated::,
                         governance::law_venv::,
-                        governance::access_register::
+                        governance::access_register::,
+                        governance::ledger_signature::
 - resolution_mechanism: self_resolve
 - Resolver path:        this sensor's run(): open findings whose condition did
                         not hold this cycle are resolved via
@@ -171,6 +177,7 @@ class StateSensor(ScheduledWorker):
         stale = await self._sync_stale_daemon(blackboard)
         law_venv = await self._sync_law_venv(blackboard)
         access = await self._sync_access(blackboard, repo_root)
+        signatures = await self._sync_ledger_signatures(blackboard, repo_root)
         unattributed = await self._post_unattributed(changes or [])
 
         await self.post_report(
@@ -188,6 +195,7 @@ class StateSensor(ScheduledWorker):
                 **stale,
                 **law_venv,
                 **access,
+                **signatures,
             },
         )
 
@@ -346,6 +354,55 @@ class StateSensor(ScheduledWorker):
             "access_posted": posted,
             "access_resolved": resolved,
             "access_not_evaluated": report.not_evaluated,
+        }
+
+    async def _sync_ledger_signatures(
+        self, blackboard: Any, repo_root: Any
+    ) -> dict[str, Any]:
+        """#1112: one finding per ledger line that does not verify; resolve the rest."""
+        from pathlib import Path
+
+        from body.governance.law_custody.ledger_watch import (
+            LEDGER_SIGNATURE_PREFIX,
+            LedgerSignatureWatch,
+            failing_line_findings,
+        )
+        from shared.path_resolver import PathResolver
+
+        if getattr(self, "_ledger_watch", None) is None:
+            self._ledger_watch = LedgerSignatureWatch()
+        signers = PathResolver(Path(repo_root)).intent_root / "custody/allowed_signers"
+        state = self._ledger_watch.check(signers)
+        if not state.applies:
+            return {"ledger_signatures": "n/a"}
+        if state.problem is not None:
+            logger.warning(
+                "StateSensor: ledger signatures not checked: %s", state.problem
+            )
+            return {"ledger_signatures": f"not evaluated: {state.problem}"}
+        wanted = failing_line_findings(state)
+        existing = await self._open_findings(blackboard, LEDGER_SIGNATURE_PREFIX)
+        posted = 0
+        for subject, payload in wanted.items():
+            if subject in existing:
+                continue
+            await self.post_finding(
+                subject=subject,
+                payload=payload,
+                resolution_mechanism="self_resolve",
+            )
+            posted += 1
+        resolved = 0
+        for subject, row in existing.items():
+            if subject not in wanted:
+                await blackboard.resolve_entries([row["id"]])
+                resolved += 1
+        return {
+            "ledger_signatures_checked": state.checked,
+            "ledger_signatures_failed": len(wanted),
+            "ledger_signatures_rechecked": state.rechecked,
+            "ledger_signatures_posted": posted,
+            "ledger_signatures_resolved": resolved,
         }
 
     async def _sync_stale_daemon(self, blackboard: Any) -> dict[str, Any]:
