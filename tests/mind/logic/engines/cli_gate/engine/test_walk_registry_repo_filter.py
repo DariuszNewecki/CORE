@@ -22,6 +22,13 @@ from mind.logic.engines.cli_gate.engine import CliGateEngine, CliNotAuditedError
 from shared.models.audit_rendering import is_not_evaluated
 
 
+# An in-tree repo root that exists on no host. With a real checkout path
+# (/opt/dev/CORE), a run from a worktree imports the worktree's CLI while
+# repo_root/src/cli/admin_cli.py exists, and the #965 guard raises
+# CliNotAuditedError: the tests then pass on CI and fail on that host.
+_IN_TREE_ROOT = "/nonexistent/CORE"
+
+
 def _make_command(name: str, file_path: str | None) -> dict[str, object]:
     """Synthetic walk_typer_app output entry."""
     return {
@@ -79,16 +86,16 @@ def test_walk_registry_normalises_in_repo_commands_to_relative_paths() -> None:
     normalises to ``src/cli/admin_cli.py`` so downstream finding
     subjects render repo-relative (#486).
     """
-    repo_root = Path("/opt/dev/CORE")
+    repo_root = Path(_IN_TREE_ROOT)
     path_resolver = MagicMock()
     path_resolver.repo_root = repo_root
 
     fake_commands = [
         _make_command(
-            "admin.health", "/opt/dev/CORE/src/cli/resources/admin/health.py"
+            "admin.health", f"{_IN_TREE_ROOT}/src/cli/resources/admin/health.py"
         ),
         _make_command(
-            "context.build", "/opt/dev/CORE/src/cli/resources/context/build.py"
+            "context.build", f"{_IN_TREE_ROOT}/src/cli/resources/context/build.py"
         ),
     ]
 
@@ -151,7 +158,7 @@ def test_walk_registry_preserves_entries_with_unresolved_file_path() -> None:
     the command tree regardless of source-file resolution status.
     Dropping these would mask real duplication/structure issues.
     """
-    repo_root = Path("/opt/dev/CORE")
+    repo_root = Path(_IN_TREE_ROOT)
     path_resolver = MagicMock()
     path_resolver.repo_root = repo_root
 
@@ -186,7 +193,7 @@ def test_walk_registry_preserves_relative_paths_untouched() -> None:
     pre-normalised relative paths. Trust the caller for non-absolute
     inputs rather than guessing whether to re-anchor against repo_root.
     """
-    repo_root = Path("/opt/dev/CORE")
+    repo_root = Path(_IN_TREE_ROOT)
     path_resolver = MagicMock()
     path_resolver.repo_root = repo_root
 
