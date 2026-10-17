@@ -312,6 +312,25 @@ class Host:
 # ---------------------------------------------------------------------------
 
 
+def latest_runs(runs: list[dict]) -> list[dict]:
+    """The newest run of each check: a re-run supersedes the run before it.
+
+    GitHub keeps every run of a check on a commit (a PR description edit
+    re-runs host-change-stated), and run ids increase. A check is its name
+    within one app; runs without a name or an id are each kept.
+    """
+    latest: dict[object, dict] = {}
+    for i, run in enumerate(runs):
+        name, run_id = run.get("name"), run.get("id")
+        app = (run.get("app") or {}).get("id")
+        key: object = (app, name)
+        if name is None or not isinstance(run_id, int):
+            key = ("unnamed", i)
+        if key not in latest or run_id > latest[key]["id"]:
+            latest[key] = run
+    return list(latest.values())
+
+
 def read_env_file(path: Path) -> dict[str, str]:
     """KEY=VALUE lines (systemd EnvironmentFile subset); comments ignored."""
     values: dict[str, str] = {}
@@ -600,7 +619,7 @@ class Deployer:
             data = self.host.http_json(url)
         except Exception as exc:  # network, rate limit, parse
             raise Refused(f"CI state for {sha[:12]} unavailable: {exc}") from exc
-        runs = data.get("check_runs", []) if isinstance(data, dict) else []
+        runs = latest_runs(data.get("check_runs", []) if isinstance(data, dict) else [])
         if not runs:
             raise Refused(f"no CI check runs for {sha[:12]}")
         bad = [

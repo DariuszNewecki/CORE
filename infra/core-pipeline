@@ -117,6 +117,25 @@ class Host:
         return datetime.datetime.now(datetime.UTC)
 
 
+def latest_runs(runs: list[dict]) -> list[dict]:
+    """The newest run of each check: a re-run supersedes the run before it.
+
+    GitHub keeps every run of a check on a commit (a PR description edit
+    re-runs host-change-stated), and run ids increase. A check is its name
+    within one app; runs without a name or an id are each kept.
+    """
+    latest: dict[object, dict] = {}
+    for i, run in enumerate(runs):
+        name, run_id = run.get("name"), run.get("id")
+        app = (run.get("app") or {}).get("id")
+        key: object = (app, name)
+        if name is None or not isinstance(run_id, int):
+            key = ("unnamed", i)
+        if key not in latest or run_id > latest[key]["id"]:
+            latest[key] = run
+    return list(latest.values())
+
+
 def rate_limit_reset(
     exc: urllib.error.HTTPError, now: datetime.datetime
 ) -> datetime.datetime | None:
@@ -213,7 +232,7 @@ class Runner:
         data = self.host.http(
             f"{self.api}/repos/{self.repo}/commits/{sha}/check-runs?per_page=100"
         )
-        runs = data.get("check_runs", []) if isinstance(data, dict) else []
+        runs = latest_runs(data.get("check_runs", []) if isinstance(data, dict) else [])
         if not runs or any(r.get("status") != "completed" for r in runs):
             return "pending"
         if any(r.get("conclusion") not in GREEN for r in runs):

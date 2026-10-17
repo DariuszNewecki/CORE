@@ -486,6 +486,10 @@ def test_not_on_upstream_develop_is_refused_before_building(root: Path) -> None:
         [],
         [{"name": "ci", "status": "completed", "conclusion": "failure"}],
         [{"name": "ci", "status": "in_progress", "conclusion": None}],
+        [  # the newest run of a check decides: rerun red after green
+            {"id": 1, "name": "ci", "status": "completed", "conclusion": "success"},
+            {"id": 2, "name": "ci", "status": "completed", "conclusion": "failure"},
+        ],
     ],
 )
 def test_ci_not_green_is_refused(root: Path, runs: list[dict]) -> None:
@@ -493,6 +497,26 @@ def test_ci_not_green_is_refused(root: Path, runs: list[dict]) -> None:
     host.check_runs = runs
     assert _deploy(root, host) == 1
     assert not (root / "releases" / SHA).exists()
+
+
+# ID: f0a14dcc-057b-427d-9dd1-74efef48bef0
+def test_ci_counts_only_the_newest_run_of_each_check(root: Path) -> None:
+    host = FakeHost(root)
+    host.check_runs = [
+        {
+            "id": 1,
+            "name": "host-change-stated",
+            "status": "completed",
+            "conclusion": "failure",
+        },
+        {
+            "id": 2,
+            "name": "host-change-stated",
+            "status": "completed",
+            "conclusion": "success",
+        },
+    ]
+    assert _deploy(root, host) == 0
 
 
 # ID: 04bff2ec-7d3c-46fe-acb3-498768f7b56f

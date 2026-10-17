@@ -188,6 +188,46 @@ def test_red_ci_opens_an_issue_and_never_deploys(world) -> None:
     assert status["last"]["result"] == "failed" and len(host.issues) == 1
 
 
+def _run(run_id: int, name: str, conclusion: str) -> dict:
+    return {
+        "id": run_id,
+        "name": name,
+        "app": {"id": 15368},
+        "status": "completed",
+        "conclusion": conclusion,
+    }
+
+
+def test_a_failed_check_rerun_green_counts_as_green(world) -> None:
+    # #1133: editing the PR description re-ran host-change-stated green; the
+    # superseded failed run stays on the commit and must not make CI red.
+    host, _ = world
+    host.runs = [
+        _run(2, "host-change-stated", "success"),
+        _run(1, "host-change-stated", "failure"),
+        _run(3, "tests", "success"),
+    ]
+    assert _tick(world)["last"]["result"] == "live"
+
+
+def test_a_check_rerun_red_after_green_is_red(world) -> None:
+    host, _ = world
+    host.runs = [
+        _run(1, "tests", "success"),
+        _run(2, "tests", "failure"),
+    ]
+    status = _tick(world)
+    assert _privileged(host) == []
+    assert status["last"]["result"] == "failed"
+
+
+def test_same_check_name_from_another_app_is_not_superseded(world) -> None:
+    host, _ = world
+    other = {**_run(1, "build", "failure"), "app": {"id": 99}}
+    host.runs = [other, _run(2, "build", "success")]
+    assert _tick(world)["last"]["result"] == "failed"
+
+
 def test_failed_probe_rolls_back_and_opens_an_issue(world) -> None:
     host, _ = world
     host.rc[cp.SANDBOX_CHECK] = 1
