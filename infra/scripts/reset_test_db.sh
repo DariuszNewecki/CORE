@@ -2,9 +2,9 @@
 # Recreates core_test schema from the live core database.
 #
 # IMPORTANT — run on the DB server (.22):
-#   dropdb/createdb require a superuser connection, which pg_hba on the DB server
-#   allows only locally. DB_HOST defaults to 127.0.0.1 for that reason; override
-#   it (DB_HOST=... ) only if your pg_hba allows the connection.
+#   pg_hba in the container trusts local and 127.0.0.1 connections; its last line
+#   allows all users from all addresses with scram-sha-256, and 5432 is published
+#   on 0.0.0.0. DB_HOST defaults to 127.0.0.1 because you run it on the DB server.
 #
 # The password comes from PGPASSWORD in the environment; there is no default:
 #   PGPASSWORD=... bash infra/scripts/reset_test_db.sh
