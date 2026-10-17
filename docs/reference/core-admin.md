@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-108 commands.
+109 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -24,7 +24,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`docs`](#docs) | 1 | Reader-facing documentation generated from live sources (the CLI trees). |
 | [`grc`](#grc) | 2 | Compliance gap-analysis: check a document corpus against a requirements catalog. |
 | [`interactive-test`](#interactive-test) | 2 | Interactive test generation with step-by-step approval |
-| [`law`](#law) | 9 | Grounded answers about this repository's law, with sources (ADR-168). |
+| [`law`](#law) | 10 | Grounded answers about this repository's law, with sources (ADR-168). |
 | [`llm-resources`](#llm-resources) | 2 | core.llm_resources authoring/validation surface (#821 Unit 3). |
 | [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant (ADR-168). |
 | [`project`](#project) | 3 | Operations for project lifecycle: scaffolding. |
@@ -1363,6 +1363,21 @@ Example: core-admin law show governance.constitution.read_only
 | Argument / option | Default | Description |
 |---|---|---|
 | `RULE_ID` | required | Rule id, e.g. governance.constitution.read_only. |
+
+### `core-admin law verify` {#law-verify}
+
+```
+core-admin law verify [OPTIONS]
+```
+
+Check each ledger line with ssh-keygen -Y verify and list every line
+that does not verify. Exit 1 when any line fails or the ledger is missing.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--ledger` |  | Ledger to check (default: the ledger of record). |
+| `--allowed-signers` |  | Allowed signers file (default: &lt;repo>/.intent/custody/allowed_signers). |
+| `--json` | off | Print one JSON line. |
 
 ---
 

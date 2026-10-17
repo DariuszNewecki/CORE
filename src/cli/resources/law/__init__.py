@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from . import access, apply, commands
+from . import access, apply, commands, verify
 from .hub import app
 
 

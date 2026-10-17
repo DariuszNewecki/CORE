@@ -16,10 +16,13 @@ the evaluation needs is kept by hand:
   warnings, both accepted by the approval;
 - an SSH signature (``ssh-keygen -Y sign``) over the line without it.
 
+``verify_ledger`` checks every line's signature against the allowed signers
+(``ssh-keygen -Y verify``, #1112): read-only.
+
 CONSTITUTIONAL ALIGNMENT:
 - Builds bytes; writes nothing (``writer`` appends). ``ssh-keygen`` is the
   only process run (governance.dangerous_execution_primitives: justified,
-  the D4 signature).
+  the D4 signature and its verification).
 """
 
 from __future__ import annotations
@@ -38,6 +41,10 @@ from body.governance.law_custody.proposal import LawProposal
 
 LEDGER_REL = ".intent/custody/ledger.jsonl"
 SIGNING_NAMESPACE = "core-law-ledger"
+# The principal the signature is checked for: the custodian's allowed_signers
+# entry (writer.CUSTODIAN_ACCOUNT, the account that signs).
+SIGNER_IDENTITY = "core-law"
+ALLOWED_SIGNERS_REL = ".intent/custody/allowed_signers"
 # The host's durable ledger: created by the host step, owned by core-law.
 # A deploy writes law into the development tree and the release law; neither
 # is a place a record may live (a checkout reset or a law resync drops it).
@@ -179,3 +186,85 @@ def signed_line_bytes(line: Mapping[str, Any], key_path: Path) -> bytes:
     """The ledger line with its signature, as one newline-terminated line."""
     signature = sign(canonical_bytes(line), key_path)
     return canonical_bytes({**line, "signature": signature}) + b"\n"
+
+
+# ID: 02f16bac-9ffe-4813-ad2b-fa69816e7999
+def verify_line(
+    raw: str, allowed_signers: Path, *, timeout: float = 30.0
+) -> str | None:
+    """Why ledger line *raw* does not verify, or None when its signature does.
+
+    The signed bytes are the line without ``signature`` (``canonical_bytes``),
+    checked with ``ssh-keygen -Y verify`` for ``SIGNER_IDENTITY`` in
+    ``SIGNING_NAMESPACE`` against *allowed_signers*.
+    """
+    try:
+        entry = json.loads(raw)
+    except ValueError as exc:
+        return f"not JSON: {exc}"
+    if not isinstance(entry, dict):
+        return "not a JSON object"
+    signature = entry.pop("signature", None)
+    if not isinstance(signature, str) or not signature:
+        return "no signature"
+    try:
+        payload = canonical_bytes(entry)
+    except UnicodeEncodeError as exc:
+        return f"cannot rebuild the signed bytes: {exc}"
+    # The signature reaches ssh-keygen through a pipe (-s /dev/fd/N), so no
+    # file is written; an armored signature is far below the pipe buffer.
+    read_fd, write_fd = os.pipe()
+    try:
+        os.write(write_fd, signature.encode("ascii", errors="replace"))
+        os.close(write_fd)
+        write_fd = -1
+        completed = subprocess.run(
+            [
+                "ssh-keygen",
+                "-Y",
+                "verify",
+                "-f",
+                str(allowed_signers),
+                "-I",
+                SIGNER_IDENTITY,
+                "-n",
+                SIGNING_NAMESPACE,
+                "-s",
+                f"/dev/fd/{read_fd}",
+            ],
+            input=payload,
+            capture_output=True,
+            timeout=timeout,
+            check=False,
+            pass_fds=(read_fd,),
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return f"ssh-keygen could not run: {exc}"
+    finally:
+        os.close(read_fd)
+        if write_fd != -1:
+            os.close(write_fd)
+    if completed.returncode == 0:
+        return None
+    detail = (completed.stderr or completed.stdout).decode("utf-8", errors="replace")
+    return detail.strip() or f"ssh-keygen exited {completed.returncode}"
+
+
+# ID: 95cf9499-8819-4ace-bfdd-10532fd36059
+def verify_ledger(
+    ledger: Path, allowed_signers: Path
+) -> tuple[int, list[tuple[int, str]]]:
+    """Check every non-empty line of *ledger*; return (lines checked, failures).
+
+    Each failure is (1-based line number, reason).
+    """
+    checked = 0
+    failures: list[tuple[int, str]] = []
+    for number, raw in enumerate(ledger.read_text(encoding="utf-8").splitlines(), 1):
+        if not raw.strip():
+            continue
+        checked += 1
+        reason = verify_line(raw, allowed_signers)
+        if reason is not None:
+            failures.append((number, reason))
+    return checked, failures
