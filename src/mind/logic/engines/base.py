@@ -61,6 +61,13 @@ class EngineResult:
     extra: dict[str, Any] = field(default_factory=dict)
 
 
+# #1050: an ``EngineResult.extra`` key. Set by an engine whose verdict for a
+# file leaves its content unchecked (a binary file under a text scan), with
+# the reason as its value; the rule executor reports such files once per rule
+# as not evaluated, never as a failure.
+CONTENT_NOT_EVALUATED = "content_not_evaluated"
+
+
 # ID: a7f3c9d2-5e1b-4f8a-b6d4-9c7e2a1b3f8d
 def normalize_violation(v: str | dict[str, Any]) -> tuple[str, dict[str, Any]]:
     """Normalize a raw engine violation to ``(message, details)``.

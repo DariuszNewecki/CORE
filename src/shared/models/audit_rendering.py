@@ -34,7 +34,7 @@ def get_severity_style(severity: AuditSeverity) -> str:
 # #847/#856). They carry the rule's severity for the verdict machinery, but
 # they assert no violation, so presentation must not show them as one.
 NOT_EVALUATED_FINDING_TYPES = frozenset(
-    {"ENFORCEMENT_UNAVAILABLE", "ENFORCEMENT_FAILURE"}
+    {"ENFORCEMENT_UNAVAILABLE", "ENFORCEMENT_FAILURE", "CONTENT_NOT_EVALUATED"}
 )
 
 
