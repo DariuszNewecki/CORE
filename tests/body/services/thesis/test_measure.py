@@ -229,6 +229,38 @@ def test_a_cancelled_run_is_not_a_failure() -> None:
     assert merge_verdict(_merge_with(skipped), GOV)[0] == "verified"
 
 
+def _run(workflow: str, name: str, started: str, conclusion: str) -> dict:
+    return {
+        "__typename": "CheckRun",
+        "name": name,
+        "startedAt": started,
+        "status": "COMPLETED",
+        "conclusion": conclusion,
+        "checkSuite": {"workflowRun": {"workflow": {"name": workflow}}},
+    }
+
+
+def _rollup(*runs: dict) -> dict:
+    return {"state": "FAILURE", "contexts": {"nodes": list(runs)}}
+
+
+def test_only_the_latest_run_of_a_check_counts() -> None:
+    """#1072 and #1094 (2026-10-16): host-change-stated failed, the
+    description was edited, and it passed on the same head before the merge.
+    The superseded failure is not red CI; a failure after a pass still is,
+    and a same-named job in another workflow is a different check."""
+    fail = _run(
+        "PR first line", "host-change-stated", "2026-10-16T05:57:45Z", "FAILURE"
+    )
+    ok = _run("PR first line", "host-change-stated", "2026-10-16T06:28:44Z", "SUCCESS")
+    assert merge_verdict(_merge_with(_rollup(fail, ok)), GOV)[0] == "verified"
+    assert merge_verdict(_merge_with(_rollup(ok, fail)), GOV)[0] == "verified"
+    later_fail = {**fail, "startedAt": "2026-10-16T07:00:00Z"}
+    assert merge_verdict(_merge_with(_rollup(ok, later_fail)), GOV)[0] == "unverified"
+    other = _run("CI", "host-change-stated", "2026-10-16T05:00:00Z", "FAILURE")
+    assert merge_verdict(_merge_with(_rollup(other, ok)), GOV)[0] == "unverified"
+
+
 async def test_a_stored_false_ci_breach_gets_a_correction_row(tmp_path: Path) -> None:
     """A breach stored only because a cancelled run read as FAILURE is named
     false in a correction row and stops counting; the stored row is kept as
