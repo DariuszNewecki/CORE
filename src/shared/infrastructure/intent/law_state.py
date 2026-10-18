@@ -75,7 +75,12 @@ def observe_law_state(intent_root: Path) -> LawState:
     if top is None:
         return LawState(
             relationship="UNKNOWN",
-            reason=f"{root} is not inside a git work tree",
+            # #1156: every reason ends in what to do; the audit CLI appends
+            # ", then audit again."
+            reason=(
+                f"{root} is not inside a git work tree; "
+                f"run git init, commit {root.name}/"
+            ),
         )
     rel = root.relative_to(top).as_posix()
     git = GitService(top)
@@ -112,7 +117,10 @@ def observe_law_state(intent_root: Path) -> LawState:
         )
     except RuntimeError as exc:
         logger.warning("law state could not be observed for %s: %s", root, exc)
-        return LawState(relationship="UNKNOWN", reason=f"git failed: {exc}")
+        return LawState(
+            relationship="UNKNOWN",
+            reason=f"git could not read the repository ({exc}); fix that",
+        )
 
     return LawState(
         relationship="MATCH" if record_digest == evaluated_digest else "DRIFT",

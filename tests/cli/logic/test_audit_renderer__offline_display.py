@@ -108,3 +108,32 @@ def test_offline_summary_shows_block_proven_and_no_false_coverage(
     assert "ERROR" not in row and "needs human" not in row
     assert "Coverage: n/a" in out
     assert "coverage: 0.0%" not in out.lower()
+
+
+def test_law_not_committed_line_is_one_sentence_with_the_command(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """#1156: outside a git work tree the line read "... is not inside a git
+    work tree, then audit again." -- an instruction with nothing before it."""
+    from shared.infrastructure.intent.law_state import observe_law_state
+
+    (tmp_path / ".intent").mkdir()
+    state = observe_law_state(tmp_path / ".intent")
+    buf = io.StringIO()
+    shared_console = Console(file=buf, width=400)
+    monkeypatch.setattr(audit_cmd, "console", shared_console)
+    monkeypatch.setattr(formatters, "console", shared_console)
+    monkeypatch.setattr(audit_renderer, "console", shared_console)
+    result = {
+        "verdict": "DEGRADED",
+        "passed": False,
+        "stats": {"total_rules": 1, "executed_rules": 1, "failed_rules": 0},
+        "findings": [],
+        "skipped_rules": [],
+        "duration_sec": 0.1,
+        "law_state": state.to_dict(),
+    }
+    audit_cmd._render_text_summary(result, AuditSeverity.INFO)
+    line = next(ln for ln in buf.getvalue().splitlines() if "Law not committed" in ln)
+    assert "work tree; run git init, commit .intent/" in line
+    assert line.rstrip().endswith("then audit again.")
