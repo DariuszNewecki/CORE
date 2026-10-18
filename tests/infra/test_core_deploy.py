@@ -326,8 +326,10 @@ def _deploy(root: Path, host: FakeHost, *extra: str) -> int:
     sbin.mkdir(exist_ok=True)
     # No dev checkout: the host's own /opt/dev/CORE never takes part.
     dev = ["--dev-repo", str(root / "no-dev-checkout")]
+    law = ["--law-venv", str(root / "law-venv")]
     return cd.main(
-        [SHA, "--root", str(root), "--sbin", str(sbin), *dev, *extra], host=host
+        [SHA, "--root", str(root), "--sbin", str(sbin), *dev, *law, *extra],
+        host=host,
     )
 
 
@@ -1007,6 +1009,76 @@ def test_a_failed_core_law_setup_does_not_undo_the_deploy(root: Path) -> None:
     _with_previous(root)
     host = FakeHost(root)
     host.setup_diff = b"infra/core-law-setup\n"
+    host.law_setup_rc = 1
+    assert _deploy(root, host) == 0
+    assert _current(root) == SHA
+    assert _ledger(root)["law_setup"] == "failed"
+
+
+def _law_venv(root: Path, wheel_sha256: str) -> None:
+    law = root / "law-venv"
+    law.mkdir()
+    (law / "core-release.json").write_text(
+        json.dumps({"sha": OLD, "wheel_sha256": wheel_sha256})
+    )
+
+
+class SameWheelHost(FakeHost):
+    """Builds the wheel core-law's venv already holds (a merge that left
+    src/ alone)."""
+
+    def __init__(self, root: Path, wheel: Path) -> None:
+        super().__init__(root)
+        self.wheel = wheel
+
+    def run(self, cmd, *, user=None, input=None, check=True):
+        result = super().run(cmd, user=user, input=input, check=check)
+        if "wheel" in cmd and "--wheel-dir" in cmd:
+            target = Path(cmd[cmd.index("--wheel-dir") + 1])
+            (target / self.wheel.name).write_bytes(self.wheel.read_bytes())
+        return result
+
+
+def test_a_changed_wheel_runs_core_law_setup_after_the_switch(root: Path) -> None:
+    # 2026-10-18: core-law's venv stayed on 65d3eb49 while 1316c543 was live;
+    # it was refreshed only by merges that changed infra/core-law-setup.
+    _with_previous(root)
+    _law_venv(root, "0" * 64)
+    host = FakeHost(root)
+    assert _deploy(root, host) == 0
+    assert host.setup_runs == [["core-law-setup", "--governor", "darek", "--apply"]]
+    law_setup = _index(host, lambda c: c[0].endswith("sbin/core-law-setup"))
+    restart = _index(host, lambda c: c[0] == "systemctl" and c[4] == "restart")
+    assert restart < law_setup
+    assert _ledger(root)["law_setup"] == "applied"
+
+
+def test_the_same_wheel_skips_core_law_setup(root: Path, tmp_path: Path) -> None:
+    _with_previous(root)
+    wheel = tmp_path / "core_runtime-2.13.0-py3-none-any.whl"
+    _wheel(wheel, GOOD_WHEEL)
+    _law_venv(root, hashlib.sha256(wheel.read_bytes()).hexdigest())
+    host = SameWheelHost(root, wheel)
+    assert _deploy(root, host) == 0
+    assert host.setup_runs == []
+    assert _ledger(root)["law_setup"] is None
+
+
+def test_an_unreadable_core_law_record_runs_core_law_setup(root: Path) -> None:
+    _with_previous(root)
+    (root / "law-venv").mkdir()
+    (root / "law-venv" / "core-release.json").write_text("not json")
+    host = FakeHost(root)
+    assert _deploy(root, host) == 0
+    assert host.setup_runs == [["core-law-setup", "--governor", "darek", "--apply"]]
+
+
+def test_a_failed_core_law_setup_for_a_new_wheel_does_not_undo_the_deploy(
+    root: Path,
+) -> None:
+    _with_previous(root)
+    _law_venv(root, "0" * 64)
+    host = FakeHost(root)
     host.law_setup_rc = 1
     assert _deploy(root, host) == 0
     assert _current(root) == SHA

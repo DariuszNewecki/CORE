@@ -60,9 +60,10 @@ Order (ADR-132 D10 · D2):
     failure switches back; then enable them, so they start after a reboot;
  8. self-update: the installed core-deploy, core-law-setup, core-pipeline
     and core-sandbox-check become the deployed commit's ``infra/`` copies;
-    then, when the merge changed it, core-law-setup runs (it installs the
-    live release's wheel, so it runs after the switch; a failure is reported
-    and never undoes the deploy);
+    then core-law-setup runs when the merge changed it or core-law's venv
+    holds another wheel than the release (it installs the live release's
+    wheel, so it runs after the switch; a failure is reported and never
+    undoes the deploy);
  8a. the dev checkout (``/opt/dev/CORE``) follows: it is fast-forwarded to
     the deployed commit, git running as core-claude, the owner of its
     working files (#1063, governor 2026-10-16). Deploys write merged law
@@ -231,6 +232,7 @@ class Options:
     merged_by: str | None = None
     tested_as: str | None = None
     dev_repo: Path = DEV_REPO
+    law_venv: Path = Path("/opt/core-law/venv")
     readiness_port: int = 8765
     api_base: str = "http://127.0.0.1:8000"
     github_api: str = "https://api.github.com"
@@ -1170,11 +1172,26 @@ class Deployer:
             ran.append(name)
         return ran
 
-    def apply_law_setup(self, changed: list[str]) -> str | None:
+    def law_wheel(self) -> str | None:
+        """The wheel_sha256 core-law's venv records; None when it has no
+        record (core-law not set up here), "" when the record is unreadable."""
+        record = self.options.law_venv / "core-release.json"
+        if not record.exists():
+            return None
+        try:
+            return str(json.loads(record.read_text(encoding="utf-8"))["wheel_sha256"])
+        except (OSError, ValueError, KeyError, TypeError):
+            return ""
+
+    def apply_law_setup(self, changed: list[str], wheel_sha: str) -> str | None:
         """Run the installed (just updated) core-law-setup when the merge
-        changed it. After the switch: it installs the live release's wheel.
-        A failure is reported and never undoes the deploy."""
-        if LAW_SETUP_PATH not in changed:
+        changed it or core-law's venv holds another wheel than this release:
+        the custodian runs the code the services run. After the switch: it
+        installs the live release's wheel. A failure is reported and never
+        undoes the deploy."""
+        law_wheel = self.law_wheel()
+        stale = law_wheel is not None and law_wheel != wheel_sha
+        if LAW_SETUP_PATH not in changed and not stale:
             return None
         try:
             result = self.host.run(
@@ -1380,7 +1397,7 @@ class Deployer:
 
         self.enable(units)
         scripts = self.update_host_scripts(sha)
-        law_setup = self.apply_law_setup(setup_changed)
+        law_setup = self.apply_law_setup(setup_changed, wheel_sha)
         claude_md = self.update_claude_md(sha)
         dev_checkout = self.follow_dev_checkout(sha)
         self.ledger(
@@ -1485,6 +1502,12 @@ def main(argv: list[str] | None = None, host: Host | None = None) -> int:
     parser.add_argument(
         "--dev-repo", type=Path, default=DEV_REPO, help=argparse.SUPPRESS
     )
+    parser.add_argument(
+        "--law-venv",
+        type=Path,
+        default=Path("/opt/core-law/venv"),
+        help=argparse.SUPPRESS,
+    )
     args = parser.parse_args(argv)
     if bool(args.ref) == bool(args.rollback):
         parser.error("give exactly one of <ref> or --rollback")
@@ -1501,6 +1524,7 @@ def main(argv: list[str] | None = None, host: Host | None = None) -> int:
             merged_by=args.merged_by,
             tested_as=args.tested_as,
             dev_repo=args.dev_repo,
+            law_venv=args.law_venv,
         ),
     )
     layout.root.mkdir(parents=True, exist_ok=True)
