@@ -55,6 +55,9 @@ poetry run core-admin law check-tree  # validate .intent/ and .specs/
   merges its own PRs when the required checks are green; the governor approves
   promotions (a main SHA fast-forwarded to `live`), not PRs; only an approved
   promotion runs live.
+- When main has green merges that are not live, open or update the promotion PR
+  (`promote/next` → `live`) with `core-admin promote propose`'s summary, as
+  core-claude-bot: at most once a day, plus urgent ones on the governor's request.
 - Never wait for CI in the foreground. After opening a PR, turn on auto-merge
   (`gh pr merge --auto --merge`), watch CI in the background, take the next task.
   Report a PR only when its CI goes red.
