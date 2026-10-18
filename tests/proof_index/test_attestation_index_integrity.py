@@ -49,6 +49,18 @@ def test_index_wellformed_and_modes_valid() -> None:
         assert c["evidence_mode"] in _VALID_MODES, c
 
 
+def test_attestation_commands_exist() -> None:
+    # docs/proof-index.md was removed 2026-10-13 and both command_refs dangled.
+    for c in _claims():
+        att = _attestation(c)
+        if att is None or "command_ref" not in att:
+            continue
+        path = str(att["command_ref"]).split("#", 1)[0]
+        assert (_REPO_ROOT / path).is_file(), (
+            f"claim {c['claim']}: missing attestation command {path}"
+        )
+
+
 def test_referenced_tests_exist() -> None:
     for c in _claims():
         tests = _referenced_tests(c)
