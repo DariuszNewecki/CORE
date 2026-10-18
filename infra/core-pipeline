@@ -22,8 +22,10 @@ timer, as the account ``core-runner``:
     ``live`` exists, of the live commit); reported once;
  4. waits until every CI check run on that commit has completed; a red
     result is reported once and skipped;
- 5. runs ``sudo -n core-deploy <sha> --migrate --merged-by <governor>``:
-    exactly the approved head, never a merge commit. core-deploy builds,
+ 5. runs ``sudo -n core-deploy <sha> --promotion <PR> --migrate --merged-by
+    <governor>``: exactly the approved head, never a merge commit.
+    core-deploy reads the governor's approval of that head again itself,
+    before the build and right before anything live changes, then builds,
     applies the law that changed since the live commit through core-law,
     migrates only when something is pending, switches, verifies, and
     switches back itself when the new release fails;
@@ -480,7 +482,17 @@ class Runner:
         self.log(sha, f"promotion #{number}: {self.governor} approved {sha}")
         rc, text = self.run_logged(
             sha,
-            ["sudo", "-n", CORE_DEPLOY, sha, "--migrate", "--merged-by", self.governor],
+            [
+                "sudo",
+                "-n",
+                CORE_DEPLOY,
+                sha,
+                "--promotion",
+                str(number),
+                "--migrate",
+                "--merged-by",
+                self.governor,
+            ],
         )
         if rc == EX_DEPLOY_GOVERNOR:
             self.fail(

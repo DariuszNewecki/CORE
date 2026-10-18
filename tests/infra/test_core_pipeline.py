@@ -167,6 +167,8 @@ def test_an_approved_promotion_deploys_exactly_its_head_then_probes(world) -> No
         "-n",
         cp.CORE_DEPLOY,
         SHA,
+        "--promotion",
+        "1200",
         "--migrate",
         "--merged-by",
         GOVERNOR,
