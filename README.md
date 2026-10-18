@@ -2,18 +2,18 @@
 
 > **Executable constitutional governance for AI-assisted software development.**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/DariuszNewecki/CORE/blob/main/LICENSE)
 [![Release](https://img.shields.io/badge/Release-v2.14.5-blue)](https://github.com/DariuszNewecki/CORE/releases)
 [![Docs](https://img.shields.io/badge/Docs-online-green)](https://dariusznewecki.github.io/CORE/)
 
-**Current Release:** v2.14.5 — see [CHANGELOG.md](CHANGELOG.md).
+**Current Release:** v2.14.5 — see [CHANGELOG.md](https://github.com/DariuszNewecki/CORE/blob/main/CHANGELOG.md).
 
 ## What CORE is
 
 CORE audits a codebase against declared rules in `.intent/`, records every
 violation, proposes fixes, and logs the chain from finding to commit. AI
 assistants and CORE's own loop can propose changes; only the human governor
-approves them. What it is for, in plain words: [What CORE does](docs/what-core-does.md).
+approves them. What it is for, in plain words: [What CORE does](https://dariusznewecki.github.io/CORE/what-core-does/).
 
 ## Install and first run
 
@@ -64,9 +64,9 @@ cd CORE
 
 ## More
 
-- Decisions: [.specs/DECISIONS.md](.specs/DECISIONS.md)
-- Documentation: [docs/](docs/index.md), published at [dariusznewecki.github.io/CORE](https://dariusznewecki.github.io/CORE/)
+- Decisions: [.specs/DECISIONS.md](https://github.com/DariuszNewecki/CORE/blob/main/.specs/DECISIONS.md)
+- Documentation: [docs/](https://github.com/DariuszNewecki/CORE/blob/main/docs/index.md), published at [dariusznewecki.github.io/CORE](https://dariusznewecki.github.io/CORE/)
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](https://github.com/DariuszNewecki/CORE/blob/main/LICENSE).
