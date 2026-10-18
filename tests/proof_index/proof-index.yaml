@@ -18,7 +18,7 @@
 meta:
   source: docs/proof-index.md
   default_attestation_max_age_days: 90
-  commands_live_in: docs/proof-index.md   # referenced by anchor, not duplicated here (single source, no drift)
+  commands_live_in: tests/proof_index/attestation_queries.py   # docs/proof-index.md was removed 2026-10-13
 
 claims:
   - claim: 1
@@ -44,13 +44,13 @@ claims:
       note: "AUDIT_GAP-on-failure path pinned (mocked failing session); live-trail accumulation is the attestation half below."
     attestation:
       reason: "the live audit trail (core.action_results rows accumulating) requires a running instance + PostgreSQL."
-      command_ref: "docs/proof-index.md#audit-trail-query"
+      command_ref: "tests/proof_index/attestation_queries.py"
       expected: "recent rows with agent_id='ActionExecutor'; action_type matches a governed action id; trail accumulates to the present. Writer exclusivity over the shared table is NOT claimed (test_runner_infra / alignment_orchestrator also write)."
       status: attested
-      last_attested: 2026-07-19
+      last_attested: 2026-10-18
       attested_by: Dariusz Newecki
       result: pass
-      evidence_ref: "https://github.com/DariuszNewecki/CORE/issues/798#issuecomment-5015170990"
+      evidence_ref: "https://github.com/DariuszNewecki/CORE/issues/798#issuecomment-6246715975"
 
   - claim: 5
     summary: "a dangerous-impact action cannot auto-execute; it requires explicit approval"
@@ -62,13 +62,13 @@ claims:
     evidence_mode: attestation-only
     attestation:
       reason: "requires an executed proposal and live PostgreSQL consequence records (core.proposal_consequences JOIN core.autonomous_proposals)."
-      command_ref: "docs/proof-index.md#consequence-chain-query"
+      command_ref: "tests/proof_index/attestation_queries.py"
       expected: "rows joining proposal goal, approval authority, pre/post SHA, and changed files."
       status: attested
-      last_attested: 2026-07-19
+      last_attested: 2026-10-18
       attested_by: Dariusz Newecki
       result: pass
-      evidence_ref: "https://github.com/DariuszNewecki/CORE/issues/798#issuecomment-5015170990"
+      evidence_ref: "https://github.com/DariuszNewecki/CORE/issues/798#issuecomment-6246715975"
 
   - claim: 7
     summary: "governor-only routes carry the enforcement hook at the dependency layer, rule-enforced"
