@@ -34,6 +34,8 @@ SCRIPT = REPO / "infra" / "core-deploy"
 SHA = "a" * 40
 OLD = "b" * 40
 T0 = datetime.datetime(2026, 10, 11, 12, 0, tzinfo=datetime.UTC)
+PROMOTION = 1200
+GOVERNOR = "DariuszNewecki"
 
 
 def _load() -> ModuleType:
@@ -143,6 +145,18 @@ class FakeHost(cd.Host):
         self.law_setup_rc = 0
         self.setup_runs: list[list[str]] = []
         self.claude_source: dict[str, bytes] = {}  # infra/claude-hooks/<name>
+        # The promotion the governor approved (ADR-171).
+        self.promotion = {
+            "state": "open",
+            "base": {"ref": "live"},
+            "head": {"ref": "promote/2026-10-19", "sha": SHA},
+        }
+        self.reviews = [
+            {"user": {"login": GOVERNOR}, "state": "APPROVED", "commit_id": SHA}
+        ]
+        # The reviews from the second read on (after the build), when set.
+        self.reviews_later: list | None = None
+        self.review_reads = 0
         self.procs: list[str] = []  # /proc/*/maps and cmdline texts
         self.procs_error: Exception | None = None
 
@@ -267,6 +281,13 @@ class FakeHost(cd.Host):
     def http_json(self, url, timeout=15.0):
         if "check-runs" in url:
             return {"check_runs": self.check_runs}
+        if url.endswith(f"/pulls/{PROMOTION}/reviews?per_page=100"):
+            self.review_reads += 1
+            if self.reviews_later is not None and self.review_reads > 1:
+                return self.reviews_later
+            return self.reviews
+        if url.endswith(f"/pulls/{PROMOTION}"):
+            return self.promotion
         if url.endswith(":8765/health"):
             if not self.new_health:
                 raise OSError("connection refused")
@@ -335,10 +356,12 @@ def _deploy(root: Path, host: FakeHost, *extra: str) -> int:
     # No dev checkout: the host's own /opt/dev/CORE never takes part.
     dev = ["--dev-repo", str(root / "no-dev-checkout")]
     law = ["--law-venv", str(root / "law-venv")]
-    return cd.main(
-        [SHA, "--root", str(root), "--sbin", str(sbin), *dev, *law, *extra],
-        host=host,
-    )
+    conf = root / "pipeline.conf"
+    if not conf.exists():
+        conf.write_text(f"GOVERNOR_GITHUB={GOVERNOR}\n")
+    promotion = [] if "--promotion" in extra else ["--promotion", str(PROMOTION)]
+    argv = [SHA, "--root", str(root), "--sbin", str(sbin), *dev, *law, *extra]
+    return cd.main([*argv, *promotion, "--pipeline-conf", str(conf)], host=host)
 
 
 def _current(root: Path) -> str | None:
@@ -841,23 +864,124 @@ def test_switch_back_puts_the_law_back(root: Path) -> None:
     assert [r["commit"] for r in host.law_runs] == [SHA, OLD]
 
 
-TESTED = "e" * 40
+# -- the approved promotion (ADR-171) ------------------------------------------
 
 
-def test_tested_as_needs_the_same_tree_and_green_ci_on_the_tested_head(
-    root: Path,
+def test_the_ledger_records_the_promotion(root: Path) -> None:
+    _with_previous(root)
+    assert _deploy(root, FakeHost(root)) == 0
+    assert _ledger(root)["promotion"] == PROMOTION
+
+
+def test_a_deploy_without_a_promotion_is_refused_before_building(root: Path) -> None:
+    host = FakeHost(root)
+    sbin = root / "sbin"
+    sbin.mkdir()
+    argv = [SHA, "--root", str(root), "--sbin", str(sbin)]
+    argv += ["--dev-repo", str(root / "none"), "--law-venv", str(root / "lv")]
+    assert cd.main(argv, host=host) == cd.EX_REFUSED
+    assert not (root / "releases" / SHA).exists()
+    assert not host.commands("tar")
+
+
+def _refused(root: Path, host: FakeHost, capsys) -> str:
+    assert _deploy(root, host) == cd.EX_REFUSED
+    assert not (root / "releases" / SHA).exists()
+    assert not [c for c in host.calls if c[1][:1] == ["tar"]]
+    return capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "change, reason",
+    [
+        ({"state": "closed", "merged": False}, "closed without being merged"),
+        ({"base": {"ref": "main"}}, "does not go into live"),
+        ({"head": {"ref": "feature", "sha": SHA}}, "not promote/"),
+        ({"head": {"ref": "promote/x", "sha": OLD}}, "its head is"),
+    ],
+    ids=["closed", "other-base", "not-a-promote-branch", "other-head"],
+)
+def test_a_promotion_that_is_not_this_commit_is_refused(
+    root: Path, capsys, change: dict, reason: str
 ) -> None:
     host = FakeHost(root)
-    assert _deploy(root, host, "--tested-as", TESTED) == 0
-    trees = [c for c in host.commands("git") if c[-1].endswith("^{tree}")]
-    assert {c[-1] for c in trees} == {f"{SHA}^{{tree}}", f"{TESTED}^{{tree}}"}
+    host.promotion = {**host.promotion, **change}
+    assert reason in _refused(root, host, capsys)
 
 
-def test_tested_as_with_a_different_tree_is_refused(root: Path) -> None:
+@pytest.mark.parametrize(
+    "reviews",
+    [
+        [],
+        [{"user": {"login": "core-claude-bot"}, "state": "APPROVED", "commit_id": SHA}],
+        [{"user": {"login": GOVERNOR}, "state": "APPROVED", "commit_id": OLD}],
+        [
+            {"user": {"login": GOVERNOR}, "state": "APPROVED", "commit_id": SHA},
+            {"user": {"login": GOVERNOR}, "state": "DISMISSED", "commit_id": SHA},
+        ],
+    ],
+    ids=["none", "other-account", "older-commit", "dismissed"],
+)
+def test_only_the_governors_standing_approval_of_this_commit_deploys(
+    root: Path, capsys, reviews: list
+) -> None:
     host = FakeHost(root)
-    host.same_tree = False
-    assert _deploy(root, host, "--tested-as", TESTED) == 1
+    host.reviews = reviews
+    assert "has not approved" in _refused(root, host, capsys)
+
+
+def test_a_merged_promotion_can_be_deployed_again_on_a_rebuild(root: Path) -> None:
+    host = FakeHost(root)
+    host.promotion = {**host.promotion, "state": "closed", "merged": True}
+    assert _deploy(root, host) == 0
+
+
+def test_the_approval_is_read_again_right_before_anything_live_changes(
+    root: Path,
+) -> None:
+    _with_previous(root)
+    host = FakeHost(root)
+    assert _deploy(root, host) == 0
+    assert host.review_reads == 2  # before the build, and after it
+    law_before = [c for c in host.calls if "apply-merge" in c[1]]
+    assert law_before == []  # nothing changed live before the second read
+
+
+def test_an_approval_dismissed_during_the_build_stops_the_deploy(
+    root: Path, capsys
+) -> None:
+    _with_previous(root)
+    host = FakeHost(root)
+    host.law_diff = b"M\0.specs/DECISIONS.md\0"
+    host.reviews_later = [
+        *host.reviews,
+        {"user": {"login": GOVERNOR}, "state": "DISMISSED", "commit_id": SHA},
+    ]
+    assert _deploy(root, host) == cd.EX_REFUSED
+    assert "has not approved" in capsys.readouterr().err
+    assert _current(root) == OLD
     assert not (root / "releases" / SHA).exists()
+    assert host.law_runs == [] and "restart" not in host.systemctl_verbs()
+
+
+def test_no_governor_named_is_refused(root: Path, capsys) -> None:
+    (root / "pipeline.conf").write_text("GITHUB_REPO=x/y\n")
+    assert "GOVERNOR_GITHUB missing" in _refused(root, FakeHost(root), capsys)
+
+
+def test_the_live_branch_and_governor_can_come_from_deploy_conf(root: Path) -> None:
+    (root / "pipeline.conf").write_text("")
+    (root / "etc" / "deploy.conf").write_text(
+        f"GOVERNOR_GITHUB={GOVERNOR}\nLIVE_BRANCH=prod\n"
+    )
+    host = FakeHost(root)
+    host.promotion["base"] = {"ref": "prod"}
+    assert _deploy(root, host) == 0
+
+
+def test_the_tested_as_option_is_gone(root: Path) -> None:
+    with pytest.raises(SystemExit):
+        _deploy(root, FakeHost(root), "--tested-as", "e" * 40)
 
 
 # -- self-update and host setup (one-path flow) -----------------------------

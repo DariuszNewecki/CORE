@@ -5,7 +5,7 @@ core-deploy — make a released commit the code CORE runs (ADR-132 D10 · D2).
 
 Usage (run by the governor, as root):
 
-    sudo core-deploy <tag-or-sha> [--migrate] [--merged-by NAME]
+    sudo core-deploy <sha> --promotion <PR> [--migrate] [--merged-by NAME]
     sudo core-deploy --rollback
 
 Run by the governor, or by the post-merge runner (core-pipeline, as
@@ -31,7 +31,15 @@ archive, its console scripts equal pyproject's, and it carries no ``.pth``.
 Order (ADR-132 D10 · D2):
  1. resolve the ref to a SHA once; refuse unless it is on the upstream deploy
     branch (``DEPLOY_BRANCH`` in deploy.conf; develop when unset, main for
-    the one-path flow) and its CI check runs are all green;
+    the one-path flow), its CI check runs are all green, and it is the
+    approved promotion (ADR-171): ``--promotion <PR>`` names a pull request
+    into ``live``, open or merged (not closed unmerged: that is a rejection),
+    from a ``promote/`` branch whose head is exactly
+    this SHA and whose exact head the governor's GitHub account
+    (``GOVERNOR_GITHUB``) approved, with no later change request or
+    dismissal. Nothing else is deployed, so host setup (below) and merged
+    law (3a) run only at a promotion. The approval is read again after the
+    build, right before the first change to anything live;
  2. refuse if releases/<sha> exists;
  3. build (core-build) and install (root) into releases/<sha>/venv, with
     the pinned core-cli wheel (``CORE_CLI``, hash-checked, no deps), then
@@ -239,7 +247,8 @@ class Layout:
 class Options:
     migrate: bool = False
     merged_by: str | None = None
-    tested_as: str | None = None
+    promotion: int | None = None
+    pipeline_conf: Path = Path("/etc/core/pipeline.conf")
     dev_repo: Path = DEV_REPO
     law_venv: Path = Path("/opt/core-law/venv")
     readiness_port: int = 8765
@@ -619,26 +628,70 @@ class Deployer:
         )
         if on_develop.returncode != 0:
             raise Refused(f"{sha[:12]} is not on upstream {branch}")
-        tested = self.options.tested_as
-        if tested:
-            # A merge commit on main has no CI run of its own (CI runs on the
-            # pull request). It is accepted when its tree is byte-identical to
-            # the tested pull-request head, which branch protection keeps up
-            # to date with main.
-            if not re.fullmatch(r"[0-9a-f]{40}", tested):
-                raise Refused(f"--tested-as must be a full sha, not {tested!r}")
-            trees = {
-                self.git("rev-parse", "--verify", f"{c}^{{tree}}").decode().strip()
-                for c in (sha, tested)
-            }
-            if len(trees) != 1:
-                raise Refused(
-                    f"{sha[:12]} does not have the same tree as the tested {tested[:12]}"
-                )
-            self.require_green_ci(github_slug(upstream), tested)
-        else:
-            self.require_green_ci(github_slug(upstream), sha)
+        slug = github_slug(upstream)
+        self.require_green_ci(slug, sha)
+        self.require_promotion(slug, sha)
         return sha
+
+    def conf(self, key: str) -> str | None:
+        """*key* from deploy.conf, else from core-pipeline's pipeline.conf
+        (one place names the governor for both)."""
+        for path in (self.layout.deploy_conf, self.options.pipeline_conf):
+            try:
+                value = read_env_file(path).get(key)
+            except OSError:
+                value = None
+            if value:
+                return value
+        return None
+
+    def require_promotion(self, slug: str, sha: str) -> None:
+        """Refuse unless *sha* is the head of the promotion the governor
+        approved (ADR-171): the deploy needs no other approval and accepts
+        none."""
+        number = self.options.promotion
+        if number is None:
+            raise Refused(
+                "a deploy needs --promotion <PR>: the promotion into live the "
+                "governor approved (ADR-171)"
+            )
+        governor = self.conf("GOVERNOR_GITHUB")
+        if not governor:
+            raise Refused(
+                f"GOVERNOR_GITHUB missing from {self.layout.deploy_conf} and "
+                f"{self.options.pipeline_conf}"
+            )
+        live = self.conf("LIVE_BRANCH") or "live"
+        api = f"{self.options.github_api}/repos/{slug}/pulls/{number}"
+        try:
+            pull = self.host.http_json(api)
+            reviews = self.host.http_json(f"{api}/reviews?per_page=100")
+        except Exception as exc:  # network, rate limit, parse
+            raise Refused(f"promotion #{number} unavailable: {exc}") from exc
+        if not isinstance(pull, dict) or not isinstance(reviews, list):
+            raise Refused(f"promotion #{number}: unexpected answer from GitHub")
+        head = pull.get("head") or {}
+        problems = []
+        # Open while it waits for its deploy; merged once live moved to it
+        # (a rebuild redeploys it). Closed without a merge is a rejection.
+        if pull.get("state") != "open" and not pull.get("merged"):
+            problems.append("it was closed without being merged")
+        if (pull.get("base") or {}).get("ref") != live:
+            problems.append(f"it does not go into {live}")
+        if not str(head.get("ref") or "").startswith("promote/"):
+            problems.append("its branch is not promote/...")
+        if head.get("sha") != sha:
+            problems.append(f"its head is {str(head.get('sha'))[:12]}, not {sha[:12]}")
+        verdict = None
+        for review in reviews:  # chronological
+            if (review.get("user") or {}).get("login") != governor:
+                continue
+            if review.get("state") in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED"):
+                verdict = (review.get("state"), review.get("commit_id"))
+        if verdict != ("APPROVED", sha):
+            problems.append(f"{governor} has not approved {sha[:12]}")
+        if problems:
+            raise Refused(f"promotion #{number}: " + "; ".join(problems))
 
     def require_green_ci(self, slug: str, sha: str) -> None:
         url = f"{self.options.github_api}/repos/{slug}/commits/{sha}/check-runs?per_page=100"
@@ -1437,6 +1490,10 @@ class Deployer:
         wheel_sha = self.build_and_install(sha)
         law_changed = False
         try:
+            # The build takes minutes: the governor's approval of the exact
+            # head is read again right before the first step that changes
+            # anything live (law, then the schema, then the switch).
+            self.require_promotion(github_slug(upstream), sha)
             law_changed = self.sync_law(sha, previous, sha, "merge")
             migrated, backup = self.migrate(sha, units)
             if not self.readiness(sha):
@@ -1497,6 +1554,7 @@ class Deployer:
                 "backup": backup or None,
                 "law_applied": law_changed,
                 "merged_by": self.options.merged_by,
+                "promotion": self.options.promotion,
                 "units": units,
                 "at": switched_at.isoformat(),
                 "by": os.environ.get("SUDO_USER", "root"),
@@ -1571,8 +1629,15 @@ def main(argv: list[str] | None = None, host: Host | None = None) -> int:
         help="who merged the commit on GitHub (the post-merge runner passes it)",
     )
     parser.add_argument(
-        "--tested-as",
-        help="the pull-request head CI tested; the commit's tree must equal it",
+        "--promotion",
+        type=int,
+        help="the promotion pull request (into live) the governor approved",
+    )
+    parser.add_argument(
+        "--pipeline-conf",
+        type=Path,
+        default=Path("/etc/core/pipeline.conf"),
+        help=argparse.SUPPRESS,
     )
     parser.add_argument(
         "--root", type=Path, default=Path("/opt/core"), help=argparse.SUPPRESS
@@ -1603,7 +1668,8 @@ def main(argv: list[str] | None = None, host: Host | None = None) -> int:
         Options(
             migrate=args.migrate,
             merged_by=args.merged_by,
-            tested_as=args.tested_as,
+            promotion=args.promotion,
+            pipeline_conf=args.pipeline_conf,
             dev_repo=args.dev_repo,
             law_venv=args.law_venv,
         ),
