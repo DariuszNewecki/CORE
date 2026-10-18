@@ -9,6 +9,7 @@ targets are refused in dry-run and write mode alike.
 from __future__ import annotations
 
 import filecmp
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -70,6 +71,7 @@ def test_skeleton_is_minimal_and_neutral(parent: Path, core_root: Path) -> None:
         "README.md",
         "src/my_app/__init__.py",
         "tests/__init__.py",
+        ".gitignore",
         # #1043: CORE's GitHub Action, the authoritative verdict per PR.
         ".github/workflows/core-audit.yml",
     }
@@ -176,3 +178,27 @@ def test_target_inside_core_repo_is_refused(write: bool, core_root: Path) -> Non
     with pytest.raises(typer.Exit):
         write_new_project(plan, core_root, write=write)
     assert not (core_root / "sub").exists()
+
+
+# ID: 3a7f9d3c-e7ec-43e1-b043-df2a0e807f7d
+def test_python_caches_stay_out_of_git(parent: Path, core_root: Path) -> None:
+    """#1161 (proof run 3): after one pytest run, __pycache__/*.pyc showed up
+    as untracked files (change_verdict scope, `git add -A`)."""
+    plan = plan_new_project("demo", parent, core_root)
+    write_new_project(plan, core_root, write=True)
+    root = plan.target_root
+    for rel in ("src/demo/__pycache__/x.cpython-312.pyc", ".pytest_cache/v/x"):
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_bytes(b"cache")
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+
+    untracked = subprocess.run(
+        ["git", "ls-files", "--others", "--exclude-standard"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.split()
+
+    assert "src/demo/__init__.py" in untracked
+    assert not [p for p in untracked if "cache" in p], untracked
