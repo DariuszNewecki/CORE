@@ -8,6 +8,48 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.15.0] — 2026-10-19
+
+Minor release. One data migration (`20261016_1105_remove_test_worker_rows`, removes the 19 integration-test worker
+rows from a CORE database, #1105); no schema change. Fixes from the third 'Prove it' run, audit robustness, and
+the promotion flow for CORE installations.
+
+### Added
+
+- **`core-admin --version` (and `-V`) prints the installed core-runtime version (#1157).**
+- **`core-admin --help` separates what works from a plain pip install (#1158):** `project`, `code`, `law`,
+  `decisions` and `mcp` sit in their own panel; the operator groups that need PostgreSQL, Qdrant or the API sit in
+  a second one.
+- **`project new` writes a Python `.gitignore` (#1161)**, so caches stay out of `change_verdict`'s scope and out of
+  `git add -A`.
+- **`core-admin law verify` checks every custody ledger signature (#1112)**; the state sensor does the same each cycle.
+- **Findings per rule over 7 days** in `/v1/status/health` and the `core_status` tool (#1104).
+- **Promotions (ADR-171):** `core-admin promote propose` opens the promotion of main's commits for the governor's
+  approval; `core-deploy` deploys only an approved promotion.
+
+### Changed
+
+- **`project new --write` asks no confirmation (#1162):** it never overwrites (a non-empty target is refused), and
+  `--write` stays required.
+- **Assistant-facing MCP texts and CLI help cite no CORE-internal issue or ADR numbers (#1158, #1159).**
+- **The README's command blocks work as pasted (#1153, #1154, #1155):** a virtual environment before
+  `pip install`, the law committed before the audit, and absolute links that resolve on pypi.org.
+
+### Fixed
+
+- **The "law not committed" audit line says what to run (#1156):** outside a git work tree it now reads
+  "run git init, commit .intent/, then audit again."
+- **An offline audit, and `project adopt-pack`, leave no `var/` directories in the audited repository (#1052, #1160).**
+- **A crashing checker is a finding, never a silent pass (#1150);** rules with no check stop claiming to block.
+- **Every metadata-only action passes the metadata proof or is refused (#1151).**
+- **A non-text file is not evaluated by regex rules, rather than failing them (#1050).**
+- **Configuration:** an unreadable `.env` is skipped instead of crashing at import; an installed release never takes
+  its own venv as the repository; a failed operational-config load is logged once.
+- **Security:** candidate code's audit runs only in the sandbox; `assisted.apply_diff` needs `--write` and an
+  approved proposal.
+- **Operators:** the API comes back by itself after a reboot; deploys prune old releases after a verified switch
+  and keep core-law's venv on the deployed wheel; a fresh host can be set up in one documented order.
+
 ## [2.14.5] — 2026-10-15
 
 Patch release. No database migrations. Fixes from the second 'Prove it' run.
@@ -1236,7 +1278,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.14.5...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.15.0...HEAD
+[2.15.0]: https://github.com/DariuszNewecki/CORE/compare/v2.14.5...v2.15.0
 [2.14.5]: https://github.com/DariuszNewecki/CORE/compare/v2.14.4...v2.14.5
 [2.14.4]: https://github.com/DariuszNewecki/CORE/compare/v2.14.3...v2.14.4
 [2.14.3]: https://github.com/DariuszNewecki/CORE/compare/v2.14.2...v2.14.3
