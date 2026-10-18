@@ -196,11 +196,10 @@ async def adopt_pack_command(
     console.print(tbl)
 
     console.print()
-    console.print(f"  Would write: {rules_file}")
-    console.print(f"  Would write: {mappings_file}")
-    console.print(f"  Would update: {tree_yaml}")
-
     if not write:
+        console.print(f"  Would write: {rules_file}")
+        console.print(f"  Would write: {mappings_file}")
+        console.print(f"  Would update: {tree_yaml}")
         console.print("\n[dim]Run with [bold]--write[/bold] to apply.[/dim]")
         return
 
@@ -259,8 +258,11 @@ async def adopt_pack_command(
         deliver_external_intent_files(target_dir, core_root, files, outside)
     finally:
         await outside.flush()
+    # #1175: report what was written, in the past tense, after the write.
+    console.print(f"  Wrote: {rules_file}")
+    console.print(f"  Wrote: {mappings_file}")
     if tree_update is not None:
-        console.print(f"  Updated {tree_yaml.name}: packs: section")
+        console.print(f"  Updated: {tree_yaml} (packs: section)")
 
     console.print(
         "\n[bold green]Pack applied.[/bold green] Commit .intent/ "
