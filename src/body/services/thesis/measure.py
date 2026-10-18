@@ -7,7 +7,12 @@ GitHub's last month of writes to main and added to the ones already stored
 (every breach since the one-path cutover, 2026-10-12, is kept for good and
 never leaves the count). A write is verified only on the runner's criterion
 (infra/core-pipeline): a pull request merged by the governor's GitHub
-account, or whose exact last commit that account approved, with green CI. Sources: GitHub's
+account, or whose exact last commit that account approved, with green CI.
+From the first deploy recorded with its promotion (ADR-171, the promotion
+cutover: that deploy's exact moment, not its day) main is integration: its writes are no longer counted, and the
+writes that count are the deploys, each verified only when it records a
+promotion into ``live`` whose head is the deployed commit and whose exact
+head the governor approved. Sources: GitHub's
 activity API and pull requests, git log of the merge branch, the blackboard
 (read-only transaction), Claude Code's transcripts for this project, and the
 deploy ledger with the post-merge runner's logs. A
@@ -38,6 +43,7 @@ WASTE_WINDOW = timedelta(days=14)
 GREEN = "SUCCESS"
 AI_AUTHOR = re.compile(r"claude|^core:", re.IGNORECASE)
 RUNNER = "core-runner"
+LIVE_BRANCH = "live"
 SHELL_PROMPT = re.compile(r"(?:^|\s)[\w.-]+@[\w.-]+:[^\s$#]*[$#] \S")
 RUNNER_ENTRY = re.compile(r"^\[([^\]]+)\] (.*?)(?=^\[[^\]]+\] |\Z)", re.M | re.S)
 EXIT_LINE = re.compile(r"^\(exit (-?\d+)\)$", re.MULTILINE)
@@ -257,6 +263,108 @@ def false_ci_breaches(
             }
         )
     return corrections
+
+
+def _ledger(path: Path) -> list[dict[str, Any]]:
+    entries = []
+    for line in path.read_text(errors="replace").splitlines():
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(entry, dict):
+            entries.append(entry)
+    return entries
+
+
+def _when(value: Any) -> datetime | None:
+    """An ISO timestamp (``Z`` or an offset) as an aware datetime; None when
+    it is missing or not one."""
+    try:
+        moment = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return moment if moment.tzinfo else moment.replace(tzinfo=UTC)
+
+
+# ID: 8d2b25a4-5ddc-4979-9c89-49c6e7edb7bf
+def promotion_cutover(ledger: Path) -> datetime | None:
+    """The moment of the first deploy recorded with its promotion (ADR-171);
+    None before any. Raises OSError when the ledger cannot be read."""
+    moments = [
+        moment
+        for e in _ledger(ledger)
+        if e.get("action") == "deploy" and e.get("promotion") is not None
+        if (moment := _when(e.get("at"))) is not None
+    ]
+    return min(moments) if moments else None
+
+
+# ID: 995031bf-2a16-4413-9f73-875936d1cc07
+def promotion_verdict(
+    entry: dict[str, Any],
+    pull: dict[str, Any] | None,
+    reviews: list[dict[str, Any]],
+    governor: str,
+) -> str | None:
+    """Why the deploy *entry* is unverified, or None when it ran an approved
+    promotion: a pull request into ``live`` from a ``promote/`` branch whose
+    head is the deployed commit and whose exact head the governor approved
+    (core-deploy's own check). *pull* and *reviews* are GitHub's REST answers."""
+    sha = str(entry.get("sha", ""))
+    number = entry.get("promotion")
+    if number is None:
+        return "deployed without a promotion"
+    if pull is None:
+        return f"promotion #{number} not found"
+    head = pull.get("head") or {}
+    if (pull.get("base") or {}).get("ref") != LIVE_BRANCH:
+        return f"promotion #{number} does not go into {LIVE_BRANCH}"
+    if not str(head.get("ref") or "").startswith("promote/"):
+        return f"promotion #{number} is not from a promote/ branch"
+    if head.get("sha") != sha:
+        return f"promotion #{number}'s head is {str(head.get('sha'))[:12]}"
+    if pull.get("state") != "open" and not pull.get("merged"):
+        return f"promotion #{number} was closed without being merged"
+    verdict = None
+    for review in reviews:  # chronological
+        if (review.get("user") or {}).get("login") != governor:
+            continue
+        if review.get("state") in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED"):
+            verdict = (review.get("state"), review.get("commit_id"))
+    if verdict != ("APPROVED", sha):
+        return f"promotion #{number}: {governor} did not approve {sha[:12]}"
+    return None
+
+
+# ID: 83f31623-af9a-4786-956d-7323e152cd07
+async def unverified_deploys(
+    gh: GitHub, ledger: Path, since: datetime, governor: str
+) -> tuple[list[dict[str, str]], int]:
+    """(deploys at or after *since* that ran no approved promotion, as {sha,
+    reason}; how many deploys were judged). A rollback deploys nothing new
+    and is not judged."""
+    bad: list[dict[str, str]] = []
+    deploys = [
+        e
+        for e in _ledger(ledger)
+        if e.get("action") == "deploy"
+        and (moment := _when(e.get("at"))) is not None
+        and moment >= since
+    ]
+    for entry in deploys:
+        number = entry.get("promotion")
+        pull, reviews = None, []
+        if number is not None:
+            pull = await gh.get_or_none(f"pulls/{int(number)}")
+            if pull is not None:
+                reviews = await gh.get_pages(
+                    f"pulls/{int(number)}/reviews?per_page=100"
+                )
+        why = promotion_verdict(entry, pull, reviews, governor)
+        if why:
+            bad.append({"sha": str(entry.get("sha", "")), "reason": f"deploy: {why}"})
+    return bad, len(deploys)
 
 
 # ID: 562ec047-1701-4c8e-9ebc-d175f6e9ee9b
@@ -554,8 +662,22 @@ async def measure(
 
     unverified: int | None = None
     writes_14: int | None = None
+    cutover: datetime | None = None
+    if deploys is not None:
+        try:
+            cutover = promotion_cutover(deploys[0])
+        except OSError:
+            pass  # waste names the unreadable deploy records
     try:
         writes = await _main_writes(gh, max(long_since, CUTOVER))
+        if cutover is not None:
+            # From the promotion cutover main is integration (ADR-171);
+            # a write before that moment still counts.
+            writes = [
+                w
+                for w in writes
+                if (moment := _when(w.get("timestamp"))) is None or moment < cutover
+            ]
         if not governor:
             unavailable.append(
                 "governor's GitHub login: GOVERNOR_GITHUB not readable "
@@ -564,6 +686,13 @@ async def measure(
         else:
             prs = await _merged_prs(gh, max(long_since, CUTOVER))
             bad, pending = count_unverified(writes, prs, governor)
+            judged = 0
+            if deploys is not None and cutover is not None:
+                start = datetime.combine(long_since, time(), tzinfo=UTC)
+                bad_deploys, judged = await unverified_deploys(
+                    gh, deploys[0], max(start, cutover), governor
+                )
+                bad += bad_deploys
             corrections = false_ci_breaches(kept, prs, governor, day)
             false_shas = {c["sha"] for c in corrections}
             kept = [b for b in kept if b["sha"] not in false_shas]
@@ -581,6 +710,8 @@ async def measure(
                 "new": len(new),
                 "ci_pending": pending,
                 "corrected": len(corrections),
+                "promotion_cutover": cutover.isoformat() if cutover else None,
+                "deploys_judged": judged,
             }
         writes_14 = len(await _main_writes(gh, waste_since))
     except GitHubUnavailable as exc:

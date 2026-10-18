@@ -4,7 +4,10 @@
 Read-only. The same code the daily thesis sensor runs
 (body.services.thesis.measure), pointed at the development checkout: git log
 of origin/main, the GitHub token of the logged-in `gh`, the blackboard
-through the checkout's .env, and Claude Code's transcripts for this project.
+through the checkout's .env, Claude Code's transcripts for this project, and
+the deploy ledger with the runner's logs: from the first deploy recorded with
+its promotion (ADR-171) the unverified writes are the deploys that ran no
+governor-approved promotion, not writes to main.
 The thesis and its rules: .specs/DECISIONS.md, "Thesis and baselines
 (2026-10-13)". A source that cannot be read is reported, never counted as
 zero.
@@ -24,6 +27,7 @@ from pathlib import Path
 
 import httpx
 
+from body.infrastructure.thesis_config import thesis_config
 from body.services.thesis.github import GitHub
 from body.services.thesis.measure import measure
 from shared.infrastructure.git_service import GitService
@@ -45,6 +49,7 @@ async def _measure(day: dt.date):
     from shared.infrastructure.database.session_manager import get_session
 
     ServiceRegistry.prime(get_session)
+    config = thesis_config()
     async with httpx.AsyncClient() as client:
         return await measure(
             day,
@@ -52,6 +57,8 @@ async def _measure(day: dt.date):
             GitService(ROOT),
             "origin/main",
             TRANSCRIPTS,
+            deploys=(config.deploy_ledger, config.pipeline_logs),
+            governor=config.governor,
         )
 
 
