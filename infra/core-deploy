@@ -73,6 +73,12 @@ Order (ADR-132 D10 · D2):
     have to write still differs, when it is not behind the commit, or when
     git refuses (uncommitted work in the way). That is reported and never
     undoes the deploy;
+ 8b. prune: delete old releases, keeping current, the release its ledger
+    line names as previous, the three newest by build time, the one
+    core-law's venv was installed from (its core-release.json), and any a
+    running process uses (/proc/*/maps, cmdline). Only 40-hex directories
+    directly under releases/ are deleted, never through a symlink, under
+    deploy.lock. An error is reported and never undoes the deploy;
  9. append a ledger line.
 
 Host setup (governor 2026-10-15: a merge is the only approval). A merge that
@@ -166,6 +172,9 @@ GOVERNED_PATHSPECS = (
     ":(exclude).intent/custody",
 )
 READINESS_UNIT = "core-deploy-readiness"
+# Releases kept by build time besides those in use (step 8b).
+KEEP_NEWEST = 3
+RELEASE_NAME = re.compile(r"[0-9a-f]{40}")
 GREEN = {"success", "skipped", "neutral"}
 
 EX_REFUSED = 1
@@ -307,6 +316,22 @@ class Host:
             targets += list(path.rglob("*"))
         for target in targets:
             shutil.chown(target, user, user)
+
+    def process_texts(self) -> list[str]:
+        """Every running process's /proc maps and cmdline, as text. A
+        process that exits while being read is skipped; an unreadable /proc
+        raises, so nothing is pruned blind."""
+        texts = []
+        for proc in Path("/proc").iterdir():
+            if not proc.name.isdigit():
+                continue
+            for name in ("maps", "cmdline"):
+                try:
+                    data = (proc / name).read_bytes()
+                except (FileNotFoundError, ProcessLookupError):
+                    continue
+                texts.append(data.replace(b"\0", b" ").decode(errors="replace"))
+        return texts
 
 
 # ---------------------------------------------------------------------------
@@ -1335,6 +1360,60 @@ class Deployer:
         self.say(f"dev checkout moved {head[:12]} -> {sha[:12]}")
         return f"moved {head[:12]} -> {sha[:12]}"
 
+    # -- step 8b: prune ------------------------------------------------------
+
+    def prune_releases(self, current: str, previous: str | None) -> list[str] | str:
+        """Delete releases nothing needs (step 8b). Returns the deleted
+        shas, for the ledger, or what failed; never raises."""
+        try:
+            return self._prune_releases(current, previous)
+        except Exception as exc:  # a prune never fails the deploy
+            self.say(f"warning: old releases not pruned: {exc}")
+            return f"failed: {exc}"
+
+    def _prune_releases(self, current: str, previous: str | None) -> list[str]:
+        releases = self.layout.releases
+        built: dict[str, float] = {}
+        with os.scandir(releases) as entries:
+            for entry in entries:
+                if entry.is_symlink() or not RELEASE_NAME.fullmatch(entry.name):
+                    continue
+                if not entry.is_dir(follow_symlinks=False):
+                    continue
+                stamp = Path(entry.path) / "venv" / "core-release.json"
+                try:
+                    built[entry.name] = stamp.lstat().st_mtime
+                except FileNotFoundError:
+                    built[entry.name] = entry.stat(follow_symlinks=False).st_mtime
+        keep = {current, previous}
+        keep.update(sorted(built, key=built.__getitem__, reverse=True)[:KEEP_NEWEST])
+        keep.add(self.law_release())
+        roots = {re.escape(str(releases)), re.escape(os.path.realpath(releases))}
+        in_use = re.compile(rf"(?:{'|'.join(sorted(roots))})/([0-9a-f]{{40}})")
+        for text in self.host.process_texts():
+            keep.update(in_use.findall(text))
+        deleted = []
+        for sha in sorted(set(built) - keep):
+            try:
+                shutil.rmtree(releases / sha)
+            except OSError as exc:
+                self.say(f"warning: release {sha[:12]} not pruned: {exc}")
+                continue
+            deleted.append(sha)
+        if deleted:
+            self.say(
+                f"pruned {len(deleted)} old release(s), kept {len(built) - len(deleted)}"
+            )
+        return deleted
+
+    def law_release(self) -> str | None:
+        """The release core-law's venv was installed from; None when it has
+        none. An unreadable record raises: core-law's release is unknown."""
+        record = self.options.law_venv / "core-release.json"
+        if not record.exists():
+            return None
+        return str(json.loads(record.read_text(encoding="utf-8"))["sha"])
+
     # -- entry points ---------------------------------------------------------
 
     def deploy(self, ref: str) -> int:
@@ -1400,6 +1479,7 @@ class Deployer:
         law_setup = self.apply_law_setup(setup_changed, wheel_sha)
         claude_md = self.update_claude_md(sha)
         dev_checkout = self.follow_dev_checkout(sha)
+        pruned = self.prune_releases(sha, previous)
         self.ledger(
             {
                 "action": "deploy",
@@ -1410,6 +1490,7 @@ class Deployer:
                 "law_setup": law_setup,
                 "claude_md_updated": claude_md,
                 "dev_checkout": dev_checkout,
+                "pruned": pruned,
                 "wheel_sha256": wheel_sha,
                 "previous": previous,
                 "migrations_applied": migrated,

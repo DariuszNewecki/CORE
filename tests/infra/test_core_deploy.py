@@ -17,6 +17,7 @@ import importlib.machinery
 import importlib.util
 import io
 import json
+import os
 import re
 import subprocess
 import sys
@@ -142,6 +143,8 @@ class FakeHost(cd.Host):
         self.law_setup_rc = 0
         self.setup_runs: list[list[str]] = []
         self.claude_source: dict[str, bytes] = {}  # infra/claude-hooks/<name>
+        self.procs: list[str] = []  # /proc/*/maps and cmdline texts
+        self.procs_error: Exception | None = None
 
     # -- processes --------------------------------------------------------
     def run(self, cmd, *, user=None, input=None, check=True):
@@ -296,6 +299,11 @@ class FakeHost(cd.Host):
 
     def chown(self, path, user, recursive=False):
         self.calls.append((None, ["chown-py", user, str(path)]))
+
+    def process_texts(self):
+        if self.procs_error:
+            raise self.procs_error
+        return list(self.procs)
 
     # -- queries ----------------------------------------------------------------
     def commands(self, first: str) -> list[list[str]]:
@@ -1261,3 +1269,108 @@ def test_the_dev_checkout_is_not_moved_back_or_over_local_work(
 
 def test_without_a_dev_checkout_nothing_is_done(root: Path) -> None:
     assert _deployer(root, root / "absent").follow_dev_checkout(SHA) is None
+
+
+# -- step 8b: prune ---------------------------------------------------------
+
+
+def _release(root: Path, n: int, age_hours: int) -> str:
+    """An installed release built *age_hours* ago; returns its sha."""
+    sha = f"{n:x}" * 40 if n < 16 else hashlib.sha1(str(n).encode()).hexdigest()
+    stamp = root / "releases" / sha / "venv" / "core-release.json"
+    stamp.parent.mkdir(parents=True)
+    stamp.write_text(json.dumps({"sha": sha}) + "\n")
+    built = T0.timestamp() - age_hours * 3600
+    os.utime(stamp, (built, built))
+    return sha
+
+
+def _releases(root: Path) -> set[str]:
+    return {p.name for p in (root / "releases").iterdir()}
+
+
+def _old_releases(root: Path) -> list[str]:
+    """Current OLD (the oldest build) and five more, newest first."""
+    _with_previous(root)
+    os.utime(root / "releases" / OLD, (0, 0))
+    return [_release(root, n, age) for n, age in zip(range(1, 6), (1, 2, 3, 4, 5))]
+
+
+def test_a_deploy_prunes_all_but_current_previous_and_the_three_newest(
+    root: Path,
+) -> None:
+    others = _old_releases(root)
+    host = FakeHost(root)
+    assert _deploy(root, host) == 0
+    # The new release is the newest build, so two more of the newest stay.
+    assert _releases(root) == {SHA, OLD, *others[:2]}
+    assert sorted(_ledger(root)["pruned"]) == sorted(others[2:])
+
+
+def test_prune_keeps_the_release_core_law_runs(root: Path) -> None:
+    others = _old_releases(root)
+    law = root / "law-venv"
+    law.mkdir()
+    (law / "core-release.json").write_text(json.dumps({"sha": others[4]}))
+    assert _deploy(root, FakeHost(root)) == 0
+    assert _releases(root) == {SHA, OLD, *others[:2], others[4]}
+
+
+@pytest.mark.parametrize("where", ["maps", "cmdline"])
+def test_prune_keeps_a_release_a_running_process_uses(root: Path, where: str) -> None:
+    others = _old_releases(root)
+    host = FakeHost(root)
+    path = f"{root}/releases/{others[3]}/venv"
+    host.procs = [
+        f"7f00-7f01 r-xp 0 08:01 42 {path}/lib/python3.12/site-packages/x.so\n"
+        if where == "maps"
+        else f"{path}/bin/python -I -m cli.admin_cli daemon start"
+    ]
+    assert _deploy(root, host) == 0
+    assert _releases(root) == {SHA, OLD, *others[:2], others[3]}
+
+
+def test_prune_never_touches_symlinks_or_other_names(
+    root: Path, tmp_path: Path
+) -> None:
+    _old_releases(root)
+    outside = tmp_path / "outside"
+    (outside / "venv").mkdir(parents=True)
+    linked = "c" * 40
+    (root / "releases" / linked).symlink_to(outside)
+    (root / "releases" / "scratch").mkdir()
+    (root / "releases" / ("d" * 39)).mkdir()
+    assert _deploy(root, FakeHost(root)) == 0
+    assert {linked, "scratch", "d" * 39} <= _releases(root)
+    assert (outside / "venv").is_dir()
+
+
+def test_a_prune_error_is_logged_and_never_fails_the_deploy(
+    root: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    others = _old_releases(root)
+    host = FakeHost(root)
+    host.procs_error = PermissionError("/proc/1/maps")
+    assert _deploy(root, host) == 0
+    assert _current(root) == SHA
+    # Processes unknown: nothing is deleted.
+    assert _releases(root) == {SHA, OLD, *others}
+    assert _ledger(root)["pruned"].startswith("failed: ")
+    assert "old releases not pruned" in capsys.readouterr().out
+
+
+def test_an_unreadable_core_law_record_prunes_nothing(root: Path) -> None:
+    others = _old_releases(root)
+    law = root / "law-venv"
+    law.mkdir()
+    (law / "core-release.json").write_text("not json")
+    assert _deploy(root, FakeHost(root)) == 0
+    assert _releases(root) == {SHA, OLD, *others}
+
+
+def test_a_switched_back_deploy_prunes_nothing(root: Path) -> None:
+    others = _old_releases(root)
+    host = FakeHost(root)
+    host.inactive = {"core-api.service"}
+    assert _deploy(root, host) == cd.EX_REFUSED
+    assert _releases(root) == {OLD, *others}
