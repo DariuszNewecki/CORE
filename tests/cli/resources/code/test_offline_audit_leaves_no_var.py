@@ -13,7 +13,11 @@ import sys
 from pathlib import Path
 
 
-SRC = Path(__file__).resolve().parents[4] / "src"
+# CORE_TEST_SRC lets the same test be pointed at another checkout's src/
+# (e.g. a release tag) to show it fails there.
+SRC = Path(
+    os.environ.get("CORE_TEST_SRC") or Path(__file__).resolve().parents[4] / "src"
+)
 
 
 def _core_admin(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -59,4 +63,21 @@ def test_offline_audit_creates_no_var_directory(tmp_path: Path) -> None:
     done = _core_admin(repo, "code", "audit", "--offline", "--format", "json")
 
     assert '"verdict": "PASS"' in done.stdout, done.stderr[-2000:]
+    assert not (repo / "var").exists()
+
+
+def test_adopt_pack_in_a_new_project_writes_only_intent(tmp_path: Path) -> None:
+    """#1160 (proof run 3, 2.14.5): `project adopt-pack` in a fresh `project
+    new` project left empty var/logs and var/workflows; adopting a pack writes
+    only under .intent/."""
+    assert _core_admin(tmp_path, "project", "new", "demo", "--write").returncode == 0
+    repo = tmp_path / "demo"
+    assert not (repo / "var").exists()
+
+    adopted = _core_admin(
+        repo, "project", "adopt-pack", "core/starter-python", "--write"
+    )
+
+    assert adopted.returncode == 0, adopted.stderr[-2000:]
+    assert (repo / ".intent").is_dir()
     assert not (repo / "var").exists()
