@@ -82,6 +82,7 @@ from cli.resources.law import app as law_app
 from cli.resources.llm_resources import app as llm_resources_app
 from cli.resources.mcp import app as mcp_app
 from cli.resources.project import app as project_app
+from cli.resources.promote import app as promote_app
 from cli.resources.runtime import app as runtime_app
 from cli.resources.secrets import app as secrets_app
 from cli.resources.symbols import app as symbols_app
@@ -125,6 +126,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(demo_app, name="demo")
     app_instance.add_typer(docs_app, name="docs")
     app_instance.add_typer(law_app, name="law")
+    app_instance.add_typer(promote_app, name="promote")
     app_instance.add_typer(interactive_test_app, name="interactive-test")
     app_instance.add_typer(llm_resources_app, name="llm-resources")
     app_instance.add_typer(mcp_app, name="mcp")

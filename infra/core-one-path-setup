@@ -29,6 +29,10 @@
 #  7. removes /etc/sudoers.d/core-law: the merge is the only approval of law, and the governor
 #     (core-darek) holds no sudo (ADR-068 amendment 2026-10-15);
 #  8. core-pipeline.service + core-pipeline.timer (every 2 minutes), enabled and started;
+#  8b. core-promote-propose.service + .timer (daily 06:00): CORE proposes main's newest green
+#     commit for promotion to live (ADR-171; `core-admin promote propose`), as core with the
+#     services' environment and the runner's GitHub token as a systemd credential; skipped
+#     while /etc/core/pipeline-github-token is missing or empty;
 #  9. probes: what core-runner may run with sudo, and that it cannot read /opt/core/etc.
 set -euo pipefail
 
@@ -201,6 +205,41 @@ WantedBy=timers.target
 EOF
 do_ systemctl daemon-reload
 do_ systemctl enable --now core-pipeline.timer
+
+say "8b. core-promote-propose timer"
+write_file /etc/systemd/system/core-promote-propose.service root root 0644 <<'EOF'
+# ADR-171 promotion flow. Installed by infra/core-one-path-setup.
+[Unit]
+Description=CORE promotion proposal: main's newest green commit, for the governor to approve
+After=network-online.target
+# No machine identity yet (governor 2026-10-18): without the token the unit is
+# skipped, not failed; promotions are proposed by hand until then.
+ConditionFileNotEmpty=/etc/core/pipeline-github-token
+
+[Service]
+Type=oneshot
+User=core
+Group=core
+EnvironmentFile=/opt/core/etc/core.env
+WorkingDirectory=/opt/core/run
+LoadCredential=github-token:/etc/core/pipeline-github-token
+ExecStart=/opt/core/current/venv/bin/core-admin promote propose
+UMask=0022
+SyslogIdentifier=core-promote-propose
+EOF
+write_file /etc/systemd/system/core-promote-propose.timer root root 0644 <<'EOF'
+[Unit]
+Description=CORE promotion proposal, daily
+
+[Timer]
+OnCalendar=*-*-* 06:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+do_ systemctl daemon-reload
+do_ systemctl enable --now core-promote-propose.timer
 
 say "9. probes"
 if [[ $DRY -eq 1 ]]; then
