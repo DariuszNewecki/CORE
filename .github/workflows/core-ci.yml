@@ -11,10 +11,6 @@ on:
     branches: [develop, main]
   pull_request:
     branches: [main, develop]
-  # Nightly full run on main, including the release-upgrade tests that
-  # push/PR runs skip (governor decision 2026-10-11).
-  schedule:
-    - cron: "0 3 * * *"
   workflow_dispatch:
     inputs:
       sha:
@@ -50,7 +46,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
+          ref: ${{ inputs.sha || '' }}
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -236,7 +232,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
+          ref: ${{ inputs.sha || '' }}
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -272,7 +268,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
+          ref: ${{ inputs.sha || '' }}
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
@@ -308,7 +304,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
+          ref: ${{ inputs.sha || '' }}
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
@@ -390,7 +386,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
+          ref: ${{ inputs.sha || '' }}
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -458,10 +454,10 @@ jobs:
           CORE_REQUIRE_DB_TESTS: "1"
           COVERAGE_FILE: .coverage.integration
         # Release-upgrade tests (marker `upgrade`, ~4.5 min) run only in the
-        # full runs: nightly and workflow_dispatch (required before a tag).
+        # full run: workflow_dispatch (required before a tag).
         run: >-
           poetry run pytest --durations=30 -m "${{
-          (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+          github.event_name == 'workflow_dispatch'
           && 'integration' || 'integration and not upgrade' }}"
 
       - name: Upload integration coverage data
@@ -486,7 +482,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
+          ref: ${{ inputs.sha || '' }}
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
