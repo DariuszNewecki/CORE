@@ -19,9 +19,9 @@ import typer
 from rich.console import Console
 
 from body.services.promotion import (
-    LIVE_BRANCH,
     GitHubUnavailable,
     build_proposal,
+    live_commit,
     publish,
 )
 from body.services.thesis.github import GitHub
@@ -82,14 +82,17 @@ async def propose_cmd(
     async with httpx.AsyncClient() as client:
         gh = GitHub(repo, token, client)
         try:
-            ref = await gh.get_or_none(f"git/ref/heads/{LIVE_BRANCH}")
-            live = ref["object"]["sha"] if ref else (pipeline or {}).get("live")
+            live, note = await live_commit(gh, pipeline)
             if not live:
                 console.print(
-                    "[red]No live commit known (no live branch, no status).[/red]"
+                    "[red]No live commit known (no status, no live branch).[/red]"
                 )
                 raise typer.Exit(1)
-            proposal = await build_proposal(gh, str(live), pipeline, urgent=urgent)
+            if note:
+                console.print(f"[yellow]{note}[/yellow]")
+            proposal = await build_proposal(
+                gh, live, pipeline, urgent=urgent, note=note
+            )
             if proposal is None:
                 console.print(
                     f"Nothing to promote: main has no new green commit since {str(live)[:12]}."

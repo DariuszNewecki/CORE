@@ -11,6 +11,7 @@ import pytest
 from body.services.promotion import (
     PROMOTE_BRANCH,
     build_proposal,
+    live_commit,
     publish,
     risk_class,
 )
@@ -46,6 +47,7 @@ class _GitHub:
             13: ["infra/scripts/migrations/20261019_x.sql", "README.md"],
         }
         self.branch: str | None = None
+        self.live_ref: str | None = None
         self.open_pulls: list[dict] = []
         self.calls: list[tuple[str, str, dict | None]] = []
 
@@ -72,6 +74,10 @@ class _GitHub:
             )
         if path.startswith("pulls/") and request.method == "GET" and path[6:].isdigit():
             return httpx.Response(200, json={"title": f"PR {path[6:]}"})
+        if path == "git/ref/heads/live":
+            if self.live_ref is None:
+                return httpx.Response(404)
+            return httpx.Response(200, json={"object": {"sha": self.live_ref}})
         if path == f"git/ref/heads/{PROMOTE_BRANCH}":
             if self.branch is None:
                 return httpx.Response(404)
@@ -214,3 +220,29 @@ async def test_publish_with_the_branch_already_there_only_updates_the_text() -> 
     fake.calls.clear()
     await _publish(fake, proposal)
     assert [c[:2] for c in fake.writes()] == [("PATCH", "pulls/98")]
+
+
+async def _live(fake: _GitHub, pipeline):
+    async with httpx.AsyncClient(transport=httpx.MockTransport(fake.handler)) as c:
+        return await live_commit(GitHub("o/r", "t", c), pipeline)
+
+
+async def test_the_proposal_starts_from_the_deployed_commit_not_the_branch() -> None:
+    # The live branch does not move without the runner's token: it lags.
+    fake = _GitHub()
+    fake.live_ref = "b" * 40
+    assert await _live(fake, {"live": LIVE}) == (LIVE, None)
+    assert not [c for c in fake.calls if "git/ref/heads/live" in c[1]]
+
+
+async def test_without_the_status_the_branch_is_used_and_the_summary_says_so() -> None:
+    fake = _GitHub()
+    fake.live_ref = LIVE
+    live, note = await _live(fake, None)
+    assert live == LIVE and "could not be read" in note
+    proposal = await _build(fake, note=note)
+    assert "**Note:** core-pipeline's status could not be read" in proposal.body()
+
+
+async def test_no_status_and_no_branch_knows_no_live_commit() -> None:
+    assert await _live(_GitHub(), None) == (None, None)

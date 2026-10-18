@@ -81,6 +81,7 @@ class Proposal:
     changes: list[Change]
     urgent: bool = False
     skipped: list[str] = field(default_factory=list)  # newer, not green
+    note: str | None = None  # how the live commit was found, when not certain
 
     # ID: 25857f55-4040-4548-836b-dedb63759435
     def risks(self) -> dict[str, list[tuple[Change, str]]]:
@@ -103,6 +104,10 @@ class Proposal:
         lines = [
             f"Makes main at `{short}` live (now `{live}`): "
             f"{len(self.changes)} merged pull request(s).",
+        ]
+        if self.note:
+            lines += ["", f"**Note:** {self.note}"]
+        lines += [
             "",
             "## Look at these first",
         ]
@@ -169,12 +174,35 @@ def _sandbox_line(pipeline: dict[str, Any] | None) -> str:
     return f"{rule}. No earlier result"
 
 
+# ID: 8193c2dd-f239-4912-9e8c-00536d3f71eb
+async def live_commit(
+    gh: GitHub, pipeline: dict[str, Any] | None
+) -> tuple[str | None, str | None]:
+    """(the commit a promotion starts from, a note for the summary or None).
+
+    The deployed commit, from core-pipeline's status: the ``live`` branch
+    does not move without the runner's token. The branch is the fallback
+    only when the status is unreadable, and the summary then says so."""
+    deployed = (pipeline or {}).get("live")
+    if deployed:
+        return str(deployed), None
+    ref = await gh.get_or_none(f"git/ref/heads/{LIVE_BRANCH}")
+    if ref is None:
+        return None, None
+    return str(ref["object"]["sha"]), (
+        "core-pipeline's status could not be read, so this proposal starts "
+        f"from the `{LIVE_BRANCH}` branch, which can lag the deployed commit; "
+        "it may list changes that are already live."
+    )
+
+
 # ID: b5035d18-53a2-439a-98b5-284af5729f2f
 async def build_proposal(
     gh: GitHub,
     live: str,
     pipeline: dict[str, Any] | None = None,
     urgent: bool = False,
+    note: str | None = None,
 ) -> Proposal | None:
     """The proposal for main's newest green first-parent commit since *live*;
     None when main has nothing new, or nothing new is green."""
@@ -218,6 +246,7 @@ async def build_proposal(
         changes=changes,
         urgent=urgent,
         skipped=skipped,
+        note=note,
     )
 
 
@@ -260,6 +289,7 @@ __all__ = [
     "GitHubUnavailable",
     "Proposal",
     "build_proposal",
+    "live_commit",
     "publish",
     "risk_class",
 ]

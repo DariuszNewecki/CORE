@@ -222,6 +222,7 @@ User=core
 Group=core
 EnvironmentFile=/opt/core/etc/core.env
 WorkingDirectory=/opt/core/run
+# Interim: once a machine identity exists, this timer gets its own token, not the runner's.
 LoadCredential=github-token:/etc/core/pipeline-github-token
 ExecStart=/opt/core/current/venv/bin/core-admin promote propose
 UMask=0022
