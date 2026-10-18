@@ -10,6 +10,7 @@ UNIX Philosophy: CLI provides atomic resource actions; Makefile composes them.
 
 from __future__ import annotations
 
+import importlib.metadata
 import os
 import sys
 
@@ -152,9 +153,34 @@ def _help_requested(argv: list[str]) -> bool:
     return False
 
 
+def _print_version(value: bool) -> None:
+    """Eager --version: print the installed core-runtime and exit (#1157).
+
+    Eager options run before the callback body, so no services are primed and
+    no CoreContext is built just to print a version."""
+    if not value:
+        return
+    try:
+        version = importlib.metadata.version("core-runtime")
+    except importlib.metadata.PackageNotFoundError:
+        version = "unknown (not installed as a package)"
+    typer.echo(f"core-runtime {version}")
+    raise typer.Exit()
+
+
 @app.callback(invoke_without_command=True)
 # ID: 1f5f3dc8-cbc5-426f-8049-271f45e155f5
-def main(ctx: typer.Context) -> None:
+def main(
+    ctx: typer.Context,
+    version: bool = typer.Option(
+        False,
+        "--version",
+        "-V",
+        callback=_print_version,
+        is_eager=True,
+        help="Show the installed core-runtime version and exit.",
+    ),
+) -> None:
     """Bootstrap services and launch TUI if no command given."""
     # Rich log rendering is the CLI's call, taken here when a human is on
     # stderr; under systemd / pipes the shared logger's plain handler stays.
