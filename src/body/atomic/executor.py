@@ -18,6 +18,7 @@ CRITICAL: This enforces the "single execution contract" principle.
 
 from __future__ import annotations
 
+import contextlib
 import inspect
 import time
 from pathlib import Path
@@ -26,6 +27,7 @@ from typing import TYPE_CHECKING, Any
 from body.atomic.action_audit import ActionAuditRecorder
 from body.atomic.registry import ActionCategory, ActionDefinition, action_registry
 from body.atomic.sandbox_lifecycle import SandboxLifecycle
+from body.governance.metadata_proof import metadata_only_scope
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.governance_token import authorize_execution, current_approval_authority
@@ -98,6 +100,14 @@ def _validate_action_result(action_id: str, result: Any) -> ActionResult:
         )
 
     return result
+
+
+def _metadata_scope(definition: ActionDefinition) -> Any:
+    """metadata_only_scope for a WRITE_METADATA action; a no-op context otherwise."""
+    metadata = getattr(definition.executor, "_atomic_action_metadata", None)
+    if metadata is not None and metadata.impact == ActionImpact.WRITE_METADATA:
+        return metadata_only_scope(definition.action_id)
+    return contextlib.nullcontext()
 
 
 # ID: 27f757a2-ec05-49c1-bf44-cfceed984a49
@@ -424,7 +434,9 @@ class ActionExecutor:
             )
 
             # --- Issue Governance Token ---
-            with authorize_execution(action_id):
+            # A metadata-only action's .py writes must pass the metadata
+            # proof at FileHandler (body.governance.metadata_proof).
+            with authorize_execution(action_id), _metadata_scope(definition):
                 raw_result = await definition.executor(**exec_params)
             # --- End Governance Token ---
 

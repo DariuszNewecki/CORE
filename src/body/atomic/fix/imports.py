@@ -33,7 +33,7 @@ logger = getLogger(__name__)
 @atomic_action(
     action_id="fix.imports",
     intent="Standardize Python import blocks using Ruff",
-    impact=ActionImpact.WRITE_METADATA,
+    impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
 # ID: d5879178-fdfe-4d8b-b6a6-f887f8e9500b

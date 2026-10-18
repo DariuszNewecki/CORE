@@ -138,6 +138,43 @@ class RepositoryBoundaryViolationError(CoreError, ValueError):
         }
 
 
+# ID: 260ad411-a013-4ad7-b1bb-53c380a4aa2c
+class MetadataProofViolationError(CoreError, ValueError):
+    """A metadata-only action tried to write more than metadata.
+
+    Raised by FileHandler before the write lands when the running action
+    declares ``ActionImpact.WRITE_METADATA`` and the new content of a ``.py``
+    file fails ``verify_metadata_only_diff`` against its current content.
+    Governed by metadata.semantic_preservation, or
+    metadata.operations.comment_length_limit when only comment length failed.
+    Subclasses ``ValueError`` like RepositoryBoundaryViolationError.
+    """
+
+    def __init__(self, action_id: str, rel_path: str, violations: list[str]):
+        self.action_id = action_id
+        self.rel_path = rel_path
+        self.violations = violations
+        self.rule_id = (
+            "metadata.operations.comment_length_limit"
+            if all(v.startswith("Line ") for v in violations)
+            else "metadata.semantic_preservation"
+        )
+        super().__init__(
+            f"Metadata-only action {action_id} refused writing {rel_path}: "
+            + "; ".join(violations)
+        )
+
+    # ID: 89db5086-b903-4856-b773-4aed31fea6f4
+    def to_payload(self) -> dict[str, object]:
+        """Structured refusal evidence for records and probes."""
+        return {
+            "rule_id": self.rule_id,
+            "action_id": self.action_id,
+            "path": self.rel_path,
+            "violations": self.violations,
+        }
+
+
 # ID: 086a57e8-73e1-4399-b501-bff686eaf915
 class NoLLMConfiguredError(CoreException, RuntimeError):
     """The Mind holds no LLM configuration at all: no cognitive roles and no resources.
