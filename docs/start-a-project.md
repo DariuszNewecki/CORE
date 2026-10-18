@@ -24,8 +24,8 @@ cd myproject
 git init
 ```
 
-`project new` creates a new directory and refuses an existing, non-empty one. It asks
-for confirmation; answer `y`, or pipe the answer (`echo y | core-admin …`) in a script.
+`project new` creates a new directory and refuses an existing, non-empty one, so it
+overwrites nothing and asks no confirmation.
 
 The project gets the **machinery floor**: the schemas, taxonomies and enforcement
 configuration under `.intent/` that every governed repository carries. It gets **no
