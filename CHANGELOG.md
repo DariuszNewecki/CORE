@@ -8,6 +8,22 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.15.1] — 2026-10-19
+
+Patch release. No database migrations. Fixes from the fourth 'Prove it' run.
+
+### Fixed
+
+- **A `project new` project's tests run as created (#1176):** `pyproject.toml` puts `src/` on pytest's path and the
+  scaffold ships a starter test, so `pip install pytest` then `python -m pytest` works with no `pip install -e .`.
+- **`code audit --offline` with no rules prints its refusal once (#1174)**, not first as a raw
+  `ERROR mind.governance.stateless_audit` log record.
+- **`project adopt-pack --write` says "Wrote:" / "Updated:" (#1175)**; "Would write:" only without `--write`.
+- ***Connect your AI assistant* lists `core_status` (#1177)**, with read-only counts and the `--allowedTools` list
+  matching the MCP server.
+- **`submit_change` says what it answers (#1178):** the proposal id, its status, the files in scope and the report the
+  governor sees, instead of "answers step 0".
+
 ## [2.15.0] — 2026-10-19
 
 Minor release. One data migration (`20261016_1105_remove_test_worker_rows`, removes the 19 integration-test worker
@@ -1278,7 +1294,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.15.0...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.15.1...HEAD
+[2.15.1]: https://github.com/DariuszNewecki/CORE/compare/v2.15.0...v2.15.1
 [2.15.0]: https://github.com/DariuszNewecki/CORE/compare/v2.14.5...v2.15.0
 [2.14.5]: https://github.com/DariuszNewecki/CORE/compare/v2.14.4...v2.14.5
 [2.14.4]: https://github.com/DariuszNewecki/CORE/compare/v2.14.3...v2.14.4
