@@ -1,11 +1,13 @@
 # tests/infra/test_core_pipeline.py
-"""core-pipeline: the post-merge runner (one-path flow, governor ruling 2026-10-12).
+"""core-pipeline: deploys the promotion the governor approved (ADR-171).
 
 The real script runs against a temporary state directory with a scripted Host:
 GitHub answers and the sudo calls are simulated and recorded. These tests prove
-the rules: only the governor's merges deploy; CI must be green; a failed probe
-rolls back and opens an issue; the only privileged commands are core-deploy
-and the sandbox check.
+the rules: a merge to main deploys nothing; only a promotion into ``live``
+whose exact head the governor approved deploys, and exactly that head; it must
+be a fast-forward of ``live`` with green CI; a failed probe rolls back and
+opens an issue; ``live`` is fast-forwarded after the deploy; the only
+privileged commands are core-deploy and the sandbox check.
 """
 
 from __future__ import annotations
@@ -25,9 +27,10 @@ import pytest
 
 
 REPO = Path(__file__).resolve().parents[2]
-SHA = "c" * 40
-LIVE = "a" * 40
-HEAD = "d" * 40
+SHA = "c" * 40  # the promoted main commit
+LIVE = "a" * 40  # the live commit
+MAIN = "e" * 40  # main's head
+GOVERNOR = "DariuszNewecki"
 
 
 def _load(name: str, path: Path) -> ModuleType:
@@ -43,22 +46,34 @@ def _load(name: str, path: Path) -> ModuleType:
 cp = _load("core_pipeline", REPO / "infra" / "core-pipeline")
 
 
+def _approval(commit: str = SHA, login: str = GOVERNOR, state: str = "APPROVED"):
+    return {"user": {"login": login}, "state": state, "commit_id": commit}
+
+
 class FakeHost(cp.Host):
-    def __init__(self) -> None:
-        super().__init__(token="t")
-        self.head = SHA
-        self.merger = "DariuszNewecki"
+    def __init__(self, token: str | None = "t") -> None:
+        super().__init__(token=token)
+        self.main = MAIN
+        self.live_branch: str | None = LIVE
+        self.promote: dict[str, str] = {"promote/2026-10-19": SHA}
+        self.pulls = [
+            {
+                "number": 1200,
+                "base": {"ref": "live"},
+                "head": {"ref": "promote/2026-10-19", "sha": SHA},
+            }
+        ]
+        self.reviews = [_approval()]
+        self.compare = "ahead"
         self.runs = [{"status": "completed", "conclusion": "success"}]
         self.rc: dict[str, int] = {}
         self.calls: list[list[str]] = []
         self.issues: list[dict] = []
-        self.same_tree = True
-        self.ci_asked: list[str] = []
-        self.ls_remote = 0
-        self.api_heads = 0
-        self.reviews: list[dict] = []
+        self.ref_writes: list[tuple[str | None, str, dict]] = []
+        self.ref_write_error: int | None = None
+        self.ls_remote_fails = False
         self.api_calls = 0
-        self.at = datetime.datetime(2026, 10, 15, 16, 55, tzinfo=datetime.UTC)
+        self.at = datetime.datetime(2026, 10, 19, 9, 0, tzinfo=datetime.UTC)
         self.limited_until: datetime.datetime | None = None
 
     def now(self):
@@ -66,9 +81,13 @@ class FakeHost(cp.Host):
 
     def run(self, cmd):
         if cmd[:2] == ["git", "ls-remote"]:
-            self.ls_remote += 1
-            out = f"{self.head}\trefs/heads/main\n".encode() if self.head else b""
-            return subprocess.CompletedProcess(cmd, 0, out, b"")
+            if self.ls_remote_fails:
+                return subprocess.CompletedProcess(cmd, 128, b"", b"no")
+            refs = {"main": self.main, **self.promote}
+            if self.live_branch:
+                refs["live"] = self.live_branch
+            out = "".join(f"{s}\trefs/heads/{n}\n" for n, s in refs.items())
+            return subprocess.CompletedProcess(cmd, 0, out.encode(), b"")
         self.calls.append(list(cmd))
         key = (
             "rollback"
@@ -79,34 +98,33 @@ class FakeHost(cp.Host):
         )
         return subprocess.CompletedProcess(cmd, self.rc.get(key, 0), b"out", b"")
 
-    def http(self, url, payload=None):
+    def http(self, url, payload=None, method=None):
         self.api_calls += 1
         if self.limited_until is not None and self.at < self.limited_until:
             headers = email.message.Message()
             headers["X-RateLimit-Remaining"] = "0"
             headers["X-RateLimit-Reset"] = str(int(self.limited_until.timestamp()))
             raise urllib.error.HTTPError(url, 403, "rate limit exceeded", headers, None)
-        if payload is not None:
+        if "/git/refs" in url:
+            if self.ref_write_error:
+                raise urllib.error.HTTPError(
+                    url, self.ref_write_error, "no", email.message.Message(), None
+                )
+            self.ref_writes.append((method, url, payload))
+            return {"object": {"sha": payload["sha"]}}
+        if url.endswith("/issues"):
             self.issues.append(payload)
             return {"html_url": "https://github.com/x/issues/1"}
         if url.endswith("/branches/main"):
-            self.api_heads += 1
-            return {"commit": {"sha": self.head}}
-        if url.endswith("/pulls"):
-            # As GitHub answers: the per-commit list carries no merged_by.
-            return [{"number": 967, "merge_commit_sha": self.head, "merged_by": None}]
-        if "/pulls/967/reviews" in url:
+            return {"commit": {"sha": self.main}}
+        if "/pulls?state=open&base=live" in url:
+            return self.pulls
+        if "/pulls/1200/reviews" in url:
             return self.reviews
-        if url.endswith("/pulls/967"):
-            return {
-                "merged_by": {"login": self.merger} if self.merger else None,
-                "head": {"sha": HEAD},
-            }
-        if "/git/commits/" in url:
-            sha = url.rsplit("/", 1)[1]
-            return {"tree": {"sha": "t" if self.same_tree else f"t-{sha}"}}
+        if "/compare/" in url:
+            return {"status": self.compare}
         if "check-runs" in url:
-            self.ci_asked.append(url.split("/commits/")[1].split("/")[0])
+            assert f"/commits/{SHA}/" in url  # CI is read on the promoted commit
             return {"check_runs": self.runs}
         raise AssertionError(url)
 
@@ -115,7 +133,7 @@ class FakeHost(cp.Host):
 def world(tmp_path: Path):
     (tmp_path / "etc").mkdir()
     conf = tmp_path / "etc" / "pipeline.conf"
-    conf.write_text("GITHUB_REPO=DariuszNewecki/CORE\nGOVERNOR_GITHUB=DariuszNewecki\n")
+    conf.write_text(f"GITHUB_REPO=DariuszNewecki/CORE\nGOVERNOR_GITHUB={GOVERNOR}\n")
     (tmp_path / "releases" / LIVE).mkdir(parents=True)
     current = tmp_path / "current"
     current.symlink_to(Path("releases") / LIVE)
@@ -133,7 +151,14 @@ def _privileged(host: FakeHost) -> list[list[str]]:
     return [c for c in host.calls if c[0] == "sudo"]
 
 
-def test_a_governor_merge_deploys_then_probes(world) -> None:
+def _later(host: FakeHost, minutes: int = 6) -> None:
+    host.at += datetime.timedelta(minutes=minutes)
+
+
+# -- what deploys ---------------------------------------------------------------
+
+
+def test_an_approved_promotion_deploys_exactly_its_head_then_probes(world) -> None:
     host, _ = world
     status = _tick(world)
     deploy, probe = _privileged(host)
@@ -144,31 +169,104 @@ def test_a_governor_merge_deploys_then_probes(world) -> None:
         SHA,
         "--migrate",
         "--merged-by",
-        "DariuszNewecki",
-        "--tested-as",
-        HEAD,
+        GOVERNOR,
     ]
     assert probe == ["sudo", "-n", "-u", "core", cp.SANDBOX_CHECK]
     assert status["last"]["result"] == "live"
+    assert status["last"]["promotion"] == 1200
 
 
-def test_a_merge_by_anyone_else_is_skipped_and_logged(world) -> None:
-    host, layout = world
-    host.merger = "core-claude-bot"
-    status = _tick(world)
-    assert _privileged(host) == []
-    assert status["last"]["result"] == "skipped"
-    assert "core-claude-bot" in (layout.logs / f"{SHA[:12]}.log").read_text()
-
-
-def test_a_direct_push_with_no_pull_request_is_skipped(world) -> None:
+def test_a_merge_to_main_deploys_nothing(world) -> None:
     host, _ = world
-    host.http = lambda url, payload=None: (  # type: ignore[method-assign]
-        [] if url.endswith("/pulls") else FakeHost.http(host, url, payload)
-    )
+    host.promote = {}
+    host.pulls = []
     status = _tick(world)
     assert _privileged(host) == []
-    assert status["last"]["result"] == "skipped"
+    assert status["state"] == "idle" and status["main_head"] == MAIN
+    assert host.api_calls == 0  # an idle tick spends no API call
+
+
+def test_a_promotion_without_the_governors_approval_waits(world) -> None:
+    host, _ = world
+    host.reviews = []
+    status = _tick(world)
+    assert _privileged(host) == []
+    assert status["state"] == "waiting for approval"
+    assert status["waiting_on"] == [SHA]
+
+
+@pytest.mark.parametrize(
+    "reviews",
+    [
+        [_approval(login="core-claude-bot")],
+        [_approval(commit="f" * 40)],
+        [_approval(), _approval(state="CHANGES_REQUESTED")],
+        [_approval(), _approval(state="DISMISSED")],
+    ],
+    ids=["other-account", "older-commit", "changes-requested", "dismissed"],
+)
+def test_only_the_governors_standing_approval_of_the_exact_head_counts(
+    world, reviews
+) -> None:
+    host, _ = world
+    host.reviews = reviews
+    _tick(world)
+    assert _privileged(host) == []
+
+
+def test_a_pull_request_not_from_a_promote_branch_never_deploys(world) -> None:
+    host, _ = world
+    host.pulls[0]["head"]["ref"] = "feature"
+    _tick(world)
+    assert _privileged(host) == []
+
+
+def test_a_pull_request_into_another_base_never_deploys(world) -> None:
+    host, _ = world
+    host.pulls[0]["base"]["ref"] = "main"
+    _tick(world)
+    assert _privileged(host) == []
+
+
+def test_an_approval_arriving_later_is_found_on_the_next_poll(world) -> None:
+    host, _ = world
+    host.reviews = []
+    _tick(world)
+    host.reviews = [_approval()]
+    _later(host, 1)
+    assert _tick(world)["state"] == "waiting for approval"  # within the poll
+    assert _privileged(host) == []
+    _later(host)
+    assert _tick(world)["last"]["result"] == "live"
+
+
+def test_waiting_for_approval_spends_at_most_two_calls_per_poll(world) -> None:
+    host, _ = world
+    host.reviews = []
+    _tick(world)
+    before = host.api_calls
+    for _ in range(4):
+        _later(host, 1)
+        _tick(world)
+    assert host.api_calls == before
+    _later(host, 2)
+    _tick(world)
+    assert host.api_calls - before == 2  # open promotions, their reviews
+
+
+def test_a_head_that_is_not_a_fast_forward_of_live_is_refused_once(world) -> None:
+    host, _ = world
+    host.compare = "diverged"
+    status = _tick(world)
+    assert _privileged(host) == []
+    assert status["last"]["result"] == "failed"
+    assert "fast-forward" in status["last"]["what"] and len(host.issues) == 1
+    _later(host)
+    _tick(world)
+    assert len(host.issues) == 1
+
+
+# -- CI -------------------------------------------------------------------------
 
 
 def test_pending_ci_waits_and_retries_next_tick(world) -> None:
@@ -177,6 +275,7 @@ def test_pending_ci_waits_and_retries_next_tick(world) -> None:
     assert _tick(world)["state"] == "waiting for CI"
     assert _privileged(host) == []
     host.runs = [{"status": "completed", "conclusion": "success"}]
+    _later(host)
     assert _tick(world)["last"]["result"] == "live"
 
 
@@ -186,6 +285,13 @@ def test_red_ci_opens_an_issue_and_never_deploys(world) -> None:
     status = _tick(world)
     assert _privileged(host) == []
     assert status["last"]["result"] == "failed" and len(host.issues) == 1
+
+
+def test_a_cancelled_run_is_not_green(world) -> None:
+    host, _ = world
+    host.runs = [{"status": "completed", "conclusion": "cancelled"}]
+    _tick(world)
+    assert _privileged(host) == []
 
 
 def _run(run_id: int, name: str, conclusion: str) -> dict:
@@ -199,8 +305,7 @@ def _run(run_id: int, name: str, conclusion: str) -> dict:
 
 
 def test_a_failed_check_rerun_green_counts_as_green(world) -> None:
-    # #1133: editing the PR description re-ran host-change-stated green; the
-    # superseded failed run stays on the commit and must not make CI red.
+    # #1133: a re-run supersedes the failed run before it.
     host, _ = world
     host.runs = [
         _run(2, "host-change-stated", "success"),
@@ -212,13 +317,9 @@ def test_a_failed_check_rerun_green_counts_as_green(world) -> None:
 
 def test_a_check_rerun_red_after_green_is_red(world) -> None:
     host, _ = world
-    host.runs = [
-        _run(1, "tests", "success"),
-        _run(2, "tests", "failure"),
-    ]
-    status = _tick(world)
+    host.runs = [_run(1, "tests", "success"), _run(2, "tests", "failure")]
+    assert _tick(world)["last"]["result"] == "failed"
     assert _privileged(host) == []
-    assert status["last"]["result"] == "failed"
 
 
 def test_same_check_name_from_another_app_is_not_superseded(world) -> None:
@@ -228,29 +329,88 @@ def test_same_check_name_from_another_app_is_not_superseded(world) -> None:
     assert _tick(world)["last"]["result"] == "failed"
 
 
+# -- after the deploy -------------------------------------------------------------
+
+
+def test_live_is_fast_forwarded_to_the_deployed_head(world) -> None:
+    host, _ = world
+    status = _tick(world)
+    assert host.ref_writes == [
+        (
+            "PATCH",
+            "https://api.github.com/repos/DariuszNewecki/CORE/git/refs/heads/live",
+            {"sha": SHA, "force": False},
+        )
+    ]
+    assert status["live_branch"] == SHA
+
+
+def test_a_missing_live_branch_is_created_at_the_live_commit(world) -> None:
+    host, _ = world
+    host.live_branch = None
+    host.promote = {}
+    _tick(world)
+    assert host.ref_writes == [
+        (
+            None,
+            "https://api.github.com/repos/DariuszNewecki/CORE/git/refs",
+            {"ref": "refs/heads/live", "sha": LIVE},
+        )
+    ]
+
+
+def test_a_refused_ref_write_is_tried_again_only_after_the_poll(world) -> None:
+    host, _ = world
+    host.live_branch = None
+    host.promote = {}
+    host.ref_write_error = 403
+    _tick(world)
+    before = host.api_calls
+    _later(host, 1)
+    _tick(world)
+    assert host.api_calls == before
+
+
+def test_without_a_token_it_deploys_and_says_live_was_not_moved(
+    world, tmp_path: Path
+) -> None:
+    _, layout = world
+    host = FakeHost(token=None)
+    assert cp.main([], host=host, layout=layout) == 0
+    status = json.loads(layout.status.read_text())
+    assert status["last"]["result"] == "live"
+    assert "not moved" in status["last"]["what"]
+    assert host.ref_writes == []
+
+
 def test_failed_probe_rolls_back_and_opens_an_issue(world) -> None:
     host, _ = world
     host.rc[cp.SANDBOX_CHECK] = 1
     status = _tick(world)
     assert _privileged(host)[-1] == ["sudo", "-n", cp.CORE_DEPLOY, "--rollback"]
     assert "rolled back" in status["last"]["what"]
-    assert len(host.issues) == 1
+    assert len(host.issues) == 1 and host.ref_writes == []
 
 
-def test_refused_deploy_opens_an_issue_without_rolling_back(world) -> None:
+def test_refused_deploy_opens_an_issue_and_leaves_live_alone(world) -> None:
     host, _ = world
     host.rc["deploy"] = 1
     _tick(world)
     assert len(_privileged(host)) == 1
-    assert "refused" in host.issues[0]["title"]
+    assert "refused" in host.issues[0]["title"] and host.ref_writes == []
 
 
-def test_each_merge_is_handled_once(world) -> None:
+def test_each_promotion_is_handled_once(world) -> None:
     host, _ = world
+    host.rc["deploy"] = 1
     _tick(world)
     host.calls.clear()
+    _later(host)
     _tick(world)
     assert _privileged(host) == []
+
+
+# -- the runner itself --------------------------------------------------------------
 
 
 def test_only_two_privileged_commands_exist() -> None:
@@ -267,133 +427,10 @@ def test_refuses_without_the_governor_named(tmp_path: Path) -> None:
     assert cp.main([], host=FakeHost(), layout=layout) == 1
 
 
-def test_a_merge_skipped_while_github_settles_is_deployed_next_tick(world) -> None:
-    """2026-10-12: PR #967's merge was read 6s after merging with no merger
-    and skipped for good. A skipped head is now looked at again."""
-    host, layout = world
-    host.merger = None
-    assert _tick(world)["last"]["result"] == "skipped"
-    host.merger = "DariuszNewecki"
-    assert _tick(world)["last"]["result"] == "live"
-    log = (layout.logs / f"{SHA[:12]}.log").read_text()
-    assert log.count("skipped") == 1
-
-
-def test_a_known_other_merger_is_logged_once(world) -> None:
-    host, layout = world
-    host.merger = "core-claude-bot"
-    _tick(world)
-    _tick(world)
-    assert _privileged(host) == []
-    log = (layout.logs / f"{SHA[:12]}.log").read_text()
-    assert log.count("skipped") == 1
-
-
-def test_the_retry_never_deploys_a_head_no_governor_merged(world) -> None:
-    """main's 34a314ee was pushed with no pull request. The runner looks at a
-    skipped head again on every tick (so a merge read too early is not lost),
-    and that retry must never turn into a deploy for anything but a merge by
-    the governor."""
-    host, layout = world
-    host.http = lambda url, payload=None: (  # type: ignore[method-assign]
-        [] if url.endswith("/pulls") else FakeHost.http(host, url, payload)
-    )
-    for _ in range(5):
-        status = _tick(world)
-        assert status["last"]["result"] == "skipped"
-    assert _privileged(host) == []
-    host.merger = "core-claude-bot"
-    host.http = lambda url, payload=None: FakeHost.http(host, url, payload)  # type: ignore[method-assign]
-    for _ in range(3):
-        assert _tick(world)["last"]["result"] == "skipped"
-    assert _privileged(host) == []
-    log = (layout.logs / f"{SHA[:12]}.log").read_text()
-    assert log.count("skipped") == 2  # once per distinct reason, not per tick
-
-
-def test_a_pr_behind_main_waits_for_ci_on_the_merge_commit(world) -> None:
-    """'Require branches up to date' is off (governor 2026-10-13): the merge
-    then holds code no PR run tested, so the runner waits for CI's run on the
-    merge commit itself and deploys without --tested-as."""
+def test_main_is_read_from_the_api_when_git_cannot_answer(world) -> None:
     host, _ = world
-    host.same_tree = False
-    status = _tick(world)
-    assert host.ci_asked == [SHA]
-    deploy = _privileged(host)[0]
-    assert "--tested-as" not in deploy
-    assert status["last"]["result"] == "live"
-
-
-def test_an_up_to_date_pr_is_covered_by_its_own_ci_run(world) -> None:
-    host, _ = world
-    _tick(world)
-    assert host.ci_asked == [HEAD]
-    assert _privileged(host)[0][-2:] == ["--tested-as", HEAD]
-
-
-def test_the_head_check_costs_no_api_call(world) -> None:
-    """Every tick reads the branch head; the unauthenticated API allows 60
-    calls an hour, and on 2026-10-13 a day of merges ran out of them and
-    stalled a deploy. git ls-remote has no such limit."""
-    host, _ = world
-    host.head = LIVE  # nothing new: an idle tick
-    status = _tick(world)
-    assert status["state"] == "idle"
-    assert host.ls_remote == 1
-    assert host.api_heads == 0
-
-
-def test_the_api_answers_when_git_cannot(world) -> None:
-    host, _ = world
-    real_run = host.run
-
-    def failing_ls_remote(cmd):
-        if cmd[:2] == ["git", "ls-remote"]:
-            return subprocess.CompletedProcess(cmd, 128, b"", b"fatal")
-        return real_run(cmd)
-
-    host.run = failing_ls_remote  # type: ignore[method-assign]
-    host.head = LIVE
-    assert _tick(world)["state"] == "idle"
-    assert host.api_heads == 1
-
-
-def _review(login: str, state: str, commit: str = HEAD) -> dict:
-    return {"user": {"login": login}, "state": state, "commit_id": commit}
-
-
-def test_an_auto_merge_after_the_governors_approval_of_the_head_deploys(world) -> None:
-    """Governor ruling 2026-10-13: approving the exact last commit is the
-    decision; whoever then clicks merge (auto-merge) adds nothing."""
-    host, layout = world
-    host.merger = "core-claude-bot"
-    host.reviews = [_review("DariuszNewecki", "APPROVED")]
-    status = _tick(world)
-    assert status["last"]["result"] == "live"
-    deploy = _privileged(host)[0]
-    assert deploy[deploy.index("--merged-by") + 1] == "DariuszNewecki"
-    assert "core-claude-bot" in (layout.logs / f"{SHA[:12]}.log").read_text()
-
-
-@pytest.mark.parametrize(
-    "reviews",
-    [
-        [],
-        [_review("someone-with-write-access", "APPROVED")],
-        [_review("DariuszNewecki", "APPROVED", commit="e" * 40)],  # older commit
-        [
-            _review("DariuszNewecki", "APPROVED"),
-            _review("DariuszNewecki", "CHANGES_REQUESTED"),
-        ],
-        [_review("DariuszNewecki", "APPROVED"), _review("DariuszNewecki", "DISMISSED")],
-    ],
-)
-def test_no_governor_approval_of_the_head_never_deploys(world, reviews) -> None:
-    host, _ = world
-    host.merger = "core-claude-bot"
-    host.reviews = reviews
-    assert _tick(world)["last"]["result"] == "skipped"
-    assert _privileged(host) == []
+    host.ls_remote_fails = True
+    assert _tick(world)["main_head"] == MAIN
 
 
 def test_a_rate_limit_waits_for_its_reset_and_says_so(world) -> None:
@@ -406,7 +443,7 @@ def test_a_rate_limit_waits_for_its_reset_and_says_so(world) -> None:
     assert status["state"] == "rate limited"
     assert status["until"] == reset.isoformat()
     calls = host.api_calls
-    host.at += datetime.timedelta(minutes=2)
+    _later(host, 2)
     assert _tick(world)["state"] == "rate limited"
     assert host.api_calls == calls  # waiting spends nothing
     host.at = reset
@@ -417,7 +454,7 @@ def test_a_rate_limit_waits_for_its_reset_and_says_so(world) -> None:
 def test_a_forbidden_call_that_is_not_the_rate_limit_stays_an_error(world) -> None:
     host, _ = world
 
-    def forbidden(url, payload=None):
+    def forbidden(url, payload=None, method=None):
         raise urllib.error.HTTPError(
             url, 403, "Forbidden", email.message.Message(), None
         )
@@ -432,44 +469,6 @@ def test_waiting_for_ci_costs_one_api_call_a_tick(world) -> None:
     _tick(world)
     for _ in range(3):
         before = host.api_calls
+        _later(host, 1)
         assert _tick(world)["state"] == "waiting for CI"
         assert host.api_calls - before == 1
-
-
-def test_a_head_merged_by_someone_else_is_read_once(world) -> None:
-    """An auto-merge without the governor's approval was read again on every
-    tick: three calls each two minutes, more than the hourly limit."""
-    host, _ = world
-    host.merger = "core-claude-bot"
-    _tick(world)
-    before = host.api_calls
-    for _ in range(3):
-        assert _tick(world)["last"]["result"] == "skipped"
-    assert host.api_calls == before
-
-
-def test_a_head_no_pull_request_explains_is_dropped_after_the_settle_window(
-    world,
-) -> None:
-    host, _ = world
-    host.http = lambda url, payload=None: (  # type: ignore[method-assign]
-        [] if url.endswith("/pulls") else FakeHost.http(host, url, payload)
-    )
-    calls = 0
-    real_http = host.http
-
-    def counting(url, payload=None):
-        nonlocal calls
-        calls += 1
-        return real_http(url, payload)
-
-    host.http = counting  # type: ignore[method-assign]
-    _tick(world)
-    host.at += datetime.timedelta(minutes=10)
-    _tick(world)
-    assert calls == 2  # still settling: looked at again
-    host.at += cp.SETTLE
-    for _ in range(3):
-        assert _tick(world)["last"]["result"] == "skipped"
-    assert calls == 2
-    assert _privileged(host) == []

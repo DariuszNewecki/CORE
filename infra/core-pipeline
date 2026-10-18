@@ -2,36 +2,44 @@
 # infra/core-pipeline — installed as /usr/local/sbin/core-pipeline (root:root 0755); run by
 # core-pipeline.timer as core-runner (one-path flow, governor ruling 2026-10-12).
 """
-core-pipeline — after the governor's change lands on main, make it live.
+core-pipeline — make the promotion the governor approved live (ADR-171).
 
-The governor's one action for a change is approving a pull request's last
-commit, or merging it, on GitHub. This runner, on a timer, as the account
-``core-runner``:
+Main is integration: nothing merged to main runs live by being merged. A
+promotion is a pull request into the branch ``live`` whose head is a main
+commit, on a branch ``promote/...``. The governor's one action for it is
+approving that pull request's exact head commit on GitHub. This runner, on a
+timer, as the account ``core-runner``:
 
- 1. reads main's head from GitHub; nothing new -> it only refreshes status;
- 2. acts only on a commit the governor's GitHub account (``GOVERNOR_GITHUB``)
-    merged, or whose pull request someone else merged (auto-merge) after the
-    governor's account approved its exact last commit (governor ruling
-    2026-10-13: the approval is the decision; a new commit dismisses it).
-    An approval by any other account never counts. Anything else is skipped
-    and logged;
- 3. waits until every CI check run has completed: on the pull-request head
-    when the merge has its exact tree, else on the merge commit itself (CI
-    runs on pushes to main); a red result is reported once and skipped;
- 4. runs ``sudo -n core-deploy <sha> --migrate --merged-by <login>``.
-    core-deploy builds, applies the merged law through core-law (the merge is
-    the approval), migrates only when something is pending, switches,
-    verifies, and switches back itself when the new release fails;
- 5. after a deploy, runs the sandbox check as core; when it fails, rolls back
+ 1. reads main, ``live`` and the ``promote/*`` branches with one
+    ``git ls-remote`` (not rate limited); no promotion branch ahead of the
+    live commit -> it only refreshes status;
+ 2. looks for an open pull request into ``live`` from a ``promote/`` branch
+    whose exact head the governor's GitHub account (``GOVERNOR_GITHUB``)
+    approved, with no later change request or dismissal. An approval by
+    any other account never counts, and a new commit dismisses it. Without
+    one it waits, polling GitHub at most every ``PROMOTION_POLL``;
+ 3. refuses a head that is not a fast-forward of ``live`` (or, before
+    ``live`` exists, of the live commit); reported once;
+ 4. waits until every CI check run on that commit has completed; a red
+    result is reported once and skipped;
+ 5. runs ``sudo -n core-deploy <sha> --migrate --merged-by <governor>``:
+    exactly the approved head, never a merge commit. core-deploy builds,
+    applies the law that changed since the live commit through core-law,
+    migrates only when something is pending, switches, verifies, and
+    switches back itself when the new release fails;
+ 6. after a deploy, runs the sandbox check as core; when it fails, rolls back
     (``sudo -n core-deploy --rollback``) and opens an issue;
- 6. writes ``status.json`` for ``core-admin runtime status``.
+ 7. fast-forwards ``live`` to the deployed commit (GitHub refuses anything
+    else; it records the pull request as merged). ``live`` is created at the
+    live commit when it does not exist. Both need ``TOKEN_FILE`` with write
+    access to the repository's contents; without it the deploy still
+    happens and status says ``live`` was not moved;
+ 8. writes ``status.json`` for ``core-admin runtime status``.
 
-GitHub's API allows 60 calls an hour without a token (#1065). A tick that
-finds nothing new costs none; a merge's facts are read once and kept in the
-state file; a head no pull request explains is looked at again only while
-GitHub may still be settling (``SETTLE``). When the limit runs out anyway,
-the runner waits for its reset and says so in ``status.json``
-(``state: rate limited``, ``until``) instead of failing every tick.
+GitHub's API allows 60 calls an hour without a token (#1065). An idle tick
+costs none; waiting for an approval costs at most two calls per
+``PROMOTION_POLL``. When the limit runs out anyway, the runner waits for its
+reset and says so in ``status.json`` (``state: rate limited``, ``until``).
 
 Privileges (sudoers from one-path-setup.sh): core-runner may run exactly
 ``/usr/local/sbin/core-deploy`` as root and ``/usr/local/sbin/core-sandbox-check``
@@ -39,8 +47,9 @@ as core, without a password and without a shell. It holds no database
 credential and cannot write the law or the runtime itself.
 
 Configuration (/etc/core/pipeline.conf, KEY=VALUE): GITHUB_REPO (owner/name),
-GOVERNOR_GITHUB (the governor's GitHub login), BRANCH (main), TOKEN_FILE (a
-GitHub token that may open issues; optional).
+GOVERNOR_GITHUB (the governor's GitHub login), BRANCH (main), LIVE_BRANCH
+(live), TOKEN_FILE (a GitHub token that may open issues and write the
+repository's contents; optional).
 """
 
 from __future__ import annotations
@@ -62,8 +71,9 @@ GREEN = {"success", "skipped", "neutral"}
 CORE_DEPLOY = "/usr/local/sbin/core-deploy"
 SANDBOX_CHECK = "/usr/local/sbin/core-sandbox-check"
 EX_DEPLOY_GOVERNOR = 3
-# How long a head whose merger GitHub has not reported is looked at again.
-SETTLE = datetime.timedelta(minutes=15)
+# How often open promotions are read from GitHub while one waits for approval.
+PROMOTION_POLL = datetime.timedelta(minutes=5)
+PROMOTE_PREFIX = "promote/"
 
 
 @dataclass(frozen=True)
@@ -98,7 +108,9 @@ class Host:
     def run(self, cmd: list[str]) -> subprocess.CompletedProcess[bytes]:
         return subprocess.run(cmd, capture_output=True, stdin=subprocess.DEVNULL)
 
-    def http(self, url: str, payload: dict | None = None) -> object:
+    def http(
+        self, url: str, payload: dict | None = None, method: str | None = None
+    ) -> object:
         headers = {
             "Accept": "application/vnd.github+json",
             "User-Agent": "core-pipeline",
@@ -109,7 +121,7 @@ class Host:
         if payload is not None:
             data = json.dumps(payload).encode()
             headers["Content-Type"] = "application/json"
-        request = urllib.request.Request(url, data=data, headers=headers)
+        request = urllib.request.Request(url, data=data, headers=headers, method=method)
         with urllib.request.urlopen(request, timeout=30) as response:
             return json.loads(response.read().decode())
 
@@ -175,6 +187,7 @@ class Runner:
     repo: str
     governor: str
     branch: str = "main"
+    live_branch: str = "live"
     api: str = "https://api.github.com"
     state: dict = field(default_factory=dict)
 
@@ -197,6 +210,7 @@ class Runner:
             "branch": self.branch,
             "main_head": self.state.get("seen_head"),
             "live": self.live_sha(),
+            "live_branch": self.state.get("live_branch"),
             "last": self.state.get("last"),
             "at": self.host.now().isoformat(),
             **fields,
@@ -206,11 +220,13 @@ class Runner:
 
     # -- GitHub --------------------------------------------------------------
 
-    def head(self) -> str:
-        """The branch head. Read with git ls-remote, which is not rate limited:
-        this runs every tick, and the unauthenticated API allows only 60 calls
-        an hour (2026-10-13: a day of merges ran out and stalled the deploy).
-        The API is the fallback when git cannot answer."""
+    def refs(self) -> dict[str, str]:
+        """{branch: sha} for main, ``live`` and every ``promote/`` branch.
+
+        Read with git ls-remote, which is not rate limited: this runs every
+        tick, and the unauthenticated API allows only 60 calls an hour
+        (2026-10-13: a day of merges ran out and stalled the deploy). The API
+        is the fallback for main when git cannot answer."""
         done = self.host.run(
             [
                 "git",
@@ -218,14 +234,23 @@ class Runner:
                 "--heads",
                 f"https://github.com/{self.repo}.git",
                 f"refs/heads/{self.branch}",
+                f"refs/heads/{self.live_branch}",
+                f"refs/heads/{PROMOTE_PREFIX}*",
             ]
         )
-        words = done.stdout.decode(errors="replace").split()
-        if done.returncode == 0 and words and len(words[0]) == 40:
-            return words[0]
-        data = self.host.http(f"{self.api}/repos/{self.repo}/branches/{self.branch}")
-        assert isinstance(data, dict)
-        return str(data["commit"]["sha"])
+        refs: dict[str, str] = {}
+        if done.returncode == 0:
+            for line in done.stdout.decode(errors="replace").splitlines():
+                words = line.split()
+                if len(words) == 2 and len(words[0]) == 40:
+                    refs[words[1].removeprefix("refs/heads/")] = words[0]
+        if self.branch not in refs:
+            data = self.host.http(
+                f"{self.api}/repos/{self.repo}/branches/{self.branch}"
+            )
+            assert isinstance(data, dict)
+            refs[self.branch] = str(data["commit"]["sha"])
+        return refs
 
     def ci(self, sha: str) -> str:
         """'green', 'red' or 'pending'."""
@@ -238,35 +263,6 @@ class Runner:
         if any(r.get("conclusion") not in GREEN for r in runs):
             return "red"
         return "green"
-
-    def tree(self, sha: str) -> str | None:
-        data = self.host.http(f"{self.api}/repos/{self.repo}/git/commits/{sha}")
-        return str(data["tree"]["sha"]) if isinstance(data, dict) else None
-
-    def merge(self, sha: str) -> tuple[str | None, str | None]:
-        """(merger login, tested head sha) of the pull request merged as *sha*."""
-        pulls = self.host.http(f"{self.api}/repos/{self.repo}/commits/{sha}/pulls")
-        if not isinstance(pulls, list):
-            return None, None
-        for pull in pulls:
-            if pull.get("merge_commit_sha") != sha:
-                continue
-            # The per-commit list leaves merged_by empty; only the pull
-            # request itself carries it.
-            detail = self.host.http(
-                f"{self.api}/repos/{self.repo}/pulls/{pull['number']}"
-            )
-            if not isinstance(detail, dict) or not detail.get("merged_by"):
-                return None, None
-            head = (detail.get("head") or {}).get("sha")
-            merger = str(detail["merged_by"]["login"])
-            if merger != self.governor and head and self.approved(pull["number"], head):
-                self.log(
-                    sha, f"merged by {merger} on {self.governor}'s approval of {head}"
-                )
-                merger = self.governor
-            return merger, str(head) if head else None
-        return None, None
 
     def approved(self, number: int, head: str) -> bool:
         """True when the governor's account approved *head*, the pull
@@ -283,6 +279,54 @@ class Runner:
             if review.get("state") in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED"):
                 verdict = (review.get("state"), review.get("commit_id"))
         return verdict == ("APPROVED", head)
+
+    def approved_promotion(self, candidates: set[str]) -> tuple[int, str] | None:
+        """(number, head) of the newest open promotion into ``live`` whose
+        exact head, one of *candidates*, the governor approved."""
+        pulls = self.host.http(
+            f"{self.api}/repos/{self.repo}/pulls"
+            f"?state=open&base={self.live_branch}&per_page=100"
+        )
+        if not isinstance(pulls, list):
+            return None
+        for pull in sorted(pulls, key=lambda p: -int(p.get("number", 0))):
+            head = pull.get("head") or {}
+            sha, ref = head.get("sha"), str(head.get("ref") or "")
+            if (pull.get("base") or {}).get("ref") != self.live_branch:
+                continue
+            if sha not in candidates or not ref.startswith(PROMOTE_PREFIX):
+                continue
+            if self.approved(int(pull["number"]), str(sha)):
+                return int(pull["number"]), str(sha)
+        return None
+
+    def fast_forward_of(self, base: str, sha: str) -> bool:
+        data = self.host.http(f"{self.api}/repos/{self.repo}/compare/{base}...{sha}")
+        return isinstance(data, dict) and data.get("status") == "ahead"
+
+    def move_live(self, sha: str, exists: bool) -> str:
+        """Create ``live`` at *sha*, or fast-forward it there (force off:
+        GitHub refuses anything but a fast-forward). Returns what happened."""
+        if not self.host.token:
+            return f"{self.live_branch} not moved: no TOKEN_FILE"
+        try:
+            if exists:
+                self.host.http(
+                    f"{self.api}/repos/{self.repo}/git/refs/heads/{self.live_branch}",
+                    {"sha": sha, "force": False},
+                    method="PATCH",
+                )
+            else:
+                self.host.http(
+                    f"{self.api}/repos/{self.repo}/git/refs",
+                    {"ref": f"refs/heads/{self.live_branch}", "sha": sha},
+                )
+        except urllib.error.HTTPError as exc:
+            if rate_limit_reset(exc, self.host.now()) is not None:
+                raise
+            return f"{self.live_branch} not moved: GitHub answered {exc.code}"
+        self.state["live_branch"] = sha
+        return f"{self.live_branch} at {sha[:12]}"
 
     def issue(self, title: str, body: str) -> str | None:
         if not self.host.token:
@@ -309,38 +353,19 @@ class Runner:
         self.log(sha, f"$ {' '.join(cmd)}\n{text}\n(exit {done.returncode})")
         return done.returncode, text
 
-    def fail(self, sha: str, what: str, text: str) -> None:
+    def fail(self, sha: str, what: str, text: str, number: int | None = None) -> None:
+        promotion = f"promotion #{number}" if number else "the promotion"
         url = self.issue(
             f"core-pipeline: {what} ({sha[:12]})",
-            f"main at `{sha}` did not go live: {what}.\n\n```\n{text[-20000:]}\n```",
+            f"{promotion} of `{sha}` did not go live: {what}.\n\n```\n{text[-20000:]}\n```",
         )
         self.state["last"] = {
             "sha": sha,
             "result": "failed",
             "what": what,
             "issue": url,
+            "promotion": number,
         }
-
-    def lookup(self, head: str) -> tuple[str | None, str | None]:
-        """``merge(head)``, read from GitHub once: a merge's merger and tested
-        head never change. An empty answer is not kept (GitHub may still be
-        settling)."""
-        cached = self.state.get("lookup") or {}
-        if cached.get("sha") == head:
-            return cached["merger"], cached["tested"]
-        merger, tested = self.merge(head)
-        if merger is not None:
-            self.state["lookup"] = {"sha": head, "merger": merger, "tested": tested}
-        return merger, tested
-
-    def settling(self, head: str) -> bool:
-        """True while *head*, first seen less than ``SETTLE`` ago, may still
-        get its merger from GitHub."""
-        first = self.state.get("first_seen")
-        if not first or first[0] != head:
-            self.state["first_seen"] = [head, self.host.now().isoformat()]
-            return True
-        return self.host.now() - datetime.datetime.fromisoformat(first[1]) < SETTLE
 
     def tick(self) -> None:
         self.load()
@@ -361,101 +386,134 @@ class Runner:
                 state="rate limited", until=reset.isoformat(), error=str(exc)[:500]
             )
 
+    def due(self, what: str) -> bool:
+        """True, and recorded, when *what* was last done PROMOTION_POLL ago or
+        never."""
+        tried = (self.state.get("tried") or {}).get(what)
+        now = self.host.now()
+        if tried and now - datetime.datetime.fromisoformat(tried) < PROMOTION_POLL:
+            return False
+        self.state.setdefault("tried", {})[what] = now.isoformat()
+        return True
+
+    def idle(self, **fields: object) -> None:
+        self.save()
+        self.write_status(state="idle", **fields)
+
     def step(self) -> None:
-        head = self.head()
-        self.state["seen_head"] = head
-        # A skipped head is looked at again while its merger is unknown and
-        # GitHub may still be settling, so a merge read too early is not lost.
-        # A known merger is final: looking again would only spend API calls.
-        skipped = (self.state.get("last") or {}).get("result") == "skipped"
-        settled = (self.state.get("lookup") or {}).get("sha") == head
-        finished = head == self.state.get("done") and (
-            not skipped or settled or not self.settling(head)
-        )
-        if finished or head == self.live_sha():
-            self.state["done"] = head
-            self.save()
-            self.write_status(state="idle")
+        refs = self.refs()
+        self.state["seen_head"] = refs[self.branch]
+        live = self.live_sha()
+        live_branch = refs.get(self.live_branch)
+        self.state["live_branch"] = live_branch
+        if live_branch is None and live and self.host.token and self.due("created"):
+            # The base every promotion needs: the live commit. Tried at most
+            # once per PROMOTION_POLL, so a token without write access does
+            # not spend the API budget.
+            self.log(live, self.move_live(live, exists=False))
+            live_branch = self.state.get("live_branch")
+        candidates = {
+            sha
+            for name, sha in refs.items()
+            if name.startswith(PROMOTE_PREFIX) and sha not in (live, live_branch)
+        }
+        candidates.discard(self.state.get("done"))
+        if not candidates:
+            self.state.pop("polled", None)
+            self.idle()
             return
-        self.settling(head)
-        merger, tested = self.lookup(head)
-        if merger != self.governor or not tested:
-            note = f"skipped: merged by {merger!r}, not {self.governor!r}"
-            if self.state.get("skip_note") != [head, note]:
-                self.log(head, note)
-                self.state["skip_note"] = [head, note]
-            self.state["done"] = head
-            self.state["last"] = {
-                "sha": head,
-                "result": "skipped",
-                "what": f"not merged by {self.governor} (merger: {merger})",
-            }
-            self.save()
-            self.write_status(state="idle")
+        found = self.state.get("approved")
+        if found and found[1] in candidates and found[2] == (live_branch or live):
+            # Approved and waiting for CI: no need to read the approval again
+            # (core-deploy checks it again before it deploys).
+            self.proceed(int(found[0]), str(found[1]), live, live_branch)
             return
-        # When the merge has the pull-request head's exact tree, CI's run on
-        # the PR covers it (core-deploy re-checks: --tested-as). Otherwise the
-        # PR was behind main, and CI's own run on the merge commit (CI runs on
-        # pushes to main) is the one that counts.
-        cached = self.state["lookup"]
-        if "same_tree" not in cached:
-            cached["same_tree"] = self.tree(head) == self.tree(tested)
-        same_tree = bool(cached["same_tree"])
-        ci_sha = tested if same_tree else head
-        ci = self.ci(ci_sha)
-        if ci == "pending":
+        polled = self.state.get("polled")
+        if polled and polled[1] == sorted(candidates):
+            age = self.host.now() - datetime.datetime.fromisoformat(polled[0])
+            if age < PROMOTION_POLL:
+                self.save()
+                self.write_status(state="waiting for approval", waiting_on=polled[1])
+                return
+        self.state["polled"] = [self.host.now().isoformat(), sorted(candidates)]
+        found = self.approved_promotion(candidates)
+        if found is None:
             self.save()
-            self.write_status(state="waiting for CI", waiting_on=head)
-            return
-        self.state["done"] = head
-        if ci == "red":
-            self.fail(
-                head, "CI is red on main", "see the commit's check runs on GitHub"
+            self.write_status(
+                state="waiting for approval", waiting_on=sorted(candidates)
             )
+            return
+        self.proceed(*found, live, live_branch)
+
+    def proceed(
+        self, number: int, sha: str, live: str | None, live_branch: str | None
+    ) -> None:
+        """Deploy promotion *number* (head *sha*) once it is a fast-forward of
+        ``live`` and its CI is green."""
+        base = live_branch or live
+        checked = self.state.get("approved") == [number, sha, base]
+        if base and not checked and not self.fast_forward_of(base, sha):
+            self.state["done"] = sha
+            self.fail(
+                sha,
+                f"not a fast-forward of {self.live_branch}",
+                f"{sha} does not descend from {base}",
+                number,
+            )
+            self.idle()
+            return
+        ci = self.ci(sha)
+        if ci == "pending":
+            self.state["approved"] = [number, sha, base]
             self.save()
-            self.write_status(state="idle")
+            self.write_status(state="waiting for CI", waiting_on=sha, promotion=number)
+            return
+        self.state["done"] = sha
+        self.state.pop("polled", None)
+        self.state.pop("approved", None)
+        if ci == "red":
+            self.fail(sha, "CI is red", "see the commit's check runs on GitHub", number)
+            self.idle()
             return
 
-        self.write_status(state="deploying", deploying=head, merged_by=merger)
+        self.write_status(state="deploying", deploying=sha, promotion=number)
+        self.log(sha, f"promotion #{number}: {self.governor} approved {sha}")
         rc, text = self.run_logged(
-            head,
-            [
-                "sudo",
-                "-n",
-                CORE_DEPLOY,
-                head,
-                "--migrate",
-                "--merged-by",
-                merger,
-                *(["--tested-as", tested] if same_tree else []),
-            ],
+            sha,
+            ["sudo", "-n", CORE_DEPLOY, sha, "--migrate", "--merged-by", self.governor],
         )
         if rc == EX_DEPLOY_GOVERNOR:
-            self.fail(head, "deploy stopped after a migration; your decision", text)
+            self.fail(
+                sha, "deploy stopped after a migration; your decision", text, number
+            )
         elif rc != 0:
-            self.fail(head, "deploy refused or switched back", text)
+            self.fail(sha, "deploy refused or switched back", text, number)
         else:
             check_rc, check_text = self.run_logged(
-                head, ["sudo", "-n", "-u", "core", SANDBOX_CHECK]
+                sha, ["sudo", "-n", "-u", "core", SANDBOX_CHECK]
             )
             if check_rc != 0:
                 back_rc, back_text = self.run_logged(
-                    head, ["sudo", "-n", CORE_DEPLOY, "--rollback"]
+                    sha, ["sudo", "-n", CORE_DEPLOY, "--rollback"]
                 )
                 self.fail(
-                    head,
+                    sha,
                     "probes failed after deploy; "
                     + ("rolled back" if back_rc == 0 else "ROLLBACK FAILED"),
                     check_text + "\n" + back_text,
+                    number,
                 )
             else:
+                moved = self.move_live(sha, exists=live_branch is not None)
+                self.log(sha, moved)
                 self.state["last"] = {
-                    "sha": head,
+                    "sha": sha,
                     "result": "live",
-                    "merged_by": merger,
+                    "promotion": number,
+                    "merged_by": self.governor,
+                    "what": moved,
                 }
-        self.save()
-        self.write_status(state="idle")
+        self.idle()
 
 
 def main(
@@ -481,7 +539,14 @@ def main(
         token = token_file.read_text().strip() if token_file.is_file() else None
         host = Host(token or None)
     layout.state_dir.mkdir(parents=True, exist_ok=True)
-    runner = Runner(host, layout, repo, governor, branch=conf.get("BRANCH", "main"))
+    runner = Runner(
+        host,
+        layout,
+        repo,
+        governor,
+        branch=conf.get("BRANCH", "main"),
+        live_branch=conf.get("LIVE_BRANCH", "live"),
+    )
     with layout.lock.open("a") as lock:
         try:
             fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
