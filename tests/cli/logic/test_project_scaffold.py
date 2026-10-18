@@ -71,6 +71,7 @@ def test_skeleton_is_minimal_and_neutral(parent: Path, core_root: Path) -> None:
         "README.md",
         "src/my_app/__init__.py",
         "tests/__init__.py",
+        "tests/test_package.py",
         ".gitignore",
         # #1043: CORE's GitHub Action, the authoritative verdict per PR.
         ".github/workflows/core-audit.yml",
@@ -202,3 +203,38 @@ def test_python_caches_stay_out_of_git(parent: Path, core_root: Path) -> None:
 
     assert "src/demo/__init__.py" in untracked
     assert not [p for p in untracked if "cache" in p], untracked
+
+
+# ID: 226c441e-631b-4421-90ac-27ac2194e67a
+def test_a_new_projects_tests_run_as_scaffolded(parent: Path, core_root: Path) -> None:
+    """#1176 (proof run 4): in a fresh `project new` project, a test doing
+    `from myproject.billing import ...` failed collection with
+    ModuleNotFoundError until the user knew to `pip install -e .`. The
+    scaffold's pytest config puts src/ on the path, so `python -m pytest`
+    runs with no install step."""
+    import os
+    import sys
+
+    plan = plan_new_project("myproject", parent, core_root)
+    write_new_project(plan, core_root, write=True)
+    root = plan.target_root
+    (root / "src" / "myproject" / "billing.py").write_text(
+        '"""Billing."""\n\n\ndef total(xs: list[int]) -> int:\n    return sum(xs)\n'
+    )
+    (root / "tests" / "test_billing.py").write_text(
+        "from myproject.billing import total\n\n\n"
+        "def test_total() -> None:\n    assert total([1, 2]) == 3\n"
+    )
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+
+    done = subprocess.run(
+        [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+
+    assert done.returncode == 0, done.stdout[-3000:] + done.stderr[-2000:]
+    assert "2 passed" in done.stdout

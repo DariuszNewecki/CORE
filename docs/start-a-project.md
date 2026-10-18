@@ -27,6 +27,14 @@ git init
 `project new` creates a new directory and refuses an existing, non-empty one, so it
 overwrites nothing and asks no confirmation.
 
+The project's tests run as created, with no install step (`pyproject.toml` puts `src/`
+on pytest's path):
+
+```bash
+pip install pytest
+python -m pytest
+```
+
 The project gets the **machinery floor**: the schemas, taxonomies and enforcement
 configuration under `.intent/` that every governed repository carries. It gets **no
 rules**. Rules are a choice you make in the next step.
