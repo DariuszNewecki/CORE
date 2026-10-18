@@ -63,3 +63,16 @@ poetry run core-admin law check-tree  # validate .intent/ and .specs/
   `core-admin` status queries need no permission.
 - The governor decides only: design and policy choices, pushes or releases outside a PR,
   credentials, live-database writes, and stopping running processes.
+
+## What we measure (governor 2026-10-18)
+Every task and PR serves at least one of these; say which in the PR's first line after any "Host change:".
+1. Features vs gap fixes (no new features until v3)
+2. Infra issues closed
+3. Tests written autonomously by CORE
+4. Bugs fixed
+5. Progress to CORE goals (v3 gates)
+6. Maturity
+7. Robustness
+8. Product vs factory time: prefer product work
+9. Incidents: log every one, and anything needing manual hands
+10. Ceremony: a control that does not block, undo, or alert is removed, not added
