@@ -34,7 +34,9 @@ from .hub import app
 # ID: bdcf5084-7102-48c0-8968-0f2d2521d2b8
 async def decisions_show(
     ctx: typer.Context,
-    adr_id: str = typer.Argument(..., help="ADR id: ADR-168 or 168."),
+    adr_id: str = typer.Argument(
+        ..., help="ADR id, with or without its 'ADR-' prefix."
+    ),
 ) -> None:
     """
     Show one architecture decision record: id, title, status and its decision

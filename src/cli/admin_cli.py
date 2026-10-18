@@ -102,12 +102,29 @@ app = typer.Typer(
 )
 
 
+# #1158: `core-admin --help` separates what works from a plain pip install
+# (files and git only) from the operator groups of a CORE installation.
+OFFLINE_PANEL = "Work from a plain pip install (no services)"
+OPERATOR_PANEL = "Operate a CORE installation (most need PostgreSQL, Qdrant or the API)"
+_OFFLINE_GROUPS = frozenset({"project", "code", "law", "decisions", "mcp"})
+
+
 # ID: ceac52ff-a86d-47f6-9c1e-2580932a3767
 def register_all_commands(app_instance: typer.Typer) -> None:
     """
     Register CLI commands according to the Resource-First hierarchy.
     Legacy Verb-First groups (fix, check, inspect) have been purged.
     """
+    _register_groups(app_instance)
+    # Help lists panels in order of first appearance: offline groups first.
+    app_instance.registered_groups.sort(key=lambda g: g.name not in _OFFLINE_GROUPS)
+    for group in app_instance.registered_groups:
+        group.rich_help_panel = (
+            OFFLINE_PANEL if group.name in _OFFLINE_GROUPS else OPERATOR_PANEL
+        )
+
+
+def _register_groups(app_instance: typer.Typer) -> None:
     app_instance.add_typer(admin_app, name="admin")
     app_instance.add_typer(code_app, name="code")
     app_instance.add_typer(cognitive_roles_app, name="cognitive-roles")

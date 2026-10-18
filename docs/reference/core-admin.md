@@ -10,25 +10,25 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 |---|---|---|
 | [`admin`](#admin) | 12 | System forensics: decision traces, refusals, and pattern analytics. |
 | [`capabilities`](#capabilities) | 1 | Inspect and search CORE capabilities. |
-| [`code`](#code) | 5 | Codebase quality, style, and verification operations. |
-| [`cognitive-roles`](#cognitive-roles) | 1 | Cognitive-role capability projection (#821 Unit 2). |
-| [`coherence`](#coherence) | 8 | Constitutional Coherence Checker — scan ADRs, rule domains, and northstar documents for candidate contradictions, gaps, and drift. Governing ADR: ADR-067. |
+| [`code`](#code) | 5 | Codebase quality, style, and verification operations; `code audit --offline` needs no services. |
+| [`cognitive-roles`](#cognitive-roles) | 1 | Cognitive-role capability projection. |
+| [`coherence`](#coherence) | 8 | Constitutional Coherence Checker — scan ADRs, rule domains, and northstar documents for candidate contradictions, gaps, and drift. |
 | [`commands`](#commands) | 1 | Search and inspect registered CLI commands. |
 | [`constitution`](#constitution) | 4 | Operations for the system mind: policies, schemas, and rule coverage. |
 | [`context`](#context) | 3 | Build and explore context packages for LLM assistance. |
 | [`daemon`](#daemon) | 6 | Background worker daemon management. |
 | [`database`](#database) | 6 | PostgreSQL state and operational data management. |
-| [`decisions`](#decisions) | 2 | Decision history: the repository's ADRs, with their files (ADR-168). |
+| [`decisions`](#decisions) | 2 | Decision history: the repository's ADRs, with their files. |
 | [`demo`](#demo) | 2 | Isolated, opt-in demonstrations that CORE governs its own changes. |
 | [`dev`](#dev) | 11 | High-level developer workflows: synchronization, refactor, and stability tools. |
 | [`docs`](#docs) | 1 | Reader-facing documentation generated from live sources (the CLI trees). |
 | [`grc`](#grc) | 2 | Compliance gap-analysis: check a document corpus against a requirements catalog. |
 | [`interactive-test`](#interactive-test) | 2 | Interactive test generation with step-by-step approval |
-| [`law`](#law) | 10 | Grounded answers about this repository's law, with sources (ADR-168). |
-| [`llm-resources`](#llm-resources) | 2 | core.llm_resources authoring/validation surface (#821 Unit 3). |
-| [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant (ADR-168). |
+| [`law`](#law) | 10 | Grounded answers about this repository's law, with sources. |
+| [`llm-resources`](#llm-resources) | 2 | core.llm_resources authoring/validation surface. |
+| [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant. |
 | [`project`](#project) | 3 | Operations for project lifecycle: scaffolding. |
-| [`promote`](#promote) | 1 | Promotions: main's commits the governor approves to run live (ADR-171). |
+| [`promote`](#promote) | 1 | Promotions: main's commits the governor approves to run live. |
 | [`refactor`](#refactor) | 4 | Refactoring analysis and suggestions |
 | [`runtime`](#runtime) | 4 | Runtime state and health of the running CORE system. |
 | [`secrets`](#secrets) | 4 | Manage encrypted secrets in the database. |
@@ -235,7 +235,7 @@ Performs a semantic search for capabilities via /v1/search/capabilities.
 
 ## `core-admin code` {#code}
 
-Codebase quality, style, and verification operations.
+Codebase quality, style, and verification operations; `code audit --offline` needs no services.
 
 ### `core-admin code audit` {#code-audit}
 
@@ -328,7 +328,7 @@ Example: core-admin code verify
 
 ## `core-admin cognitive-roles` {#cognitive-roles}
 
-Cognitive-role capability projection (#821 Unit 2).
+Cognitive-role capability projection.
 
 ### `core-admin cognitive-roles sync` {#cognitive-roles-sync}
 
@@ -347,7 +347,7 @@ Compare cognitive_roles.yaml with core.cognitive_roles; with --write, project th
 
 ## `core-admin coherence` {#coherence}
 
-Constitutional Coherence Checker — scan ADRs, rule domains, and northstar documents for candidate contradictions, gaps, and drift. Governing ADR: ADR-067.
+Constitutional Coherence Checker — scan ADRs, rule domains, and northstar documents for candidate contradictions, gaps, and drift.
 
 ### `core-admin coherence check` {#coherence-check}
 
@@ -838,7 +838,7 @@ This makes the DB the Single Source of Truth for available system neurons.
 
 ## `core-admin decisions` {#decisions}
 
-Decision history: the repository's ADRs, with their files (ADR-168).
+Decision history: the repository's ADRs, with their files.
 
 ### `core-admin decisions list` {#decisions-list}
 
@@ -867,7 +867,7 @@ Example: core-admin decisions show ADR-168
 
 | Argument / option | Default | Description |
 |---|---|---|
-| `ADR_ID` | required | ADR id: ADR-168 or 168. |
+| `ADR_ID` | required | ADR id, with or without its 'ADR-' prefix. |
 
 ---
 
@@ -1208,7 +1208,7 @@ Show information about interactive test generation.
 
 ## `core-admin law` {#law}
 
-Grounded answers about this repository's law, with sources (ADR-168).
+Grounded answers about this repository's law, with sources.
 
 ### `core-admin law access` {#law-access}
 
@@ -1384,7 +1384,7 @@ that does not verify. Exit 1 when any line fails or the ledger is missing.
 
 ## `core-admin llm-resources` {#llm-resources}
 
-core.llm_resources authoring/validation surface (#821 Unit 3).
+core.llm_resources authoring/validation surface.
 
 ### `core-admin llm-resources author` {#llm-resources-author}
 
@@ -1415,7 +1415,7 @@ Validate an llm_resources definition without persisting it.
 
 ## `core-admin mcp` {#mcp}
 
-The assistant surface over MCP: law, decisions and verdict for any AI assistant (ADR-168).
+The assistant surface over MCP: law, decisions and verdict for any AI assistant.
 
 ### `core-admin mcp run` {#mcp-run}
 
@@ -1509,7 +1509,7 @@ governance pack is explicitly adopted.
 
 ## `core-admin promote` {#promote}
 
-Promotions: main's commits the governor approves to run live (ADR-171).
+Promotions: main's commits the governor approves to run live.
 
 ### `core-admin promote propose` {#promote-propose}
 
