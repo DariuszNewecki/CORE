@@ -116,6 +116,9 @@ def test_outside_a_git_work_tree_is_unknown_never_match(tmp_path: Path) -> None:
     state = observe_law_state(tmp_path / ".intent")
     assert state.relationship == "UNKNOWN"
     assert state.reason
+    # #1156: the reason ends in what to do; the CLI appends ", then audit again."
+    assert "run git init" in state.reason
+    assert "commit .intent/" in state.reason
     [finding] = law_drift_findings(state)
     assert finding.context["relationship"] == "UNKNOWN"
 
