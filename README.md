@@ -18,10 +18,13 @@ approves them. What it is for, in plain words: [What CORE does](https://dariuszn
 ## Install and first run
 
 ```bash
+python3 -m venv .venv && . .venv/bin/activate
 pip install core-runtime
 ```
 
-This gives you the `core-admin` CLI. In a repository that already has a
+Current Ubuntu and Debian refuse a bare `pip install` outside a virtual
+environment ("externally-managed-environment"); the first line creates one
+(`pipx install core-runtime` works too). This gives you the `core-admin` CLI. In a repository that already has a
 `.intent/` constitution, audit it with no services running:
 
 ```bash
@@ -34,8 +37,12 @@ To bring CORE into an existing repository, no services are needed either:
 cd your-repo
 core-admin project init . --write
 core-admin project adopt-pack core/starter-python --write
+git add .intent && git commit -m "Adopt CORE"
 core-admin code audit --offline
 ```
+
+The audit judges the law committed at `HEAD`, so commit `.intent/` first;
+uncommitted law reads DEGRADED, never PASS.
 
 Connect your AI assistant (Claude Code shown; any MCP client works) so it asks
 CORE about your project's rules and checks its change before committing; see
@@ -50,7 +57,9 @@ A new project:
 ```bash
 core-admin project new myproject --write
 cd myproject
+git init
 core-admin project adopt-pack core/starter-python --write
+git add -A && git commit -m "Adopt core/starter-python"
 core-admin code audit --offline
 ```
 
