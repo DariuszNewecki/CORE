@@ -15,6 +15,8 @@ from body.services.thesis.measure import (
     measure,
     merge_verdict,
     pr_trips,
+    promotion_cutover,
+    promotion_verdict,
     transcript_trips,
 )
 
@@ -115,11 +117,23 @@ class _FakeGitHub:
 
     repo = "owner/name"
 
-    def __init__(self, writes: list[dict], prs: list[dict]) -> None:
+    def __init__(
+        self,
+        writes: list[dict],
+        prs: list[dict],
+        pulls: dict[int, dict] | None = None,
+        reviews: dict[int, list[dict]] | None = None,
+    ) -> None:
         self.writes, self.prs = writes, prs
+        self.pulls, self.reviews = pulls or {}, reviews or {}
 
     async def get_pages(self, path: str) -> list[dict]:
+        if path.startswith("pulls/"):
+            return self.reviews.get(int(path.split("/")[1]), [])
         return self.writes
+
+    async def get_or_none(self, path: str) -> dict | None:
+        return self.pulls.get(int(path.split("/")[1]))
 
     async def graphql(self, query: str, variables: dict) -> dict:
         if "mergeCommit" in query:
@@ -609,3 +623,141 @@ async def test_convergence_leaves_telemetry_out_and_says_how_much(monkeypatch) -
         "NOT subject LIKE ANY" in created_sql and "NOT subject LIKE ANY" in closed_sql
     )
     assert created_params["t"] == ["loop\\_hold.sample::%"] == closed_params["t"]
+
+
+# -- the promotion cutover (ADR-171) ---------------------------------------------
+
+PROMOTED = "p" * 40
+
+
+def _promotion(sha: str = PROMOTED, ref: str = "promote/next", **change) -> dict:
+    return {
+        "state": "open",
+        "base": {"ref": "live"},
+        "head": {"ref": ref, "sha": sha},
+        **change,
+    }
+
+
+def _review(commit: str = PROMOTED, login: str = GOV, state: str = "APPROVED"):
+    return {"user": {"login": login}, "state": state, "commit_id": commit}
+
+
+def _ledger_file(tmp_path: Path, *entries: dict) -> Path:
+    ledger = tmp_path / "deploy-ledger.jsonl"
+    ledger.write_text("\n".join(json.dumps(e) for e in entries) + "\n")
+    return ledger
+
+
+def test_the_cutover_is_the_first_deploy_recorded_with_a_promotion(
+    tmp_path: Path,
+) -> None:
+    ledger = _ledger_file(
+        tmp_path,
+        {"action": "deploy", "at": "2026-10-18T07:50:00+00:00", "sha": "a" * 40},
+        {"action": "deploy", "at": "2026-10-20T09:00:00+00:00", "promotion": 1200},
+        {"action": "deploy", "at": "2026-10-22T09:00:00+00:00", "promotion": 1210},
+    )
+    assert promotion_cutover(ledger) == date(2026, 10, 20)
+    assert promotion_cutover(_ledger_file(tmp_path, {"action": "deploy"})) is None
+
+
+def test_promotion_verdict() -> None:
+    entry = {"sha": PROMOTED, "promotion": 1200}
+    assert promotion_verdict(entry, _promotion(), [_review()], GOV) is None
+    merged = _promotion(state="closed", merged=True)
+    assert promotion_verdict(entry, merged, [_review()], GOV) is None
+    cases = [
+        ({"sha": PROMOTED}, _promotion(), [_review()], "without a promotion"),
+        (entry, None, [], "not found"),
+        (entry, _promotion(base={"ref": "main"}), [_review()], "does not go into"),
+        (
+            entry,
+            _promotion(ref="x"),
+            [_review()],
+            "promote/",
+        ),
+        (entry, _promotion(sha="o" * 40), [_review()], "head is"),
+        (entry, _promotion(state="closed", merged=False), [_review()], "closed"),
+        (entry, _promotion(), [], "did not approve"),
+        (entry, _promotion(), [_review(login="bot")], "did not approve"),
+        (entry, _promotion(), [_review(commit="o" * 40)], "did not approve"),
+        (
+            entry,
+            _promotion(),
+            [_review(), _review(state="DISMISSED")],
+            "did not approve",
+        ),
+    ]
+    for e, pull, reviews, why in cases:
+        verdict = promotion_verdict(e, pull, reviews, GOV)
+        assert verdict is not None and why in verdict, (why, verdict)
+
+
+async def test_after_the_cutover_deploys_count_and_main_writes_do_not(
+    tmp_path: Path,
+) -> None:
+    """From the first promoted deploy, a self-merged write to main is
+    integration (ADR-171); a deploy without an approved promotion is the
+    unverified write."""
+    ledger = _ledger_file(
+        tmp_path,
+        {
+            "action": "deploy",
+            "at": "2026-10-20T09:00:00+00:00",
+            "sha": PROMOTED,
+            "promotion": 1200,
+        },
+        {"action": "deploy", "at": "2026-10-21T09:00:00+00:00", "sha": "q" * 40},
+        {"action": "rollback", "at": "2026-10-21T10:00:00+00:00", "sha": PROMOTED},
+    )
+    writes = [
+        {  # before the cutover, unapproved: still counted
+            "activity_type": "push",
+            "after": "b" * 40,
+            "actor": {"login": "x"},
+            "timestamp": "2026-10-19T12:00:00Z",
+        },
+        {  # after the cutover: main is integration
+            "activity_type": "pr_merge",
+            "after": MERGE,
+            "timestamp": "2026-10-20T12:00:00Z",
+        },
+    ]
+    gh = _FakeGitHub(
+        writes,
+        [_pr(merger="claude-bot", reviews=())],
+        pulls={1200: _promotion()},
+        reviews={1200: [_review()]},
+    )
+    taken = await _measure(
+        date(2026, 10, 22), gh, tmp_path, governor=GOV, deploys=(ledger, tmp_path)
+    )
+    assert [b["sha"] for b in taken.unverified_breaches] == ["b" * 40, "q" * 40]
+    assert (
+        taken.unverified_breaches[1]["reason"] == "deploy: deployed without a promotion"
+    )
+    assert taken.detail["unverified"]["promotion_cutover"] == "2026-10-20"
+    assert taken.detail["unverified"]["deploys_judged"] == 2
+
+
+async def test_before_any_promoted_deploy_main_writes_count_as_before(
+    tmp_path: Path,
+) -> None:
+    ledger = _ledger_file(
+        tmp_path,
+        {"action": "deploy", "at": "2026-10-18T07:50:00+00:00", "sha": "a" * 40},
+    )
+    writes = [
+        {
+            "activity_type": "pr_merge",
+            "after": MERGE,
+            "timestamp": "2026-10-18T12:00:00Z",
+        }
+    ]
+    gh = _FakeGitHub(writes, [_pr(merger="claude-bot", reviews=())])
+    taken = await _measure(
+        date(2026, 10, 19), gh, tmp_path, governor=GOV, deploys=(ledger, tmp_path)
+    )
+    assert [b["sha"] for b in taken.unverified_breaches] == [MERGE]
+    assert taken.detail["unverified"]["promotion_cutover"] is None
