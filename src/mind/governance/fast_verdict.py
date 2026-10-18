@@ -55,7 +55,7 @@ _BLOCKING = {"block", "blocking"}
 _AUTHORITY_NOTE = (
     "Producer feedback, not the authoritative verdict. PASS is given only by the "
     "full audit, which evaluates every rule: `core-admin code audit --offline` "
-    "locally, and CORE's GitHub Action on every pull request (#1043)."
+    "locally, and CORE's GitHub Action on every pull request."
 )
 
 

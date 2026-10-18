@@ -273,7 +273,7 @@ TOOLS: dict[str, AssistantTool] = {
             name="decision_adr",
             description=(
                 "One architecture decision record (ADR): id, title, status and its "
-                "decision headings, with its file. Accepts 'ADR-168' or '168'."
+                "decision headings, with its file. Accepts the ID with or without its 'ADR-' prefix."
             ),
             input_schema={
                 "type": "object",
@@ -316,7 +316,7 @@ TOOLS: dict[str, AssistantTool] = {
         AssistantTool(
             name="validate_change",
             description=(
-                "Step 1 of submitting a change (ADR-168 Amendment 2026-10-10 A1): ask "
+                "Step 1 of submitting a change: ask "
                 "CORE to check a unified diff in full (governed-text refusal, full "
                 "blocking audit, test rules, tests). Returns a validation_run_id at "
                 "once; the check takes a few minutes. Writes nothing to the tree."
