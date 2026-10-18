@@ -407,7 +407,7 @@ def test_a_fresh_host_seeds_the_law_before_anything_is_deployed(world, capsys) -
     assert _main(world, "--apply") == 0
     assert "core-law-setup --apply again" not in capsys.readouterr().out
     assert cls.installed_wheel_sha256(layout.venv) == WHEEL_SHA
-    assert (layout.system_units / "core-law-auto-apply.timer").is_file()
+    assert not any(layout.system_units.iterdir())
 
 
 def test_a_venv_from_another_wheel_is_replaced_by_the_live_release(world) -> None:
@@ -526,30 +526,61 @@ def test_a_repository_rename_that_succeeds_fails_the_run_and_is_undone(world) ->
     assert undo
 
 
-# -- record-only auto-apply timers (governor redesign 2026-10-12) ---------------
+# -- no auto-apply (2026-10-18) -------------------------------------------------
+
+AUTO_UNITS = (
+    "core-law-auto-apply.service",
+    "core-law-auto-apply.timer",
+    "core-law-digest.service",
+    "core-law-digest.timer",
+)
 
 
-def test_auto_apply_timers_run_as_core_law_and_never_approve_rules(world) -> None:
+def test_setup_installs_neither_auto_apply_nor_digest(world) -> None:
+    # 2026-10-18: auto-apply applied record-only proposals from var/law-proposals,
+    # which every core-dev account can write: .specs/ changed without a merge.
     host, layout = world
     assert _main(world, "--apply") == 0
-    service = (layout.system_units / "core-law-auto-apply.service").read_text()
-    assert "User=core-law" in service
-    assert "law auto-apply --write" in service
-    assert "law apply" not in service.replace("law auto-apply", "")
-    timer = (layout.system_units / "core-law-auto-apply.timer").read_text()
-    assert "OnUnitActiveSec=15min" in timer
-    digest = (layout.system_units / "core-law-digest.service").read_text()
-    assert "law digest --hours 24" in digest
-    enabled = [c for c in host.calls if c[0][:3] == ["systemctl", "enable", "--now"]]
-    assert enabled and "core-law-auto-apply.timer" in enabled[-1][0]
+    for name in AUTO_UNITS:
+        assert not (layout.system_units / name).exists()
+    assert not [c for c in host.calls if c[0][:2] == ["systemctl", "enable"]]
 
 
-def test_auto_apply_timers_are_left_alone_on_a_rerun(world) -> None:
-    host, _layout = world
+def test_setup_disables_and_deletes_installed_auto_apply_units(world) -> None:
+    host, layout = world
+    for name in AUTO_UNITS:
+        (layout.system_units / name).write_text("[Unit]\n")
     assert _main(world, "--apply") == 0
-    host.calls.clear()
+    for name in AUTO_UNITS:
+        assert not (layout.system_units / name).exists()
+    commands = [c[0] for c in host.calls if c[0][0] == "systemctl"]
+    # Timers first, so neither fires a service while it is being removed.
+    disable = commands.index(["systemctl", "disable", "--now", *cls.REMOVED_UNITS])
+    assert cls.REMOVED_UNITS[:2] == (
+        "core-law-auto-apply.timer",
+        "core-law-digest.timer",
+    )
+    assert commands.index(["systemctl", "daemon-reload"]) > disable
+
+
+def test_without_apply_the_units_are_only_named(world, capsys) -> None:
+    _host, layout = world
+    for name in AUTO_UNITS:
+        (layout.system_units / name).write_text("[Unit]\n")
+    assert _main(world) == 0
+    assert "would: systemctl disable --now core-law-auto-apply.timer" in (
+        capsys.readouterr().out
+    )
+    for name in AUTO_UNITS:
+        assert (layout.system_units / name).is_file()
+
+
+def test_units_are_removed_on_a_fresh_host_too(world) -> None:
+    _host, layout = world
+    layout.current.unlink()
+    (layout.system_units / "core-law-auto-apply.timer").write_text("[Unit]\n")
     assert _main(world, "--apply") == 0
-    assert not [c for c in host.calls if c[0][:2] == ["systemctl", "daemon-reload"]]
+    assert not (layout.system_units / "core-law-auto-apply.timer").exists()
 
 
 def _private_seed(world, *, owner: str = "core-claude") -> Path:
