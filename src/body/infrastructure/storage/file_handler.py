@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any, TextIO
 
 from body.governance.intent_guard import get_intent_guard
+from body.governance.metadata_proof import check_metadata_write
 from mind.governance.violation_report import ConstitutionalViolationError
 from shared.ast_utility import find_orphan_shadowed_symbols
 from shared.config import settings
@@ -288,8 +289,10 @@ class FileHandler:
                     )
                 content = self._ensure_id_anchors(content)
             content = ensure_trailing_newline(content)
+            check_metadata_write(abs_path, rel_path, content)
             self._atomic_write_text(abs_path, content)
         else:
+            check_metadata_write(abs_path, rel_path, content)
             self._atomic_write_bytes(abs_path, content)
         return FileOpResult("success", "Wrote file", rel_path)
 
@@ -403,6 +406,7 @@ class FileHandler:
         rel_path = self._canonical_rel(rel_path)
         self._guard_paths([rel_path], op_class="delete")
         abs_path = self._resolve_repo_path(rel_path)
+        check_metadata_write(abs_path, rel_path, None)
         abs_path.unlink(missing_ok=True)
         return FileOpResult("success", "File removed", rel_path)
 
