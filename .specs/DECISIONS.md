@@ -1512,47 +1512,48 @@ merge is the only approval of law: the governor's sudo rule for law apply is rem
 governor holds no sudo (ADR-068 amendment 2026-10-15; D6 superseded).  
 Enforced by: governance.logic_mutation.governed, governance.mutation_surface.filehandler_required
 
-## ADR-171 — Release flow: main is integration, the governor approves releases
+## ADR-171 — Promotion flow: main is integration, the governor approves each promotion to live
 
 2026-10-18 · proposed (design note; nothing implements it yet)  
+**Terms.** A *promotion* moves a main SHA to the branch `live`, the only code CORE runs. A
+*release* stays reserved for a published version (v3, a PyPI or GitHub release); this note
+changes nothing about releases.  
 **Decision.** Main is integration: core-claude merges its own pull requests once the required CI
-checks are green, and nothing on main runs live. Code, law and host setup become live only as a
-release, a main SHA the governor approved; core-pipeline deploys nothing else.
-- **One approval per release.** CORE proposes a release once a day as a release pull request
-  (main's SHA into the `release` branch). The governor's approval of its exact head commit is the
-  decision. `release` advances by fast-forward only, to that approved head (`git push
-  <sha>:release`, which GitHub records as the pull request merged); GitHub's merge button, which
-  makes a merge commit, is not used. core-pipeline deploys exactly the approved head SHA, never a
-  merge commit.
+checks are green, and nothing on main runs live. Code, law and host setup become live only by a
+promotion the governor approved; core-pipeline deploys nothing else.
+- **One approval per promotion.** CORE proposes a promotion once a day as a promotion pull request
+  (main's SHA into `live`). The governor's approval of its exact head commit is the decision.
+  `live` advances by fast-forward only, to that approved head (`git push <sha>:live`, which
+  GitHub records as the pull request merged); GitHub's merge button, which makes a merge commit,
+  is not used. core-pipeline deploys exactly the approved head SHA, never a merge commit.
 - **The summary, in plain language.** High-risk items first: `infra/` and host changes,
   `.intent/`, migrations, and auth/security paths (`src/api/dependencies.py`, principals,
   sandbox, custody). Then the CI result and the sandbox check of the candidate SHA.
-- **Reject** = the governor closes the release pull request; core-claude reverts the rejected
+- **Reject** = the governor closes the promotion pull request; core-claude reverts the rejected
   changes on main, and the next proposal carries the revert.
-- **Urgent fix**: on the governor's request, an immediate release proposal of main as it is,
+- **Urgent fix**: on the governor's request, an immediate promotion proposal of main as it is,
   outside the daily schedule; no cherry-picks.
 - **Root host setup** (core-runtime-setup, core-one-path-setup, core-law-setup) and merged law
-  (`law apply-merge`) run only when an approved release is deployed, never on a merge to main.
-- **Thesis.** "Unverified writes" is measured against releases: a deployed SHA that is not a
-  governor-approved release is an unverified write. Writes to main are integration and are not
+  (`law apply-merge`) run only when an approved promotion is deployed, never on a merge to main.
+- **Thesis.** "Unverified writes" is measured against promotions: a deployed SHA that is not a
+  governor-approved promotion is an unverified write. Writes to main are integration and are not
   counted.
 
 **Implementing pull requests, in order:**
-1. `CLAUDE.md` working rules: main is not live; the governor approves releases; core-claude
+1. `CLAUDE.md` working rules: main is not live; the governor approves promotions; core-claude
    merges its own green PRs once the governor settings below are in place. With the thesis entry
-   above, amended to count releases.
-2. core-pipeline: deploy exactly the head SHA of the release PR the governor approved and
-   fast-forward `release` to it; a merge to main, or any merge commit, deploys nothing. Host
-   change.
-3. core-deploy: refuse a SHA that is not the approved release head, so host setup and merged law
-   run only at a release. Host change.
-4. `core-admin release propose` and its daily timer: open or update the release PR with the
-   summary (risk classes from the diff since the last release, CI and sandbox results);
+   above, amended to count promotions.
+2. core-pipeline: deploy exactly the head SHA of the promotion PR the governor approved and
+   fast-forward `live` to it; a merge to main, or any merge commit, deploys nothing. Host change.
+3. core-deploy: refuse a SHA that is not the approved promotion head, so host setup and merged
+   law run only at a promotion. Host change.
+4. `core-admin promote propose` and its daily timer: open or update the promotion PR with the
+   summary (risk classes from the diff since the last promotion, CI and sandbox results);
    `--urgent` proposes main at once. Host change (the timer).
-5. `scripts/thesis_baseline.py`: unverified writes counted against deployed releases.
+5. `scripts/thesis_baseline.py`: unverified writes counted against deployed promotions.
 
 **Governor settings (GitHub, not a PR), last:** only after PRs 2 and 3 are deployed, branch
-protection lets core-claude merge to main on green required checks without review, and `release`
+protection lets core-claude merge to main on green required checks without review, and `live`
 moves only by fast-forward to a head the governor approved. Until then every merge to main still
 needs the governor's approval, as today.  
 Enforced by: not enforced
