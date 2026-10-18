@@ -18,11 +18,15 @@ Supersedes ADR-159's thresholds. Measured by `scripts/thesis_baseline.py`.
 software, at a governance cost that falls over time.  
 **Measures, with the 2026-10-13 baselines:**
 - Unverified writes to main = 0 since 2026-10-12 (every write a governor-merged, CI-green PR).
+  From the governor's ruleset switch (ADR-171): unverified writes are counted against promotions
+  instead, a deployed SHA that is not a governor-approved promotion; writes to main are
+  integration and not counted.
 - AI authorship of commits merged into main >= 63%, never lower.
 - Waste trips per merged change = 2.0, falling month on month.
 - Convergence = findings resolved (not abandoned) / findings created >= 100%; currently 89%.
 
-**Refuted by:** an unverified write on main; waste per change rising with scale; or convergence
+**Refuted by:** an unverified write (on main; from the ruleset switch, a deployed SHA no
+promotion approved); waste per change rising with scale; or convergence
 below 100% for two consecutive months once it has first reached 100%.
 
 ## ADR-001 — Establish the .specs/ layer
@@ -1552,7 +1556,7 @@ promotion the governor approved; core-pipeline deploys nothing else.
    `--urgent` proposes main at once. Host change (the timer).
 5. `scripts/thesis_baseline.py`: unverified writes counted against deployed promotions.
 
-**Governor settings (GitHub, not a PR), last:** only after PRs 2 and 3 are deployed, branch
+**Governor settings (GitHub, not a PR), last:** only after PRs 2-5 are deployed, branch
 protection lets core-claude merge to main on green required checks without review, and `live`
 moves only by fast-forward to a head the governor approved. Until then every merge to main still
 needs the governor's approval, as today.  
