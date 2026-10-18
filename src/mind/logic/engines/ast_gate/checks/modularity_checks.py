@@ -16,11 +16,6 @@ import re
 from pathlib import Path
 from typing import Any, ClassVar
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
-
 
 _CORE_ROLE_VALUES = frozenset({"facade", "algorithm", "catalog"})
 
@@ -234,67 +229,62 @@ class ModularityChecker:
         target_value = float(params.get("max_score", 60.0))
         warning_level = target_value * 0.8  # Gauss Gauge
 
-        try:
-            content = file_path.read_text(encoding="utf-8")
-            tree = ast.parse(content)
+        content = file_path.read_text(encoding="utf-8")
+        tree = ast.parse(content)
 
-            # 1. Responsibilities (Weight: 35)
-            resps = self._detect_responsibilities(content)
-            resp_count = len(resps)
-            # Penalty starts after 1st responsibility
-            resp_score = min(max(0, resp_count - 1) * 15, 35)
+        # 1. Responsibilities (Weight: 35)
+        resps = self._detect_responsibilities(content)
+        resp_count = len(resps)
+        # Penalty starts after 1st responsibility
+        resp_score = min(max(0, resp_count - 1) * 15, 35)
 
-            # 2. Cohesion (Weight: 25)
-            functions = self._extract_functions(tree)
-            cohesion = self._calculate_cohesion(functions)
-            # Higher score for LOWER cohesion (Debt)
-            cohesion_score = (1.0 - cohesion) * 25
+        # 2. Cohesion (Weight: 25)
+        functions = self._extract_functions(tree)
+        cohesion = self._calculate_cohesion(functions)
+        # Higher score for LOWER cohesion (Debt)
+        cohesion_score = (1.0 - cohesion) * 25
 
-            # 3. Coupling (Weight: 25)
-            imports = self._extract_imports(tree)
-            concerns = self._identify_concerns(imports)
-            # Penalty starts after 3rd concern area
-            coupling_score = min(max(0, len(concerns) - 3) * 7, 25)
+        # 3. Coupling (Weight: 25)
+        imports = self._extract_imports(tree)
+        concerns = self._identify_concerns(imports)
+        # Penalty starts after 3rd concern area
+        coupling_score = min(max(0, len(concerns) - 3) * 7, 25)
 
-            # 4. Size (Weight: 15)
-            loc = len(content.splitlines())
-            # Penalty starts after 200 lines
-            size_score = min(max(0, (loc - 200) // 20), 15)
+        # 4. Size (Weight: 15)
+        loc = len(content.splitlines())
+        # Penalty starts after 200 lines
+        size_score = min(max(0, (loc - 200) // 20), 15)
 
-            total_score = resp_score + cohesion_score + coupling_score + size_score
+        total_score = resp_score + cohesion_score + coupling_score + size_score
 
-            # Return a finding if we exceed the Warning level (80% of target)
-            if total_score > warning_level:
-                severity = "error" if total_score > target_value else "warning"
-                return [
-                    {
-                        "rule_id": "modularity.refactor_score_threshold",
-                        "severity": severity,
-                        "message": f"Modularity Debt: {total_score:.1f}/100 (Limit: {target_value})",
-                        "file": str(file_path),
-                        "details": {
-                            "total_score": total_score,
-                            "responsibility_count": resp_count,
-                            "responsibilities": resps,
-                            "cohesion": cohesion,
-                            "concern_count": len(concerns),
-                            "concerns": concerns,
-                            "lines_of_code": loc,
-                            "function_count": len(functions),
-                            "breakdown": {
-                                "responsibilities": resp_score,
-                                "cohesion": cohesion_score,
-                                "coupling": coupling_score,
-                                "size": size_score,
-                            },
+        # Return a finding if we exceed the Warning level (80% of target)
+        if total_score > warning_level:
+            severity = "error" if total_score > target_value else "warning"
+            return [
+                {
+                    "rule_id": "modularity.refactor_score_threshold",
+                    "severity": severity,
+                    "message": f"Modularity Debt: {total_score:.1f}/100 (Limit: {target_value})",
+                    "file": str(file_path),
+                    "details": {
+                        "total_score": total_score,
+                        "responsibility_count": resp_count,
+                        "responsibilities": resps,
+                        "cohesion": cohesion,
+                        "concern_count": len(concerns),
+                        "concerns": concerns,
+                        "lines_of_code": loc,
+                        "function_count": len(functions),
+                        "breakdown": {
+                            "responsibilities": resp_score,
+                            "cohesion": cohesion_score,
+                            "coupling": coupling_score,
+                            "size": size_score,
                         },
-                    }
-                ]
-            return []
-
-        except Exception as e:
-            logger.error("Analysis failed for %s: %s", file_path, e)
-            return []
+                    },
+                }
+            ]
+        return []
 
     # --- RULE-ALIGNED SENSORS ---
     # These are the methods the enforcement mappings in
@@ -302,6 +292,10 @@ class ModularityChecker:
     # They were introduced in commit 90aab242, silently removed in
     # 5a43be56, and restored here. The rules they back are declared
     # active in .intent/rules/code/modularity.json.
+    #
+    # None of these checks catches its own exceptions: a crash propagates
+    # to rule_executor, which records it as an ENFORCEMENT_FAILURE finding.
+    # Returning [] on a crash made a broken check read as a clean file.
 
     # ID: 48e9ff26-da82-46c2-9e95-055b16bb02dc
     def check_needs_split(
@@ -317,49 +311,44 @@ class ModularityChecker:
         """
         max_lines = int(params.get("max_lines", 400))
 
-        try:
-            content = file_path.read_text(encoding="utf-8")
+        content = file_path.read_text(encoding="utf-8")
 
-            loc = len(content.splitlines())
-            if loc <= max_lines:
-                return []
-
-            tree = ast.parse(content)
-            if _has_core_role_declaration(tree):
-                return []
-
-            responsibilities = self._detect_responsibilities(content)
-
-            dominant_name, dominant_lines, dominant_ratio = self._find_dominant_class(
-                tree, loc
-            )
-
-            if len(responsibilities) <= 2 and dominant_lines <= max_lines:
-                return [
-                    {
-                        "rule_id": "modularity.needs_split",
-                        "message": (
-                            f"File has {loc} lines (limit {max_lines}) with only "
-                            f"{len(responsibilities)} responsibility signal(s) — "
-                            f"consider splitting"
-                        ),
-                        "file": str(file_path),
-                        "details": {
-                            "lines_of_code": loc,
-                            "max_lines": max_lines,
-                            "responsibility_count": len(responsibilities),
-                            "responsibilities": responsibilities,
-                            "dominant_class_name": dominant_name,
-                            "dominant_class_lines": dominant_lines,
-                            "dominant_class_ratio": dominant_ratio,
-                        },
-                    }
-                ]
+        loc = len(content.splitlines())
+        if loc <= max_lines:
             return []
 
-        except Exception as e:
-            logger.error("Needs-split check failed for %s: %s", file_path, e)
+        tree = ast.parse(content)
+        if _has_core_role_declaration(tree):
             return []
+
+        responsibilities = self._detect_responsibilities(content)
+
+        dominant_name, dominant_lines, dominant_ratio = self._find_dominant_class(
+            tree, loc
+        )
+
+        if len(responsibilities) <= 2 and dominant_lines <= max_lines:
+            return [
+                {
+                    "rule_id": "modularity.needs_split",
+                    "message": (
+                        f"File has {loc} lines (limit {max_lines}) with only "
+                        f"{len(responsibilities)} responsibility signal(s) — "
+                        f"consider splitting"
+                    ),
+                    "file": str(file_path),
+                    "details": {
+                        "lines_of_code": loc,
+                        "max_lines": max_lines,
+                        "responsibility_count": len(responsibilities),
+                        "responsibilities": responsibilities,
+                        "dominant_class_name": dominant_name,
+                        "dominant_class_lines": dominant_lines,
+                        "dominant_class_ratio": dominant_ratio,
+                    },
+                }
+            ]
+        return []
 
     # ID: 385e0723-46ee-49b7-88a6-d0e81c00b671
     def check_class_too_large(
@@ -368,39 +357,34 @@ class ModularityChecker:
         """Flag files whose dominant top-level class exceeds the line limit."""
         max_lines = int(params.get("max_lines", 400))
 
-        try:
-            content = file_path.read_text(encoding="utf-8")
-            tree = ast.parse(content)
-            if _has_core_role_declaration(tree):
-                return []
-
-            loc = len(content.splitlines())
-            name, class_lines, class_ratio = self._find_dominant_class(tree, loc)
-
-            if class_lines > max_lines:
-                return [
-                    {
-                        "rule_id": "modularity.class_too_large",
-                        "message": (
-                            f"Class {name!r} occupies {class_lines} lines "
-                            f"(limit {max_lines}) — class-level refactor required, "
-                            f"not automatable"
-                        ),
-                        "file": str(file_path),
-                        "details": {
-                            "lines_of_code": loc,
-                            "max_lines": max_lines,
-                            "dominant_class_name": name,
-                            "dominant_class_lines": class_lines,
-                            "dominant_class_ratio": class_ratio,
-                        },
-                    }
-                ]
+        content = file_path.read_text(encoding="utf-8")
+        tree = ast.parse(content)
+        if _has_core_role_declaration(tree):
             return []
 
-        except Exception as e:
-            logger.error("Class-too-large check failed for %s: %s", file_path, e)
-            return []
+        loc = len(content.splitlines())
+        name, class_lines, class_ratio = self._find_dominant_class(tree, loc)
+
+        if class_lines > max_lines:
+            return [
+                {
+                    "rule_id": "modularity.class_too_large",
+                    "message": (
+                        f"Class {name!r} occupies {class_lines} lines "
+                        f"(limit {max_lines}) — class-level refactor required, "
+                        f"not automatable"
+                    ),
+                    "file": str(file_path),
+                    "details": {
+                        "lines_of_code": loc,
+                        "max_lines": max_lines,
+                        "dominant_class_name": name,
+                        "dominant_class_lines": class_lines,
+                        "dominant_class_ratio": class_ratio,
+                    },
+                }
+            ]
+        return []
 
     # ID: e7415876-4981-4c11-b91e-05eb175948e1
     def check_needs_refactor(
@@ -409,33 +393,28 @@ class ModularityChecker:
         """Flag files with too many concerns — mixed disciplines needing refactor."""
         max_concerns = int(params.get("max_concerns", 3))
 
-        try:
-            content = file_path.read_text(encoding="utf-8")
-            tree = ast.parse(content)
+        content = file_path.read_text(encoding="utf-8")
+        tree = ast.parse(content)
 
-            imports = self._extract_imports(tree)
-            concerns = self._identify_concerns(imports)
+        imports = self._extract_imports(tree)
+        concerns = self._identify_concerns(imports)
 
-            if len(concerns) > max_concerns:
-                return [
-                    {
-                        "rule_id": "modularity.needs_refactor",
-                        "message": (
-                            f"File touches {len(concerns)} concern areas "
-                            f"(limit {max_concerns}) — mixed disciplines"
-                        ),
-                        "file": str(file_path),
-                        "details": {
-                            "concern_count": len(concerns),
-                            "max_concerns": max_concerns,
-                            "concerns": concerns,
-                        },
-                    }
-                ]
-            return []
-
-        except Exception as e:
-            logger.error("Needs-refactor check failed for %s: %s", file_path, e)
-            return []
+        if len(concerns) > max_concerns:
+            return [
+                {
+                    "rule_id": "modularity.needs_refactor",
+                    "message": (
+                        f"File touches {len(concerns)} concern areas "
+                        f"(limit {max_concerns}) — mixed disciplines"
+                    ),
+                    "file": str(file_path),
+                    "details": {
+                        "concern_count": len(concerns),
+                        "max_concerns": max_concerns,
+                        "concerns": concerns,
+                    },
+                }
+            ]
+        return []
 
     # Compatibility methods to ensure 'check audit' doesn't break

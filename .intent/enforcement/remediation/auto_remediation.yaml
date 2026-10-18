@@ -1669,6 +1669,16 @@ mappings:
       requires governor review of the change. Non-automatable.
     status: DELEGATE
 
+  metadata.operations.comment_length_limit:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      A metadata operation writes a comment line longer than 120 characters.
+      file.tag_metadata refuses the write before it lands, so there is no
+      file to fix; the producing action must shorten the comment.
+      Non-automatable.
+    status: DELEGATE
+
   planning.file_path_validation:
     action: fix.modularity
     confidence: 0.40
