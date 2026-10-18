@@ -58,3 +58,13 @@ async def test_tool_answers_cite_no_internal_refs(repo: Path) -> None:
     for name, arguments in _shared._CALLS.items():
         found += _refs(await invoke(name, arguments, repo), name)
     assert found == []
+
+
+# ID: acf5423d-75dd-4075-a5ad-f3c9719908bd
+def test_submit_change_says_what_it_answers() -> None:
+    """#1178 (proof run 4): the description ended "and answers step 0"; no
+    step 0 is defined anywhere an assistant can read."""
+    text = TOOLS["submit_change"].description
+    assert "step 0" not in text.lower()
+    for field in ("proposal_id", "status", "scope_files", "step_zero"):
+        assert field in text, field

@@ -335,7 +335,9 @@ TOOLS: dict[str, AssistantTool] = {
             description=(
                 "Step 2: if the validation run passed, CORE creates a PENDING proposal "
                 "for the same patch, with its anchor (issue | adr | governor_request), "
-                "producer and what it retires, and answers step 0. Approval is always "
+                "producer and what it retires. It answers with proposal_id, status "
+                "(pending), approval_required, scope_files and step_zero (the report "
+                "the governor sees before approving). Approval is always "
                 "the governor's, typed at a terminal; this tool never approves. If "
                 "the run is still going or failed, says so and submits nothing."
             ),
