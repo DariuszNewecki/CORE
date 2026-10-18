@@ -246,3 +246,32 @@ async def test_refuses_collision_with_hand_authored_rule(tmp_path: Path) -> None
     with pytest.raises(typer.Exit):
         await _run(target, write=True)
     assert not (target / ".intent" / "rules" / "packs").exists()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("write", [False, True])
+# ID: 9f1425b0-eeec-468d-8ee8-5910c7df7f23
+async def test_output_says_wrote_only_when_it_wrote(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, write: bool
+) -> None:
+    """#1175 (proof run 4): with --write the files were written but listed as
+    "Would write:" / "Would update:", the dry-run wording."""
+    import io
+
+    from rich.console import Console
+
+    from cli.resources.project import adopt_pack
+
+    buf = io.StringIO()
+    monkeypatch.setattr(adopt_pack, "console", Console(file=buf, width=300))
+    target = _floored_repo(tmp_path)
+
+    await _run(target, write=write)
+
+    out = buf.getvalue()
+    if write:
+        assert "Would" not in out
+        assert f"Wrote: {target / '.intent' / 'rules' / 'packs' / SLUG}.json" in out
+        assert "Updated: " in out and "intent_tree.yaml" in out
+    else:
+        assert "Would write: " in out and "Wrote:" not in out
