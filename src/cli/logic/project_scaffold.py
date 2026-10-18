@@ -9,7 +9,7 @@ Creates a new repository that can host project law, and nothing more
   byte-for-byte into ``<target>/.intent/``, the same file selection and copy semantics
   ``project onboard`` uses (``byor._machinery_floor_files`` + ``shutil.copy2``);
 - a minimal, neutral Python skeleton (``pyproject.toml``, ``README.md``,
-  ``src/<package>/__init__.py``, ``tests/__init__.py``).
+  ``.gitignore``, ``src/<package>/__init__.py``, ``tests/__init__.py``).
 
 It creates no project-specific rules and makes no domain decisions. A freshly created
 project is not auditable: ``code audit`` fails closed (ADR-108 D4) until rules are
@@ -145,6 +145,9 @@ def plan_new_project(name: str, parent: Path, core_root: Path | None) -> NewProj
         ("README.md", _render_readme(name)),
         (f"src/{package}/__init__.py", f'"""{name}."""\n'),
         ("tests/__init__.py", ""),
+        # #1161: without it, one pytest run put __pycache__/*.pyc into
+        # change_verdict's scope and into the tutorial's `git add -A`.
+        (".gitignore", _GITIGNORE),
         (AUDIT_WORKFLOW, render_audit_workflow()),
     )
     return NewProjectPlan(
@@ -320,6 +323,20 @@ def write_init(
         if outside is not None:
             outside.wrote(workflow)
     return len(plan.floor_copies)
+
+
+_GITIGNORE = (
+    "__pycache__/\n"
+    "*.py[cod]\n"
+    ".pytest_cache/\n"
+    ".ruff_cache/\n"
+    ".mypy_cache/\n"
+    ".coverage\n"
+    ".venv/\n"
+    "*.egg-info/\n"
+    "build/\n"
+    "dist/\n"
+)
 
 
 def _render_pyproject(name: str, package: str) -> str:
