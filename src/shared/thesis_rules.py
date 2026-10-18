@@ -9,8 +9,8 @@ taken daily by the thesis sensor:
 - unverified_writes: writes to main since the one-path cutover (2026-10-12)
   that the runner (infra/core-pipeline) would not deploy: not a pull request
   the governor merged or whose exact last commit the governor approved, or
-  CI not green. From the promotion cutover (ADR-171: the first deploy
-  recorded with its promotion) main is integration and its writes no
+  CI not green. From the promotion cutover (ADR-171: the moment of the
+  first deploy recorded with its promotion) main is integration and its writes no
   longer count; the writes that count are the deploys, each verified only
   when it ran a promotion into live whose exact head the governor approved.
   Any is a breach. Each breach is kept for good in the daily reports

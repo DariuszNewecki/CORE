@@ -9,7 +9,7 @@ never leaves the count). A write is verified only on the runner's criterion
 (infra/core-pipeline): a pull request merged by the governor's GitHub
 account, or whose exact last commit that account approved, with green CI.
 From the first deploy recorded with its promotion (ADR-171, the promotion
-cutover) main is integration: its writes are no longer counted, and the
+cutover: that deploy's exact moment, not its day) main is integration: its writes are no longer counted, and the
 writes that count are the deploys, each verified only when it records a
 promotion into ``live`` whose head is the deployed commit and whose exact
 head the governor approved. Sources: GitHub's
@@ -277,16 +277,27 @@ def _ledger(path: Path) -> list[dict[str, Any]]:
     return entries
 
 
+def _when(value: Any) -> datetime | None:
+    """An ISO timestamp (``Z`` or an offset) as an aware datetime; None when
+    it is missing or not one."""
+    try:
+        moment = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return moment if moment.tzinfo else moment.replace(tzinfo=UTC)
+
+
 # ID: 8d2b25a4-5ddc-4979-9c89-49c6e7edb7bf
-def promotion_cutover(ledger: Path) -> date | None:
-    """The day of the first deploy recorded with its promotion (ADR-171);
+def promotion_cutover(ledger: Path) -> datetime | None:
+    """The moment of the first deploy recorded with its promotion (ADR-171);
     None before any. Raises OSError when the ledger cannot be read."""
-    days = [
-        str(e.get("at", ""))[:10]
+    moments = [
+        moment
         for e in _ledger(ledger)
         if e.get("action") == "deploy" and e.get("promotion") is not None
+        if (moment := _when(e.get("at"))) is not None
     ]
-    return date.fromisoformat(min(days)) if days else None
+    return min(moments) if moments else None
 
 
 # ID: 995031bf-2a16-4413-9f73-875936d1cc07
@@ -328,16 +339,18 @@ def promotion_verdict(
 
 # ID: 83f31623-af9a-4786-956d-7323e152cd07
 async def unverified_deploys(
-    gh: GitHub, ledger: Path, since: date, governor: str
+    gh: GitHub, ledger: Path, since: datetime, governor: str
 ) -> tuple[list[dict[str, str]], int]:
-    """(deploys since *since* that ran no approved promotion, as {sha,
+    """(deploys at or after *since* that ran no approved promotion, as {sha,
     reason}; how many deploys were judged). A rollback deploys nothing new
     and is not judged."""
     bad: list[dict[str, str]] = []
     deploys = [
         e
         for e in _ledger(ledger)
-        if e.get("action") == "deploy" and str(e.get("at", "")) >= _iso(since)
+        if e.get("action") == "deploy"
+        and (moment := _when(e.get("at"))) is not None
+        and moment >= since
     ]
     for entry in deploys:
         number = entry.get("promotion")
@@ -649,7 +662,7 @@ async def measure(
 
     unverified: int | None = None
     writes_14: int | None = None
-    cutover: date | None = None
+    cutover: datetime | None = None
     if deploys is not None:
         try:
             cutover = promotion_cutover(deploys[0])
@@ -658,8 +671,13 @@ async def measure(
     try:
         writes = await _main_writes(gh, max(long_since, CUTOVER))
         if cutover is not None:
-            # From the promotion cutover main is integration (ADR-171).
-            writes = [w for w in writes if str(w.get("timestamp", "")) < _iso(cutover)]
+            # From the promotion cutover main is integration (ADR-171);
+            # a write before that moment still counts.
+            writes = [
+                w
+                for w in writes
+                if (moment := _when(w.get("timestamp"))) is None or moment < cutover
+            ]
         if not governor:
             unavailable.append(
                 "governor's GitHub login: GOVERNOR_GITHUB not readable "
@@ -670,8 +688,9 @@ async def measure(
             bad, pending = count_unverified(writes, prs, governor)
             judged = 0
             if deploys is not None and cutover is not None:
+                start = datetime.combine(long_since, time(), tzinfo=UTC)
                 bad_deploys, judged = await unverified_deploys(
-                    gh, deploys[0], max(long_since, cutover), governor
+                    gh, deploys[0], max(start, cutover), governor
                 )
                 bad += bad_deploys
             corrections = false_ci_breaches(kept, prs, governor, day)

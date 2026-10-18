@@ -4,7 +4,7 @@ waste trip. These reproduce the 2026-10-13 baseline method."""
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -658,7 +658,7 @@ def test_the_cutover_is_the_first_deploy_recorded_with_a_promotion(
         {"action": "deploy", "at": "2026-10-20T09:00:00+00:00", "promotion": 1200},
         {"action": "deploy", "at": "2026-10-22T09:00:00+00:00", "promotion": 1210},
     )
-    assert promotion_cutover(ledger) == date(2026, 10, 20)
+    assert promotion_cutover(ledger) == datetime(2026, 10, 20, 9, 0, tzinfo=UTC)
     assert promotion_cutover(_ledger_file(tmp_path, {"action": "deploy"})) is None
 
 
@@ -737,7 +737,9 @@ async def test_after_the_cutover_deploys_count_and_main_writes_do_not(
     assert (
         taken.unverified_breaches[1]["reason"] == "deploy: deployed without a promotion"
     )
-    assert taken.detail["unverified"]["promotion_cutover"] == "2026-10-20"
+    assert (
+        taken.detail["unverified"]["promotion_cutover"] == "2026-10-20T09:00:00+00:00"
+    )
     assert taken.detail["unverified"]["deploys_judged"] == 2
 
 
@@ -761,3 +763,44 @@ async def test_before_any_promoted_deploy_main_writes_count_as_before(
     )
     assert [b["sha"] for b in taken.unverified_breaches] == [MERGE]
     assert taken.detail["unverified"]["promotion_cutover"] is None
+
+
+async def test_the_cutover_is_the_moment_not_the_day(tmp_path: Path) -> None:
+    """On the cutover day itself: an old-style deploy and a main write before
+    the first promoted deploy are judged as before (the write counts, the
+    deploy is not judged); a deploy at or after that moment is judged."""
+    ledger = _ledger_file(
+        tmp_path,
+        # old style, earlier the same day: no promotion recorded, not judged
+        {"action": "deploy", "at": "2026-10-20T06:00:00+00:00", "sha": "o" * 40},
+        {
+            "action": "deploy",
+            "at": "2026-10-20T09:00:00.5+00:00",
+            "sha": PROMOTED,
+            "promotion": 1200,
+        },
+        # after the cutover without a promotion: unverified
+        {"action": "deploy", "at": "2026-10-20T15:00:00+00:00", "sha": "q" * 40},
+    )
+    writes = [
+        {  # a direct push before the cutover moment, same day: counts
+            "activity_type": "push",
+            "after": "b" * 40,
+            "actor": {"login": "x"},
+            "timestamp": "2026-10-20T08:59:59Z",
+        },
+        {  # a direct push after it, same day: main is integration
+            "activity_type": "push",
+            "after": "c" * 40,
+            "actor": {"login": "x"},
+            "timestamp": "2026-10-20T09:00:01Z",
+        },
+    ]
+    gh = _FakeGitHub(
+        writes, [], pulls={1200: _promotion()}, reviews={1200: [_review()]}
+    )
+    taken = await _measure(
+        date(2026, 10, 21), gh, tmp_path, governor=GOV, deploys=(ledger, tmp_path)
+    )
+    assert [b["sha"] for b in taken.unverified_breaches] == ["b" * 40, "q" * 40]
+    assert taken.detail["unverified"]["deploys_judged"] == 2
