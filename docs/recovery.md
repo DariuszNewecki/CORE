@@ -46,8 +46,8 @@ the VM run as root through `qm guest exec <vmid> --`. The guest agent works on a
 
 ### Timers on a restored VM
 
-The backup restores `core-pipeline` enabled (deploys merged commits, first run 2 minutes after
-boot). A backup from before 2026-10-18 also restores `core-law-auto-apply` (applied record-only law
+The backup restores `core-pipeline` enabled (deploys approved promotions, first run 2 minutes
+after boot). A backup from before 2026-10-18 also restores `core-law-auto-apply` (applied record-only law
 without a merge, first run 5 minutes after boot) and `core-law-digest` (a daily read-only digest);
 core-law-setup now removes both. They are not stopped before the first boot,
 because that would mean editing the VM's disk from `pve` ([#1090](https://github.com/DariuszNewecki/CORE/issues/1090)).
@@ -57,7 +57,7 @@ because that would mean editing the VM's disk from `pve` ([#1090](https://github
   which step 8 destroys. Step 4 stops all three as soon as the guest agent answers (about 40 s
   after boot), before the first one is due. They are not started again: the clone is destroyed.
 - **Real restore (replaces VM 200):** leave `core-pipeline` enabled. The restored VM is CORE again,
-  and the pipeline then deploys what was merged after the backup. If the two law timers came back,
+  and the pipeline then deploys a promotion approved after the backup. If the two law timers came back,
   remove them at once: `sudo core-law-setup --governor core-darek --apply`. The Services check
   confirms what is active.
 
