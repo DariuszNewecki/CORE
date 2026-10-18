@@ -29,10 +29,11 @@ console = Console()
 
 
 @app.command("new")
+# No confirmation prompt (#1162): the target must not exist or be empty, so
+# nothing is overwritten; --write is the safeguard the CLI law requires.
 @core_command(
     dangerous=True,
     requires_context=False,
-    confirmation=True,
     requires_brain_services=False,
 )
 # ID: 32d44823-26a9-4059-8b64-969a46953225

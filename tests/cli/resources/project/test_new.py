@@ -102,3 +102,25 @@ async def test_configured_but_unreachable_ledger_refuses_and_writes_nothing(
         await new_project_command(_ctx(core_root), "demo", tmp_path, True)
 
     assert not (tmp_path / "demo").exists()
+
+
+# ID: 84e5796c-0aff-4884-992e-2d7892a6c17f
+def test_write_creates_the_project_without_a_dangerous_prompt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#1162 (proof run 3): creating a directory that must not exist yet asked
+    "CONFIRM DANGEROUS OPERATION", and without a terminal it refused. Nothing
+    is overwritten (a non-empty target is refused), so --write is enough."""
+    from typer.testing import CliRunner
+
+    from cli.resources.project import app as project_app
+
+    monkeypatch.setattr("cli.resources.project.new.core_source_root", lambda: None)
+
+    result = CliRunner().invoke(
+        project_app, ["new", "demo", "--path", str(tmp_path), "--write"], input=""
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "DANGEROUS" not in result.output
+    assert (tmp_path / "demo" / ".intent").is_dir()
