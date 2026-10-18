@@ -1519,14 +1519,18 @@ Enforced by: governance.logic_mutation.governed, governance.mutation_surface.fil
 checks are green, and nothing on main runs live. Code, law and host setup become live only as a
 release, a main SHA the governor approved; core-pipeline deploys nothing else.
 - **One approval per release.** CORE proposes a release once a day as a release pull request
-  (main's SHA into the `release` branch). The governor's approval of its exact head commit, or the
-  governor's merge, is the decision; core-pipeline deploys the `release` head only then.
+  (main's SHA into the `release` branch). The governor's approval of its exact head commit is the
+  decision. `release` advances by fast-forward only, to that approved head (`git push
+  <sha>:release`, which GitHub records as the pull request merged); GitHub's merge button, which
+  makes a merge commit, is not used. core-pipeline deploys exactly the approved head SHA, never a
+  merge commit.
 - **The summary, in plain language.** High-risk items first: `infra/` and host changes,
   `.intent/`, migrations, and auth/security paths (`src/api/dependencies.py`, principals,
   sandbox, custody). Then the CI result and the sandbox check of the candidate SHA.
 - **Reject** = the governor closes the release pull request; core-claude reverts the rejected
   changes on main, and the next proposal carries the revert.
-- **Urgent fix**: on the governor's request, a release of the last release plus one fix only.
+- **Urgent fix**: on the governor's request, an immediate release proposal of main as it is,
+  outside the daily schedule; no cherry-picks.
 - **Root host setup** (core-runtime-setup, core-one-path-setup, core-law-setup) and merged law
   (`law apply-merge`) run only when an approved release is deployed, never on a merge to main.
 - **Thesis.** "Unverified writes" is measured against releases: a deployed SHA that is not a
@@ -1534,18 +1538,21 @@ release, a main SHA the governor approved; core-pipeline deploys nothing else.
   counted.
 
 **Implementing pull requests, in order:**
-1. `CLAUDE.md` working rules: core-claude merges its own green PRs; main is not live; the
-   governor approves releases. With the thesis entry above, amended to count releases.
-2. core-pipeline: deploy only the `release` head whose release PR the governor approved
-   (exact head) or merged; a merge to main deploys nothing. Host change.
+1. `CLAUDE.md` working rules: main is not live; the governor approves releases; core-claude
+   merges its own green PRs once the governor settings below are in place. With the thesis entry
+   above, amended to count releases.
+2. core-pipeline: deploy exactly the head SHA of the release PR the governor approved and
+   fast-forward `release` to it; a merge to main, or any merge commit, deploys nothing. Host
+   change.
 3. core-deploy: refuse a SHA that is not the approved release head, so host setup and merged law
    run only at a release. Host change.
 4. `core-admin release propose` and its daily timer: open or update the release PR with the
    summary (risk classes from the diff since the last release, CI and sandbox results);
-   `--urgent <PR>` builds a one-fix release on the last release. Host change (the timer).
+   `--urgent` proposes main at once. Host change (the timer).
 5. `scripts/thesis_baseline.py`: unverified writes counted against deployed releases.
 
-**Governor settings (GitHub, not a PR):** branch protection lets core-claude merge to main on
-green required checks without review; `release` accepts changes only through a pull request the
-governor approves.  
+**Governor settings (GitHub, not a PR), last:** only after PRs 2 and 3 are deployed, branch
+protection lets core-claude merge to main on green required checks without review, and `release`
+moves only by fast-forward to a head the governor approved. Until then every merge to main still
+needs the governor's approval, as today.  
 Enforced by: not enforced
