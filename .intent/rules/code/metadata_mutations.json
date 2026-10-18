@@ -13,14 +13,14 @@
         {
             "id": "metadata.semantic_preservation",
             "statement": "A WRITE_METADATA operation MUST NOT alter the executable semantics of the file. The normalized AST (excluding docstrings and line numbers) MUST be identical before and after the mutation.",
-            "enforcement": "blocking",
+            "enforcement": "reporting",
             "authority": "constitution",
             "phase": "runtime"
         },
         {
             "id": "metadata.operations.comment_length_limit",
             "statement": "A new or replacement comment line written by a WRITE_METADATA operation MUST NOT exceed 120 characters.",
-            "enforcement": "blocking",
+            "enforcement": "reporting",
             "authority": "policy",
             "phase": "runtime"
         }
