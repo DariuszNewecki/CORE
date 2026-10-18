@@ -4,6 +4,6 @@ import typer
 
 app = typer.Typer(
     name="cognitive-roles",
-    help="Cognitive-role capability projection (#821 Unit 2).",
+    help="Cognitive-role capability projection.",
     no_args_is_help=True,
 )

@@ -6,8 +6,7 @@ app = typer.Typer(
     name="coherence",
     help=(
         "Constitutional Coherence Checker — scan ADRs, rule domains, and "
-        "northstar documents for candidate contradictions, gaps, and drift. "
-        "Governing ADR: ADR-067."
+        "northstar documents for candidate contradictions, gaps, and drift."
     ),
     no_args_is_help=True,
 )
