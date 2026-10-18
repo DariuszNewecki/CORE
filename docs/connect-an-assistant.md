@@ -5,9 +5,10 @@ ask CORE about your project instead of guessing, check its own change
 before it commits, and submit it to CORE as a proposal that only you can approve. CORE answers from your project's law and decision history,
 with sources, and says plainly what it did not check.
 
-The server runs locally, started by the assistant itself. The read tools need no
-database, no API and no other service: `pip install core-runtime` is enough.
-Submitting a change needs a running CORE (see [Run the full runtime](getting-started.md)).
+The server runs locally, started by the assistant itself. The law, decision and
+verdict tools need no database, no API and no other service: `pip install
+core-runtime` is enough. Submitting a change and `core_status` need a running CORE
+(see [Run the full runtime](getting-started.md)).
 
 ## What the assistant gets
 
@@ -21,8 +22,9 @@ Submitting a change needs a running CORE (see [Run the full runtime](getting-sta
 | `change_verdict` | Does my current change break a blocking rule? |
 | `validate_change` | Does my patch pass CORE's full checks? (starts a check run; a few minutes) |
 | `submit_change` | If it passed, record it as a pending proposal for the governor. |
+| `core_status` | Is the running CORE healthy: workers, open findings, live proposals? (needs a running CORE; otherwise answers `available: false`) |
 
-Six tools only read. Two, `validate_change` and `submit_change`, ask CORE to check a change and to record it as a pending proposal. None can approve, waive, or act as the governor.
+Seven tools only read. Two, `validate_change` and `submit_change`, ask CORE to check a change and to record it as a pending proposal. None can approve, waive, or act as the governor.
 
 Which path a change takes: with a plain `pip install` (no running CORE), the assistant calls `change_verdict` and commits only if it is not BLOCKED; the full audit then runs on the pull request through CORE's GitHub Action (`core-admin project init` sets it up). Only a project that runs CORE (its API) uses `validate_change` and `submit_change`, which turn the change into a proposal you approve instead of a direct commit.
 
@@ -81,7 +83,7 @@ directly after `-p` and the list after it:
 
 ```bash
 claude -p "Run change_verdict on my current change before I commit." \
-  --allowedTools "mcp__core__law_rules,mcp__core__law_rule,mcp__core__law_can_write,mcp__core__decision_adr,mcp__core__decision_adrs,mcp__core__change_verdict"
+  --allowedTools "mcp__core__law_rules,mcp__core__law_rule,mcp__core__law_can_write,mcp__core__decision_adr,mcp__core__decision_adrs,mcp__core__change_verdict,mcp__core__core_status"
 ```
 
 This list leaves out `validate_change` and `submit_change`, so a non-interactive run cannot submit a change unless you add them.
