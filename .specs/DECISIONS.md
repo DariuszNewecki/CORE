@@ -1556,7 +1556,7 @@ promotion the governor approved; core-pipeline deploys nothing else.
    `--urgent` proposes main at once. Host change (the timer).
 5. `scripts/thesis_baseline.py`: unverified writes counted against deployed promotions.
 
-**Governor settings (GitHub, not a PR), last:** only after PRs 2 and 3 are deployed, branch
+**Governor settings (GitHub, not a PR), last:** only after PRs 2-5 are deployed, branch
 protection lets core-claude merge to main on green required checks without review, and `live`
 moves only by fast-forward to a head the governor approved. Until then every merge to main still
 needs the governor's approval, as today.  
