@@ -48,15 +48,20 @@ poetry run core-admin law check-tree  # validate .intent/ and .specs/
   and report afterwards. Never ask permission for these.
 - Everything the governor must act on goes in one list: at most once a day, at most 3 items.
 - Never push while CI is red.
-- A change reaches main only as a pull request the governor approves: the
-  governor's approval of its exact last commit, or the governor's merge.
+- Until the governor's ruleset switch, every merge to main needs the governor's
+  approval: of the pull request's exact last commit, or the governor's merge.
+- From the ruleset switch (ADR-171 promotion flow; the governor makes it after
+  ADR-171 PRs 2-5 are deployed): main is integration and not live; core-claude
+  merges its own PRs when the required checks are green; the governor approves
+  promotions (a main SHA fast-forwarded to `live`), not PRs; only an approved
+  promotion runs live.
 - Never wait for CI in the foreground. After opening a PR, turn on auto-merge
   (`gh pr merge --auto --merge`), watch CI in the background, take the next task.
   Report a PR only when its CI goes red.
 - Record decisions in the commit message, not in new documents.
 - Reports: outcome first, at most 5 lines, no narration.
 - Never ask the governor to approve law or CLAUDE.md text in chat: open the PR;
-  the merge is the approval.
+  the merge is the approval (from the ruleset switch: the promotion that carries it).
 - Never ask whether to proceed with work the governor asked for, or whether to push
   your own branch: run the offline audit, push, open the PR. Fix red CI before reporting.
 - Branch work happens in a worktree under `var/tmp/wt-*`. Read-only git, `gh` and
