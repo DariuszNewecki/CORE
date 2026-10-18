@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-109 commands.
+110 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -28,6 +28,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`llm-resources`](#llm-resources) | 2 | core.llm_resources authoring/validation surface (#821 Unit 3). |
 | [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant (ADR-168). |
 | [`project`](#project) | 3 | Operations for project lifecycle: scaffolding. |
+| [`promote`](#promote) | 1 | Promotions: main's commits the governor approves to run live (ADR-171). |
 | [`refactor`](#refactor) | 4 | Refactoring analysis and suggestions |
 | [`runtime`](#runtime) | 4 | Runtime state and health of the running CORE system. |
 | [`secrets`](#secrets) | 4 | Manage encrypted secrets in the database. |
@@ -1503,6 +1504,27 @@ governance pack is explicitly adopted.
 | `NAME` | required | The name of the new project. |
 | `--path` |  | Parent directory for the new project (default: current directory). |
 | `--write` | off | Actually create the directories and files. |
+
+---
+
+## `core-admin promote` {#promote}
+
+Promotions: main's commits the governor approves to run live (ADR-171).
+
+### `core-admin promote propose` {#promote-propose}
+
+```
+core-admin promote propose [OPTIONS]
+```
+
+Propose main's newest green commit for promotion to live.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--urgent` | off | Propose main now, outside the daily schedule. |
+| `--dry-run` | off | Print the proposal; change nothing on GitHub. |
+| `--repo` | `DariuszNewecki/CORE` | The GitHub repository. |
+| `--status-file` | `/var/lib/core-pipeline/status.json` | core-pipeline's status: the live commit and the last sandbox check. |
 
 ---
 
