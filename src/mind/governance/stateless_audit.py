@@ -270,7 +270,9 @@ async def run_stateless_audit(
                 "none map to an enforceable engine (enforcement mappings "
                 "unreachable or empty); the audit can enforce nothing"
             )
-        logger.error("stateless_audit: %s (no_governance_bypass)", collapse_reason)
+        # #1174: the refusal is the result ("error"), and every caller reports
+        # it; at ERROR the CLI showed it twice, once as a raw log record.
+        logger.info("stateless_audit: %s (no_governance_bypass)", collapse_reason)
         return {
             "verdict": "ERROR",
             "law_state": law_state.to_dict(),
