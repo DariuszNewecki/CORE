@@ -5,8 +5,9 @@ Action audit-trail persistence for the ActionExecutor gateway.
 Moved verbatim out of ``ActionExecutor._audit_log`` (ADR-095 split of the
 too-large executor class; zero behavior change). ``ActionAuditRecorder``
 writes one ``core.action_results`` row per executed action — step 7 of
-``ActionExecutor.execute`` — with bounded retry/backoff, and surfaces an
-``AUDIT_GAP`` error for write actions whose row could not be persisted.
+``ActionExecutor.execute`` — with bounded retry/backoff, and returns an
+``AUDIT_GAP`` error for write actions whose row could not be persisted; the
+executor then fails the run (F4).
 
 This module defines no atomic action and never invokes ``ActionExecutor``;
 it is a plain persistence helper the executor delegates to.
@@ -44,9 +45,14 @@ class ActionAuditRecorder:
     # ID: 454c8ccb-ece8-4ef8-baf1-13c9c19f4300
     async def record(
         self, definition: ActionDefinition, result: ActionResult, write: bool
-    ) -> None:
+    ) -> str | None:
         """
         Log action execution to database audit trail (SSOT).
+
+        Returns None when the row persisted. When every attempt failed, returns
+        the AUDIT_GAP message for a write action (F4: the executor turns the
+        run into a failure; a lost record is not a success) and None for a
+        read action, whose lost record stays a best-effort warning.
 
         Retries the INSERT up to _AUDIT_MAX_ATTEMPTS times with exponential
         backoff before declaring an AUDIT_GAP. Each attempt opens a fresh
@@ -90,7 +96,7 @@ class ActionAuditRecorder:
                 async with self.core_context.registry.session() as session:
                     async with session.begin():
                         await session.execute(stmt, params)
-                return  # persisted successfully
+                return None  # persisted successfully
             except Exception as e:
                 last_exc = e
                 if attempt < self._AUDIT_MAX_ATTEMPTS:
@@ -105,17 +111,17 @@ class ActionAuditRecorder:
         # failure mode — action_type/ok are always supplied).
         assert last_exc is not None
         if write:
-            logger.error(
-                "AUDIT_GAP: write action %s executed but its "
-                "core.action_results row failed to persist after %d attempts "
-                "(%s) — mutation stands, audit trail incomplete (#634/#752)",
-                definition.action_id,
-                self._AUDIT_MAX_ATTEMPTS,
-                last_exc,
+            gap = (
+                f"AUDIT_GAP: write action {definition.action_id} executed but its "
+                f"core.action_results row failed to persist after "
+                f"{self._AUDIT_MAX_ATTEMPTS} attempts ({last_exc}) — mutation "
+                f"stands, audit trail incomplete, run reported failed (#634/#752, F4)"
             )
-        else:
-            logger.warning(
-                "Non-blocking audit log failure (read) after %d attempts: %s",
-                self._AUDIT_MAX_ATTEMPTS,
-                last_exc,
-            )
+            logger.error(gap)
+            return gap
+        logger.warning(
+            "Non-blocking audit log failure (read) after %d attempts: %s",
+            self._AUDIT_MAX_ATTEMPTS,
+            last_exc,
+        )
+        return None
