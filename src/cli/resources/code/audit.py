@@ -401,7 +401,8 @@ def _render_text_summary(
     stats = result.get("stats", {})
     # The stateless audit measures rules declared/executed/failed only; the
     # mapping-coverage and dispatch figures are online-only, so they are
-    # None ("n/a"), not a false 0 (cold room 2026-10-09).
+    # None and left out of the panel, not a false 0 (cold room 2026-10-09,
+    # #1189).
     audit_stats = AuditStats(
         total_rules=stats.get("total_rules", 0),
         executed_rules=stats.get("executed_rules", stats.get("runnable_rules", 0)),
