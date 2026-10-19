@@ -74,6 +74,7 @@ class FakeHost(cp.Host):
         self.pushes: list[tuple[str, dict]] = []  # (refspec, env)
         self.git_rc: dict[str, int] = {}  # by git verb: init, fetch, push
         self.git_calls: list[str] = []
+        self.authed: list[str] = []  # URLs called with the token
         self.ls_remote_fails = False
         self.api_calls = 0
         self.at = datetime.datetime(2026, 10, 19, 9, 0, tzinfo=datetime.UTC)
@@ -109,8 +110,10 @@ class FakeHost(cp.Host):
         )
         return subprocess.CompletedProcess(cmd, self.rc.get(key, 0), b"out", b"")
 
-    def http(self, url, payload=None, method=None):
+    def http(self, url, payload=None, method=None, auth=False):
         self.api_calls += 1
+        if auth:
+            self.authed.append(url)
         if self.limited_until is not None and self.at < self.limited_until:
             headers = email.message.Message()
             headers["X-RateLimit-Remaining"] = "0"
@@ -412,6 +415,14 @@ def test_failed_probe_rolls_back_and_opens_an_issue(world) -> None:
     assert len(host.issues) == 1 and host.pushes == []
 
 
+def test_the_token_is_sent_only_to_open_an_issue(world) -> None:
+    host, _ = world
+    host.rc["deploy"] = 1
+    _tick(world)
+    assert host.api_calls > 1
+    assert host.authed == ["https://api.github.com/repos/DariuszNewecki/CORE/issues"]
+
+
 def test_refused_deploy_opens_an_issue_and_leaves_live_alone(world) -> None:
     host, _ = world
     host.rc["deploy"] = 1
@@ -488,7 +499,7 @@ def test_a_rate_limit_waits_for_its_reset_and_says_so(world) -> None:
 def test_a_forbidden_call_that_is_not_the_rate_limit_stays_an_error(world) -> None:
     host, _ = world
 
-    def forbidden(url, payload=None, method=None):
+    def forbidden(url, payload=None, method=None, auth=False):
         raise urllib.error.HTTPError(
             url, 403, "Forbidden", email.message.Message(), None
         )
