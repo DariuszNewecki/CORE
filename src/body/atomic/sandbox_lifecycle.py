@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections.abc import Iterable
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from body.atomic.registry import ActionDefinition
@@ -53,6 +54,63 @@ logger = getLogger(__name__)
 # third-party APIs) MUST implement action-level pre-flight checks and
 # compensation logic — sandbox exclusion is not a substitute for that.
 _SANDBOXED_IMPACTS = frozenset({ActionImpact.WRITE_CODE, ActionImpact.WRITE_METADATA})
+
+
+def _missing_parent_dirs(root: Path, rel_paths: Iterable[str]) -> list[str]:
+    """Repo-relative parent directories of *rel_paths* that do not exist yet,
+    deepest first, so a rollback can remove the ones a write created."""
+    missing: set[str] = set()
+    for rel in rel_paths:
+        for parent in Path(rel).parents:
+            if str(parent) in ("", ".") or (root / parent).exists():
+                break
+            missing.add(parent.as_posix())
+    return sorted(missing, key=lambda d: d.count("/"), reverse=True)
+
+
+def _roll_back(
+    file_handler: Any,
+    root: Path,
+    touched: list[str],
+    originals: dict[str, bytes | None],
+    new_dirs: list[str],
+) -> None:
+    """Return every touched path to its snapshot bytes (F3).
+
+    A path that did not exist is removed; one that did is rewritten with its
+    original bytes; one already equal to its snapshot is left alone. Each
+    restore is attempted even if another fails, and a failed restore is
+    logged loudly — the caller re-raises the original error either way.
+    """
+    for rel in reversed(touched):
+        path = root / rel
+        original = originals.get(rel)
+        try:
+            current = path.read_bytes() if path.is_file() else None
+            if current == original:
+                continue
+            if original is None:
+                file_handler.remove_file(rel)
+            else:
+                file_handler.write(rel, original)
+        except Exception as exc:
+            logger.error(
+                "SandboxLifecycle: rollback of %s FAILED (%s); main tree may "
+                "differ from its pre-propagation state at this path",
+                rel,
+                exc,
+            )
+    for rel_dir in new_dirs:
+        abs_dir = root / rel_dir
+        try:
+            if abs_dir.is_dir() and not any(abs_dir.iterdir()):
+                file_handler.remove_tree(rel_dir)
+        except Exception as exc:
+            logger.error(
+                "SandboxLifecycle: rollback could not remove new directory %s (%s)",
+                rel_dir,
+                exc,
+            )
 
 
 def _flow_has_sandboxable_step(
@@ -332,6 +390,11 @@ class SandboxLifecycle:
         ADR-168 Amendment 2026-10-10 A3: a patch's deleted files are applied
         and committed. An undeclared sandbox deletion is still logged and
         skipped — an action never deletes from the main tree by accident.
+
+        The copy is all or nothing (F3): if any write or delete raises, every
+        path already touched is restored to its pre-propagation bytes (new
+        files and the directories they created are removed) and the error is
+        re-raised, so the caller reports failure on an unchanged main tree.
         """
         sandbox_root = scoped_git.repo_path
         file_handler = self.core_context.file_handler
@@ -427,20 +490,43 @@ class SandboxLifecycle:
 
         self._refuse_if_main_moved_under_targets(scoped_git, target_paths)
 
+        # F3: all or nothing. Snapshot the main tree's bytes for every target
+        # before the first write; a failure on any file restores the files
+        # already replaced, removes the ones newly created, and re-raises —
+        # the main tree is never left half-propagated.
+        main_root = file_handler.repo_path
+        originals = {
+            rel: (main_root / rel).read_bytes() if (main_root / rel).is_file() else None
+            for rel in target_paths
+        }
+        new_dirs = _missing_parent_dirs(main_root, target_paths)
+        touched: list[str] = []
         copied = 0
-        for rel in sorted(target_paths):
-            if rel in deletions:
-                file_handler.remove_file(rel)
-                continue
-            src = sandbox_root / rel
-            if not src.exists():
-                logger.warning(
-                    "SandboxLifecycle: sandbox entry %s missing on disk; skipping",
-                    rel,
-                )
-                continue
-            file_handler.write(rel, src.read_bytes())
-            copied += 1
+        try:
+            for rel in sorted(target_paths):
+                touched.append(rel)
+                if rel in deletions:
+                    file_handler.remove_file(rel)
+                    continue
+                src = sandbox_root / rel
+                if not src.exists():
+                    logger.warning(
+                        "SandboxLifecycle: sandbox entry %s missing on disk; skipping",
+                        rel,
+                    )
+                    continue
+                file_handler.write(rel, src.read_bytes())
+                copied += 1
+        except Exception as exc:
+            logger.error(
+                "SandboxLifecycle: propagation failed at %s (%s); rolling back "
+                "%d file(s) in the main tree",
+                touched[-1] if touched else "?",
+                exc,
+                len(touched),
+            )
+            _roll_back(file_handler, main_root, touched, originals, new_dirs)
+            raise
 
         logger.info(
             "SandboxLifecycle: propagated %d file(s) and %d deletion(s) from "
