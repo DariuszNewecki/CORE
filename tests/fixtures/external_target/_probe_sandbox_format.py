@@ -8,7 +8,9 @@ _probe.py (Unit C) already uses. REPO_PATH/MIND are already bound in the
 environment by the parent test process.
 
 Constructs a bare CoreContext (registry/knowledge_service/file_service
-mocked -- fix.format touches none of them; git_service/file_handler real,
+mocked -- fix.format touches none of them; the registry's session accepts
+the audit-record INSERT, since a lost record fails the run (F4);
+git_service/file_handler real,
 bound to REPO_PATH) and invokes the real, unmodified ActionExecutor
 against it directly -- no Proposal, no worker, no database. Exercises
 exactly the sandbox execution + propagation path (ADR-071 D2.2) that
@@ -25,6 +27,23 @@ import sys
 from unittest.mock import MagicMock
 
 
+class _AcceptingSession:
+    """Accepts the audit step's `async with registry.session() as s: async
+    with s.begin(): await s.execute(...)` without a database."""
+
+    async def execute(self, *_args, **_kwargs) -> None:
+        return None
+
+    def begin(self) -> _AcceptingSession:
+        return self
+
+    async def __aenter__(self) -> _AcceptingSession:
+        return self
+
+    async def __aexit__(self, *_exc_info: object) -> bool:
+        return False
+
+
 def main() -> int:
     import body.atomic  # noqa: F401 -- triggers action registration
     from body.atomic.executor import ActionExecutor
@@ -35,8 +54,10 @@ def main() -> int:
     repo_path = os.environ["REPO_PATH"]
     git_service = GitService(repo_path)
     file_handler = FileHandler(repo_path)
+    registry = MagicMock()
+    registry.session = _AcceptingSession
     core_context = CoreContext(
-        registry=MagicMock(),
+        registry=registry,
         git_service=git_service,
         knowledge_service=MagicMock(),
         file_handler=file_handler,

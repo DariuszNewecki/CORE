@@ -19,6 +19,7 @@ CRITICAL: This enforces the "single execution contract" principle.
 from __future__ import annotations
 
 import contextlib
+import dataclasses
 import inspect
 import time
 from pathlib import Path
@@ -504,7 +505,19 @@ class ActionExecutor:
         await self._post_execute_hooks(definition, result)
 
         # 7. Audit logging (persistence lives in body.atomic.action_audit)
-        await ActionAuditRecorder(self.core_context).record(definition, result, write)
+        audit_gap = await ActionAuditRecorder(self.core_context).record(
+            definition, result, write
+        )
+        if isinstance(audit_gap, str):
+            # F4: a write run whose record was lost is a failure, not "success
+            # with a lost record". The action's own data, ok and error are kept.
+            lost: dict[str, Any] = {**result.data, "action_ok": result.ok}
+            for key in ("error", "error_type"):
+                if key in result.data:
+                    lost[f"action_{key}"] = result.data[key]
+            lost["error"] = audit_gap
+            lost["error_type"] = "AuditRecordLost"
+            result = dataclasses.replace(result, ok=False, data=lost)
 
         return result
 
