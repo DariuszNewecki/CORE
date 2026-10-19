@@ -38,6 +38,7 @@ RISK_CLASSES: tuple[tuple[str, str], ...] = (
     ("law", "Law (.intent/)"),
     ("migration", "Database migrations"),
     ("security", "Login, permissions and security"),
+    ("gates", "Checks and gates (what decides a verdict, and CI)"),
 )
 _SECURITY_PARTS = ("principal", "sandbox", "custody", "auth", "rbac", "secret")
 
@@ -49,6 +50,14 @@ def risk_class(path: str) -> str | None:
         return "host"
     if path.startswith(".intent/"):
         return "law"
+    # A change to a check, the governance engine or CI can loosen the gate
+    # that judges every later change, so the governor reads it first.
+    if (
+        (path.startswith("src/mind/") and "/checks/" in path)
+        or path.startswith("src/mind/governance/")
+        or path.startswith(".github/workflows/")
+    ):
+        return "gates"
     if "migrations/" in path or path.endswith(".sql"):
         return "migration"
     lowered = path.lower()
