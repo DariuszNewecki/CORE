@@ -1518,7 +1518,7 @@ Enforced by: governance.logic_mutation.governed, governance.mutation_surface.fil
 
 ## ADR-171 — Promotion flow: main is integration, the governor approves each promotion to live
 
-2026-10-18 · proposed (design note; nothing implements it yet)  
+2026-10-18 · in force since the governor's ruleset switch, 2026-10-18; implemented by the PRs below  
 **Terms.** A *promotion* moves a main SHA to the branch `live`, the only code CORE runs. A
 *release* stays reserved for a published version (v3, a PyPI or GitHub release); this note
 changes nothing about releases.  
@@ -1543,21 +1543,28 @@ promotion the governor approved; core-pipeline deploys nothing else.
   governor-approved promotion is an unverified write. Writes to main are integration and are not
   counted.
 
-**Implementing pull requests, in order:**
-1. `CLAUDE.md` working rules: main is not live; the governor approves promotions; core-claude
-   merges its own green PRs once the governor settings below are in place. With the thesis entry
-   above, amended to count promotions.
-2. core-pipeline: deploy exactly the head SHA of the promotion PR the governor approved and
-   fast-forward `live` to it; a merge to main, or any merge commit, deploys nothing. Host change.
-3. core-deploy: refuse a SHA that is not the approved promotion head, so host setup and merged
-   law run only at a promotion. Host change.
-4. `core-admin promote propose` and its daily timer: open or update the promotion PR with the
-   summary (risk classes from the diff since the last promotion, CI and sandbox results);
-   `--urgent` proposes main at once. Host change (the timer).
-5. `scripts/thesis_baseline.py`: unverified writes counted against deployed promotions.
+**Implementing pull requests, in order (all merged; deployed with 4ba18987 except #1199 and #1200, which go live with the next promotion):**
+1. #1142, then #1149 and #1152: `CLAUDE.md` working rules: main is not live; the governor
+   approves promotions; core-claude merges its own green PRs. With the thesis entry above,
+   amended to count promotions.
+2. #1143: core-pipeline deploys exactly the head SHA of the promotion PR the governor approved;
+   a merge to main, or any merge commit, deploys nothing. #1197 pushes `live` to the deployed
+   SHA with a deploy key, never forced; #1199 and #1200 keep an issues-only token from stopping
+   or stalling it. Host change.
+3. #1144: core-deploy refuses a SHA that is not the approved promotion head, so host setup and
+   merged law run only at a promotion. Host change.
+4. #1145: `core-admin promote propose` and its daily timer open or update the promotion PR
+   with the summary; `--urgent` proposes main at once. #1193 adds the risk class "Checks and
+   gates". Host change (the timer).
+5. #1146: `scripts/thesis_baseline.py` counts unverified writes against deployed promotions.
 
-**Governor settings (GitHub, not a PR), last:** only after PRs 2-5 are deployed, branch
-protection lets core-claude merge to main on green required checks without review, and `live`
-moves only by fast-forward to a head the governor approved. Until then every merge to main still
-needs the governor's approval, as today.  
-Enforced by: not enforced
+**Governor settings (GitHub, not a PR), done:** ruleset `main-checks` (24945231, switched
+2026-10-18) lets core-claude merge to main on green required checks without review. Rulesets
+`live-history` (25404585: no force push, no deletion, no bypass) and `live-writers` (25404586:
+only a deploy key may update `live`) were set on 2026-10-19; the deploy key's private half is on
+the host, readable only by core-runner. First promotion through them: #1147, 2026-10-19
+(`live` = deployed SHA 4ba18987).  
+Enforced by: no ENFORCED rule cites ADR-171. The files that enforce it: `infra/core-pipeline`,
+`infra/core-deploy`, `infra/core-one-path-setup` (the timer), `src/body/services/promotion.py`,
+`src/cli/resources/promote/`, `src/body/services/thesis/measure.py`,
+`scripts/thesis_baseline.py`; and the three GitHub rulesets above.
