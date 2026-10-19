@@ -34,12 +34,13 @@ logger = getLogger(__name__)
 # at a time (Governor ruling, 2026-09-12 Note, "D3 rolls out one caller at a
 # time; POST /develop/goal first"). This polarity inversion makes
 # create_proposal_only=True the FAIL-CLOSED DEFAULT for every write
-# request; the four callers below are grandfathered onto today's direct-write
+# request; the callers below are grandfathered onto today's direct-write
 # behavior by explicitly passing `legacy_direct_write=True` until each is
 # separately authorized and converted. Converting one caller never authorizes
 # converting another. `POST /develop/goal` (development_routes.py) is not in
 # this registry — it was the first conversion and now gets the fail-closed
-# default for free, with no opt-out.
+# default for free, with no opt-out. `core-admin dev refactor` followed
+# (governor 2026-10-19).
 #
 # This list is MONOTONICALLY SHRINKING. Adding an entry requires a Governor
 # ruling — it is not a decision Claude Code or CORE itself may make.
@@ -54,10 +55,6 @@ logger = getLogger(__name__)
 # fails CI.
 _GRANDFATHERED_DIRECT_WRITE_CALLERS: MappingProxyType[str, str] = MappingProxyType(
     {
-        "cli.resources.dev.refactor": (
-            "removal condition not yet determined — Governor ruling required "
-            "(tracked: #883)"
-        ),
         "will.governance.refactor_runner": (
             "core.refactor_runs' status lifecycle (_update_refactor_run_status) "
             "has only 'completed'/'failed' terminal states and no "

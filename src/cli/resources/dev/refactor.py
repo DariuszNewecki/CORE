@@ -45,7 +45,10 @@ async def dev_refactor_cmd(
     ctx: typer.Context,
     goal: str = typer.Argument(..., help="High-level refactoring goal or file path."),
     write: bool = typer.Option(
-        False, "--write", help="Apply changes. Default is dry-run."
+        False,
+        "--write",
+        help="Record the change as a Proposal for the governor to approve. "
+        "Default is dry-run.",
     ),
     workflow: str = typer.Option(
         "refactor_modularity",
@@ -84,16 +87,15 @@ async def dev_refactor_cmd(
         f"[bold cyan]🤖 CORE Autonomous Refactor[/bold cyan] ([yellow]{workflow_type}[/yellow] / {mode})"
     )
     console.print(f"[dim]Goal: {goal}[/dim]\n")
+    # ADR-160 D3: --write writes nothing itself. It plans the change and
+    # records it as a Proposal pending the governor's approval; only the
+    # approved Proposal is applied, as for POST /develop/goal.
     success, message = await develop_from_goal(
         context=context,
         goal=goal,
         workflow_type=workflow_type,
         write=write,
         task_id=None,
-        # ADR-160 D3 polarity inversion: this caller is grandfathered onto
-        # today's direct-write behavior pending its own conversion — see
-        # _GRANDFATHERED_DIRECT_WRITE_CALLERS in autonomous_developer.py.
-        legacy_direct_write=True,
     )
     if success:
         console.print(f"\n[bold green]✅ Success:[/bold green] {message}")
