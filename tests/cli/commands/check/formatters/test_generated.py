@@ -53,6 +53,7 @@ def test_print_verbose_findings():
 
     mock_table = MagicMock()
     mock_console = MagicMock()
+    mock_console.width = 200
 
     with (
         patch("cli.commands.check.formatters.console", mock_console),
@@ -67,11 +68,14 @@ def test_print_verbose_findings():
             show_header=True,
             header_style="bold magenta",
         )
-        mock_table.add_column.assert_any_call("Severity", style="cyan")
-        mock_table.add_column.assert_any_call("Evidence", style="green")
-        mock_table.add_column.assert_any_call("Check ID", style="magenta")
-        mock_table.add_column.assert_any_call("Message", style="white", overflow="fold")
-        mock_table.add_column.assert_any_call("File:Line", style="yellow")
+        # #1187: every column but Message keeps its full width.
+        headers = [c.args[0] for c in mock_table.add_column.call_args_list]
+        assert headers == ["Severity", "Evidence", "Check ID", "Message", "File:Line"]
+        for call in mock_table.add_column.call_args_list:
+            if call.args[0] == "Message":
+                assert call.kwargs["overflow"] == "fold"
+            else:
+                assert call.kwargs["no_wrap"] is True
 
         assert mock_table.add_row.call_count == 2
         first_row = mock_table.add_row.call_args_list[0].args

@@ -13,8 +13,10 @@ from collections import defaultdict
 
 from rich.console import Console
 from rich.markup import escape
+from rich.padding import Padding
 from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity, EvidenceClass
@@ -55,24 +57,66 @@ def _row_labels(finding: AuditFinding, severity_styles: dict) -> tuple[str, str]
     )
 
 
+# #1187: the rule id and file:line are what a reader acts on, so their
+# columns are never cut; the Message column wraps instead, and when the
+# table does not fit the console even then, each finding prints as a block.
+_MESSAGE_MIN_WIDTH = 20
+
+
+def _plain_width(cells: list[str]) -> int:
+    """Widest cell, measured without its Rich markup."""
+    return max((Text.from_markup(c).cell_len for c in cells), default=0)
+
+
+def _findings_table(
+    title: str, columns: list[tuple[str, str, list[str]]], message_after: int
+) -> Table | None:
+    """A findings table whose fixed columns are never cut, or None if it
+    cannot fit the console with at least _MESSAGE_MIN_WIDTH for the message.
+
+    ``columns`` are (header, style, cells) for the fixed columns; the
+    wrapping Message column is inserted after the first ``message_after``.
+    """
+    widths = [max(len(h), _plain_width(cells)) for h, _, cells in columns]
+    # Each column has one cell of padding per side and one border before
+    # it, plus the closing border.
+    needed = sum(widths) + _MESSAGE_MIN_WIDTH + 3 * (len(columns) + 1) + 1
+    if needed > console.width:
+        return None
+    table = Table(title=title, show_header=True, header_style="bold magenta")
+    for i, ((header, style, _), width) in enumerate(zip(columns, widths)):
+        if i == message_after:
+            table.add_column("Message", style="white", overflow="fold")
+        table.add_column(
+            header,
+            style=style,
+            no_wrap=True,
+            min_width=width,
+            justify="right" if header == "Occurrences" else "left",
+        )
+    if message_after >= len(columns):
+        table.add_column("Message", style="white", overflow="fold")
+    return table
+
+
+def _print_finding_block(head: list[str], tail: str, message: str) -> None:
+    """One finding per block: id and location on lines the console never cuts."""
+    console.print(" · ".join(head), soft_wrap=True)
+    if tail:
+        console.print(f"  [yellow]{tail}[/yellow]", soft_wrap=True)
+    console.print(Padding(message, (0, 0, 0, 2)))
+    console.print()
+
+
 # ID: b0dc9c82-dd40-4970-94e8-911fd3354930
 def print_verbose_findings(findings: list[AuditFinding]) -> None:
     """Prints every single finding in a detailed table for verbose output."""
-    table = Table(
-        title="[bold]Verbose Audit Findings[/bold]",
-        show_header=True,
-        header_style="bold magenta",
-    )
-    table.add_column("Severity", style="cyan")
-    table.add_column("Evidence", style="green")  # ADR-113
-    table.add_column("Check ID", style="magenta")
-    table.add_column("Message", style="white", overflow="fold")
-    table.add_column("File:Line", style="yellow")
     severity_styles = {
         AuditSeverity.BLOCK: "[bold red]BLOCK[/bold red]",
         AuditSeverity.HIGH: "[bold yellow]HIGH[/bold yellow]",
         AuditSeverity.INFO: "[dim]INFO[/dim]",
     }
+    rows = []
     for finding in findings:
         location = str(finding.file_path or "")
         if finding.line_number:
@@ -82,14 +126,36 @@ def print_verbose_findings(findings: list[AuditFinding]) -> None:
         if isinstance(issue_count, int) and issue_count > 1 and finding.file_path:
             location += f" (x{issue_count})"
         severity_cell, evidence_cell = _row_labels(finding, severity_styles)
-        table.add_row(
-            severity_cell,
-            evidence_cell,
-            escape(finding.check_id),
-            escape(finding.message),
-            escape(location),
+        rows.append(
+            (
+                severity_cell,
+                evidence_cell,
+                escape(finding.check_id),
+                escape(finding.message),
+                escape(location),
+            )
         )
-    console.print(table)
+    title = "[bold]Verbose Audit Findings[/bold]"
+    table = _findings_table(
+        title,
+        [
+            ("Severity", "cyan", [r[0] for r in rows]),
+            ("Evidence", "green", [r[1] for r in rows]),  # ADR-113
+            ("Check ID", "magenta", [r[2] for r in rows]),
+            ("File:Line", "yellow", [r[4] for r in rows]),
+        ],
+        message_after=3,
+    )
+    if table is None:
+        console.print(title)
+        for sev, evidence, check_id, message, location in rows:
+            _print_finding_block(
+                [sev, evidence, f"[magenta]{check_id}[/magenta]"], location, message
+            )
+    else:
+        for sev, evidence, check_id, message, location in rows:
+            table.add_row(sev, evidence, check_id, message, location)
+        console.print(table)
     _print_sample_issues(findings)
 
 
@@ -135,16 +201,6 @@ def print_summary_findings(findings: list[AuditFinding]) -> None:
     for f in findings:
         key = (f.check_id, f.severity)
         grouped_findings[key].append(f)
-    table = Table(
-        title="[bold]Audit Findings Summary[/bold]",
-        show_header=True,
-        header_style="bold magenta",
-    )
-    table.add_column("Severity", style="cyan")
-    table.add_column("Evidence", style="green")  # ADR-113
-    table.add_column("Check ID", style="magenta")
-    table.add_column("Message", style="white", overflow="fold")
-    table.add_column("Occurrences", style="yellow", justify="right")
     severity_styles = {
         AuditSeverity.BLOCK: "[bold red]BLOCK[/bold red]",
         AuditSeverity.HIGH: "[bold yellow]HIGH[/bold yellow]",
@@ -155,17 +211,41 @@ def print_summary_findings(findings: list[AuditFinding]) -> None:
         key=lambda item: (item[0][1], item[0][0]),
         reverse=True,
     )
+    rows = []
     for (check_id, severity), finding_list in sorted_items:
-        representative_message = finding_list[0].message
         severity_cell, evidence_cell = _row_labels(finding_list[0], severity_styles)
-        table.add_row(
-            severity_cell,
-            evidence_cell,
-            escape(check_id),
-            escape(representative_message),
-            str(len(finding_list)),
+        rows.append(
+            (
+                severity_cell,
+                evidence_cell,
+                escape(check_id),
+                escape(finding_list[0].message),
+                str(len(finding_list)),
+            )
         )
-    console.print(table)
+    title = "[bold]Audit Findings Summary[/bold]"
+    table = _findings_table(
+        title,
+        [
+            ("Severity", "cyan", [r[0] for r in rows]),
+            ("Evidence", "green", [r[1] for r in rows]),  # ADR-113
+            ("Check ID", "magenta", [r[2] for r in rows]),
+            ("Occurrences", "yellow", [r[4] for r in rows]),
+        ],
+        message_after=3,
+    )
+    if table is None:
+        console.print(title)
+        for sev, evidence, check_id, message, count in rows:
+            _print_finding_block(
+                [sev, evidence, f"[magenta]{check_id}[/magenta]", f"x{count}"],
+                "",
+                message,
+            )
+    else:
+        for sev, evidence, check_id, message, count in rows:
+            table.add_row(sev, evidence, check_id, message, count)
+        console.print(table)
     console.print("\n[dim]Run with '--verbose' to see all individual locations.[/dim]")
 
 

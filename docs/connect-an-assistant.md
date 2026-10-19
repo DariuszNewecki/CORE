@@ -33,8 +33,8 @@ see what the assistant will see:
 
 ```bash
 core-admin law list
-core-admin law show governance.constitution.read_only
-core-admin law check .intent/rules/example.json
+core-admin law show starter.no_bare_except
+core-admin law check .intent/rules/packs/core_starter_python.json
 core-admin decisions list --status accepted
 core-admin code verify
 ```

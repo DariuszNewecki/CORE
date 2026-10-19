@@ -62,8 +62,8 @@ class AuditStats:
     """Execution statistics for a constitutional audit run.
 
     ``None`` means the run did not measure that figure (the offline path has
-    no mapping-coverage or dispatch breakdown); it renders as "n/a", never
-    as a false 0.
+    no mapping-coverage or dispatch breakdown); it is left out of the panel,
+    never shown as a false 0 or as "n/a" (#1189).
     """
 
     total_rules: int = 0
@@ -78,9 +78,30 @@ class AuditStats:
     per_file_rules: int | None = 0
 
 
-def _stat(value: float | None, fmt: str = "{}") -> str:
-    """Format a stat value; an unmeasured one (None) reads "n/a"."""
-    return "n/a" if value is None else fmt.format(value)
+def _stat_cells(stats: AuditStats, findings: int, duration: float) -> list[str]:
+    """The panel's cells, leaving out every figure the run did not measure."""
+    cells = [
+        f"Rules declared: [cyan]{stats.total_declared_rules}[/cyan]",
+        f"Rules executed: [cyan]{stats.executed_rules}[/cyan]",
+    ]
+    if stats.coverage_percent is not None:
+        cells.append(f"Coverage: [cyan]{stats.coverage_percent:.1f}%[/cyan]")
+    if stats.effective_coverage_percent is not None:
+        cells.append(
+            f"Effective coverage: [cyan]{stats.effective_coverage_percent:.1f}%[/cyan]"
+        )
+    if stats.crashed_rules is not None:
+        cells.append(f"Crashed: [red]{stats.crashed_rules}[/red]")
+    if stats.unmapped_rules is not None:
+        cells.append(f"Unmapped: [yellow]{stats.unmapped_rules}[/yellow]")
+    cells.append(f"Duration: [dim]{duration:.2f}s[/dim]")
+    cells.append(f"Total findings: [cyan]{findings}[/cyan]")
+    if stats.context_level_rules is not None and stats.per_file_rules is not None:
+        cells.append(
+            f"Dispatch: [cyan]{stats.context_level_rules}[/cyan] context-level · "
+            f"[cyan]{stats.per_file_rules}[/cyan] per-file"
+        )
+    return cells
 
 
 # ID: 0b88103e-949f-4a1d-9daf-c2042c6346b9
@@ -94,22 +115,9 @@ def render_overview(
 ) -> None:
     """Render audit stats panel + severity overview table."""
     stats_table = Table.grid(expand=True, padding=(0, 2))
-    stats_table.add_row(
-        f"Rules declared: [cyan]{stats.total_declared_rules}[/cyan]",
-        f"Rules executed: [cyan]{stats.executed_rules}[/cyan]",
-        f"Coverage: [cyan]{_stat(stats.coverage_percent, '{:.1f}%')}[/cyan]",
-    )
-    stats_table.add_row(
-        f"Effective coverage: [cyan]{_stat(stats.effective_coverage_percent, '{:.1f}%')}[/cyan]",
-        f"Crashed: [red]{_stat(stats.crashed_rules)}[/red]",
-        f"Unmapped: [yellow]{_stat(stats.unmapped_rules)}[/yellow]",
-    )
-    stats_table.add_row(
-        f"Duration: [dim]{duration:.2f}s[/dim]",
-        f"Total findings: [cyan]{len(findings)}[/cyan]",
-        f"Dispatch: [cyan]{_stat(stats.context_level_rules)}[/cyan] context-level · "
-        f"[cyan]{_stat(stats.per_file_rules)}[/cyan] per-file",
-    )
+    cells = _stat_cells(stats, len(findings), duration)
+    for i in range(0, len(cells), 3):
+        stats_table.add_row(*cells[i : i + 3])
     console.print(
         Panel(stats_table, title="[bold]Audit Execution Stats[/bold]", expand=False)
     )

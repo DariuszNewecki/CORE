@@ -18,7 +18,7 @@ src/cli/     Typer commands; Rich rendering only here
 
 ## Facts (update when they change)
 
-- PyPI: `core-runtime` 2.15.0 (2026-10-18).
+- PyPI: `core-runtime` 2.15.1 (2026-10-19).
 - Latest proof run: 4 (#1053, 2026-10-18, on 2.15.0); its friction is #1174-#1178.
 
 ## Commands

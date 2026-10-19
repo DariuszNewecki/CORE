@@ -47,7 +47,8 @@ def test_to_audit_finding_missing_or_unknown_evidence_is_attested(value) -> None
 
 
 # ID: 4b4044e5-14c8-4bf5-a6eb-6baa506de88a
-def test_unmeasured_stats_render_as_na_not_zero() -> None:
+def test_unmeasured_stats_are_left_out_not_na_or_zero() -> None:
+    """#1189: the offline panel prints only the figures it measured."""
     buf = io.StringIO()
     stats = AuditStats(
         total_rules=4,
@@ -62,11 +63,17 @@ def test_unmeasured_stats_render_as_na_not_zero() -> None:
     )
     render_overview(Console(file=buf, width=200), [], stats, 0.1, True, "PASS")
     out = buf.getvalue()
-    assert "Coverage: n/a" in out
-    assert "Effective coverage: n/a" in out
-    assert "Unmapped: n/a" in out
-    assert "Crashed: 0" in out
-    assert "coverage: 0.0%" not in out.lower()
+    assert "n/a" not in out
+    for absent in ("Coverage", "coverage", "Unmapped", "Dispatch"):
+        assert absent not in out
+    for present in (
+        "Rules declared: 4",
+        "Rules executed: 4",
+        "Crashed: 0",
+        "Total findings: 0",
+        "Duration: 0.10s",
+    ):
+        assert present in out
 
 
 # ID: 0da43301-d9d1-4627-9057-4199da7ab7a0
@@ -106,8 +113,9 @@ def test_offline_summary_shows_block_proven_and_no_false_coverage(
     row = next(line for line in out.splitlines() if "starter.no_bare_except" in line)
     assert "BLOCK" in row and "proven" in row
     assert "ERROR" not in row and "needs human" not in row
-    assert "Coverage: n/a" in out
-    assert "coverage: 0.0%" not in out.lower()
+    assert "n/a" not in out
+    assert "coverage" not in out.lower()
+    assert "Crashed: 0" in out
 
 
 def test_law_not_committed_line_is_one_sentence_with_the_command(
