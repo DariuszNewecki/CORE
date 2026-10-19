@@ -115,6 +115,10 @@ async def _publish(fake: _GitHub, proposal) -> str:
         ("src/api/dependencies.py", "security"),
         ("src/body/sandbox/runner.py", "security"),
         ("src/body/governance/law_custody/writer.py", "security"),
+        ("src/mind/logic/engines/ast_gate/checks/modularity_checks.py", "gates"),
+        ("src/mind/governance/auditor.py", "gates"),
+        (".github/workflows/core-ci.yml", "gates"),
+        ("src/mind/logic/engines/ast_gate/base.py", None),
         ("src/cli/resources/law/apply.py", None),
         ("tests/body/sandbox/test_x.py", None),
         ("README.md", None),
@@ -164,6 +168,19 @@ async def test_the_body_lists_high_risk_changes_first_in_the_adr_order() -> None
     assert order == sorted(order)
     assert "`infra/core-deploy` — #11 PR 11" in body
     assert "tests/infra" not in body.split("## Checks")[0]  # tests are not high risk
+
+
+async def test_a_change_to_a_check_the_governance_engine_or_ci_is_high_risk() -> None:
+    fake = _GitHub()
+    fake.files[13] = [
+        "src/mind/logic/engines/ast_gate/checks/purity_checks.py",
+        "src/mind/governance/auditor.py",
+        ".github/workflows/core-ci.yml",
+    ]
+    high_risk = (await _build(fake)).body().split("## Checks")[0]
+    assert "**Checks and gates" in high_risk
+    for path in fake.files[13]:
+        assert f"`{path}` — #13 PR 13" in high_risk
 
 
 async def test_the_sandbox_line_reports_the_last_post_deploy_check() -> None:

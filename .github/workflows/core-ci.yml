@@ -216,6 +216,61 @@ jobs:
       - name: Dependency audit (pip-audit)
         run: poetry run pip-audit
 
+  # A pull request can weaken a check in src/mind/ and the audit above,
+  # which runs the PR's own src/, would not notice: the weakened check
+  # passes itself. This job judges the same tree with the last released
+  # engine from PyPI, which the PR cannot change. Only a blocking violation
+  # is red here, not DEGRADED: CORE's CLI gates refuse to judge a CLI that
+  # is not the installed one, so this run is DEGRADED by design; the audit
+  # above still runs them against the PR's own CLI.
+  released-engine-audit:
+    name: Audit with the released engine (blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.sha || '' }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install the last released core-runtime from PyPI
+        run: |
+          python -m venv "$RUNNER_TEMP/released"
+          "$RUNNER_TEMP/released/bin/pip" install --no-cache-dir --only-binary=:all: core-runtime
+          "$RUNNER_TEMP/released/bin/core-admin" --version
+
+      - name: core-admin code audit --offline --severity=block
+        run: |
+          set +e
+          env -u PYTHONPATH "$RUNNER_TEMP/released/bin/core-admin" \
+            code audit --offline --severity=block --format=json > "$RUNNER_TEMP/audit.json"
+          code=$?
+          set -e
+          if [ "$code" -ne 0 ] && [ "$code" -ne 1 ]; then
+            echo "::error::the audit did not run (exit $code)"
+            exit "$code"
+          fi
+          python - "$RUNNER_TEMP/audit.json" <<'PY'
+          import json, sys
+          result = json.load(open(sys.argv[1]))
+          print(f"verdict: {result['verdict']}")
+          blocking = [
+              f for f in result["findings"]
+              if f["severity"] == "block"
+              and (f.get("context") or {}).get("finding_type") != "ENFORCEMENT_UNAVAILABLE"
+          ]
+          for f in blocking:
+              where = f"{f.get('file_path') or ''}:{f.get('line_number') or ''}"
+              print(f"::error file={f.get('file_path') or ''}::{f['check_id']} {where} {f['message']}")
+          # A blocking finding is red even when the verdict reads DEGRADED:
+          # the engine names an unrunnable blocking rule before a violation.
+          sys.exit(1 if blocking or result["verdict"] == "FAIL" else 0)
+          PY
+
   # ADR-157 D3.4: mathematically, `-m "not integration"` and `-m "integration"`
   # are complementary and exhaustive over a fixed collection by construction —
   # this job exists to catch drift the math doesn't cover (a file silently
