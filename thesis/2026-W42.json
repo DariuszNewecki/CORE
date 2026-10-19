@@ -1,0 +1,247 @@
+{
+  "days": [
+    {
+      "ai_share": 0.63,
+      "breaches": [],
+      "convergence": 0.892,
+      "day": "2026-10-14",
+      "detail": {
+        "authorship": {
+          "ai": 511,
+          "bot": 7,
+          "human_or_unmarked": 293
+        },
+        "convergence": {
+          "abandoned": 29772,
+          "created": 275486,
+          "resolved": 245821
+        },
+        "waste": {
+          "trips": {},
+          "writes": null
+        }
+      },
+      "line": "thesis 2026-10-14: unverified writes unavailable ? AI authorship 63% ? waste unavailable per change ? convergence 89%",
+      "unavailable": [
+        "github writes: GitHub's GraphQL API needs CORE_GITHUB_TOKEN",
+        "github pull requests: GitHub's GraphQL API needs CORE_GITHUB_TOKEN"
+      ],
+      "unverified_breaches": [],
+      "unverified_corrections": [],
+      "unverified_writes": null,
+      "waste_per_change": null
+    },
+    {
+      "ai_share": 0.631,
+      "breaches": [],
+      "convergence": 0.895,
+      "day": "2026-10-15",
+      "detail": {
+        "authorship": {
+          "ai": 513,
+          "bot": 7,
+          "human_or_unmarked": 293
+        },
+        "convergence": {
+          "abandoned": 28340,
+          "created": 269737,
+          "resolved": 241531
+        },
+        "waste": {
+          "trips": {
+            "deploy refused": 3,
+            "deploy run by hand": 6
+          },
+          "writes": null
+        }
+      },
+      "line": "thesis 2026-10-15: unverified writes unavailable ? AI authorship 63% ? waste unavailable per change ? convergence 90%",
+      "unavailable": [
+        "github writes: GitHub's GraphQL API needs CORE_GITHUB_TOKEN",
+        "github pull requests: GitHub's GraphQL API needs CORE_GITHUB_TOKEN"
+      ],
+      "unverified_breaches": [],
+      "unverified_corrections": [],
+      "unverified_writes": null,
+      "waste_per_change": null
+    },
+    {
+      "ai_share": 0.634,
+      "breaches": [],
+      "convergence": 0.899,
+      "day": "2026-10-16",
+      "detail": {
+        "authorship": {
+          "ai": 517,
+          "bot": 7,
+          "human_or_unmarked": 292
+        },
+        "convergence": {
+          "abandoned": 26880,
+          "created": 264059,
+          "resolved": 237287
+        },
+        "waste": {
+          "trips": {
+            "deploy refused": 7,
+            "deploy run by hand": 8
+          },
+          "writes": null
+        }
+      },
+      "line": "thesis 2026-10-16: unverified writes unavailable ? AI authorship 63% ? waste unavailable per change ? convergence 90%",
+      "unavailable": [
+        "github writes: GitHub's GraphQL API needs CORE_GITHUB_TOKEN",
+        "github pull requests: GitHub's GraphQL API needs CORE_GITHUB_TOKEN"
+      ],
+      "unverified_breaches": [],
+      "unverified_corrections": [],
+      "unverified_writes": null,
+      "waste_per_change": null
+    },
+    {
+      "ai_share": 0.635,
+      "breaches": [
+        {
+          "measure": "unverified_writes",
+          "message": "2 write(s) reached main since 2026-10-12 without green CI and the governor's approval of the pull request's last commit (or merge)."
+        },
+        {
+          "measure": "waste_per_change",
+          "message": "Waste rose to 2.5 trips per merged change, from 2.0 a month earlier."
+        }
+      ],
+      "convergence": 0.908,
+      "day": "2026-10-17",
+      "detail": {
+        "authorship": {
+          "ai": 521,
+          "bot": 7,
+          "human_or_unmarked": 292
+        },
+        "convergence": {
+          "abandoned": 23906,
+          "created": 257077,
+          "resolved": 233299,
+          "telemetry_excluded": 1502
+        },
+        "unverified": {
+          "ci_pending": [],
+          "corrected": 0,
+          "list": [
+            "114ae9cc94f5 PR #1094: CI FAILURE on the PR head",
+            "5345fa93e5f8 PR #1066: CI FAILURE on the PR head"
+          ],
+          "new": 2,
+          "writes": 94
+        },
+        "waste": {
+          "trips": {
+            "CI red": 17,
+            "CI rerun after branch update": 14,
+            "PR closed unmerged": 4,
+            "approval dismissed": 6,
+            "branch updated after approval": 6,
+            "command run by the governor": 83,
+            "commit refused by a hook": 65,
+            "deploy refused": 7,
+            "deploy run by hand": 8,
+            "force-push": 1,
+            "permission block": 63,
+            "question to the governor": 87,
+            "stop-hook rewrite": 51
+          },
+          "writes": 164
+        }
+      },
+      "line": "thesis 2026-10-17: unverified writes 2 ? AI authorship 64% ? waste 2.5 per change ? convergence 91%",
+      "unavailable": [],
+      "unverified_breaches": [
+        {
+          "first_seen": "2026-10-17",
+          "reason": "PR #1094: CI FAILURE on the PR head",
+          "sha": "114ae9cc94f5bc44b9740585e40087c596dc3b32"
+        },
+        {
+          "first_seen": "2026-10-17",
+          "reason": "PR #1066: CI FAILURE on the PR head",
+          "sha": "5345fa93e5f8714db7b9fccca25bc63f8e02c799"
+        }
+      ],
+      "unverified_corrections": [],
+      "unverified_writes": 2,
+      "waste_per_change": 2.5
+    },
+    {
+      "ai_share": 0.638,
+      "breaches": [
+        {
+          "measure": "waste_per_change",
+          "message": "Waste rose to 2.7 trips per merged change, from 2.0 a month earlier."
+        }
+      ],
+      "convergence": 0.911,
+      "day": "2026-10-18",
+      "detail": {
+        "authorship": {
+          "ai": 527,
+          "bot": 7,
+          "human_or_unmarked": 292
+        },
+        "convergence": {
+          "abandoned": 22466,
+          "created": 251630,
+          "resolved": 229270,
+          "telemetry_excluded": 1513
+        },
+        "unverified": {
+          "ci_pending": [],
+          "corrected": 2,
+          "list": [],
+          "new": 0,
+          "writes": 109
+        },
+        "waste": {
+          "trips": {
+            "CI red": 14,
+            "CI rerun after branch update": 10,
+            "PR closed unmerged": 1,
+            "approval dismissed": 6,
+            "branch updated after approval": 4,
+            "command run by the governor": 85,
+            "commit refused by a hook": 66,
+            "deploy refused": 7,
+            "deploy run by hand": 8,
+            "force-push": 2,
+            "permission block": 68,
+            "question to the governor": 87,
+            "stop-hook rewrite": 59
+          },
+          "writes": 154
+        }
+      },
+      "line": "thesis 2026-10-18: unverified writes 0 ? AI authorship 64% ? waste 2.7 per change ? convergence 91%",
+      "unavailable": [],
+      "unverified_breaches": [],
+      "unverified_corrections": [
+        {
+          "corrected_on": "2026-10-18",
+          "first_seen": "2026-10-17",
+          "sha": "114ae9cc94f5bc44b9740585e40087c596dc3b32",
+          "stored_reason": "PR #1094: CI FAILURE on the PR head",
+          "why_false": "now judged verified (CI green on the PR head): only a completed red CI run is a failure; a run cancelled by a newer merge is not (governor 2026-10-14), nor one a later run of the same check replaced"
+        },
+        {
+          "corrected_on": "2026-10-18",
+          "first_seen": "2026-10-17",
+          "sha": "5345fa93e5f8714db7b9fccca25bc63f8e02c799",
+          "stored_reason": "PR #1066: CI FAILURE on the PR head",
+          "why_false": "now judged verified (CI green on the PR head): only a completed red CI run is a failure; a run cancelled by a newer merge is not (governor 2026-10-14), nor one a later run of the same check replaced"
+        }
+      ],
+      "unverified_writes": 0,
+      "waste_per_change": 2.7
+    }
+  ],
+  "week": "2026-W42"
+}
