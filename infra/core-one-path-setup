@@ -20,7 +20,8 @@
 #  3. /var/lib/core-pipeline (core-runner 0755): the runner's state, logs and status.json;
 #  4. /etc/core/pipeline.conf (root:core-runner 0640): repository, the governor's GitHub login,
 #     branch main; and, if you paste one, a GitHub token that may open issues
-#     (/etc/core/pipeline-github-token, root:core-runner 0640);
+#     (/etc/core/pipeline-github-token, root:core-runner 0640); DEPLOY_KEY names the key that
+#     pushes `live` (/etc/core/pipeline-deploy-key, core-runner 0600, made by the governor);
 #  5. /opt/core/etc/deploy.conf: DEPLOY_BRANCH=main (core-deploy then deploys only commits on main),
 #     and BACKUP_COMMAND when missing (the dump core-deploy takes before a migration);
 #  6. /etc/sudoers.d/core-runner, checked with visudo: core-runner may run exactly
@@ -120,7 +121,13 @@ GITHUB_REPO=$REPO
 GOVERNOR_GITHUB=$GOVERNOR_GITHUB
 BRANCH=main
 TOKEN_FILE=/etc/core/pipeline-github-token
+DEPLOY_KEY=/etc/core/pipeline-deploy-key
 EOF
+if [[ -f /etc/core/pipeline-deploy-key ]]; then
+  say "  ok: deploy key present"
+else
+  say "  no deploy key: live stays where it is (status.json says so)"
+fi
 ask_token /etc/core/pipeline-github-token
 
 say "5. /opt/core/etc/deploy.conf: DEPLOY_BRANCH=main"
