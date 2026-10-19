@@ -223,14 +223,15 @@ jobs:
   # is red here, not DEGRADED: CORE's CLI gates refuse to judge a CLI that
   # is not the installed one, so this run is DEGRADED by design; the audit
   # above still runs them against the PR's own CLI.
+  # Pull requests and pushes only: it checks out the event's own commit,
+  # never a dispatch input (CodeQL: cache poisoning from an untrusted ref).
   released-engine-audit:
     name: Audit with the released engine (blocking)
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.sha || '' }}
 
       - name: Setup Python
         uses: actions/setup-python@v7
