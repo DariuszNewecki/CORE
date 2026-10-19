@@ -100,7 +100,55 @@ async def test_failure_summary_is_pytests_line(scratch: Path) -> None:
         ),
     )
     assert not action.ok
-    assert action.data["error"] == "1 failed, 2 passed in 0.2s"
+    assert action.data["summary"] == "1 failed, 2 passed in 0.2s"
+    assert action.data["error"] == "1 failed, 2 passed in 0.2s\nE boom"
+
+
+COLLECTION_ERROR_STDOUT = """\
+==================================== ERRORS ====================================
+_____________ ERROR collecting tests/x/test_generated.py _____________
+ImportError while importing test module 'tests/x/test_generated.py'.
+E   ModuleNotFoundError: No module named 'missing_mod'
+=========================== short test summary info ============================
+ERROR tests/x/test_generated.py - ModuleNotFoundError: No module named 'missing_mod'
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 1.56s
+"""
+
+
+async def test_failure_error_carries_the_reason_not_only_the_footer(
+    scratch: Path,
+) -> None:
+    action, _ = await _run(
+        scratch, _result(status="failed", exit_code=2, stdout=COLLECTION_ERROR_STDOUT)
+    )
+    error = action.data["error"]
+    assert action.data["summary"] == "1 error in 1.56s"
+    assert error.startswith("1 error in 1.56s\n")
+    assert "ERROR tests/x/test_generated.py" in error
+    assert "No module named 'missing_mod'" in error
+
+
+async def test_failure_without_pytest_detail_falls_back_to_stderr_tail(
+    scratch: Path,
+) -> None:
+    stderr = "\n".join(f"line {i}" for i in range(30)) + "\nboom: sandbox died\n"
+    action, _ = await _run(
+        scratch,
+        _result(status="error", exit_code=1, stdout="", stderr=stderr, reason="crash"),
+    )
+    error = action.data["error"]
+    assert error.startswith("error: crash\n")
+    assert "boom: sandbox died" in error
+    assert "line 10" not in error
+
+
+async def test_failure_error_is_capped(scratch: Path) -> None:
+    stdout = "".join(f"E {'x' * 200}\n" for _ in range(50)) + "1 failed in 0.1s\n"
+    action, _ = await _run(
+        scratch, _result(status="failed", exit_code=1, stdout=stdout)
+    )
+    assert len(action.data["error"]) <= repo_tests.ERROR_DETAIL_CHARS
 
 
 @pytest.mark.parametrize(

@@ -53,6 +53,9 @@ EXCLUDED_TOP: frozenset[str] = frozenset(
 )
 MODE_ENV = "CORE_SANDBOX_MODE"
 DEFAULT_MODE = "local"
+# A failed run's error: the footer plus at most this much diagnosis.
+ERROR_DETAIL_LINES = 20
+ERROR_DETAIL_CHARS = 2000
 
 
 # ID: fb3761ae-cab0-40f6-b0d6-2d2aebedea94
@@ -201,7 +204,7 @@ def _result_data(result: SandboxResult) -> dict[str, Any]:
         "stdout": result.stdout,
         "stderr": result.stderr,
         "summary": summary,
-        "error": None if result.ok else summary,
+        "error": None if result.ok else _error_detail(summary, result),
         "status": result.status,
         "completeness": result.completeness,
         "isolation": result.isolation,
@@ -218,6 +221,28 @@ def _summarize(output: str) -> str:
         if any(word in line for word in ("passed", "failed", "error", "skipped")):
             return line.strip()
     return ""
+
+
+def _error_detail(summary: str, result: SandboxResult) -> str:
+    """The footer plus why: pytest's short test summary lines, else its first
+    ``E `` lines, else the tail of stderr; capped so a row stays readable."""
+    lines = "\n".join(s for s in (result.stdout, result.stderr) if s).splitlines()
+    detail: list[str] = []
+    in_short = False
+    for line in lines:
+        if "short test summary info" in line:
+            in_short = True
+        elif in_short and line.startswith(("FAILED ", "ERROR ")):
+            detail.append(line.rstrip())
+    if not detail:
+        detail = [line.rstrip() for line in lines if line.startswith("E ")][
+            :ERROR_DETAIL_LINES
+        ]
+    if not detail:
+        detail = [line.rstrip() for line in result.stderr.splitlines()][
+            -ERROR_DETAIL_LINES:
+        ]
+    return "\n".join([summary, *detail])[:ERROR_DETAIL_CHARS]
 
 
 async def _persist_result_to_db(result: ActionResult) -> None:
