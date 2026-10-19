@@ -148,13 +148,12 @@ async def test_no_blocking_findings_yields_pass(tmp_path: Path) -> None:
     assert result["passed"] is True
 
 
-async def test_mixed_unavailable_and_genuine_yields_degraded_not_fail(
+async def test_one_unavailable_rule_and_one_real_violation_is_fail(
     tmp_path: Path,
 ) -> None:
-    """Same precedence as ConstitutionalAuditor._determine_verdict (ADR-156
-    D1a): DEGRADED preconditions take precedence over FAIL, proven here
-    too -- a genuine violation alongside an unavailable one must not mask
-    the DEGRADED signal as an ordinary FAIL."""
+    """#1194 (governor 2026-10-19): same order as
+    ConstitutionalAuditor._determine_verdict. A real violation next to an
+    unavailable blocking rule is FAIL: the tree is known non-compliant."""
     result = await _run(
         [
             _unavailable_finding("runtime.worker_max_interval_within_observed"),
@@ -162,7 +161,7 @@ async def test_mixed_unavailable_and_genuine_yields_degraded_not_fail(
         ],
         tmp_path,
     )
-    assert result["verdict"] == "DEGRADED"
+    assert result["verdict"] == "FAIL"
     assert result["passed"] is False
 
 

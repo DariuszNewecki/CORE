@@ -245,12 +245,12 @@ class TestDetermineVerdict:
         # precondition branch — not the policy-load-failure sentinel.
         assert verdict == AuditVerdict.DEGRADED
 
-    def test_unmapped_rules_positive_with_blocking_finding_yields_degraded_not_fail(
+    def test_unmapped_rules_positive_with_blocking_finding_yields_fail(
         self,
     ):
-        """ADR-156 D1a: DEGRADED preconditions precede FAIL. A finding that
-        would trigger FAIL on its own must not override an active
-        unmapped-mapping-required precondition."""
+        """#1194 (governor 2026-10-19, replacing ADR-156 D1a's order): a
+        proven blocking violation is FAIL even while an unmapped
+        mapping-required rule would otherwise make the audit DEGRADED."""
         finding = AuditFinding(
             check_id="rule.foo",
             severity=AuditSeverity.BLOCK,
@@ -267,7 +267,7 @@ class TestDetermineVerdict:
                 stats={"unmapped_rules": 2},
                 crashed_rule_ids=set(),
             )
-        assert verdict == AuditVerdict.DEGRADED
+        assert verdict == AuditVerdict.FAIL
 
     def test_unmapped_precondition_absent_from_project_policy_still_degrades(self):
         """#952 (governor ruling, option A): a project policy that omits the
@@ -311,12 +311,11 @@ class TestDetermineVerdict:
         # precondition branch.
         assert verdict == AuditVerdict.DEGRADED
 
-    def test_blocking_unavailable_with_blocking_finding_yields_degraded_not_fail(
+    def test_one_unavailable_blocking_rule_and_one_real_violation_is_fail(
         self,
     ):
-        """Same precedence rule as ADR-156 D1a, now for the new
-        precondition: DEGRADED must not be overridden by a finding that
-        would trigger FAIL on its own."""
+        """#1194: one blocking rule could not run, another proved a
+        violation. The tree is known non-compliant: FAIL, not DEGRADED."""
         finding = AuditFinding(
             check_id="rule.foo",
             severity=AuditSeverity.BLOCK,
@@ -333,7 +332,28 @@ class TestDetermineVerdict:
                 stats={"blocking_unavailable_rules": 1},
                 crashed_rule_ids=set(),
             )
-        assert verdict == AuditVerdict.DEGRADED
+        assert verdict == AuditVerdict.FAIL
+
+    def test_a_crashed_rule_and_a_real_violation_is_fail(self):
+        """#1194: a crash elsewhere does not turn a proven violation into
+        'compliance unknown'."""
+        finding = AuditFinding(
+            check_id="rule.foo",
+            severity=AuditSeverity.BLOCK,
+            message="Direct DB import in API layer",
+            file_path="src/api/routes/x.py",
+            context={"some_key": "some_value"},
+        )
+        with patch(
+            "mind.governance.auditor.load_audit_verdict_policy",
+            return_value=dict(_POLICY_WITH_UNAVAILABLE),
+        ):
+            verdict = ConstitutionalAuditor._determine_verdict(
+                findings=[finding],
+                stats={},
+                crashed_rule_ids={"rule.bar"},
+            )
+        assert verdict == AuditVerdict.FAIL
 
     def test_blocking_unavailable_absent_from_project_policy_still_degrades(self):
         """#952: mirrors the unmapped case — not switchable per project."""

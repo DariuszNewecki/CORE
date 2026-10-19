@@ -198,6 +198,25 @@ class ConstitutionalAuditor:
             )
             return AuditVerdict.DEGRADED
 
+        fail_sevs = {AuditSeverity[name] for name in policy["fail_severities"]}
+        ignored_types = set(policy["ignored_finding_types"])
+
+        has_blocking_violations = any(
+            (f.severity if hasattr(f, "severity") else AuditSeverity.INFO) in fail_sevs
+            for f in findings
+            if not (
+                hasattr(f, "context")
+                and isinstance(f.context, dict)
+                and f.context.get("finding_type") in ignored_types
+            )
+        )
+
+        # #1194 (governor 2026-10-19): a violation a rule proved is FAIL even
+        # when another rule could not run. DEGRADED (compliance unknown) is
+        # only for a result where nothing proved a violation.
+        if has_blocking_violations:
+            return AuditVerdict.FAIL
+
         if "any_crashed_rules" in policy["degraded_on"] and crashed_rule_ids:
             return AuditVerdict.DEGRADED
 
@@ -213,8 +232,8 @@ class ConstitutionalAuditor:
         # #847/#856 (governor rulings 3/6): a BLOCKING rule whose
         # dependency/evidence is unavailable (missing tool, missing DB
         # session, insufficient samples) makes the audit DEGRADED — never
-        # PASS, never FAIL. An advisory/reporting rule's unavailable
-        # dependency does NOT trigger this: its finding stays visible
+        # PASS; FAIL only when another rule proved a violation (#1194). An
+        # advisory/reporting rule's unavailable dependency does NOT trigger this: its finding stays visible
         # (ignored_finding_types keeps it off the FAIL path too) without
         # forcing degradation, so the audit may still PASS.
         if (
@@ -222,22 +241,6 @@ class ConstitutionalAuditor:
             and stats.get("blocking_unavailable_rules", 0) > 0
         ):
             return AuditVerdict.DEGRADED
-
-        fail_sevs = {AuditSeverity[name] for name in policy["fail_severities"]}
-        ignored_types = set(policy["ignored_finding_types"])
-
-        has_blocking_violations = any(
-            (f.severity if hasattr(f, "severity") else AuditSeverity.INFO) in fail_sevs
-            for f in findings
-            if not (
-                hasattr(f, "context")
-                and isinstance(f.context, dict)
-                and f.context.get("finding_type") in ignored_types
-            )
-        )
-
-        if has_blocking_violations:
-            return AuditVerdict.FAIL
 
         # ADR-169 D2: the law evaluated is not known to be the law of record.
         # After the FAIL check (#1045): uncommitted law does not hide a proven
