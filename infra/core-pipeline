@@ -31,11 +31,13 @@ timer, as the account ``core-runner``:
     switches back itself when the new release fails;
  6. after a deploy, runs the sandbox check as core; when it fails, rolls back
     (``sudo -n core-deploy --rollback``) and opens an issue;
- 7. fast-forwards ``live`` to the deployed commit (GitHub refuses anything
-    else; it records the pull request as merged). ``live`` is created at the
-    live commit when it does not exist. Both need ``TOKEN_FILE`` with write
-    access to the repository's contents; without it the deploy still
-    happens and status says ``live`` was not moved;
+ 7. pushes ``live`` to the deployed commit with the repository's deploy key
+    (``DEPLOY_KEY``), never forced: GitHub records the pull request as
+    merged. ``live`` is created at the live commit when it does not exist,
+    and caught up to it when it lags behind (the first deploy of this
+    script). The ``live`` ruleset lets only a deploy key update the branch
+    and refuses anything but a fast-forward (governor 2026-10-19). Without
+    the key the deploy still happens and status says ``live`` was not moved;
  8. writes ``status.json`` for ``core-admin runtime status``.
 
 GitHub's API allows 60 calls an hour without a token (#1065). An idle tick
@@ -50,8 +52,10 @@ credential and cannot write the law or the runtime itself.
 
 Configuration (/etc/core/pipeline.conf, KEY=VALUE): GITHUB_REPO (owner/name),
 GOVERNOR_GITHUB (the governor's GitHub login), BRANCH (main), LIVE_BRANCH
-(live), TOKEN_FILE (a GitHub token that may open issues and write the
-repository's contents; optional).
+(live), DEPLOY_KEY (the private half of a deploy key with write access, owned
+by core-runner 0600; optional), TOKEN_FILE (a GitHub token that may open
+issues; optional). Without TOKEN_FILE a failed promotion is written only to
+status.json and the deploy log: no issue is opened and nobody is alerted.
 """
 
 from __future__ import annotations
@@ -76,6 +80,11 @@ EX_DEPLOY_GOVERNOR = 3
 # How often open promotions are read from GitHub while one waits for approval.
 PROMOTION_POLL = datetime.timedelta(minutes=5)
 PROMOTE_PREFIX = "promote/"
+# GitHub's published SSH host key: the push trusts nothing else.
+GITHUB_HOST_KEY = (
+    "github.com ssh-ed25519 "
+    "AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
+)
 
 
 @dataclass(frozen=True)
@@ -104,11 +113,21 @@ class Layout:
 class Host:
     """Every side effect outside the state directory goes through here."""
 
-    def __init__(self, token: str | None = None) -> None:
+    def __init__(
+        self, token: str | None = None, deploy_key: Path | None = None
+    ) -> None:
         self.token = token
+        self.deploy_key = deploy_key
 
-    def run(self, cmd: list[str]) -> subprocess.CompletedProcess[bytes]:
-        return subprocess.run(cmd, capture_output=True, stdin=subprocess.DEVNULL)
+    def run(
+        self, cmd: list[str], env: dict[str, str] | None = None
+    ) -> subprocess.CompletedProcess[bytes]:
+        return subprocess.run(
+            cmd,
+            capture_output=True,
+            stdin=subprocess.DEVNULL,
+            env={**os.environ, **env} if env else None,
+        )
 
     def http(
         self, url: str, payload: dict | None = None, method: str | None = None
@@ -306,27 +325,55 @@ class Runner:
         data = self.host.http(f"{self.api}/repos/{self.repo}/compare/{base}...{sha}")
         return isinstance(data, dict) and data.get("status") == "ahead"
 
-    def move_live(self, sha: str, exists: bool) -> str:
-        """Create ``live`` at *sha*, or fast-forward it there (force off:
-        GitHub refuses anything but a fast-forward). Returns what happened."""
-        if not self.host.token:
-            return f"{self.live_branch} not moved: no TOKEN_FILE"
-        try:
-            if exists:
-                self.host.http(
-                    f"{self.api}/repos/{self.repo}/git/refs/heads/{self.live_branch}",
-                    {"sha": sha, "force": False},
-                    method="PATCH",
+    def move_live(self, sha: str) -> str:
+        """Push ``live`` to *sha* with the deploy key: its creation or a
+        fast-forward, never forced. Returns what happened."""
+        key = self.host.deploy_key
+        if key is None:
+            return f"{self.live_branch} not moved: no DEPLOY_KEY"
+        repo = self.layout.state_dir / "repo.git"
+        known_hosts = self.layout.state_dir / "github_known_hosts"
+        known_hosts.write_text(GITHUB_HOST_KEY + "\n")
+        env = {
+            "GIT_TERMINAL_PROMPT": "0",
+            "GIT_SSH_COMMAND": (
+                f"ssh -F /dev/null -i {key} -o IdentitiesOnly=yes -o BatchMode=yes"
+                f" -o StrictHostKeyChecking=yes -o UserKnownHostsFile={known_hosts}"
+            ),
+        }
+        # The objects come over https (the repository is public); a ref keeps
+        # them, so the next fetch sends only what is new.
+        steps = [
+            ["git", "init", "--quiet", "--bare", str(repo)],
+            [
+                "git",
+                "-C",
+                str(repo),
+                "fetch",
+                "--quiet",
+                "--no-tags",
+                f"https://github.com/{self.repo}.git",
+                f"+{sha}:refs/heads/{self.live_branch}",
+            ],
+            [
+                "git",
+                "-C",
+                str(repo),
+                "push",
+                "--quiet",
+                f"git@github.com:{self.repo}.git",
+                f"{sha}:refs/heads/{self.live_branch}",
+            ],
+        ]
+        for cmd in steps:
+            done = self.host.run(cmd, env=env)
+            if done.returncode != 0:
+                text = (done.stdout + done.stderr).decode(errors="replace").strip()
+                self.log(sha, f"$ {' '.join(cmd)}\n{text}\n(exit {done.returncode})")
+                verb = cmd[3] if cmd[1] == "-C" else cmd[1]
+                return (
+                    f"{self.live_branch} not moved: git {verb} exited {done.returncode}"
                 )
-            else:
-                self.host.http(
-                    f"{self.api}/repos/{self.repo}/git/refs",
-                    {"ref": f"refs/heads/{self.live_branch}", "sha": sha},
-                )
-        except urllib.error.HTTPError as exc:
-            if rate_limit_reset(exc, self.host.now()) is not None:
-                raise
-            return f"{self.live_branch} not moved: GitHub answered {exc.code}"
         self.state["live_branch"] = sha
         return f"{self.live_branch} at {sha[:12]}"
 
@@ -408,11 +455,12 @@ class Runner:
         live = self.live_sha()
         live_branch = refs.get(self.live_branch)
         self.state["live_branch"] = live_branch
-        if live_branch is None and live and self.host.token and self.due("created"):
-            # The base every promotion needs: the live commit. Tried at most
-            # once per PROMOTION_POLL, so a token without write access does
-            # not spend the API budget.
-            self.log(live, self.move_live(live, exists=False))
+        if live and live_branch != live and self.host.deploy_key and self.due("moved"):
+            # The base every promotion needs: the live commit. ``live`` is
+            # created there, or caught up when a deploy could not push it.
+            # Tried at most once per PROMOTION_POLL; a branch ahead of the
+            # live commit (after a rollback) is refused, never forced.
+            self.log(live, self.move_live(live))
             live_branch = self.state.get("live_branch")
         candidates = {
             sha
@@ -516,7 +564,7 @@ class Runner:
                     number,
                 )
             else:
-                moved = self.move_live(sha, exists=live_branch is not None)
+                moved = self.move_live(sha)
                 self.log(sha, moved)
                 self.state["last"] = {
                     "sha": sha,
@@ -549,7 +597,8 @@ def main(
     if host is None:
         token_file = Path(conf.get("TOKEN_FILE", "/etc/core/pipeline-github-token"))
         token = token_file.read_text().strip() if token_file.is_file() else None
-        host = Host(token or None)
+        key = Path(conf.get("DEPLOY_KEY", "/etc/core/pipeline-deploy-key"))
+        host = Host(token or None, key if key.is_file() else None)
     layout.state_dir.mkdir(parents=True, exist_ok=True)
     runner = Runner(
         host,

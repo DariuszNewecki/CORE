@@ -6,8 +6,9 @@ GitHub answers and the sudo calls are simulated and recorded. These tests prove
 the rules: a merge to main deploys nothing; only a promotion into ``live``
 whose exact head the governor approved deploys, and exactly that head; it must
 be a fast-forward of ``live`` with green CI; a failed probe rolls back and
-opens an issue; ``live`` is fast-forwarded after the deploy; the only
-privileged commands are core-deploy and the sandbox check.
+opens an issue; ``live`` is pushed with the deploy key after the deploy,
+never forced; the only privileged commands are core-deploy and the sandbox
+check.
 """
 
 from __future__ import annotations
@@ -31,6 +32,7 @@ SHA = "c" * 40  # the promoted main commit
 LIVE = "a" * 40  # the live commit
 MAIN = "e" * 40  # main's head
 GOVERNOR = "DariuszNewecki"
+KEY = Path("/etc/core/pipeline-deploy-key")
 
 
 def _load(name: str, path: Path) -> ModuleType:
@@ -51,8 +53,8 @@ def _approval(commit: str = SHA, login: str = GOVERNOR, state: str = "APPROVED")
 
 
 class FakeHost(cp.Host):
-    def __init__(self, token: str | None = "t") -> None:
-        super().__init__(token=token)
+    def __init__(self, token: str | None = "t", deploy_key: Path | None = KEY) -> None:
+        super().__init__(token=token, deploy_key=deploy_key)
         self.main = MAIN
         self.live_branch: str | None = LIVE
         self.promote: dict[str, str] = {"promote/2026-10-19": SHA}
@@ -69,8 +71,9 @@ class FakeHost(cp.Host):
         self.rc: dict[str, int] = {}
         self.calls: list[list[str]] = []
         self.issues: list[dict] = []
-        self.ref_writes: list[tuple[str | None, str, dict]] = []
-        self.ref_write_error: int | None = None
+        self.pushes: list[tuple[str, dict]] = []  # (refspec, env)
+        self.git_rc: dict[str, int] = {}  # by git verb: init, fetch, push
+        self.git_calls: list[str] = []
         self.ls_remote_fails = False
         self.api_calls = 0
         self.at = datetime.datetime(2026, 10, 19, 9, 0, tzinfo=datetime.UTC)
@@ -79,7 +82,15 @@ class FakeHost(cp.Host):
     def now(self):
         return self.at
 
-    def run(self, cmd):
+    def run(self, cmd, env=None):
+        if cmd[0] == "git" and cmd[1] != "ls-remote":
+            verb = cmd[3] if cmd[1] == "-C" else cmd[1]
+            self.git_calls.append(verb)
+            rc = self.git_rc.get(verb, 0)
+            if verb == "push" and rc == 0:
+                self.pushes.append((cmd[-1], env))
+                self.live_branch = cmd[-1].split(":")[0]
+            return subprocess.CompletedProcess(cmd, rc, b"", b"rejected")
         if cmd[:2] == ["git", "ls-remote"]:
             if self.ls_remote_fails:
                 return subprocess.CompletedProcess(cmd, 128, b"", b"no")
@@ -105,13 +116,6 @@ class FakeHost(cp.Host):
             headers["X-RateLimit-Remaining"] = "0"
             headers["X-RateLimit-Reset"] = str(int(self.limited_until.timestamp()))
             raise urllib.error.HTTPError(url, 403, "rate limit exceeded", headers, None)
-        if "/git/refs" in url:
-            if self.ref_write_error:
-                raise urllib.error.HTTPError(
-                    url, self.ref_write_error, "no", email.message.Message(), None
-                )
-            self.ref_writes.append((method, url, payload))
-            return {"object": {"sha": payload["sha"]}}
         if url.endswith("/issues"):
             self.issues.append(payload)
             return {"html_url": "https://github.com/x/issues/1"}
@@ -334,17 +338,22 @@ def test_same_check_name_from_another_app_is_not_superseded(world) -> None:
 # -- after the deploy -------------------------------------------------------------
 
 
-def test_live_is_fast_forwarded_to_the_deployed_head(world) -> None:
+def test_live_is_pushed_to_the_deployed_head_with_the_deploy_key(world) -> None:
     host, _ = world
     status = _tick(world)
-    assert host.ref_writes == [
-        (
-            "PATCH",
-            "https://api.github.com/repos/DariuszNewecki/CORE/git/refs/heads/live",
-            {"sha": SHA, "force": False},
-        )
-    ]
+    assert [refspec for refspec, _ in host.pushes] == [f"{SHA}:refs/heads/live"]
+    ssh = host.pushes[0][1]["GIT_SSH_COMMAND"]
+    assert f"-i {KEY}" in ssh and "StrictHostKeyChecking=yes" in ssh
     assert status["live_branch"] == SHA
+
+
+def test_the_push_is_never_forced_and_trusts_only_githubs_host_key(world) -> None:
+    host, layout = world
+    _tick(world)
+    source = (REPO / "infra" / "core-pipeline").read_text()
+    assert "--force" not in source and "+" not in host.pushes[0][0]
+    known = (layout.state_dir / "github_known_hosts").read_text()
+    assert known == cp.GITHUB_HOST_KEY + "\n"
 
 
 def test_a_missing_live_branch_is_created_at_the_live_commit(world) -> None:
@@ -352,37 +361,46 @@ def test_a_missing_live_branch_is_created_at_the_live_commit(world) -> None:
     host.live_branch = None
     host.promote = {}
     _tick(world)
-    assert host.ref_writes == [
-        (
-            None,
-            "https://api.github.com/repos/DariuszNewecki/CORE/git/refs",
-            {"ref": "refs/heads/live", "sha": LIVE},
-        )
-    ]
+    assert [refspec for refspec, _ in host.pushes] == [f"{LIVE}:refs/heads/live"]
 
 
-def test_a_refused_ref_write_is_tried_again_only_after_the_poll(world) -> None:
+def test_a_live_branch_behind_the_live_commit_is_caught_up(world) -> None:
     host, _ = world
+    host.live_branch = "b" * 40  # left behind while there was no key
+    host.promote = {}
+    status = _tick(world)
+    assert [refspec for refspec, _ in host.pushes] == [f"{LIVE}:refs/heads/live"]
+    assert status["live_branch"] == LIVE
+
+
+def test_a_refused_push_is_tried_again_only_after_the_poll(world) -> None:
+    host, layout = world
     host.live_branch = None
     host.promote = {}
-    host.ref_write_error = 403
+    host.git_rc["push"] = 1
     _tick(world)
-    before = host.api_calls
+    assert host.git_calls == ["init", "fetch", "push"]
     _later(host, 1)
     _tick(world)
-    assert host.api_calls == before
+    assert host.pushes == [] and len(host.git_calls) == 3
+    log = (layout.logs / f"{LIVE[:12]}.log").read_text()
+    assert "not moved: git push exited 1" in log and "rejected" in log
+    _later(host)
+    host.git_rc.clear()
+    _tick(world)
+    assert [refspec for refspec, _ in host.pushes] == [f"{LIVE}:refs/heads/live"]
 
 
-def test_without_a_token_it_deploys_and_says_live_was_not_moved(
+def test_without_a_deploy_key_it_deploys_and_says_live_was_not_moved(
     world, tmp_path: Path
 ) -> None:
     _, layout = world
-    host = FakeHost(token=None)
+    host = FakeHost(deploy_key=None)
     assert cp.main([], host=host, layout=layout) == 0
     status = json.loads(layout.status.read_text())
     assert status["last"]["result"] == "live"
-    assert "not moved" in status["last"]["what"]
-    assert host.ref_writes == []
+    assert status["last"]["what"] == "live not moved: no DEPLOY_KEY"
+    assert host.pushes == []
 
 
 def test_failed_probe_rolls_back_and_opens_an_issue(world) -> None:
@@ -391,7 +409,7 @@ def test_failed_probe_rolls_back_and_opens_an_issue(world) -> None:
     status = _tick(world)
     assert _privileged(host)[-1] == ["sudo", "-n", cp.CORE_DEPLOY, "--rollback"]
     assert "rolled back" in status["last"]["what"]
-    assert len(host.issues) == 1 and host.ref_writes == []
+    assert len(host.issues) == 1 and host.pushes == []
 
 
 def test_refused_deploy_opens_an_issue_and_leaves_live_alone(world) -> None:
@@ -399,7 +417,7 @@ def test_refused_deploy_opens_an_issue_and_leaves_live_alone(world) -> None:
     host.rc["deploy"] = 1
     _tick(world)
     assert len(_privileged(host)) == 1
-    assert "refused" in host.issues[0]["title"] and host.ref_writes == []
+    assert "refused" in host.issues[0]["title"] and host.pushes == []
 
 
 def test_each_promotion_is_handled_once(world) -> None:
