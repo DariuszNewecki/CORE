@@ -8,6 +8,19 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.15.2] — 2026-10-19
+
+Patch release. No database migrations. Fixes from the fifth 'Prove it' run.
+
+### Fixed
+
+- **`code audit --offline` never cuts the rule id or `file:line` (#1187):** in the summary and `--verbose` tables
+  only the message wraps; when the table does not fit the terminal (80 columns), each finding prints as a block.
+- ***Connect your AI assistant*'s shell examples work in a tutorial project (#1188):** `law show
+  starter.no_bare_except` and `law check .intent/rules/packs/core_starter_python.json`.
+- **The audit stats panel shows only what the run measured (#1189):** an offline audit prints rules declared and
+  executed, crashed, findings and duration, with no `n/a` lines.
+
 ## [2.15.1] — 2026-10-19
 
 Patch release. No database migrations. Fixes from the fourth 'Prove it' run.
@@ -1294,7 +1307,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.15.1...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.15.2...HEAD
+[2.15.2]: https://github.com/DariuszNewecki/CORE/compare/v2.15.1...v2.15.2
 [2.15.1]: https://github.com/DariuszNewecki/CORE/compare/v2.15.0...v2.15.1
 [2.15.0]: https://github.com/DariuszNewecki/CORE/compare/v2.14.5...v2.15.0
 [2.14.5]: https://github.com/DariuszNewecki/CORE/compare/v2.14.4...v2.14.5
