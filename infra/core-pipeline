@@ -189,6 +189,18 @@ def rate_limit_reset(
     return None
 
 
+def read_token(path: Path) -> str | None:
+    """The token in *path*, or None when it is missing, empty or unreadable.
+
+    The token is optional: a file the runner cannot read must not stop the
+    deploys (2026-10-19: an empty root-only token file failed every tick for
+    an hour and an approved promotion did not deploy)."""
+    try:
+        return path.read_text().strip() or None
+    except OSError:
+        return None
+
+
 def read_conf(path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
     if not path.is_file():
@@ -596,7 +608,7 @@ def main(
         return 1
     if host is None:
         token_file = Path(conf.get("TOKEN_FILE", "/etc/core/pipeline-github-token"))
-        token = token_file.read_text().strip() if token_file.is_file() else None
+        token = read_token(token_file)
         key = Path(conf.get("DEPLOY_KEY", "/etc/core/pipeline-deploy-key"))
         host = Host(token or None, key if key.is_file() else None)
     layout.state_dir.mkdir(parents=True, exist_ok=True)

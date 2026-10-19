@@ -447,6 +447,20 @@ def test_refuses_without_the_governor_named(tmp_path: Path) -> None:
     assert cp.main([], host=FakeHost(), layout=layout) == 1
 
 
+def test_an_unreadable_empty_or_missing_token_is_no_token(tmp_path: Path) -> None:
+    token = tmp_path / "token"
+    assert cp.read_token(token) is None
+    token.write_text("\n")
+    assert cp.read_token(token) is None
+    token.write_text("t\n")
+    assert cp.read_token(token) == "t"
+    token.chmod(0)
+    try:
+        assert cp.read_token(token) is None
+    finally:
+        token.chmod(0o600)
+
+
 def test_main_is_read_from_the_api_when_git_cannot_answer(world) -> None:
     host, _ = world
     host.ls_remote_fails = True
