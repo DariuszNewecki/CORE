@@ -1029,7 +1029,7 @@ Examples:
 | Argument / option | Default | Description |
 |---|---|---|
 | `GOAL` | required | High-level refactoring goal or file path. |
-| `--write` | off | Apply changes. Default is dry-run. |
+| `--write` | off | Record the change as a Proposal for the governor to approve. Default is dry-run. |
 | `--workflow` | `refactor_modularity` | Workflow type: auto, refactor_modularity, coverage_remediation. |
 
 ### `core-admin dev strategic-audit` {#dev-strategic-audit}
