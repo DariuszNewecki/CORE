@@ -20,8 +20,9 @@ timer, as the account ``core-runner``:
     one it waits, polling GitHub at most every ``PROMOTION_POLL``;
  3. refuses a head that is not a fast-forward of ``live`` (or, before
     ``live`` exists, of the live commit); reported once;
- 4. waits until every CI check run on that commit has completed; a red
-    result is reported once and skipped;
+ 4. waits until every CI check run on that commit has completed; then every
+    check GitHub's rules for main require must have a green run there (one
+    that never ran is red); a red result is reported once and skipped;
  5. runs ``sudo -n core-deploy <sha> --promotion <PR> --migrate --merged-by
     <governor>``: exactly the approved head, never a merge commit.
     core-deploy reads the governor's approval of that head again itself,
@@ -42,8 +43,10 @@ timer, as the account ``core-runner``:
 
 GitHub's API allows 60 calls an hour without a token (#1065). An idle tick
 costs none; waiting for an approval costs at most two calls per
-``PROMOTION_POLL``. When the limit runs out anyway, the runner waits for its
-reset and says so in ``status.json`` (``state: rate limited``, ``until``).
+``PROMOTION_POLL``; waiting for CI one a tick, and one more (main's rules)
+once every run completed. When the limit runs out anyway, the runner waits
+for its reset and says so in ``status.json`` (``state: rate limited``,
+``until``).
 
 Privileges (sudoers from one-path-setup.sh): core-runner may run exactly
 ``/usr/local/sbin/core-deploy`` as root and ``/usr/local/sbin/core-sandbox-check``
@@ -76,12 +79,20 @@ from pathlib import Path
 
 
 GREEN = {"success", "skipped", "neutral"}
+# Required checks that run only on a pull request: host-change-stated reads
+# the pull request's description, so no merge commit on main ever has a run
+# of it. GitHub itself required it green before that pull request merged.
+PULL_REQUEST_ONLY = frozenset({"host-change-stated"})
 CORE_DEPLOY = "/usr/local/sbin/core-deploy"
 SANDBOX_CHECK = "/usr/local/sbin/core-sandbox-check"
 EX_DEPLOY_GOVERNOR = 3
 # How often open promotions are read from GitHub while one waits for approval.
 PROMOTION_POLL = datetime.timedelta(minutes=5)
 PROMOTE_PREFIX = "promote/"
+# How long a required check may be absent after every run on the commit
+# completed before it counts as never run: a job that needs others (Coverage)
+# gets its run only once they finished (6f0ff632: Coverage 4 s after).
+REQUIRED_GRACE = datetime.timedelta(minutes=10)
 # GitHub's published SSH host key: the push trusts nothing else.
 GITHUB_HOST_KEY = (
     "github.com ssh-ed25519 "
@@ -174,6 +185,55 @@ def latest_runs(runs: list[dict]) -> list[dict]:
         if key not in latest or run_id > latest[key]["id"]:
             latest[key] = run
     return list(latest.values())
+
+
+def required_checks(rules: object) -> list[tuple[str, int | None]]:
+    """(name, app id or None) of every status check GitHub's rules for a
+    branch require (GET /repos/{repo}/rules/branches/{branch}: every ruleset
+    that applies, readable without a token on a public repository), less
+    PULL_REQUEST_ONLY."""
+    required: list[tuple[str, int | None]] = []
+    for rule in rules if isinstance(rules, list) else []:
+        if not isinstance(rule, dict) or rule.get("type") != "required_status_checks":
+            continue
+        for check in (rule.get("parameters") or {}).get("required_status_checks", []):
+            name, app = check.get("context"), check.get("integration_id")
+            if name and name not in PULL_REQUEST_ONLY:
+                required.append((str(name), app if isinstance(app, int) else None))
+    return sorted(set(required), key=str)
+
+
+def unmet_required(
+    runs: list[dict], required: list[tuple[str, int | None]]
+) -> list[str]:
+    """Each required check without a green newest run, with why. A run counts
+    only under the exact name and, when the rule names one, from that app
+    (another app cannot stand in for GitHub Actions). Skipped and neutral
+    count as passing, as GitHub counts them for a required check."""
+    unmet = []
+    for name, app in required:
+        mine = [
+            r
+            for r in runs
+            if r.get("name") == name
+            and (app is None or (r.get("app") or {}).get("id") == app)
+        ]
+        if not mine:
+            unmet.append(f"{name}: missing")
+        elif not any(
+            r.get("status") == "completed" and r.get("conclusion") in GREEN
+            for r in mine
+        ):
+            r = mine[0]
+            unmet.append(f"{name}: {r.get('status')}/{r.get('conclusion')}")
+    return unmet
+
+
+def _parse_time(value: object) -> datetime.datetime | None:
+    try:
+        return datetime.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 def rate_limit_reset(
@@ -292,17 +352,36 @@ class Runner:
             refs[self.branch] = str(data["commit"]["sha"])
         return refs
 
-    def ci(self, sha: str) -> str:
-        """'green', 'red' or 'pending'."""
+    def ci(self, sha: str) -> tuple[str, str]:
+        """('green' | 'red' | 'pending', why). Green needs every check
+        GitHub's rules for the branch require (F5): one that never ran is red
+        once every run on the commit completed REQUIRED_GRACE ago. The rules
+        are read only once every run completed: waiting for CI still costs
+        one call a tick."""
         data = self.host.http(
             f"{self.api}/repos/{self.repo}/commits/{sha}/check-runs?per_page=100"
         )
         runs = latest_runs(data.get("check_runs", []) if isinstance(data, dict) else [])
         if not runs or any(r.get("status") != "completed" for r in runs):
-            return "pending"
+            return "pending", ""
         if any(r.get("conclusion") not in GREEN for r in runs):
-            return "red"
-        return "green"
+            return "red", "see the commit's check runs on GitHub"
+        required = required_checks(
+            self.host.http(
+                f"{self.api}/repos/{self.repo}/rules/branches/{self.branch}?per_page=100"
+            )
+        )
+        if not required:
+            return "red", f"GitHub's rules for {self.branch} require no check"
+        unmet = unmet_required(runs, required)
+        if unmet and all(u.endswith(": missing") for u in unmet):
+            done = [_parse_time(r.get("completed_at")) for r in runs]
+            last = max((t for t in done if t), default=None)
+            if last and self.host.now() - last < REQUIRED_GRACE:
+                return "pending", ""
+        if unmet:
+            return "red", "required checks: " + "; ".join(unmet)
+        return "green", ""
 
     def approved(self, number: int, head: str) -> bool:
         """True when the governor's account approved *head*, the pull
@@ -532,7 +611,7 @@ class Runner:
             )
             self.idle()
             return
-        ci = self.ci(sha)
+        ci, why = self.ci(sha)
         if ci == "pending":
             self.state["approved"] = [number, sha, base]
             self.save()
@@ -542,7 +621,7 @@ class Runner:
         self.state.pop("polled", None)
         self.state.pop("approved", None)
         if ci == "red":
-            self.fail(sha, "CI is red", "see the commit's check runs on GitHub", number)
+            self.fail(sha, "CI is red", why, number)
             self.idle()
             return
 
