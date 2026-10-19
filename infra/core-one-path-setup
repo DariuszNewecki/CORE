@@ -32,8 +32,9 @@
 #  8. core-pipeline.service + core-pipeline.timer (every 2 minutes), enabled and started;
 #  8b. core-promote-propose.service + .timer (daily 06:00): CORE proposes main's newest green
 #     commit for promotion to live (ADR-171; `core-admin promote propose`), as core with the
-#     services' environment and the runner's GitHub token as a systemd credential; skipped
-#     while /etc/core/pipeline-github-token is missing or empty;
+#     services' environment and its own GitHub token as a systemd credential; skipped
+#     while /etc/core/promote-github-token is missing or empty (the runner's token may only
+#     open issues, governor 2026-10-19);
 #  9. probes: what core-runner may run with sudo, and that it cannot read /opt/core/etc.
 set -euo pipefail
 
@@ -221,7 +222,7 @@ Description=CORE promotion proposal: main's newest green commit, for the governo
 After=network-online.target
 # No machine identity yet (governor 2026-10-18): without the token the unit is
 # skipped, not failed; promotions are proposed by hand until then.
-ConditionFileNotEmpty=/etc/core/pipeline-github-token
+ConditionFileNotEmpty=/etc/core/promote-github-token
 
 [Service]
 Type=oneshot
@@ -229,8 +230,7 @@ User=core
 Group=core
 EnvironmentFile=/opt/core/etc/core.env
 WorkingDirectory=/opt/core/run
-# Interim: once a machine identity exists, this timer gets its own token, not the runner's.
-LoadCredential=github-token:/etc/core/pipeline-github-token
+LoadCredential=github-token:/etc/core/promote-github-token
 ExecStart=/opt/core/current/venv/bin/core-admin promote propose
 UMask=0022
 SyslogIdentifier=core-promote-propose

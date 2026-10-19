@@ -54,7 +54,9 @@ Configuration (/etc/core/pipeline.conf, KEY=VALUE): GITHUB_REPO (owner/name),
 GOVERNOR_GITHUB (the governor's GitHub login), BRANCH (main), LIVE_BRANCH
 (live), DEPLOY_KEY (the private half of a deploy key with write access, owned
 by core-runner 0600; optional), TOKEN_FILE (a GitHub token that may open
-issues; optional). Without TOKEN_FILE a failed promotion is written only to
+issues, root:core-runner 0640; optional). The token is sent only when an issue
+is opened: every read stays unauthenticated, so a token scoped to Issues
+alone cannot break them (governor 2026-10-19). Without TOKEN_FILE a failed promotion is written only to
 status.json and the deploy log: no issue is opened and nobody is alerted.
 """
 
@@ -130,13 +132,18 @@ class Host:
         )
 
     def http(
-        self, url: str, payload: dict | None = None, method: str | None = None
+        self,
+        url: str,
+        payload: dict | None = None,
+        method: str | None = None,
+        auth: bool = False,
     ) -> object:
+        """One GitHub API call; the token is sent only when *auth* is set."""
         headers = {
             "Accept": "application/vnd.github+json",
             "User-Agent": "core-pipeline",
         }
-        if self.token:
+        if auth and self.token:
             headers["Authorization"] = f"Bearer {self.token}"
         data = None
         if payload is not None:
@@ -396,6 +403,7 @@ class Runner:
             data = self.host.http(
                 f"{self.api}/repos/{self.repo}/issues",
                 {"title": title, "body": body[-60000:]},
+                auth=True,
             )
             return str(data.get("html_url")) if isinstance(data, dict) else None
         except Exception:
