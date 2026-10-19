@@ -31,7 +31,9 @@ archive, its console scripts equal pyproject's, and it carries no ``.pth``.
 Order (ADR-132 D10 · D2):
  1. resolve the ref to a SHA once; refuse unless it is on the upstream deploy
     branch (``DEPLOY_BRANCH`` in deploy.conf; develop when unset, main for
-    the one-path flow), its CI check runs are all green, and it is the
+    the one-path flow), every check GitHub's rules for that branch require
+    has a green run on it (one missing is refused) and its other check runs
+    are green too, and it is the
     approved promotion (ADR-171): ``--promotion <PR>`` names a pull request
     into ``live``, open or merged (not closed unmerged: that is a rejection),
     from a ``promote/`` branch whose head is exactly
@@ -184,6 +186,10 @@ READINESS_UNIT = "core-deploy-readiness"
 KEEP_NEWEST = 3
 RELEASE_NAME = re.compile(r"[0-9a-f]{40}")
 GREEN = {"success", "skipped", "neutral"}
+# Required checks that run only on a pull request: host-change-stated reads
+# the pull request's description, so no merge commit on main ever has a run
+# of it. GitHub itself required it green before that pull request merged.
+PULL_REQUEST_ONLY = frozenset({"host-change-stated"})
 
 EX_REFUSED = 1
 EX_GOVERNOR = 3
@@ -365,6 +371,48 @@ def latest_runs(runs: list[dict]) -> list[dict]:
         if key not in latest or run_id > latest[key]["id"]:
             latest[key] = run
     return list(latest.values())
+
+
+def required_checks(rules: object) -> list[tuple[str, int | None]]:
+    """(name, app id or None) of every status check GitHub's rules for a
+    branch require (GET /repos/{repo}/rules/branches/{branch}: every ruleset
+    that applies, readable without a token on a public repository), less
+    PULL_REQUEST_ONLY."""
+    required: list[tuple[str, int | None]] = []
+    for rule in rules if isinstance(rules, list) else []:
+        if not isinstance(rule, dict) or rule.get("type") != "required_status_checks":
+            continue
+        for check in (rule.get("parameters") or {}).get("required_status_checks", []):
+            name, app = check.get("context"), check.get("integration_id")
+            if name and name not in PULL_REQUEST_ONLY:
+                required.append((str(name), app if isinstance(app, int) else None))
+    return sorted(set(required), key=str)
+
+
+def unmet_required(
+    runs: list[dict], required: list[tuple[str, int | None]]
+) -> list[str]:
+    """Each required check without a green newest run, with why. A run counts
+    only under the exact name and, when the rule names one, from that app
+    (another app cannot stand in for GitHub Actions). Skipped and neutral
+    count as passing, as GitHub counts them for a required check."""
+    unmet = []
+    for name, app in required:
+        mine = [
+            r
+            for r in runs
+            if r.get("name") == name
+            and (app is None or (r.get("app") or {}).get("id") == app)
+        ]
+        if not mine:
+            unmet.append(f"{name}: missing")
+        elif not any(
+            r.get("status") == "completed" and r.get("conclusion") in GREEN
+            for r in mine
+        ):
+            r = mine[0]
+            unmet.append(f"{name}: {r.get('status')}/{r.get('conclusion')}")
+    return unmet
 
 
 def read_env_file(path: Path) -> dict[str, str]:
@@ -629,7 +677,7 @@ class Deployer:
         if on_develop.returncode != 0:
             raise Refused(f"{sha[:12]} is not on upstream {branch}")
         slug = github_slug(upstream)
-        self.require_green_ci(slug, sha)
+        self.require_green_ci(slug, sha, branch)
         self.require_promotion(slug, sha)
         return sha
 
@@ -693,20 +741,27 @@ class Deployer:
         if problems:
             raise Refused(f"promotion #{number}: " + "; ".join(problems))
 
-    def require_green_ci(self, slug: str, sha: str) -> None:
-        url = f"{self.options.github_api}/repos/{slug}/commits/{sha}/check-runs?per_page=100"
+    def require_green_ci(self, slug: str, sha: str, branch: str) -> None:
+        """Refuse unless every check GitHub's rules for *branch* require has a
+        green newest run on *sha*, and no other check run is red or running.
+        A required check that never ran is refused, not taken as green (F5);
+        rules that cannot be read or require nothing refuse too."""
+        api = f"{self.options.github_api}/repos/{slug}"
         try:
-            data = self.host.http_json(url)
+            data = self.host.http_json(f"{api}/commits/{sha}/check-runs?per_page=100")
+            rules = self.host.http_json(f"{api}/rules/branches/{branch}?per_page=100")
         except Exception as exc:  # network, rate limit, parse
             raise Refused(f"CI state for {sha[:12]} unavailable: {exc}") from exc
         runs = latest_runs(data.get("check_runs", []) if isinstance(data, dict) else [])
-        if not runs:
-            raise Refused(f"no CI check runs for {sha[:12]}")
-        bad = [
+        required = required_checks(rules)
+        if not required:
+            raise Refused(f"GitHub's rules for {branch} require no check")
+        bad = unmet_required(runs, required) + [
             f"{r.get('name')}: {r.get('status')}/{r.get('conclusion')}"
             for r in runs
             if r.get("status") != "completed" or r.get("conclusion") not in GREEN
         ]
+        bad = list(dict.fromkeys(bad))  # a red required check is named once
         if bad:
             raise Refused(f"CI for {sha[:12]} is not green: " + "; ".join(bad))
 

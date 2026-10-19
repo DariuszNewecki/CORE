@@ -107,6 +107,8 @@ class FakeHost(cd.Host):
         self.check_runs = [
             {"name": "ci", "status": "completed", "conclusion": "success"}
         ]
+        self.required = [{"context": "ci"}]  # GitHub's rules for the branch
+        self.rules_url: str | None = None
         self.wheel_files = dict(GOOD_WHEEL)
         self.wheel_scripts = "core-admin = cli.admin_cli:app"
         self.status = {
@@ -281,6 +283,17 @@ class FakeHost(cd.Host):
     def http_json(self, url, timeout=15.0):
         if "check-runs" in url:
             return {"check_runs": self.check_runs}
+        if "/rules/branches/" in url:
+            self.rules_url = url
+            if isinstance(self.required, Exception):
+                raise self.required
+            return [
+                {"type": "deletion"},
+                {
+                    "type": "required_status_checks",
+                    "parameters": {"required_status_checks": self.required},
+                },
+            ]
         if url.endswith(f"/pulls/{PROMOTION}/reviews?per_page=100"):
             self.review_reads += 1
             if self.reviews_later is not None and self.review_reads > 1:
@@ -536,20 +549,79 @@ def test_ci_not_green_is_refused(root: Path, runs: list[dict]) -> None:
 def test_ci_counts_only_the_newest_run_of_each_check(root: Path) -> None:
     host = FakeHost(root)
     host.check_runs = [
-        {
-            "id": 1,
-            "name": "host-change-stated",
-            "status": "completed",
-            "conclusion": "failure",
-        },
-        {
-            "id": 2,
-            "name": "host-change-stated",
-            "status": "completed",
-            "conclusion": "success",
-        },
+        {"id": 1, "name": "ci", "status": "completed", "conclusion": "failure"},
+        {"id": 2, "name": "ci", "status": "completed", "conclusion": "success"},
     ]
     assert _deploy(root, host) == 0
+
+
+def _check(name: str, conclusion: str = "success", app: int = 15368) -> dict:
+    return {
+        "id": 1,
+        "name": name,
+        "app": {"id": app},
+        "status": "completed",
+        "conclusion": conclusion,
+    }
+
+
+MAIN_CHECKS = [  # main's ruleset (main-checks), as GitHub lists it
+    {"context": "Static checks", "integration_id": 15368},
+    {"context": "Hermetic tests", "integration_id": 15368},
+    {"context": "host-change-stated", "integration_id": 15368},
+]
+
+
+# ID: d455a3d9-4e89-4aab-acda-0e828035cc86
+def test_a_sha_with_one_required_check_missing_is_refused(root: Path, capsys) -> None:
+    # F5: every check that ran is green, but one the rules require never ran.
+    host = FakeHost(root)
+    host.required = MAIN_CHECKS
+    host.check_runs = [_check("Static checks")]
+    assert _deploy(root, host) == cd.EX_REFUSED
+    assert not (root / "releases" / SHA).exists()
+    assert "Hermetic tests: missing" in capsys.readouterr().err
+    assert host.rules_url is not None and host.rules_url.startswith(
+        "https://api.github.com/repos/DariuszNewecki/CORE/rules/branches/develop"
+    )
+
+
+# ID: 03b9a3f6-9f16-4d78-893e-a45b616ebdab
+def test_every_required_check_green_deploys(root: Path) -> None:
+    # host-change-stated runs only on pull requests: a main commit has none.
+    host = FakeHost(root)
+    host.required = MAIN_CHECKS
+    host.check_runs = [
+        _check("Static checks"),
+        _check("Hermetic tests", "skipped"),  # GitHub counts skipped as passing
+        _check("docs", "success", app=99),  # not required, green
+    ]
+    assert _deploy(root, host) == 0
+
+
+# ID: db40fc27-9444-4273-8745-47eebdc4ee6a
+@pytest.mark.parametrize(
+    "runs, required",
+    [
+        ([_check("Static checks", app=99)], MAIN_CHECKS[:1]),  # another app
+        ([_check("Static checks", "failure")], MAIN_CHECKS[:1]),
+        ([_check("Static checks")], []),  # the rules require nothing
+        ([_check("Static checks")], [{"context": "host-change-stated"}]),
+        ([_check("Static checks")], OSError("rate limited")),
+        (  # a red check that is not required still refuses
+            [_check("Static checks"), _check("docs", "failure")],
+            MAIN_CHECKS[:1],
+        ),
+    ],
+    ids=["other-app", "red", "none", "pr-only", "unreadable", "other-red"],
+)
+def test_required_checks_not_met_are_refused(
+    root: Path, runs: list[dict], required: object
+) -> None:
+    host = FakeHost(root)
+    host.check_runs, host.required = runs, required
+    assert _deploy(root, host) == cd.EX_REFUSED
+    assert not (root / "releases" / SHA).exists()
 
 
 # ID: 04bff2ec-7d3c-46fe-acb3-498768f7b56f

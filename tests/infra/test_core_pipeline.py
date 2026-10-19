@@ -67,7 +67,8 @@ class FakeHost(cp.Host):
         ]
         self.reviews = [_approval()]
         self.compare = "ahead"
-        self.runs = [{"status": "completed", "conclusion": "success"}]
+        self.runs = [{"name": "tests", "status": "completed", "conclusion": "success"}]
+        self.required = [{"context": "tests"}]  # GitHub's rules for main
         self.rc: dict[str, int] = {}
         self.calls: list[list[str]] = []
         self.issues: list[dict] = []
@@ -133,6 +134,13 @@ class FakeHost(cp.Host):
         if "check-runs" in url:
             assert f"/commits/{SHA}/" in url  # CI is read on the promoted commit
             return {"check_runs": self.runs}
+        if "/rules/branches/main" in url:
+            return [
+                {
+                    "type": "required_status_checks",
+                    "parameters": {"required_status_checks": self.required},
+                }
+            ]
         raise AssertionError(url)
 
 
@@ -280,10 +288,10 @@ def test_a_head_that_is_not_a_fast_forward_of_live_is_refused_once(world) -> Non
 
 def test_pending_ci_waits_and_retries_next_tick(world) -> None:
     host, _ = world
-    host.runs = [{"status": "in_progress", "conclusion": None}]
+    host.runs = [{"name": "tests", "status": "in_progress", "conclusion": None}]
     assert _tick(world)["state"] == "waiting for CI"
     assert _privileged(host) == []
-    host.runs = [{"status": "completed", "conclusion": "success"}]
+    host.runs = [{"name": "tests", "status": "completed", "conclusion": "success"}]
     _later(host)
     assert _tick(world)["last"]["result"] == "live"
 
@@ -336,6 +344,76 @@ def test_same_check_name_from_another_app_is_not_superseded(world) -> None:
     other = {**_run(1, "build", "failure"), "app": {"id": 99}}
     host.runs = [other, _run(2, "build", "success")]
     assert _tick(world)["last"]["result"] == "failed"
+
+
+def test_a_required_check_that_never_ran_is_red_once_ci_completed(world) -> None:
+    # F5: every check that ran is green, but one main's rules require is absent.
+    host, _ = world
+    host.required = [
+        {"context": "tests", "integration_id": 15368},
+        {"context": "lint", "integration_id": 15368},
+    ]
+    host.runs = [_run(1, "tests", "success")]
+    status = _tick(world)
+    assert _privileged(host) == []
+    assert status["last"]["result"] == "failed"
+    assert "lint: missing" in host.issues[0]["body"]
+
+
+def test_a_required_check_missing_just_after_ci_completed_is_pending(world) -> None:
+    # A job that needs others gets its run only once they finished.
+    host, _ = world
+    host.required = [{"context": "tests"}, {"context": "Coverage"}]
+    done = {**_run(1, "tests", "success"), "completed_at": host.at.isoformat()}
+    host.runs = [done]
+    assert _tick(world)["state"] == "waiting for CI"
+    host.runs = [done, _run(2, "Coverage", "success")]
+    _later(host)
+    assert _tick(world)["last"]["result"] == "live"
+
+
+def test_a_required_check_still_missing_after_the_grace_is_red(world) -> None:
+    host, _ = world
+    host.required = [{"context": "tests"}, {"context": "Coverage"}]
+    done = {**_run(1, "tests", "success"), "completed_at": "2026-10-19T08:00:00Z"}
+    host.runs = [done]  # completed an hour before the tick
+    assert _tick(world)["last"]["result"] == "failed"
+    assert "Coverage: missing" in host.issues[0]["body"]
+
+
+def test_a_required_check_missing_while_others_run_is_pending(world) -> None:
+    host, _ = world
+    host.required = [{"context": "tests"}, {"context": "lint"}]
+    host.runs = [{"name": "tests", "status": "in_progress", "conclusion": None}]
+    assert _tick(world)["state"] == "waiting for CI"
+    host.runs = [_run(1, "tests", "success"), _run(2, "lint", "skipped")]
+    _later(host)
+    assert _tick(world)["last"]["result"] == "live"  # skipped passes, as on GitHub
+
+
+def test_every_required_check_green_deploys_without_pull_request_only_checks(
+    world,
+) -> None:
+    host, _ = world
+    host.required = [
+        {"context": "tests", "integration_id": 15368},
+        {"context": "host-change-stated", "integration_id": 15368},
+    ]
+    host.runs = [_run(1, "tests", "success")]
+    assert _tick(world)["last"]["result"] == "live"
+
+
+@pytest.mark.parametrize(
+    "required",
+    [[], [{"context": "tests", "integration_id": 99}]],
+    ids=["rules-require-nothing", "required-from-another-app"],
+)
+def test_required_checks_not_met_never_deploy(world, required) -> None:
+    host, _ = world
+    host.required = required
+    host.runs = [_run(1, "tests", "success")]
+    assert _tick(world)["last"]["result"] == "failed"
+    assert _privileged(host) == []
 
 
 # -- after the deploy -------------------------------------------------------------
