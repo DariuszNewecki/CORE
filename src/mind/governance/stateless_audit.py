@@ -398,14 +398,17 @@ async def run_stateless_audit(
     # judged against, so FAIL, with the drift finding alongside. An
     # adopter's first audit before committing .intent/ showed a BLOCK finding
     # under DEGRADED. The instrument conditions (policy, unavailable or
-    # skipped blocking rules) keep their precedence (#847/#856 rulings).
-    if verdict_policy.get("_error") or degraded_findings or blocking_skipped:
+    # skipped blocking rules) do not either (#1194, governor 2026-10-19): a
+    # violation a rule proved is FAIL; DEGRADED is for a result where nothing
+    # proved one and something could not run. Only an unavailable verdict
+    # policy comes first: without it no severity is known to fail.
+    if verdict_policy.get("_error"):
         verdict = "DEGRADED"
         passed = False
     elif genuine_blocking_findings:
         verdict = "FAIL"
         passed = False
-    elif law_drift:
+    elif degraded_findings or blocking_skipped or law_drift:
         verdict = "DEGRADED"
         passed = False
     else:
