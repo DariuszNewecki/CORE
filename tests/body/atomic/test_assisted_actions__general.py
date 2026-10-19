@@ -13,7 +13,10 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from body.atomic.assisted_actions import action_assisted_validate_diff
+from body.atomic.assisted_actions import (
+    _run_test_files,
+    action_assisted_validate_diff,
+)
 
 
 def _git(cwd: Path, *args: str) -> None:
@@ -61,6 +64,15 @@ _MODIFY_DELETE_ADD_TEST = (
     "@@ -0,0 +1,2 @@\n"
     "+def test_ok() -> None:\n"
     "+    assert True\n"
+)
+
+_MODIFY_ONLY = (
+    "diff --git a/old.py b/old.py\n"
+    "--- a/old.py\n"
+    "+++ b/old.py\n"
+    "@@ -1 +1 @@\n"
+    "-x = 1\n"
+    "+x = 2\n"
 )
 
 _TOUCH_SPECS = (
@@ -193,6 +205,24 @@ async def test_general_fails_when_a_test_fails(tmp_path: Path) -> None:
 
     assert result.ok is False
     assert result.data["validation_results"]["tests"] is False
+
+
+# ID: a4f022e3-263b-4eba-b5ba-7dcd298be40a
+async def test_no_test_targets_is_a_failure_not_a_pass(tmp_path: Path) -> None:
+    """Zero tests collected verified nothing (it used to count as passed)."""
+    with patch("body.sandbox.repo_tests.run_tests", AsyncMock()) as run_tests:
+        assert await _run_test_files("assisted.validate_diff", tmp_path, []) is False
+    run_tests.assert_not_called()
+
+
+# ID: c963e2a0-b57c-4b2e-b525-e433bc542243
+async def test_general_fails_when_no_test_covers_the_change(tmp_path: Path) -> None:
+    result, run_tests, _ = await _validate(_repo(tmp_path), _MODIFY_ONLY, _CLEAN_AUDIT)
+
+    assert result.ok is False
+    assert result.data["tests_run"] == []
+    assert result.data["validation_results"]["tests"] is False
+    run_tests.assert_not_called()
 
 
 # ID: b057ba1b-2292-4095-80fa-8930bb27ac58

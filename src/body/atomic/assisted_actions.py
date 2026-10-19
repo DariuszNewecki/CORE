@@ -610,9 +610,16 @@ def _general_test_targets(wt_path: Path, touched_py: list[str]) -> list[str]:
 
 
 async def _run_test_files(aid: str, wt_path: Path, targets: list[str]) -> bool:
-    """True when every test file in *targets* passes in *wt_path*."""
+    """True when every test file in *targets* passes in *wt_path*.
+
+    No targets is False: zero tests collected verified nothing, so it is a
+    failure, not a pass. A target that collects no test is already not ok
+    (``run_tests`` reports it ``not_run``).
+    """
     from body.sandbox.repo_tests import run_tests
 
+    if not targets:
+        return False
     passed = True
     for target in targets:
         result = await run_tests(
