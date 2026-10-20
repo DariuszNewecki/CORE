@@ -64,3 +64,34 @@ async def test_components_list():
         result = await components_list(filter_type="tool")
     assert result == expected
     mock_get.assert_called_once_with(filter_type="tool")
+
+
+
+from api.v1.inspect_routes import analysis_test_targets
+
+
+# ID: cbb54c4d-ce90-4596-b7b9-dd5d7aafe3e2
+async def test_analysis_test_targets():
+    expected_result = {"SIMPLE": ["a.py"], "COMPLEX": ["b.py"]}
+    core_context = MagicMock()
+
+    request = MagicMock()
+    request.app.state.core_context = core_context
+
+    with (
+        patch(
+            "api.v1.inspect_routes.get_analysis_test_targets",
+            new=MagicMock(return_value=expected_result),
+        ) as mock_get_targets,
+        patch(
+            "api.v1.inspect_routes.asyncio.to_thread",
+            new=AsyncMock(return_value=expected_result),
+        ) as mock_to_thread,
+    ):
+        result = await analysis_test_targets(request)
+
+    mock_to_thread.assert_awaited_once()
+    called_fn, called_arg = mock_to_thread.await_args.args
+    assert called_fn is mock_get_targets
+    assert called_arg is core_context
+    assert result == expected_result
