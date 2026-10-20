@@ -72,3 +72,26 @@ async def test_get_fix_run() -> None:
     assert response["result"] == {"ok": True}
     assert response["error"] is None
     session.execute.assert_awaited_once()
+
+
+import pytest
+
+from api.v1.fix_routes import list_fix_commands
+
+
+@pytest.mark.asyncio
+# ID: ea0ef88a-9b52-4937-886b-e6d3b34c6159
+async def test_list_fix_commands():
+    fake_commands = [
+        {"name": "fix_a", "category": "fix"},
+        {"name": "fix_b", "category": "fix"},
+    ]
+
+    with patch(
+        "api.v1.fix_routes.list_action_definitions",
+        return_value=fake_commands,
+    ) as mock_list:
+        result = await list_fix_commands()
+
+    mock_list.assert_called_once_with(category="fix")
+    assert result == {"count": 2, "commands": fake_commands}
