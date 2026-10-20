@@ -174,3 +174,17 @@ async def test_create_census_run():
         "status": "pending",
         "href": f"/v1/census/runs/{run_id}",
     }
+
+
+from api.v1.census_routes import CreateBaselineRequest
+
+
+# ID: 881e96b7-9e0b-4ed4-9d53-c26ea4697b2a
+def test_CreateBaselineRequest():
+    # Default: snapshot_file omitted -> None
+    req = CreateBaselineRequest()
+    assert req.snapshot_file is None
+
+    # Happy path: explicit snapshot_file provided
+    req_with_file = CreateBaselineRequest(snapshot_file="snapshots/2024-01-01.json")
+    assert req_with_file.snapshot_file == "snapshots/2024-01-01.json"
