@@ -79,7 +79,7 @@ def test_cli_bootstrap_governance_error_exits_2_without_traceback(
     ctx = MagicMock(spec=typer.Context)
     ctx.invoked_subcommand = "code"
     with pytest.raises(typer.Exit) as excinfo:
-        admin_cli.main(ctx)
+        admin_cli.main(ctx, readonly=False)
 
     assert excinfo.value.exit_code == EXIT_CONFIG_ERROR
     assert "Configuration error" in printed[0]
