@@ -49,3 +49,60 @@ async def test_create_remediation_run():
     mock_session.execute.assert_awaited_once()
     mock_session.commit.assert_awaited_once()
     mock_background_tasks.add_task.assert_called_once()
+
+
+from datetime import datetime
+from uuid import uuid4
+
+import pytest
+
+from api.v1.audit_routes import get_remediation_run
+
+
+@pytest.mark.asyncio
+# ID: a0a0ddf1-3636-4c33-b6f0-c5c549953793
+async def test_get_remediation_run():
+    run_id = uuid4()
+    audit_run_id = uuid4()
+    requested_at = datetime(2024, 1, 1, 12, 0, 0)
+    started_at = datetime(2024, 1, 1, 12, 1, 0)
+    finished_at = datetime(2024, 1, 1, 12, 2, 0)
+
+    row = {
+        "id": run_id,
+        "audit_run_id": audit_run_id,
+        "mode": "apply",
+        "write": True,
+        "status": "completed",
+        "requested_by": "user@example.com",
+        "requested_at": requested_at,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "result": {"ok": True},
+        "error": None,
+    }
+
+    mappings = MagicMock()
+    mappings.first.return_value = row
+    result = MagicMock()
+    result.mappings.return_value = mappings
+
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=result)
+
+    out = await get_remediation_run(run_id=run_id, session=session)
+
+    session.execute.assert_awaited_once()
+    assert out == {
+        "run_id": str(run_id),
+        "audit_run_id": str(audit_run_id),
+        "mode": "apply",
+        "write": True,
+        "status": "completed",
+        "requested_by": "user@example.com",
+        "requested_at": requested_at.isoformat(),
+        "started_at": started_at.isoformat(),
+        "finished_at": finished_at.isoformat(),
+        "result": {"ok": True},
+        "error": None,
+    }
