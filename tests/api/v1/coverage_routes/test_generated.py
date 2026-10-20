@@ -28,3 +28,56 @@ async def test_interactive_tests():
     mock_run_tests.assert_awaited_once_with(
         mock_core_context, target_file=mock_payload.target_file
     )
+
+
+from datetime import UTC, datetime
+from uuid import uuid4
+
+from api.v1.coverage_routes import get_coverage_run
+
+
+# ID: 7921520f-5cec-47ee-98e8-e785132c8992
+async def test_get_coverage_run() -> None:
+    run_id = uuid4()
+    requested_at = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+    started_at = datetime(2024, 1, 1, 12, 1, 0, tzinfo=UTC)
+    finished_at = datetime(2024, 1, 1, 12, 2, 0, tzinfo=UTC)
+
+    row = {
+        "id": run_id,
+        "target_file": "src/foo.py",
+        "batch_priority": 3,
+        "write": True,
+        "status": "completed",
+        "requested_by": "alice",
+        "requested_at": requested_at,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "result": {"ok": True},
+        "error": None,
+    }
+
+    mappings = MagicMock()
+    mappings.first = MagicMock(return_value=row)
+    result = MagicMock()
+    result.mappings = MagicMock(return_value=mappings)
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=result)
+
+    response = await get_coverage_run(run_id=run_id, session=session)
+
+    session.execute.assert_awaited_once()
+    assert response == {
+        "run_id": str(run_id),
+        "target_file": "src/foo.py",
+        "batch_priority": 3,
+        "write": True,
+        "status": "completed",
+        "requested_by": "alice",
+        "requested_at": requested_at.isoformat(),
+        "started_at": started_at.isoformat(),
+        "finished_at": finished_at.isoformat(),
+        "result": {"ok": True},
+        "error": None,
+    }
