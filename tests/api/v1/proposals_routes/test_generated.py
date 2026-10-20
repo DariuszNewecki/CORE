@@ -199,7 +199,6 @@ async def test_list_proposals():
     }
 
 
-
 from api.v1.proposals_routes import create_proposal
 
 
@@ -240,4 +239,40 @@ def test_create_proposal():
         anchor_refs=["foo"],
         producer="agent",
         retires=[],
+    )
+
+
+
+from api.v1.proposals_routes import submit_change
+
+
+# ID: 89cc44ec-d899-411a-8b97-3271c2c030a9
+def test_submit_change():
+    payload = MagicMock()
+    payload.patch = "--- a\n+++ b\n"
+    payload.validation_run_id = "vr-123"
+    payload.goal = "goal-1"
+    payload.anchor_kind = "symbol"
+    payload.anchor_refs = ["ref-1"]
+    payload.producer = "producer-x"
+    payload.retires = []
+
+    expected = {"submission_id": "sub-1", "status": "accepted"}
+
+    with patch(
+        "will.autonomy.producer_submission.submit_producer_change",
+        new=AsyncMock(return_value=expected),
+    ) as mock_submit:
+        result = asyncio.run(submit_change(payload))
+
+    assert result == expected
+    mock_submit.assert_awaited_once_with(
+        patch="--- a\n+++ b\n",
+        validation_run_id="vr-123",
+        goal="goal-1",
+        anchor_kind="symbol",
+        anchor_refs=["ref-1"],
+        producer="producer-x",
+        retires=[],
+        created_by="api.proposals_submit",
     )
