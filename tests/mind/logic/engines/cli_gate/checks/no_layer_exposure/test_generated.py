@@ -205,9 +205,6 @@ def test_NoLayerExposureCheck_verify():
     assert finding.context["forbidden_resources"] == ["db"]
 
 
-
-
-
 # ID: 02588e3e-8e8d-460c-aa3d-5898ca342414
 def test_NoLayerExposureCheck() -> None:
     check = NoLayerExposureCheck()

@@ -267,9 +267,6 @@ def test_ScoutInducer_propose() -> None:
     mock_prompt_model_cls.load.assert_called_once_with("scout_rule_inducer")
 
 
-
-
-
 # ID: 5b1730ba-dda0-4bc1-87bb-2420014d3171
 def test_ScoutInducer():
     import asyncio

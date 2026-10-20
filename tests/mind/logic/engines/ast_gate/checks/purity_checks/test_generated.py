@@ -370,9 +370,6 @@ def test_PurityChecks_check_orphan_id_anchors() -> None:
     assert "line 1" in result[0]
 
 
-
-
-
 # ID: 6159a960-b762-4329-8d28-3e06b07421bb
 def test_PurityChecks_check_no_swallowed_exceptions():
     source = (

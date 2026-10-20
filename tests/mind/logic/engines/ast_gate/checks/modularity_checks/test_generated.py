@@ -135,9 +135,6 @@ def test_ModularityChecker_check_refactor_score(tmp_path: Path) -> None:
         assert finding["severity"] in ("error", "warning")
 
 
-
-
-
 # ID: c3492a13-0a80-4dea-a134-2ad8c200ef4e
 def test_ModularityChecker():
     checker = ModularityChecker()

@@ -120,8 +120,6 @@ class TestFixPlaceholdersInContent:
         assert result == 'file_path="none"'
 
 
-
-
 # ID: f30da178-7747-406f-8aa0-b3bdd34b8d18
 def test_fix_placeholders_in_content():
     content = (

@@ -52,7 +52,6 @@ async def test_daemon_stop() -> None:
     mock_background_tasks.add_task.assert_called_once_with(mock_stop)
 
 
-
 import pytest
 
 from api.v1.daemon_routes import daemon_status
