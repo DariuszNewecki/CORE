@@ -18,7 +18,6 @@ CONSTITUTIONAL ALIGNMENT:
 from __future__ import annotations
 
 import hashlib
-import subprocess
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -43,6 +42,7 @@ from body.governance.law_custody.writer import (
     remove_scratch_tree,
     write_destinations,
 )
+from shared.infrastructure.git_service import GitService
 from shared.infrastructure.intent.governed_text import load_governed_text_paths
 
 
@@ -191,43 +191,8 @@ def _committed_bytes(repo_root: Path, rel: str) -> object:
     """``rel`` at git HEAD in ``repo_root``; None when HEAD has no such file;
     ``_UNKNOWN`` when git cannot answer."""
     try:
-        listed = subprocess.run(
-            [
-                "git",
-                "-C",
-                str(repo_root),
-                "-c",
-                "core.hooksPath=/dev/null",
-                "ls-tree",
-                "--name-only",
-                "HEAD",
-                "--",
-                rel,
-            ],
-            capture_output=True,
-            check=False,
-            timeout=30,
-        )
-        if listed.returncode != 0:
-            return _UNKNOWN
-        if not listed.stdout.strip():
-            return None
-        shown = subprocess.run(
-            [
-                "git",
-                "-C",
-                str(repo_root),
-                "-c",
-                "core.hooksPath=/dev/null",
-                "show",
-                f"HEAD:{rel}",
-            ],
-            capture_output=True,
-            check=False,
-            timeout=30,
-        )
-        return shown.stdout if shown.returncode == 0 else _UNKNOWN
-    except (OSError, subprocess.TimeoutExpired):
+        return GitService(repo_root).committed_bytes(rel)
+    except RuntimeError:
         return _UNKNOWN
 
 
