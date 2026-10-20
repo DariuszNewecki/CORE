@@ -33,6 +33,8 @@ Terminal-state semantics are documented on each collaborator function:
 - Blackboard transitions (resolve / release / release_unmappable /
   mark_delegated) — see violation_remediator_blackboard.py
   (ADR-010, ADR-015 D4).
+- (action, file) grouping of open findings and the DELEGATE log lines —
+  see violation_remediator_grouping.py (ADR-035 D1).
 """
 
 from __future__ import annotations
@@ -55,6 +57,12 @@ from will.autonomy.violation_remediator_blackboard import (
     release_unmappable,
     resolve_entries,
 )
+from will.autonomy.violation_remediator_grouping import (
+    entry_id,
+    group_findings,
+    log_delegated,
+    rules_of,
+)
 from will.autonomy.violation_remediator_proposal import (
     check_circuit_breaker,
     create_proposal,
@@ -67,24 +75,6 @@ if TYPE_CHECKING:
 
 
 logger = getLogger(__name__)
-
-
-def _entry_id(finding: dict[str, Any]) -> str:
-    """Extract blackboard entry id ('id' or 'entry_id'); raise on contract violation."""
-    value = finding.get("id") or finding.get("entry_id")
-    if value is None:
-        raise ValueError(f"Finding has neither 'id' nor 'entry_id': {finding!r}")
-    return str(value)
-
-
-def _rules_of(findings: list[dict[str, Any]]) -> list[str]:
-    """Deduplicated rule list from findings — used in completion report."""
-    return list(
-        {
-            f["payload"].get("check_id") or f["payload"].get("rule", "unknown")
-            for f in findings
-        }
-    )
 
 
 # ID: 3dc4b352-a788-40d6-8aed-92e9cd031312
@@ -155,36 +145,11 @@ class ViolationRemediatorWorker(Worker):
 
         remediation_map = self._get_remediation_map()
 
-        action_groups: dict[tuple[str, str | None], list[dict[str, Any]]] = {}
-        ref_kinds: dict[str, str] = {}
-        unmappable: list[dict[str, Any]] = []
-        delegate: list[dict[str, Any]] = []
-
-        for finding in open_findings:
-            rule = finding["payload"].get("check_id") or finding["payload"].get(
-                "rule", ""
-            )
-            entry = remediation_map.get(rule)
-
-            if entry and entry.get("status") == "DELEGATE":
-                finding["_map_entry"] = entry
-                delegate.append(finding)
-            elif entry:
-                ref_id = entry["ref_id"]
-                ref_kind = entry["ref_kind"]
-                if ref_kind == "flow":
-                    key = (ref_id, None)
-                else:
-                    file_path = finding["payload"].get("file_path") or None
-                    key = (ref_id, file_path)
-                action_groups.setdefault(key, []).append(finding)
-                ref_kinds[ref_id] = ref_kind
-            else:
-                unmappable.append(finding)
-                logger.debug(
-                    "ViolationRemediatorWorker: no remediation mapping for rule '%s'",
-                    rule,
-                )
+        groups = group_findings(open_findings, remediation_map)
+        action_groups = groups.action_groups
+        ref_kinds = groups.ref_kinds
+        unmappable = groups.unmappable
+        delegate = groups.delegate
 
         active_proposal_ids = await self._get_active_proposal_id_by_action_file()
         cb_config = load_circuit_breaker_config()
@@ -203,7 +168,7 @@ class ViolationRemediatorWorker(Worker):
 
         for (ref_id, file_path), findings in action_groups.items():
             ref_kind = ref_kinds[ref_id]
-            entry_ids = [_entry_id(f) for f in findings]
+            entry_ids = [entry_id(f) for f in findings]
             group_label = f"{ref_id}::{file_path or '<no-file>'}"
 
             subsuming_proposal_id = active_proposal_ids.get((ref_id, file_path))
@@ -252,8 +217,8 @@ class ViolationRemediatorWorker(Worker):
             capped_ids = await self._delegate_capped_findings(findings, cap_n)
             if capped_ids:
                 entries_capped += len(capped_ids)
-                findings = [f for f in findings if _entry_id(f) not in capped_ids]
-                entry_ids = [_entry_id(f) for f in findings]
+                findings = [f for f in findings if entry_id(f) not in capped_ids]
+                entry_ids = [entry_id(f) for f in findings]
                 if not findings:
                     proposals_capped.append(group_label)
                     logger.warning(
@@ -333,23 +298,7 @@ class ViolationRemediatorWorker(Worker):
             )
 
         entries_delegated = await self._mark_delegated(delegate)
-        for finding in delegate:
-            rule = finding["payload"].get("check_id") or finding["payload"].get(
-                "rule", "unknown"
-            )
-            file_path = finding["payload"].get("file_path", "unknown")
-            map_entry = finding.get("_map_entry", {})
-            description = map_entry.get("description", "")
-            logger.info(
-                "[DELEGATE] %s -> HUMAN REQUIRED\n"
-                "           File: %s\n"
-                "           Decision needed: %s\n"
-                "           Resolve with: core-admin workers blackboard --reopen %s",
-                rule,
-                file_path,
-                description,
-                finding.get("id") or finding.get("entry_id"),
-            )
+        log_delegated(delegate)
 
         await self.post_report(
             subject="violation_remediator.completed",
@@ -373,9 +322,9 @@ class ViolationRemediatorWorker(Worker):
                 "skipped_actions": proposals_skipped,
                 "circuit_broken_actions": proposals_circuit_broken,
                 "capped_actions": proposals_capped,
-                "unmappable_rules": _rules_of(unmappable),
+                "unmappable_rules": rules_of(unmappable),
                 "delegated": len(delegate),
-                "delegated_rules": _rules_of(delegate),
+                "delegated_rules": rules_of(delegate),
             },
         )
 
