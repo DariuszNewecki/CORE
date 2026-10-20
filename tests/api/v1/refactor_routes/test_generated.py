@@ -180,7 +180,6 @@ async def test_refactor_score():
     assert result == expected_payload
 
 
-
 import pytest
 
 from api.v1.refactor_routes import refactor_threshold
