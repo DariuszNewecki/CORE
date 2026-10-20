@@ -41,7 +41,6 @@ async def test_execute_proposal():
     )
 
 
-
 import pytest
 
 
@@ -75,3 +74,44 @@ async def test_reject_proposal():
     assert result["reason"] == "not a good fit"
     assert result["revived_count"] == 3
     assert result["status"] == "rejected"
+
+
+
+from api.v1.proposals_routes import approve_proposal
+
+
+# ID: a9b46510-b755-4949-a2a2-b943448b54e3
+async def test_approve_proposal():
+    payload = MagicMock()
+    payload.approval_authority = "governor"
+    user = {"sub": "os-account-123", "principal": "governor"}
+    session = MagicMock()
+
+    service_instance = MagicMock()
+    service_instance.approve = AsyncMock(return_value=None)
+
+    with patch(
+        "api.v1.proposals_routes.ProposalService",
+        return_value=service_instance,
+    ):
+        result = await approve_proposal(
+            proposal_id="prop-1",
+            payload=payload,
+            user=user,
+            session=session,
+        )
+
+    service_instance.approve.assert_awaited_once_with(
+        "prop-1",
+        approved_by="governor",
+        approval_authority="governor",
+        approved_by_original="os-account-123",
+    )
+    assert result == {
+        "ok": True,
+        "proposal_id": "prop-1",
+        "status": "approved",
+        "approved_by": "governor",
+        "approved_by_original": "os-account-123",
+        "approval_authority": "governor",
+    }
