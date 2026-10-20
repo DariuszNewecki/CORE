@@ -241,3 +241,13 @@ def test_QualityTestsRequest():
     default_req = QualityTestsRequest()
     assert default_req.path is None
     assert default_req.requested_by == "api"
+
+
+from api.v1.quality_routes import QualityLintRequest
+
+
+# ID: 3eba857e-b45b-4542-9823-f20af11a90bb
+def test_QualityLintRequest():
+    req = QualityLintRequest(fix=True, requested_by="tester")
+    assert req.fix is True
+    assert req.requested_by == "tester"
