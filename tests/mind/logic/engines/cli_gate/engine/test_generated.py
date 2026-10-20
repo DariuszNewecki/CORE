@@ -334,3 +334,27 @@ async def test_CliGateEngine_verify_context() -> None:
     assert result is expected_findings
     engine._walk_registry.assert_called_once_with()
     mock_check.verify.assert_called_once_with(mock_commands, params)
+
+
+from unittest.mock import patch
+
+
+# ID: 3687ea9d-918f-4603-bab8-ce6feb31ba96
+def test_CliGateEngine():
+    from mind.logic.engines.cli_gate.engine import CliGateEngine
+
+    resolver = MagicMock()
+    engine = CliGateEngine(path_resolver=resolver)
+
+    # Happy path: all expected checks registered
+    assert isinstance(engine._checks, dict)
+    assert engine.engine_id == "cli_gate"
+    assert engine._path_resolver is resolver
+
+    # verify (per-file) returns ok=True
+    import asyncio
+
+    result = asyncio.run(engine.verify(MagicMock(), {}))
+    assert result.ok is True
+    assert result.violations == []
+    assert result.engine_id == "cli_gate"
