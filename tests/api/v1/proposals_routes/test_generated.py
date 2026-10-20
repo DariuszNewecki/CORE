@@ -164,7 +164,6 @@ def test_get_proposal_chain():
     svc.get_chain_for_proposal.assert_awaited_once_with(proposal_id, session)
 
 
-
 import pytest
 
 from api.v1.proposals_routes import list_proposals
@@ -198,3 +197,47 @@ async def test_list_proposals():
         "next_cursor": "cursor-1",
         "proposals": [{"id": "p1", "status": "pending"}],
     }
+
+
+
+from api.v1.proposals_routes import create_proposal
+
+
+# ID: 8c27de3f-743e-4177-879a-813a1d5b5784
+def test_create_proposal():
+    payload = MagicMock()
+    payload.goal = "reduce risk"
+    payload.actions = ["a1", "a2"]
+    payload.files = ["f1.py"]
+    payload.created_by = "tester"
+    payload.write = True
+    payload.anchor_kind = "symbol"
+    payload.anchor_refs = ["foo"]
+    payload.producer = "agent"
+    payload.retires = []
+
+    session = MagicMock()
+
+    expected = {"ok": True, "proposal": {"id": "p1"}}
+
+    mock_create_and_score = AsyncMock(return_value=expected)
+
+    with patch(
+        "api.v1.proposals_routes.create_and_score_proposal",
+        mock_create_and_score,
+    ):
+        result = asyncio.run(create_proposal(payload, session))
+
+    assert result == expected
+    mock_create_and_score.assert_awaited_once_with(
+        session,
+        goal="reduce risk",
+        actions=["a1", "a2"],
+        files=["f1.py"],
+        created_by="tester",
+        write=True,
+        anchor_kind="symbol",
+        anchor_refs=["foo"],
+        producer="agent",
+        retires=[],
+    )
