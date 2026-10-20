@@ -182,7 +182,6 @@ async def test_analysis_clusters():
     assert result == {"available": False, "clusters": []}
 
 
-
 import pytest
 
 from api.v1.inspect_routes import analysis_bridges
@@ -196,3 +195,23 @@ async def test_analysis_bridges():
         result = await analysis_bridges(consuming="svc")
         mock_get.assert_called_once_with(consuming="svc")
         assert result == {"bridges": ["a", "b"]}
+
+
+
+import pytest
+
+from api.v1.inspect_routes import refusals_stats
+
+
+@pytest.mark.asyncio
+# ID: 9dfe6e87-6c68-4fe6-b4b6-a1bca66d37bf
+async def test_refusals_stats():
+    fake_stats = {"by_type": {"policy": 3, "safety": 1}, "total": 4}
+    with patch(
+        "api.v1.inspect_routes.get_refusals_stats",
+        new=AsyncMock(return_value=fake_stats),
+    ) as mock_get_stats:
+        result = await refusals_stats(days=7)
+
+    assert result == fake_stats
+    mock_get_stats.assert_awaited_once_with(days=7)
