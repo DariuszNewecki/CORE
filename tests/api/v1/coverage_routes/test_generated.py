@@ -308,7 +308,6 @@ async def test_request_coverage_report():
     mock_background_tasks.add_task.assert_called_once()
 
 
-
 import pytest
 
 
@@ -328,3 +327,25 @@ async def test_coverage_report():
 
     mock_get_latest.assert_awaited_once_with(mock_session, format="text")
     assert result == expected_report
+
+
+
+from api.v1.coverage_routes import coverage_check
+
+
+# ID: 0530ebc0-ad60-4828-a2f3-55508c1372e7
+async def test_coverage_check():
+    mock_core_context = MagicMock()
+    mock_request = MagicMock()
+    mock_request.app.state.core_context = mock_core_context
+
+    expected = {"status": "ok", "coverage": 95.0}
+
+    with patch(
+        "api.v1.coverage_routes.get_coverage_check",
+        new=AsyncMock(return_value=expected),
+    ) as mock_get:
+        result = await coverage_check(mock_request)
+
+    mock_get.assert_awaited_once_with(mock_core_context)
+    assert result == expected
