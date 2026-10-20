@@ -358,3 +358,16 @@ def test_CliGateEngine():
     assert result.ok is True
     assert result.violations == []
     assert result.engine_id == "cli_gate"
+
+
+from mind.logic.engines.cli_gate.engine import CliNotAuditedError
+
+
+# ID: 1e54cab3-1956-4eca-8215-0df7b8fe0f6a
+def test_CliNotAuditedError():
+    message = "importable CLI is not the audited tree's CLI"
+    error = CliNotAuditedError(message)
+
+    assert isinstance(error, Exception)
+    assert str(error) == message
+    assert isinstance(error, CliNotAuditedError)
