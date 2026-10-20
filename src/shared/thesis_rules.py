@@ -127,9 +127,11 @@ def breaches(today: ThesisMeasures, history: list[ThesisMeasures]) -> list[Breac
         found.append(
             Breach(
                 "unverified_writes",
-                f"{today.unverified_writes} write(s) reached main since "
-                f"{CUTOVER.isoformat()} without green CI and the governor's "
-                "approval of the pull request's last commit (or merge).",
+                f"{today.unverified_writes} unverified write(s) since "
+                f"{CUTOVER.isoformat()}: a deploy without the governor's "
+                "approval of that exact promotion commit before it ran (or, "
+                "before the promotion cutover, a merge into main without green "
+                "CI and the governor's approval of its last commit).",
             )
         )
     if today.ai_share is not None and today.ai_share < AI_SHARE_FLOOR:

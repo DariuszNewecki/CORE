@@ -31,6 +31,16 @@ def test_any_unverified_write_breaks() -> None:
     assert _broken(_m(unverified=1)) == {"unverified_writes"}
 
 
+def test_the_unverified_message_names_the_deploy_after_the_cutover() -> None:
+    """After the promotion cutover the writes that count are deploys: the
+    message says so, not only 'reached main'."""
+    [breach] = breaches(_m(unverified=4), [])
+    assert breach.message.startswith("4 unverified write(s) since 2026-10-12")
+    assert "deploy without the governor's approval of that exact promotion" in (
+        breach.message
+    )
+
+
 def test_ai_share_below_63_percent_breaks() -> None:
     assert _broken(_m(ai=0.62)) == {"ai_share"}
     assert _broken(_m(ai=0.63)) == set()
