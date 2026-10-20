@@ -162,3 +162,39 @@ def test_get_proposal_chain():
 
     assert result == expected_chain
     svc.get_chain_for_proposal.assert_awaited_once_with(proposal_id, session)
+
+
+
+import pytest
+
+from api.v1.proposals_routes import list_proposals
+
+
+@pytest.mark.asyncio
+# ID: 8f601ac6-65af-4d36-8055-8507376c3e80
+async def test_list_proposals():
+    fake_proposal = MagicMock()
+    fake_proposal.to_dict.return_value = {"id": "p1", "status": "pending"}
+
+    service_mock = MagicMock()
+    service_mock.list_pending_approval_paginated = AsyncMock(
+        return_value=([fake_proposal], True, "cursor-1")
+    )
+
+    with patch(
+        "api.v1.proposals_routes.ProposalService", return_value=service_mock
+    ) as service_cls:
+        result = await list_proposals(
+            status=None, limit=50, after=None, session=MagicMock()
+        )
+
+    service_cls.assert_called_once()
+    service_mock.list_pending_approval_paginated.assert_awaited_once_with(
+        limit=50, after_cursor=None
+    )
+    assert result == {
+        "count": 1,
+        "has_more": True,
+        "next_cursor": "cursor-1",
+        "proposals": [{"id": "p1", "status": "pending"}],
+    }
