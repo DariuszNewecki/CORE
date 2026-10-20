@@ -285,9 +285,6 @@ class TestDangerousExplicitCheck:
         assert finding.file_path == "none"
 
 
-
-
-
 # ID: 6f94e13b-21af-41f5-9ddb-a584157fd254
 def test_DangerousExplicitCheck_verify():
     check = DangerousExplicitCheck()
@@ -312,3 +309,32 @@ def test_DangerousExplicitCheck_verify():
     findings = check.verify(commands, params)
 
     assert findings == []
+
+
+from unittest.mock import patch
+
+
+# ID: b0089c32-b90a-4778-a771-39d6f66a259c
+def test_DangerousExplicitCheck():
+    check = DangerousExplicitCheck()
+
+    good_command = {
+        "name": "safe_mutate",
+        "behavior": "mutate",
+        "file_path": "src/some_file.py",
+        "dangerous": True,
+        "params_list": ["write", "other"],
+    }
+    non_mutate_command = {
+        "name": "read_only",
+        "behavior": "read",
+        "file_path": "none",
+    }
+
+    with patch.object(
+        DangerousExplicitCheck, "verify", wraps=check.verify
+    ) as wrapped_verify:
+        findings = wrapped_verify([good_command, non_mutate_command], {})
+
+    assert findings == []
+    wrapped_verify.assert_called_once()
