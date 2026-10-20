@@ -226,7 +226,6 @@ async def test_list_audit_runs() -> None:
     ]
 
 
-
 import pytest
 
 from api.v1.audit_routes import create_audit_run
@@ -275,3 +274,25 @@ async def test_create_audit_run():
     session.execute.assert_awaited_once()
     session.commit.assert_awaited_once()
     background_tasks.add_task.assert_called_once()
+
+
+from api.v1.audit_routes import CreateAuditRunRequest
+
+
+# ID: 6d928827-9b1a-4d0d-acac-5bb1c68a8034
+def test_CreateAuditRunRequest():
+    req = CreateAuditRunRequest(
+        rule_ids=["rule-1"],
+        policy_ids=["policy-1"],
+        files=["src/main.py"],
+        force_llm=True,
+        wait=True,
+        source="cli",
+    )
+
+    assert req.rule_ids == ["rule-1"]
+    assert req.policy_ids == ["policy-1"]
+    assert req.files == ["src/main.py"]
+    assert req.force_llm is True
+    assert req.wait is True
+    assert req.source == "cli"
