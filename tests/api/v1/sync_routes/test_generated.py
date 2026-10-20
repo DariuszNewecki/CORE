@@ -39,3 +39,56 @@ async def test_sync_dev_sync():
         payload=mock_payload,
         session=mock_session,
     )
+
+
+from datetime import UTC, datetime
+from uuid import uuid4
+
+from api.v1.sync_routes import get_sync_run
+
+
+# ID: 8e13b0eb-db66-4cd3-9c0d-947b9bc1674e
+async def test_get_sync_run():
+    run_id = uuid4()
+    requested_at = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+    started_at = datetime(2024, 1, 1, 12, 0, 5, tzinfo=UTC)
+    finished_at = datetime(2024, 1, 1, 12, 0, 30, tzinfo=UTC)
+
+    row = {
+        "id": run_id,
+        "sync_type": "full",
+        "write": True,
+        "target": "knowledge_graph",
+        "status": "succeeded",
+        "requested_by": "operator",
+        "requested_at": requested_at,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "result": {"ok": True},
+        "error": None,
+    }
+
+    mappings = MagicMock()
+    mappings.first = MagicMock(return_value=row)
+    result = MagicMock()
+    result.mappings = MagicMock(return_value=mappings)
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=result)
+
+    response = await get_sync_run(run_id=run_id, session=session)
+
+    session.execute.assert_awaited_once()
+    assert response == {
+        "run_id": str(run_id),
+        "sync_type": "full",
+        "write": True,
+        "target": "knowledge_graph",
+        "status": "succeeded",
+        "requested_by": "operator",
+        "requested_at": requested_at.isoformat(),
+        "started_at": started_at.isoformat(),
+        "finished_at": finished_at.isoformat(),
+        "result": {"ok": True},
+        "error": None,
+    }
