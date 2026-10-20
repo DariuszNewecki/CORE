@@ -64,3 +64,17 @@ async def test_start_development_cycle():
     args, _ = background_tasks.add_task.call_args
     run_func = args[0]
     assert callable(run_func)
+
+
+from api.v1.development_routes import DevelopmentGoal
+
+
+# ID: 37ed9cf9-aaf3-4901-a0dd-c2bd043d0312
+def test_DevelopmentGoal():
+    goal = DevelopmentGoal(
+        goal="Add a health check endpoint",
+        workflow_type="feature",
+    )
+    assert goal.goal == "Add a health check endpoint"
+    assert goal.workflow_type == "feature"
+    assert goal.write is False
