@@ -162,7 +162,6 @@ async def test_run_fix_modularity():
     }
 
 
-
 import pytest
 
 from api.v1.fix_routes import FIX_CODE_FLOW_ID, run_fix_all
@@ -201,3 +200,70 @@ async def test_run_fix_all():
         payload=payload,
         session=session,
     )
+
+
+
+import pytest
+
+from api.v1.fix_routes import run_fix
+
+
+@pytest.mark.asyncio
+# ID: 922aa086-f52c-48c6-8d13-23b7d6cb6a8a
+async def test_run_fix():
+    fix_id = "some.registered.action"
+    run_id = uuid4()
+
+    request = MagicMock()
+    response = MagicMock()
+    background_tasks = MagicMock()
+
+    payload = MagicMock()
+    payload.write = False
+    payload.target_files = None
+    payload.requested_by = "tester"
+    payload.params = {}
+
+    principal = MagicMock()
+
+    session = MagicMock()
+    exec_result = MagicMock()
+    exec_result.scalar_one = MagicMock(return_value=run_id)
+    session.execute = AsyncMock(return_value=exec_result)
+    session.commit = AsyncMock()
+
+    list_registered = MagicMock(return_value=[fix_id])
+    runs_candidate = MagicMock(return_value=False)
+    require_identified = MagicMock()
+    mutates_files = MagicMock(return_value=False)
+    get_governor = AsyncMock()
+
+    import api.v1.fix_routes as fix_routes_mod
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(fix_routes_mod, "list_registered_action_ids", list_registered)
+        mp.setattr(fix_routes_mod, "action_runs_candidate_code", runs_candidate)
+        mp.setattr(fix_routes_mod, "require_identified_producer", require_identified)
+        mp.setattr(fix_routes_mod, "action_mutates_files", mutates_files)
+        mp.setattr(fix_routes_mod, "get_governor", get_governor)
+
+        result = await run_fix(
+            fix_id=fix_id,
+            request=request,
+            response=response,
+            background_tasks=background_tasks,
+            payload=payload,
+            session=session,
+            principal=principal,
+        )
+
+    assert result == {
+        "run_id": str(run_id),
+        "status": "pending",
+        "href": f"/v1/fix/runs/{run_id}",
+    }
+    session.execute.assert_awaited_once()
+    session.commit.assert_awaited_once()
+    background_tasks.add_task.assert_called_once()
+    get_governor.assert_not_awaited()
+    require_identified.assert_not_called()
