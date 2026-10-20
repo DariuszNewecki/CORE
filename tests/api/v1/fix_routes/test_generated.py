@@ -292,3 +292,27 @@ def test_RunFlowRequest():
     assert request.write is True
     assert request.requested_by == "tester"
     assert request.params == {"min_score": 0.5, "limit": 10}
+
+
+from api.v1.fix_routes import RunFixRequest
+
+
+# ID: b2865101-e1a8-40fa-ab5c-037ef0b31dd1
+def test_RunFixRequest():
+    req = RunFixRequest(
+        target_files=["src/api/v1/fix_routes.py", "some/dir/file.py"],
+        write=True,
+        requested_by="tester",
+        params={"limit": 10},
+    )
+
+    assert req.target_files == ["src/api/v1/fix_routes.py", "some/dir/file.py"]
+    assert req.write is True
+    assert req.requested_by == "tester"
+    assert req.params == {"limit": 10}
+
+    default_req = RunFixRequest()
+    assert default_req.target_files is None
+    assert default_req.write is False
+    assert default_req.requested_by == "api"
+    assert default_req.params == {}
