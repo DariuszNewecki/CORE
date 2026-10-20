@@ -84,3 +84,24 @@ async def test_get_delegated_finding():
 
     assert result == expected
     mock_instance.get_finding_bundle.assert_awaited_once_with("abc-123")
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 3118d086-acde-4221-9905-22ed5aa91c20
+async def test_next_delegated_finding():
+    from api.v1.lane_routes import next_delegated_finding
+
+    expected = {"id": 1, "status": "delegated"}
+
+    with patch("api.v1.lane_routes.LaneService") as mock_lane_service_cls:
+        mock_service = mock_lane_service_cls.return_value
+        mock_service.next_delegated_finding = AsyncMock(return_value=expected)
+
+        result = await next_delegated_finding()
+
+    assert result == expected
+    mock_service.next_delegated_finding.assert_awaited_once()
