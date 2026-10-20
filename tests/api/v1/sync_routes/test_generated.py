@@ -132,7 +132,6 @@ async def test_sync_code_vectors():
     assert result == expected
 
 
-
 import pytest
 
 
@@ -163,6 +162,46 @@ async def test_sync_vectors():
     assert result == expected
     mock_dispatch.assert_awaited_once_with(
         sync_type="vectors",
+        request=request,
+        response=response,
+        background_tasks=background_tasks,
+        payload=payload,
+        session=session,
+    )
+
+
+
+import pytest
+
+from api.v1.sync_routes import sync_knowledge_graph
+
+
+@pytest.mark.asyncio
+# ID: 63d41b28-bcd5-415a-b90c-2119f258e59a
+async def test_sync_knowledge_graph() -> None:
+    request = MagicMock()
+    response = MagicMock()
+    background_tasks = MagicMock()
+    payload = MagicMock()
+    session = MagicMock()
+
+    expected_result = {"status": "dispatched", "sync_type": "knowledge_graph"}
+
+    with patch(
+        "api.v1.sync_routes._dispatch_sync",
+        new=AsyncMock(return_value=expected_result),
+    ) as mock_dispatch:
+        result = await sync_knowledge_graph(
+            request=request,
+            response=response,
+            background_tasks=background_tasks,
+            payload=payload,
+            session=session,
+        )
+
+    assert result == expected_result
+    mock_dispatch.assert_awaited_once_with(
+        sync_type="knowledge_graph",
         request=request,
         response=response,
         background_tasks=background_tasks,
