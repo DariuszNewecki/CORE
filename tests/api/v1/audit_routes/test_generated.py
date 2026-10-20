@@ -133,3 +133,45 @@ def test_CreateRemediationRequest():
     assert custom.mode == "all"
     assert custom.write is True
     assert custom.requested_by == "tester"
+
+
+
+from api.v1.audit_routes import get_audit_run
+
+
+# ID: 0894bc7c-9371-4cfb-bdb2-3c5cffdfebcb
+async def test_get_audit_run():
+    run_id = uuid4()
+    started = datetime(2024, 1, 1, 12, 0, 0)
+    finished = datetime(2024, 1, 1, 12, 5, 0)
+
+    row = {
+        "run_id": run_id,
+        "verdict": "fail",
+        "finding_count": 3,
+        "blocking_count": 2,
+        "started_at": started,
+        "finished_at": finished,
+        "status": "completed",
+        "findings": [{"id": "f1"}, {"id": "f2"}, {"id": "f3"}],
+    }
+
+    mock_result = MagicMock()
+    mock_mappings = MagicMock()
+    mock_mappings.first.return_value = row
+    mock_result.mappings.return_value = mock_mappings
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=mock_result)
+
+    result = await get_audit_run(run_id=run_id, session=session)
+
+    session.execute.assert_awaited_once()
+    assert result["run_id"] == str(run_id)
+    assert result["verdict"] == "fail"
+    assert result["finding_count"] == 3
+    assert result["blocking_count"] == 2
+    assert result["started_at"] == started.isoformat()
+    assert result["finished_at"] == finished.isoformat()
+    assert result["status"] == "completed"
+    assert result["findings"] == row["findings"]
