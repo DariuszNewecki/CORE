@@ -340,3 +340,15 @@ def test_SubmitChangeRequest():
         retires=["proposal-abc"],
     )
     assert model2.retires == ["proposal-abc"]
+
+
+from api.v1.proposals_routes import ExecuteRequest
+
+
+# ID: 9c7c1f7b-8aad-4c27-a8b2-6d28f447abbc
+def test_ExecuteRequest():
+    req = ExecuteRequest()
+    assert req.write is False
+
+    req_explicit = ExecuteRequest(write=True)
+    assert req_explicit.write is True
