@@ -224,3 +224,54 @@ async def test_list_audit_runs() -> None:
             "status": "completed",
         }
     ]
+
+
+
+import pytest
+
+from api.v1.audit_routes import create_audit_run
+
+
+@pytest.mark.asyncio
+# ID: c7317198-14fc-438a-9c8a-d9b7b53f3247
+async def test_create_audit_run():
+    run_id = uuid.uuid4()
+
+    request = MagicMock()
+    request.app.state.core_context = MagicMock()
+
+    response = MagicMock()
+    response.status_code = 202
+
+    background_tasks = MagicMock()
+
+    payload = MagicMock()
+    payload.wait = False
+    payload.rule_ids = []
+    payload.policy_ids = []
+    payload.files = None
+    payload.force_llm = False
+    payload.source = "api"
+
+    result = MagicMock()
+    result.scalar_one = MagicMock(return_value=run_id)
+
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=result)
+    session.commit = AsyncMock()
+
+    out = await create_audit_run(
+        request=request,
+        response=response,
+        background_tasks=background_tasks,
+        payload=payload,
+        session=session,
+    )
+
+    assert out["run_id"] == str(run_id)
+    assert out["status"] == "pending"
+    assert out["href"] == f"/v1/audit/runs/{run_id}"
+
+    session.execute.assert_awaited_once()
+    session.commit.assert_awaited_once()
+    background_tasks.add_task.assert_called_once()
