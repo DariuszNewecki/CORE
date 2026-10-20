@@ -202,7 +202,6 @@ async def test_run_fix_all():
     )
 
 
-
 import pytest
 
 from api.v1.fix_routes import run_fix
@@ -267,3 +266,13 @@ async def test_run_fix():
     background_tasks.add_task.assert_called_once()
     get_governor.assert_not_awaited()
     require_identified.assert_not_called()
+
+
+from api.v1.fix_routes import RunIRRequest
+
+
+# ID: 463dbec7-6ccf-48ef-bf8f-4b664a6dae8b
+def test_RunIRRequest():
+    request = RunIRRequest(kind="triage")
+    assert request.kind == "triage"
+    assert isinstance(request, RunIRRequest)
