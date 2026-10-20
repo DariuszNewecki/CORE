@@ -178,3 +178,23 @@ async def test_generate_coverage():
     session.execute.assert_awaited_once()
     session.commit.assert_awaited_once()
     background_tasks.add_task.assert_called_once()
+
+
+
+from api.v1.coverage_routes import coverage_methods
+
+
+# ID: ca60da5b-c0fc-4e9e-99cf-24a876a0246f
+def test_coverage_methods():
+    with patch(
+        "api.v1.coverage_routes.get_coverage_methods",
+        return_value={"legacy": 1, "adaptive": 2},
+    ) as mock_get:
+        request = MagicMock()
+        core_context = MagicMock()
+        request.app.state.core_context = core_context
+
+        result = coverage_methods(request)
+
+    mock_get.assert_called_once_with(core_context)
+    assert result == {"legacy": 1, "adaptive": 2}
