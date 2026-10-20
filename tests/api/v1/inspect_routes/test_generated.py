@@ -167,7 +167,6 @@ async def test_analysis_duplicates() -> None:
     mock_get.assert_awaited_once_with(request.app.state.core_context, threshold=0.9)
 
 
-
 from fastapi import Response
 
 from api.v1.inspect_routes import analysis_clusters
@@ -181,3 +180,19 @@ async def test_analysis_clusters():
 
     mock_signal.assert_called_once_with(response)
     assert result == {"available": False, "clusters": []}
+
+
+
+import pytest
+
+from api.v1.inspect_routes import analysis_bridges
+
+
+@pytest.mark.asyncio
+# ID: 7a298c28-0f0f-49db-a905-15414a9b5092
+async def test_analysis_bridges():
+    with patch("api.v1.inspect_routes.get_analysis_bridges") as mock_get:
+        mock_get.return_value = {"bridges": ["a", "b"]}
+        result = await analysis_bridges(consuming="svc")
+        mock_get.assert_called_once_with(consuming="svc")
+        assert result == {"bridges": ["a", "b"]}
