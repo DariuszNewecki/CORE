@@ -11,6 +11,13 @@ from mind.governance.dispatch_integrity import (
     _vocabulary_unavailable_finding,
     declared_check_types,
 )
+from mind.governance.rule_findings import (
+    content_not_evaluated_finding,
+    enforcement_failure_finding,
+    engine_missing_finding,
+    llm_stub_finding,
+    transient_llm_failure_finding,
+)
 from mind.logic.engines.base import (
     CONTENT_NOT_EVALUATED,
     extract_line_number,
@@ -142,14 +149,7 @@ async def execute_rule(
     try:
         engine = EngineRegistry.get(rule.engine)
     except ValueError as e:
-        return [
-            AuditFinding(
-                check_id=f"{rule.rule_id}.engine_missing",
-                severity=AuditSeverity.BLOCK,
-                message=str(e),
-                file_path="none",
-            )
-        ]
+        return [engine_missing_finding(rule, e)]
 
     # #307: when an llm_gate rule falls back to LLMGateStubEngine (no LLM
     # client wired), emit ONE WARNING for the rule and skip per-file
@@ -161,24 +161,7 @@ async def execute_rule(
     from mind.logic.engines.llm_gate_stub import LLMGateStubEngine
 
     if isinstance(engine, LLMGateStubEngine):
-        return [
-            AuditFinding(
-                check_id=rule.rule_id,
-                severity=AuditSeverity.HIGH,
-                message=(
-                    f"Rule '{rule.rule_id}' uses engine '{rule.engine}' which "
-                    "is not operational in this run (no LLM client wired). "
-                    "Audit signal for this rule is muted until the wiring is "
-                    "available — see GitHub #306."
-                ),
-                file_path="none",
-                context={
-                    "engine_id": rule.engine,
-                    "stub": True,
-                    "reason": "no_llm_client",
-                },
-            )
-        ]
+        return [llm_stub_finding(rule)]
 
     # #820 contract 1 — dispatch integrity. A rule naming a check_type its
     # engine cannot dispatch enforces nothing, and does so silently: every
@@ -444,86 +427,20 @@ async def execute_rule(
                 exc_info=True,
             )
             findings.append(
-                AuditFinding(
-                    check_id=f"{rule.rule_id}.enforcement_failure",
-                    severity=AuditSeverity.BLOCK,
-                    message=(
-                        f"ENFORCEMENT_FAILURE: Rule crashed on {file_path}: {e}. "
-                        f"Compliance status UNKNOWN — treat as non-compliant until fixed."
-                    ),
-                    file_path=_rel(context, file_path),
-                    context={
-                        "finding_type": "ENFORCEMENT_FAILURE",
-                        "engine": rule.engine,
-                        "policy_id": rule.policy_id,
-                        "exception_type": type(e).__name__,
-                        "exception_message": str(e),
-                    },
+                enforcement_failure_finding(
+                    rule, file_path, _rel(context, file_path), e
                 )
             )
             continue
 
-    # #306/#307: emit one aggregate WARNING for transient LLM failures
-    # accumulated during this rule's run. Bounds Blackboard pollution —
-    # the autonomous remediation loop sees one finding per affected rule
-    # instead of one per file. sample_files preserves enough signal for
-    # the governor to investigate without churning the loop.
+    # #306/#307: one aggregate WARNING for the transient LLM failures
+    # accumulated during this rule's run.
     if transient_llm_failures:
-        # #309: deduplicate underlying error strings. A single root cause
-        # (e.g. the prompt-contract mismatch that made #308 look transient)
-        # shows up as one entry; a true intermittent shows many. Visible
-        # from the message without reading every per-file sample.
-        unique_errors = sorted({err for _, err in transient_llm_failures})
-        findings.append(
-            AuditFinding(
-                check_id=rule.rule_id,
-                severity=AuditSeverity.HIGH,
-                message=(
-                    f"Rule '{rule.rule_id}' LLM evaluation failed transiently "
-                    f"on {len(transient_llm_failures)} file(s) "
-                    f"({len(unique_errors)} unique error(s)). Verdict for "
-                    "those files is UNKNOWN until the LLM provider can keep "
-                    "up with audit-scale throughput — see follow-up issue on "
-                    "llm_gate concurrency/batching."
-                ),
-                file_path="none",
-                context={
-                    "finding_type": "LLM_TRANSIENT_FAILURE",
-                    "engine_id": rule.engine,
-                    "failure_count": len(transient_llm_failures),
-                    "sample_files": [path for path, _ in transient_llm_failures[:5]],
-                    "sample_errors": [
-                        {"file": path, "error": err}
-                        for path, err in transient_llm_failures[:5]
-                    ],
-                    "unique_error_messages": unique_errors[:5],
-                },
-            )
-        )
+        findings.append(transient_llm_failure_finding(rule, transient_llm_failures))
 
     # #1050: files whose content could not be evaluated are one INFO finding
-    # per rule, not a failure: the rule did run, and its other checks (a
-    # naming pattern) still applied to them.
+    # per rule, not a failure.
     if content_not_evaluated:
-        reasons = sorted({reason for _, reason in content_not_evaluated})
-        findings.append(
-            AuditFinding(
-                check_id=f"{rule.rule_id}.content_not_evaluated",
-                severity=AuditSeverity.INFO,
-                message=(
-                    f"Rule '{rule.rule_id}' did not evaluate the content of "
-                    f"{len(content_not_evaluated)} file(s): {'; '.join(reasons)}."
-                ),
-                file_path="none",
-                context={
-                    "finding_type": "CONTENT_NOT_EVALUATED",
-                    "engine": rule.engine,
-                    "policy_id": rule.policy_id,
-                    "file_count": len(content_not_evaluated),
-                    "sample_files": [path for path, _ in content_not_evaluated[:5]],
-                    "reasons": reasons,
-                },
-            )
-        )
+        findings.append(content_not_evaluated_finding(rule, content_not_evaluated))
 
     return findings
