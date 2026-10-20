@@ -56,6 +56,8 @@ logger = getLogger(__name__)
 
 # ADR-132 D10 · D2: one open finding while CORE's clone cannot follow upstream.
 _SYNC_SUBJECT = "repo_sync::clone"
+# One open finding while generated tests wait for a GitHub token to travel.
+_DELIVERY_SUBJECT = "test_delivery::waiting"
 
 # Conservative — each proposal may touch multiple files
 _CFG = load_operational_config().workers.proposal_consumer
@@ -95,6 +97,7 @@ class ProposalConsumerWorker(Worker):
         await self.post_heartbeat()
 
         await self._sync_upstream()
+        await self._deliver_tests()
 
         # Governor redesign 2026-10-12: screen what waits for the governor
         # (pre-approval run, 72h expiry) before executing approved work.
@@ -419,6 +422,51 @@ class ProposalConsumerWorker(Worker):
                     "recovered": outcome.recovered,
                 },
             )
+
+    async def _deliver_tests(self) -> None:
+        """CORE's generated tests reach GitHub as one pull request into main
+        (body.infrastructure.delivery_branch). While they cannot (no token),
+        one open finding says how many wait; it resolves once they travel.
+        Never raises: delivery must not stop proposal execution.
+        """
+        from dataclasses import asdict
+
+        from body.infrastructure.delivery_branch import DELIVERY_BRANCH, run_delivery
+        from body.services.service_registry import service_registry
+
+        try:
+            outcome = await run_delivery(self._ctx)
+            if outcome.state in ("none", "busy", "current") and not outcome.dropped:
+                return
+            blackboard = await service_registry.get_blackboard_service()
+            open_rows = await blackboard.fetch_open_findings(
+                prefix=f"{_DELIVERY_SUBJECT}%", limit=10
+            )
+            if outcome.state == "waiting":
+                if not open_rows:
+                    await self.post_finding(
+                        subject=_DELIVERY_SUBJECT,
+                        payload={
+                            **asdict(outcome),
+                            "branch": DELIVERY_BRANCH,
+                            "message": (
+                                f"{outcome.pending_commits} generated test "
+                                f"commit(s) wait on CORE's branch {DELIVERY_BRANCH}; "
+                                f"delivering them as a pull request {outcome.reason}."
+                            ),
+                        },
+                        resolution_mechanism="human",
+                    )
+                return
+            if outcome.state in ("delivered", "nothing") and open_rows:
+                await blackboard.resolve_entries([row["id"] for row in open_rows])
+            if outcome.state in ("delivered", "failed") or outcome.dropped:
+                await self.post_report(
+                    subject="proposal_consumer_worker.test_delivery",
+                    payload=asdict(outcome),
+                )
+        except Exception as exc:
+            logger.warning("ProposalConsumerWorker: test delivery failed: %s", exc)
 
     async def _load_approved_proposals(self) -> list[dict[str, Any]]:
         """

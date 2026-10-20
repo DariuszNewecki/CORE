@@ -287,6 +287,20 @@ class RepoSync:
             )
 
         added = self._git.added_paths(head, upstream)
+        in_the_way = self._clear_identical_untracked(added, upstream)
+        if in_the_way:
+            # Refuse before the journal: recovery removes the journal's added
+            # paths, which would delete these files, not just fail on them.
+            return SyncOutcome(
+                "failed",
+                head,
+                upstream,
+                reason=(
+                    f"{len(in_the_way)} untracked file(s) differ from what "
+                    f"upstream adds: {in_the_way[:5]}"
+                ),
+                recovered=recovered,
+            )
         self._fh.write_runtime_json(
             _rel(self._root, self._journal),
             {"from": head, "to": upstream, "added": added},
@@ -303,6 +317,27 @@ class RepoSync:
             return SyncOutcome("failed", head, upstream, reason=str(exc))
         self._fh.remove_file(_rel(self._root, self._journal))
         return SyncOutcome("fast_forwarded", head, upstream, recovered=recovered)
+
+    def _clear_identical_untracked(self, added: list[str], upstream: str) -> list[str]:
+        """Remove untracked files the fast-forward adds with the same bytes;
+        return the ones that differ (they stay, and the sync is refused).
+
+        ``read-tree -m -u`` refuses to overwrite an untracked file, even one
+        identical to what arrives (e.g. a generated test left on disk that
+        later lands upstream through its pull request). Identical bytes lose
+        nothing.
+        """
+        differ: list[str] = []
+        for rel in added:
+            if not (self._root / rel).exists():
+                continue
+            have = self._git.hash_working_paths(rel).get(rel)
+            if have and have == self._git.ls_tree_blobs(upstream, rel).get(rel):
+                self._fh.remove_file(rel)
+                logger.info("RepoSync: removed untracked %s (same as upstream)", rel)
+            else:
+                differ.append(rel)
+        return differ
 
     # ID: 15da0087-385f-4451-8a31-835c918a98ea
     def sync_if_free(self) -> SyncOutcome:

@@ -18,6 +18,7 @@ Will workers in particular must not spawn git subprocesses directly
 from __future__ import annotations
 
 import asyncio
+import base64
 import os
 import re
 import shutil
@@ -537,6 +538,145 @@ class GitService:
                 expected_from,
             ]
         )
+
+    # -- Plumbing for a branch that is never checked out (test delivery) --
+
+    def _run_env(self, command: list[str], env: dict[str, str]) -> str:
+        """Like ``_run_command`` with extra environment variables."""
+        try:
+            result = subprocess.run(
+                ["git", *SAFE_GIT_OPTIONS, *command],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+                env={**os.environ, **env},
+            )
+            return result.stdout.strip()
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"Git command failed: {e.stderr or e.stdout}") from e
+
+    # ID: 4f0d8a51-6b2e-4c39-9e7a-1d5b3c8f2a64
+    def write_blobs(self, paths: list[str]) -> dict[str, str]:
+        """Store the working-tree files ``paths`` as blobs; path -> blob id."""
+        if not paths:
+            return {}
+        ids = self._run_raw(
+            ["hash-object", "-w", "--stdin-paths"], stdin="\n".join(paths) + "\n"
+        ).split()
+        return dict(zip(paths, ids, strict=True))
+
+    # ID: 2b7f5e93-8d1c-4a6e-9f30-c4e8a1b6d2f5
+    def tree_with(self, base: str, changes: dict[str, str | None]) -> str:
+        """The tree of ``base`` with ``changes`` applied (path -> blob id, or
+        None to remove the path). Uses a throwaway index under var/tmp, so the
+        repository's index and working tree are never touched."""
+        tmp = PathResolver(self.repo_path).tmp_dir
+        tmp.mkdir(parents=True, exist_ok=True)
+        index = tmp / f"core-plumbing-index-{uuid.uuid4().hex}"
+        env = {"GIT_INDEX_FILE": str(index)}
+        try:
+            self._run_env(["read-tree", base], env)
+            for path, blob in sorted(changes.items()):
+                if blob is None:
+                    self._run_env(["update-index", "--force-remove", "--", path], env)
+                else:
+                    self._run_env(
+                        [
+                            "update-index",
+                            "--add",
+                            "--cacheinfo",
+                            f"100644,{blob},{path}",
+                        ],
+                        env,
+                    )
+            return self._run_env(["write-tree"], env)
+        finally:
+            index.unlink(missing_ok=True)
+
+    # ID: 7e4a1c86-5f2b-4d93-a8c0-3b9e6f1d4a72
+    def commit_tree(
+        self,
+        tree: str,
+        parents: list[str],
+        message: str,
+        *,
+        identity: tuple[str, str],
+        author: tuple[str, str] | None = None,
+    ) -> str:
+        """Create a commit object (no ref moves); return its SHA."""
+        by = author or identity
+        env = {
+            "GIT_AUTHOR_NAME": by[0],
+            "GIT_AUTHOR_EMAIL": by[1],
+            "GIT_COMMITTER_NAME": identity[0],
+            "GIT_COMMITTER_EMAIL": identity[1],
+        }
+        args = ["commit-tree", tree]
+        for parent in parents:
+            args += ["-p", parent]
+        return self._run_env([*args, "-m", message], env)
+
+    # ID: c5d9e2a7-1b4f-4e68-8a3d-9f6c0b2e7d14
+    def update_ref(self, ref: str, new: str, expected_old: str | None) -> None:
+        """Point ``ref`` at ``new``; refused unless it is at ``expected_old``
+        (None: the ref must not exist yet)."""
+        self._run_command(["update-ref", ref, new, expected_old or ""])
+
+    # ID: 6a3f8d2c-9e1b-4b57-a4c6-2d8e5f0a9b13
+    def merge_tree(self, ours: str, theirs: str) -> tuple[str, list[str]]:
+        """Merge two commits without a working tree (``merge-tree
+        --write-tree``). Returns the merged tree and the conflicted paths;
+        a conflicted path's blob in the tree carries conflict markers."""
+        result = subprocess.run(
+            [
+                "git",
+                *SAFE_GIT_OPTIONS,
+                "merge-tree",
+                "--write-tree",
+                "--name-only",
+                "--no-messages",
+                "-z",
+                ours,
+                theirs,
+            ],
+            cwd=self.repo_path,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode not in (0, 1):
+            raise RuntimeError(f"Git command failed: {result.stderr}")
+        tree, *paths = [p for p in result.stdout.split("\0") if p]
+        return tree, sorted(set(paths))
+
+    # ID: 1d8b4f6e-2c7a-4e95-b3f1-8a0c6d2e5b49
+    def diff_names(self, base: str, head: str) -> list[str]:
+        """Paths whose content differs between two commits."""
+        out = self._run_raw(["diff", "--name-only", "-z", base, head])
+        return [p for p in out.split("\0") if p]
+
+    # ID: 8f2c6a1d-4e9b-4d73-a5e0-7b3d1f8c6a25
+    def count_commits(self, base: str, head: str) -> int:
+        """Non-merge commits reachable from ``head`` but not from ``base``."""
+        return int(
+            self._run_command(["rev-list", "--count", "--no-merges", f"{base}..{head}"])
+        )
+
+    # ID: 3e7a9c5b-6d1f-4b82-9c4e-0a5f2d8b1e63
+    def push_ref(self, url: str, ref: str, branch: str, token: str | None) -> None:
+        """Push ``ref`` to ``branch`` at ``url`` (no force). The token travels
+        in the environment as an http header, never on the command line."""
+        env = {"GIT_TERMINAL_PROMPT": "0"}
+        if token:
+            basic = base64.b64encode(f"x-access-token:{token}".encode()).decode()
+            env.update(
+                {
+                    "GIT_CONFIG_COUNT": "1",
+                    "GIT_CONFIG_KEY_0": "http.extraHeader",
+                    "GIT_CONFIG_VALUE_0": f"Authorization: Basic {basic}",
+                }
+            )
+        self._run_env(["push", "--quiet", url, f"{ref}:refs/heads/{branch}"], env)
 
     # ID: d1eee6ec-b584-49c4-8be2-0a9d7bd8ad47
     def tracked_changes(self) -> list[str]:

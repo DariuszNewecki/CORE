@@ -113,8 +113,16 @@ def tested_symbol_names(test_path: Path) -> set[str]:
     TestClassName.test_<method> → covers class method ClassName.<method>.
     Raises ``SyntaxError`` when the test file cannot be parsed.
     """
-    source = test_path.read_text(encoding="utf-8")
-    tree = ast.parse(source, filename=str(test_path))
+    return tested_names_in_source(test_path.read_text(encoding="utf-8"), str(test_path))
+
+
+# ID: 0e5c7a2d-9b3f-4d61-8a4e-6f1b2c9d7e38
+def tested_names_in_source(source: str, filename: str = "<test>") -> set[str]:
+    """``tested_symbol_names`` for test source text (e.g. a committed blob).
+
+    Raises ``SyntaxError`` when the source cannot be parsed.
+    """
+    tree = ast.parse(source, filename=filename)
     tested: set[str] = set()
     for node in ast.iter_child_nodes(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):

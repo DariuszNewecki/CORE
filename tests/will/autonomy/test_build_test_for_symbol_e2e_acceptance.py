@@ -19,7 +19,8 @@ real):
      test.candidate_validate pytest run during generation) -> build.test_for_
      symbol (real write) -> test.sandbox_validate (real pytest run inside the
      real hermetic git worktree ADR-106 sandboxes the flow into) -> real git
-     commit -> real core.proposal_consequences row -> real blackboard
+     commit on CORE's delivery branch (HEAD never moves) -> real
+     core.proposal_consequences row -> real blackboard
      evidence posted by the real orchestration Worker. Only PromptModel.invoke
      is stubbed — the one genuinely external, nondeterministic LLM call.
 
@@ -99,6 +100,7 @@ pytestmark = [pytest.mark.integration]
 
 _SOURCE_FILE = "src/mymod/example.py"
 _TEST_FILE = "tests/mymod/example/test_generated.py"
+_DELIVERY_REF = "refs/heads/core/test-gen"
 """source_to_test_path's fallback mapping (no real test_coverage.yaml in this
 bare repo): src/{p}.py -> tests/{p}/test_generated.py — not tests/{p}/test_{name}.py."""
 _SOURCE_BODY = "def add(a: int, b: int) -> int:\n    return a + b\n"
@@ -328,12 +330,17 @@ async def test_build_test_for_symbol_happy_path_reaches_completed_with_durable_c
     ):
         await worker.run()
 
-    written = (repo / _TEST_FILE).read_text(encoding="utf-8")
+    # Generated tests commit to CORE's delivery branch, never to HEAD
+    # (body.infrastructure.delivery_branch): the clone keeps fast-forwarding.
+    git = core_context.git_service
+    written = (git.committed_bytes(_TEST_FILE, _DELIVERY_REF) or b"").decode()
     assert "def test_add" in written
     assert "from mymod.example import add" in written
+    assert git.get_current_commit() == baseline_sha, "HEAD must not move"
+    assert not (repo / _TEST_FILE).exists(), "the main tree is never written"
 
-    post_sha = core_context.git_service.get_current_commit()
-    assert post_sha != baseline_sha, "a real commit must have advanced HEAD"
+    post_sha = git.resolve_ref(_DELIVERY_REF)
+    assert post_sha is not None, "a real commit must have landed on the branch"
 
     final_row = await _fetch_proposal_row(proposal_id)
     assert final_row["status"] == "completed"
@@ -454,6 +461,9 @@ async def test_build_test_for_symbol_sandbox_validate_failure_produces_no_commit
     )
     assert core_context.git_service.get_current_commit() == baseline_sha, (
         "sandbox-validation failure must not advance HEAD — no commit"
+    )
+    assert core_context.git_service.resolve_ref(_DELIVERY_REF) is None, (
+        "sandbox-validation failure must not deliver anything either"
     )
 
     final_row = await _fetch_proposal_row(proposal_id)

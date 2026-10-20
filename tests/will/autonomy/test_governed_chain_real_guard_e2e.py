@@ -238,8 +238,14 @@ async def test_authorized_mutation_completes_with_the_real_guard(
         ),
     )
 
-    assert "def test_add" in (repo / _TEST_FILE).read_text(encoding="utf-8")
-    assert core_context.git_service.get_current_commit() != baseline
+    # Generated tests commit to CORE's delivery branch, never to HEAD
+    # (body.infrastructure.delivery_branch).
+    delivered = core_context.git_service.committed_bytes(
+        _TEST_FILE, "refs/heads/core/test-gen"
+    )
+    assert delivered is not None and b"def test_add" in delivered
+    assert core_context.git_service.get_current_commit() == baseline
+    assert not (repo / _TEST_FILE).exists()
     row = await _proposal_row(proposal_id)
     assert row["status"] == "completed", row.get("failure_reason")
     assert row["consequence_recorded_at"] is not None
