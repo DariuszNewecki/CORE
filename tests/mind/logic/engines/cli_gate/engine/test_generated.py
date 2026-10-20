@@ -288,7 +288,6 @@ class TestVerifyContext:
         assert "check bug" in findings[0].message
 
 
-
 import pytest
 
 
@@ -307,3 +306,31 @@ async def test_CliGateEngine_verify() -> None:
     assert result.violations == []
     assert result.engine_id == engine.engine_id
     assert "context-level" in result.message
+
+
+from typing import Any
+from unittest.mock import patch
+
+
+# ID: 277482f2-254f-437b-8326-a20b75f3de4f
+async def test_CliGateEngine_verify_context() -> None:
+    path_resolver = MagicMock()
+    engine = CliGateEngine(path_resolver=path_resolver)
+
+    expected_findings = [MagicMock(name="finding")]
+    mock_check = MagicMock()
+    mock_check.check_type = "standard_verbs"
+    mock_check.verify = MagicMock(return_value=expected_findings)
+    engine._checks = {"standard_verbs": mock_check}
+
+    mock_commands = [MagicMock(name="command")]
+    engine._walk_registry = MagicMock(return_value=mock_commands)
+
+    context = MagicMock()
+    params: dict[str, Any] = {"check_type": "standard_verbs"}
+
+    result = await engine.verify_context(context, params)
+
+    assert result is expected_findings
+    engine._walk_registry.assert_called_once_with()
+    mock_check.verify.assert_called_once_with(mock_commands, params)
