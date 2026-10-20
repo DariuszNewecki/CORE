@@ -292,7 +292,6 @@ async def test_decisions_list():
     )
 
 
-
 from api.v1.inspect_routes import status_drift
 
 
@@ -313,3 +312,22 @@ async def test_status_drift() -> None:
 
     assert result == expected
     mock_get_drift_status.assert_awaited_once_with(core_context, scope="all")
+
+
+
+from api.v1.inspect_routes import status_health
+
+
+# ID: 35397a29-de11-4051-91f2-23cbe33c4313
+async def test_status_health() -> None:
+    mock_session = MagicMock()
+    expected = {"status": "ok", "database": "up"}
+
+    with patch(
+        "api.v1.inspect_routes.get_health",
+        new=AsyncMock(return_value=expected),
+    ) as mock_get_health:
+        result = await status_health(session=mock_session)
+
+    assert result == expected
+    mock_get_health.assert_awaited_once_with(mock_session)
