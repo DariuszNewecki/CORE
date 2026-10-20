@@ -220,7 +220,6 @@ def test_coverage_history():
     assert result == expected
 
 
-
 from api.v1.coverage_routes import coverage_gaps
 
 
@@ -240,3 +239,24 @@ async def test_coverage_gaps():
 
     assert result == expected
     mock_gaps.assert_awaited_once_with(fake_context, threshold=80.0, limit=10)
+
+
+
+from api.v1.coverage_routes import coverage_targets
+
+
+# ID: 0c97af8c-5da7-4216-be92-e446ebd38e56
+def test_coverage_targets() -> None:
+    mock_core_context = MagicMock()
+    mock_request = MagicMock()
+    mock_request.app.state.core_context = mock_core_context
+
+    expected = {"targets": {"coverage": 100}}
+    with patch(
+        "api.v1.coverage_routes.get_coverage_targets",
+        return_value=expected,
+    ) as mock_get_coverage_targets:
+        result = coverage_targets(mock_request)
+
+    assert result == expected
+    mock_get_coverage_targets.assert_called_once_with(mock_core_context)
