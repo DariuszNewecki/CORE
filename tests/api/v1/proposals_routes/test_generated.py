@@ -242,7 +242,6 @@ def test_create_proposal():
     )
 
 
-
 from api.v1.proposals_routes import submit_change
 
 
@@ -276,3 +275,30 @@ def test_submit_change():
         retires=[],
         created_by="api.proposals_submit",
     )
+
+
+# ID: ca23a043-5cff-482b-bbe4-96a64ffc05d4
+def test_CreateProposalRequest():
+    from api.v1.proposals_routes import CreateProposalRequest
+
+    req = CreateProposalRequest(
+        goal="improve coverage",
+        actions=[{"type": "edit", "path": "a.py"}],
+        files=["a.py"],
+        created_by="tester",
+        write=True,
+        anchor_kind="finding",
+        anchor_refs=["F-123"],
+        producer="pytest",
+        retires=["old-flag"],
+    )
+
+    assert req.goal == "improve coverage"
+    assert req.actions == [{"type": "edit", "path": "a.py"}]
+    assert req.files == ["a.py"]
+    assert req.created_by == "tester"
+    assert req.write is True
+    assert req.anchor_kind == "finding"
+    assert req.anchor_refs == ["F-123"]
+    assert req.producer == "pytest"
+    assert req.retires == ["old-flag"]
