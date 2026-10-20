@@ -180,7 +180,6 @@ async def test_generate_coverage():
     background_tasks.add_task.assert_called_once()
 
 
-
 from api.v1.coverage_routes import coverage_methods
 
 
@@ -198,3 +197,25 @@ def test_coverage_methods():
 
     mock_get.assert_called_once_with(core_context)
     assert result == {"legacy": 1, "adaptive": 2}
+
+
+
+from api.v1.coverage_routes import coverage_history
+
+
+# ID: 26d69c5b-dbb3-481f-80d5-65c5c6fc5411
+def test_coverage_history():
+    mock_core_context = MagicMock()
+    mock_request = MagicMock()
+    mock_request.app.state.core_context = mock_core_context
+
+    expected = {"measurements": [1, 2, 3]}
+
+    with patch(
+        "api.v1.coverage_routes.get_coverage_history",
+        return_value=expected,
+    ) as mock_get_history:
+        result = coverage_history(mock_request, limit=30)
+
+    mock_get_history.assert_called_once_with(mock_core_context, limit=30)
+    assert result == expected
