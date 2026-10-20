@@ -142,3 +142,26 @@ def test_analysis_common_knowledge():
 
     mock_signal.assert_called_once_with(response)
     assert result == {"available": False, "candidates": []}
+
+
+import pytest
+
+from api.v1.inspect_routes import analysis_duplicates
+
+
+@pytest.mark.asyncio
+# ID: 47e032c8-be56-451a-b0b7-68dd708e03a3
+async def test_analysis_duplicates() -> None:
+    request = MagicMock()
+    request.app.state.core_context = MagicMock()
+
+    expected = {"duplicates": [{"a": "x", "b": "y", "score": 0.9}]}
+
+    with patch(
+        "api.v1.inspect_routes.get_analysis_duplicates",
+        new=AsyncMock(return_value=expected),
+    ) as mock_get:
+        result = await analysis_duplicates(request, threshold=0.9)
+
+    assert result == expected
+    mock_get.assert_awaited_once_with(request.app.state.core_context, threshold=0.9)
