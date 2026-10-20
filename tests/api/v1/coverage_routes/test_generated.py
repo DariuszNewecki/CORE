@@ -81,3 +81,49 @@ async def test_get_coverage_run() -> None:
         "result": {"ok": True},
         "error": None,
     }
+
+
+from uuid import UUID
+
+import pytest
+
+from api.v1.coverage_routes import generate_coverage_batch
+
+
+@pytest.mark.asyncio
+# ID: 70e99170-a2a4-4ac3-a960-9ff6a78ddf4d
+async def test_generate_coverage_batch():
+    from api.v1.coverage_routes import GenerateBatchRequest
+
+    payload = GenerateBatchRequest(priority="high", write=True, requested_by="tester")
+
+    request = MagicMock()
+    request.app.state.core_context = MagicMock()
+
+    response = MagicMock()
+    background_tasks = MagicMock()
+
+    run_id = UUID("0d4e6f2a-3b5c-4d7e-8f9a-0b1c2d3e4f5c")
+    mock_result = MagicMock()
+    mock_result.scalar_one.return_value = run_id
+
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=mock_result)
+    session.commit = AsyncMock()
+
+    result = await generate_coverage_batch(
+        request=request,
+        response=response,
+        background_tasks=background_tasks,
+        payload=payload,
+        session=session,
+    )
+
+    assert result == {
+        "run_id": str(run_id),
+        "status": "pending",
+        "href": f"/v1/coverage/runs/{run_id}",
+    }
+    session.execute.assert_awaited_once()
+    session.commit.assert_awaited_once()
+    background_tasks.add_task.assert_called_once()
