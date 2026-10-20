@@ -133,3 +133,55 @@ def test_ModularityChecker_check_refactor_score(tmp_path: Path) -> None:
         assert finding["rule_id"] == "modularity.refactor_score_threshold"
         assert finding["file"] == str(file_path)
         assert finding["severity"] in ("error", "warning")
+
+
+
+
+
+# ID: c3492a13-0a80-4dea-a134-2ad8c200ef4e
+def test_ModularityChecker():
+    checker = ModularityChecker()
+
+    # Build content that reliably exceeds the 60.0 default score:
+    # - many responsibility areas (data access, business logic, presentation,
+    #   orchestration, validation, io, network) to maximise resp_score
+    # - large size to maximise size_score
+    data_lines = [
+        "import json",
+        "import sqlalchemy",
+        "import fastapi",
+        "import pytest",
+        "import torch",
+        "import typer",
+    ]
+    for i in range(500):
+        data_lines.append(f"def calculate_value_{i}(x):")
+        data_lines.append('    """Process and compute the value."""')
+        data_lines.append("    session.query(x).filter(x).join(x)")
+
+    data_lines.append("def process_thing():")
+    data_lines.append('    """Transform data."""')
+    data_lines.append("    console.print('hi')")
+    data_lines.append("    rich.Table('x')")
+    data_lines.append("    await thing.execute()")
+    data_lines.append("    asyncio.run(x)")
+    data_lines.append("    if not x:")
+    data_lines.append("        raise ValueError('x')")
+    data_lines.append("    Path('x').read_text()")
+    data_lines.append("    Path('y').write_text('z')")
+    data_lines.append("    requests.get('http://x')")
+    data_lines.append("    httpx.post('http://y')")
+    content = "\n".join(data_lines)
+
+    file_path = MagicMock()
+    file_path.read_text = MagicMock(return_value=content)
+
+    findings = checker.check_refactor_score(file_path, {"max_score": 60.0})
+
+    file_path.read_text.assert_called_once_with(encoding="utf-8")
+    assert isinstance(findings, list)
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding["rule_id"] == "modularity.refactor_score_threshold"
+    assert finding["details"]["total_score"] > 60.0
+    assert "breakdown" in finding["details"]
