@@ -259,3 +259,35 @@ async def test_decisions_patterns():
 
     mock_get.assert_awaited_once_with(days=7)
     assert result == expected
+
+
+
+import pytest
+
+from api.v1.inspect_routes import decisions_list
+
+
+@pytest.mark.asyncio
+# ID: 4c60c930-8ce9-4e14-accd-2610a95d70e9
+async def test_decisions_list():
+    expected = {"items": [], "next_cursor": None}
+
+    mock_get_decisions = AsyncMock(return_value=expected)
+
+    with patch("api.v1.inspect_routes.get_decisions", mock_get_decisions):
+        result = await decisions_list(
+            session_id="sess-1",
+            agent="agent-a",
+            pattern="pat-1",
+            limit=10,
+            after="cursor-abc",
+        )
+
+    assert result == expected
+    mock_get_decisions.assert_awaited_once_with(
+        session_id="sess-1",
+        agent="agent-a",
+        pattern="pat-1",
+        limit=10,
+        after_cursor="cursor-abc",
+    )
