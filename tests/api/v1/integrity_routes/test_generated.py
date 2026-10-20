@@ -47,3 +47,32 @@ async def test_integrity_verify() -> None:
     assert result is expected
     assert result["ok"] is True
     assert result["errors"] == []
+
+
+import asyncio
+
+
+# ID: 0c2d28ed-f654-4e01-b713-cb516395c402
+def test_integrity_baseline():
+    from api.v1.integrity_routes import integrity_baseline
+
+    mock_core_context = MagicMock()
+
+    mock_request = MagicMock()
+    mock_request.app.state.core_context = mock_core_context
+
+    mock_payload = MagicMock()
+    mock_payload.label = "my-baseline"
+
+    expected_result = {"path": "/some/baseline.json", "file_count": 42}
+
+    with patch(
+        "api.v1.integrity_routes.create_baseline",
+        return_value=expected_result,
+    ) as mock_create_baseline:
+        result = asyncio.run(
+            integrity_baseline(request=mock_request, payload=mock_payload)
+        )
+
+    mock_create_baseline.assert_called_once_with(mock_core_context, "my-baseline")
+    assert result == expected_result
