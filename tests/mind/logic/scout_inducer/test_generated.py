@@ -231,3 +231,40 @@ class TestScoutInducerPropose:
         ):
             result = await inducer.propose("signal text")
         assert isinstance(result, list)
+
+
+
+
+
+# ID: 368c80a6-fd12-4969-9a3f-42e66735b66b
+def test_ScoutInducer_propose() -> None:
+    import asyncio
+
+    llm_client = MagicMock()
+
+    with patch("mind.logic.scout_inducer.PromptModel") as mock_prompt_model_cls:
+        mock_prompt_model = MagicMock()
+        mock_prompt_model.invoke = AsyncMock(
+            return_value='{"candidates": [{"rule_id": "r1", "statement": "s"}]}'
+        )
+        mock_prompt_model_cls.load.return_value = mock_prompt_model
+
+        inducer = ScoutInducer(llm_client)
+
+        with patch(
+            "mind.logic.scout_inducer.extract_json",
+            return_value={
+                "candidates": [
+                    {"rule_id": "r1", "statement": "s1"},
+                    {"rule_id": "r2", "statement": "s2"},
+                ]
+            },
+        ):
+            result = asyncio.run(inducer.propose("signals"))
+
+    assert result == [
+        {"rule_id": "r1", "statement": "s1"},
+        {"rule_id": "r2", "statement": "s2"},
+    ]
+    mock_prompt_model.invoke.assert_awaited_once()
+    mock_prompt_model_cls.load.assert_called_once_with("scout_rule_inducer")
