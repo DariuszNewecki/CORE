@@ -55,6 +55,17 @@ _EVAL_CACHE_MAX_ENTRIES: int = 10_000
 _EVAL_CACHE_SKIP_ENGINES: frozenset[str] = frozenset({"llm_gate"})
 
 
+def _rel(context: AuditorContext, file_path: Path) -> str:
+    """Repository-style path of a walked file (``.intent/...`` for law kept
+    beside a sparse clone, ADR-132 D2) — never ``relative_to(repo_path)``,
+    which raises for law files there."""
+    rel_path = getattr(context, "rel_path", None)
+    rel = rel_path(file_path) if callable(rel_path) else None
+    if isinstance(rel, str):
+        return rel
+    return file_path.relative_to(context.repo_path).as_posix()
+
+
 def _eval_cache_store(
     key: tuple[str, str, str, int, int],
     findings: list[AuditFinding],
@@ -79,6 +90,8 @@ def clear_eval_cache() -> None:
 
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from mind.governance.audit_context import AuditorContext
     from mind.governance.executable_rule import ExecutableRule
 
@@ -262,11 +275,7 @@ async def execute_rule(
         # intersection produces no findings — the rule's scope didn't
         # cover any of the requested files (e.g. user passed
         # src/cli/foo.py against a rule scoped to src/api/**).
-        files = [
-            p
-            for p in files
-            if str(p.relative_to(context.repo_path)).replace("\\", "/") in file_filter
-        ]
+        files = [p for p in files if _rel(context, p) in file_filter]
     if rule.requires_findings_from:
         # ADR-043 D2/D3: pre-selector narrowing. Run only against files
         # that have findings under the listed precondition rule IDs in
@@ -279,12 +288,7 @@ async def execute_rule(
         precondition_files = {
             f.file_path for f in (prior_findings or []) if f.check_id in requires_set
         }
-        files = [
-            p
-            for p in files
-            if str(p.relative_to(context.repo_path)).replace("\\", "/")
-            in precondition_files
-        ]
+        files = [p for p in files if _rel(context, p) in precondition_files]
     severity = _map_enforcement_to_severity(rule.enforcement)
     # #309: store (rel_path, underlying_error_message) pairs so the
     # aggregate finding preserves the engine's diagnostic string.
@@ -341,7 +345,7 @@ async def execute_rule(
             not_evaluated = (result.extra or {}).get(CONTENT_NOT_EVALUATED)
             if not_evaluated:
                 content_not_evaluated.append(
-                    (str(file_path.relative_to(context.repo_path)), str(not_evaluated))
+                    (_rel(context, file_path), str(not_evaluated))
                 )
                 # Never cached: the report below is rebuilt every run.
                 eval_key = None
@@ -360,7 +364,7 @@ async def execute_rule(
                     None,
                 )
                 if marker_violation is not None:
-                    rel_path = str(file_path.relative_to(context.repo_path))
+                    rel_path = _rel(context, file_path)
                     err_msg, _ = normalize_violation(marker_violation)
                     transient_llm_failures.append((rel_path, err_msg))
                     continue
@@ -374,7 +378,7 @@ async def execute_rule(
                         _empty_violation_finding(
                             rule,
                             result,
-                            str(file_path.relative_to(context.repo_path)),
+                            _rel(context, file_path),
                         )
                     )
                     continue
@@ -395,7 +399,7 @@ async def execute_rule(
                             check_id=rule.rule_id,
                             severity=severity,
                             message=msg,
-                            file_path=str(file_path.relative_to(context.repo_path)),
+                            file_path=_rel(context, file_path),
                             line_number=line_number,
                             context=details,
                             evidence_class=engine_evidence_class,  # ADR-113
@@ -424,10 +428,7 @@ async def execute_rule(
             )
             findings.append(
                 enforcement_failure_finding(
-                    rule,
-                    file_path,
-                    str(file_path.relative_to(context.repo_path)),
-                    e,
+                    rule, file_path, _rel(context, file_path), e
                 )
             )
             continue

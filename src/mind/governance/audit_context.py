@@ -484,29 +484,30 @@ class AuditorContext:
             # a scope actually retains.
             per_file_scopes = self._active_per_file_rule_scopes()
             prefixes, broad = _scope_fixed_prefixes(per_file_scopes)
-            root_str = str(self.repo_path)
-            prefix_len = len(root_str) + 1
-            self._file_list_cache = []
-            for dirpath, dirnames, filenames in os.walk(root_str):
-                rel_dir = (
-                    dirpath[prefix_len:].replace(os.sep, "/")
-                    if len(dirpath) > len(root_str)
-                    else ""
+            files: list[Path] = []
+            self._walk_into_file_cache(
+                str(self.repo_path), "", per_file_scopes, prefixes, broad, files
+            )
+            # ADR-132 D10 / D2: a services clone is sparse — it carries no
+            # .intent/, the law lives beside it (MIND) and policies already
+            # load from there (intent_repo.root). Walk that root too, naming
+            # its files ".intent/..." exactly as a normal checkout would, so
+            # .intent-scoped per-file rules are not SCOPE_INERT and their
+            # findings keep the subject paths a checkout produces. Skipped
+            # when the law is the checkout's own .intent/ (already walked)
+            # or the clone carries an .intent/ of its own (no double names).
+            law_root = Path(self.intent_repo.root)
+            own_intent = self.repo_path / ".intent"
+            if (
+                law_root.resolve() != own_intent.resolve()
+                and not own_intent.is_dir()
+                and law_root.is_dir()
+                and (broad or _dir_descendable((".intent",), prefixes))
+            ):
+                self._walk_into_file_cache(
+                    str(law_root), ".intent", per_file_scopes, prefixes, broad, files
                 )
-                base_comps = tuple(rel_dir.split("/")) if rel_dir else ()
-                dirnames[:] = [
-                    d
-                    for d in dirnames
-                    if d not in _STRUCTURAL_DIR_PARTS
-                    and (broad or _dir_descendable((*base_comps, d), prefixes))
-                ]
-                for fn in filenames:
-                    rel_posix = f"{rel_dir}/{fn}" if rel_dir else fn
-                    # Retain iff some active per-file rule scopes this path.
-                    if any(_include_matches(rel_posix, sc) for sc in per_file_scopes):
-                        p = Path(dirpath, fn)
-                        self._file_list_cache.append(p)
-                        self._rel_path_map[p] = rel_posix
+            self._file_list_cache = files
 
         # #593 fix: delegate exclude matching to _include_matches so the
         # include and exclude sides agree on `**` zero-directory semantics.
@@ -532,6 +533,66 @@ class AuditorContext:
         result = sorted(matched)
         self._pattern_cache[cache_key] = result
         return result
+
+    def _walk_into_file_cache(
+        self,
+        root_str: str,
+        rel_base: str,
+        per_file_scopes: list[str],
+        prefixes: list[tuple[str, ...]],
+        broad: bool,
+        out: list[Path],
+    ) -> None:
+        """Walk ``root_str`` and retain every file some per-file scope matches.
+
+        ``rel_base`` names ``root_str`` repository-style ("" for the repo
+        itself, ".intent" for a law root kept beside a sparse clone), so the
+        rel paths, pruning and retention are those of a normal checkout.
+        Relative paths come from slicing the root prefix (no per-file
+        Path.relative_to); a Path is built only for retained files.
+        """
+        prefix_len = len(root_str) + 1
+        for dirpath, dirnames, filenames in os.walk(root_str):
+            rel_dir = (
+                dirpath[prefix_len:].replace(os.sep, "/")
+                if len(dirpath) > len(root_str)
+                else ""
+            )
+            if rel_base:
+                rel_dir = f"{rel_base}/{rel_dir}" if rel_dir else rel_base
+            base_comps = tuple(rel_dir.split("/")) if rel_dir else ()
+            dirnames[:] = [
+                d
+                for d in dirnames
+                if d not in _STRUCTURAL_DIR_PARTS
+                and (broad or _dir_descendable((*base_comps, d), prefixes))
+            ]
+            for fn in filenames:
+                rel_posix = f"{rel_dir}/{fn}" if rel_dir else fn
+                # Retain iff some active per-file rule scopes this path.
+                if any(_include_matches(rel_posix, sc) for sc in per_file_scopes):
+                    p = Path(dirpath, fn)
+                    out.append(p)
+                    self._rel_path_map[p] = rel_posix
+
+    # ID: 252bb9d9-d7c1-4e7d-81d6-87bd3330c208
+    def rel_path(self, file_path: Path) -> str:
+        """Repository-style name of a file ``get_files`` returned.
+
+        Use this instead of ``file_path.relative_to(self.repo_path)``: under
+        ADR-132 D2 law files live beside the clone, so ``relative_to`` raises
+        for them, while their findings must still name ``.intent/...``.
+        """
+        rel = self._rel_path_map.get(file_path)
+        if rel is not None:
+            return rel
+        from shared.infrastructure.intent.law_roots import law_relpath
+
+        law_root = Path(self.intent_repo.root)
+        for base in (law_root, law_root.resolve()):
+            if Path(file_path).is_relative_to(base):
+                return Path(".intent", Path(file_path).relative_to(base)).as_posix()
+        return law_relpath(self.repo_path, Path(file_path))
 
     # ID: 182db297-46ce-4b24-9b05-e496f932769c
     def get_tree(self, file_path: Path) -> ast.AST | None:
