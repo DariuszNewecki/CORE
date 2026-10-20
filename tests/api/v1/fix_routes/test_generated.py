@@ -95,3 +95,24 @@ async def test_list_fix_commands():
 
     mock_list.assert_called_once_with(category="fix")
     assert result == {"count": 2, "commands": fake_commands}
+
+
+
+from api.v1.fix_routes import run_fix_ir
+
+
+# ID: 3f12dea3-6274-4ce9-ac98-88accd31e986
+async def test_run_fix_ir():
+    request = MagicMock()
+    request.app.state.core_context = MagicMock()
+    payload = MagicMock()
+    payload.kind = "some_kind"
+
+    with patch(
+        "api.v1.fix_routes.bootstrap_ir",
+        return_value="scaffolds/some_kind.ir.json",
+    ) as mock_bootstrap:
+        result = await run_fix_ir(request, payload)
+
+    mock_bootstrap.assert_called_once_with(request.app.state.core_context, "some_kind")
+    assert result == {"path": "scaffolds/some_kind.ir.json"}
