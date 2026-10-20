@@ -233,9 +233,6 @@ class TestScoutInducerPropose:
         assert isinstance(result, list)
 
 
-
-
-
 # ID: 368c80a6-fd12-4969-9a3f-42e66735b66b
 def test_ScoutInducer_propose() -> None:
     import asyncio
@@ -268,3 +265,42 @@ def test_ScoutInducer_propose() -> None:
     ]
     mock_prompt_model.invoke.assert_awaited_once()
     mock_prompt_model_cls.load.assert_called_once_with("scout_rule_inducer")
+
+
+
+
+
+# ID: 5b1730ba-dda0-4bc1-87bb-2420014d3171
+def test_ScoutInducer():
+    import asyncio
+
+    llm_client = MagicMock()
+    fake_prompt_model = MagicMock()
+
+    # ID: 6fa85fd4-a6a5-48d0-90cf-a5eff0f119d8
+    async def fake_invoke(context, client, user_id):
+        return '{"candidates": [{"rule_id": "R1", "statement": "s"}]}'
+
+    fake_prompt_model.invoke = AsyncMock(side_effect=fake_invoke)
+
+    with (
+        patch(
+            "mind.logic.scout_inducer.PromptModel.load",
+            return_value=fake_prompt_model,
+        ) as mock_load,
+        patch(
+            "mind.logic.scout_inducer.extract_json",
+            return_value={"candidates": [{"rule_id": "R1", "statement": "s"}]},
+        ),
+    ):
+        inducer = ScoutInducer(llm_client)
+        mock_load.assert_called_once_with("scout_rule_inducer")
+
+        result = asyncio.run(inducer.propose("signals"))
+
+    assert result == [{"rule_id": "R1", "statement": "s"}]
+    fake_prompt_model.invoke.assert_awaited_once()
+    call_kwargs = fake_prompt_model.invoke.await_args.kwargs
+    assert call_kwargs["context"] == {"code_signals": "signals"}
+    assert call_kwargs["client"] is llm_client
+    assert call_kwargs["user_id"] == "scout_rule_inducer"
