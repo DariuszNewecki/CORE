@@ -364,3 +364,15 @@ def test_ReportRequest():
     assert custom.format == "html"
     assert custom.show_missing is True
     assert custom.requested_by == "tester"
+
+
+from api.v1.coverage_routes import InteractiveTestsRequest
+
+
+# ID: f689cfb6-ea8a-46bc-ac12-a97cf2edcbfc
+def test_InteractiveTestsRequest():
+    req = InteractiveTestsRequest(target_file="src/api/v1/coverage_routes.py")
+    assert req.target_file == "src/api/v1/coverage_routes.py"
+
+    default_req = InteractiveTestsRequest()
+    assert default_req.target_file is None
