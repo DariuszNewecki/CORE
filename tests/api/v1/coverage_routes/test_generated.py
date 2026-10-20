@@ -199,7 +199,6 @@ def test_coverage_methods():
     assert result == {"legacy": 1, "adaptive": 2}
 
 
-
 from api.v1.coverage_routes import coverage_history
 
 
@@ -219,3 +218,25 @@ def test_coverage_history():
 
     mock_get_history.assert_called_once_with(mock_core_context, limit=30)
     assert result == expected
+
+
+
+from api.v1.coverage_routes import coverage_gaps
+
+
+# ID: 6e061366-46f2-4a20-a464-314c2db61290
+async def test_coverage_gaps():
+    fake_context = MagicMock(name="core_context")
+    request = MagicMock(name="request")
+    request.app.state.core_context = fake_context
+
+    expected = {"gaps": [{"module": "a.b", "coverage": 42.0}]}
+
+    with patch(
+        "api.v1.coverage_routes.get_coverage_gaps",
+        new=AsyncMock(return_value=expected),
+    ) as mock_gaps:
+        result = await coverage_gaps(request, threshold=80.0, limit=10)
+
+    assert result == expected
+    mock_gaps.assert_awaited_once_with(fake_context, threshold=80.0, limit=10)
