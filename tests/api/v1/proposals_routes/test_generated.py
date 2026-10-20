@@ -352,3 +352,17 @@ def test_ExecuteRequest():
 
     req_explicit = ExecuteRequest(write=True)
     assert req_explicit.write is True
+
+
+from api.v1.proposals_routes import RejectRequest
+
+
+# ID: 6fdb71d0-062d-429b-9809-caf1fc113b05
+def test_RejectRequest():
+    reason_text = "Budget exceeds approved limits."
+    request = RejectRequest(reason=reason_text)
+
+    assert request.reason == reason_text
+    assert isinstance(request.reason, str)
+    dumped = request.model_dump()
+    assert dumped == {"reason": reason_text}
