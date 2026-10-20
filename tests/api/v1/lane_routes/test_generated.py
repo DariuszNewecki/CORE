@@ -123,3 +123,20 @@ def test_list_delegated_findings():
 
     mock_service.list_delegated_findings.assert_awaited_once_with(limit=10)
     assert result == {"count": 2, "findings": findings}
+
+
+from api.v1.lane_routes import ProposeRequest
+
+
+# ID: c08a260a-34c3-4cb2-9d34-e705c4b0dcb9
+def test_ProposeRequest():
+    model = ProposeRequest(
+        patch="--- a/foo.py\n+++ b/foo.py\n@@ -1 +1 @@\n-old\n+new\n",
+        validation_run_id="run-123",
+    )
+    assert model.patch == "--- a/foo.py\n+++ b/foo.py\n@@ -1 +1 @@\n-old\n+new\n"
+    assert model.validation_run_id == "run-123"
+    assert model.model_dump() == {
+        "patch": "--- a/foo.py\n+++ b/foo.py\n@@ -1 +1 @@\n-old\n+new\n",
+        "validation_run_id": "run-123",
+    }
