@@ -366,3 +366,15 @@ def test_RejectRequest():
     assert isinstance(request.reason, str)
     dumped = request.model_dump()
     assert dumped == {"reason": reason_text}
+
+
+from api.v1.proposals_routes import ApproveRequest
+
+
+# ID: 91ba180c-6259-4868-9f52-3b1ff1b4ce33
+def test_ApproveRequest():
+    req = ApproveRequest()
+    assert req.approval_authority is None
+
+    req2 = ApproveRequest(approval_authority="human:alice")
+    assert req2.approval_authority == "human:alice"
