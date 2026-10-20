@@ -134,3 +134,25 @@ async def test_refactor_stats():
 
     assert result == expected_stats
     mock_get_stats.assert_called_once_with("/fake/repo/root")
+
+
+
+from api.v1.refactor_routes import refactor_candidates
+
+
+# ID: 97896c96-cb0c-4504-8d94-f34f04096fc8
+async def test_refactor_candidates():
+    request = MagicMock()
+    request.app.state.core_context = MagicMock()
+    request.app.state.core_context.git_service.repo_path = "/fake/repo"
+
+    expected = {"candidates": [{"file": "a.py", "score": 120}]}
+
+    with patch(
+        "api.v1.refactor_routes.get_refactor_candidates",
+        return_value=expected,
+    ) as mock_get:
+        result = await refactor_candidates(request, min_score=50.0, limit=10)
+
+    assert result == expected
+    mock_get.assert_called_once_with("/fake/repo", min_score=50.0, limit=10)
