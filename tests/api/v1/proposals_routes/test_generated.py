@@ -76,7 +76,6 @@ async def test_reject_proposal():
     assert result["status"] == "rejected"
 
 
-
 from api.v1.proposals_routes import approve_proposal
 
 
@@ -115,3 +114,30 @@ async def test_approve_proposal():
         "approved_by_original": "os-account-123",
         "approval_authority": "governor",
     }
+
+
+import pytest
+
+from api.v1.proposals_routes import get_proposal
+
+
+@pytest.mark.asyncio
+# ID: 8c91b5f4-5fd3-49f7-9e8a-1410e4c7c15f
+async def test_get_proposal():
+    session = MagicMock()
+
+    proposal = MagicMock()
+    proposal.to_dict.return_value = {"id": "prop-1", "name": "test"}
+
+    service = MagicMock()
+    service.get = AsyncMock(return_value=proposal)
+
+    with patch(
+        "api.v1.proposals_routes.ProposalService", return_value=service
+    ) as mock_service_cls:
+        result = await get_proposal("prop-1", session=session)
+
+    mock_service_cls.assert_called_once_with(session)
+    service.get.assert_awaited_once_with("prop-1")
+    proposal.to_dict.assert_called_once_with()
+    assert result == {"id": "prop-1", "name": "test"}
