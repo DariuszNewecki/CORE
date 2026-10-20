@@ -86,7 +86,6 @@ async def test_get_delegated_finding():
     mock_instance.get_finding_bundle.assert_awaited_once_with("abc-123")
 
 
-
 import pytest
 
 
@@ -105,3 +104,22 @@ async def test_next_delegated_finding():
 
     assert result == expected
     mock_service.next_delegated_finding.assert_awaited_once()
+
+
+import asyncio
+
+from api.v1.lane_routes import list_delegated_findings
+
+
+# ID: 6eb1461d-b637-48c9-8910-d9eaf240ff2e
+def test_list_delegated_findings():
+    findings = [{"id": "f1"}, {"id": "f2"}]
+
+    mock_service = MagicMock()
+    mock_service.list_delegated_findings = AsyncMock(return_value=findings)
+
+    with patch("api.v1.lane_routes.LaneService", return_value=mock_service):
+        result = asyncio.run(list_delegated_findings(limit=10))
+
+    mock_service.list_delegated_findings.assert_awaited_once_with(limit=10)
+    assert result == {"count": 2, "findings": findings}
