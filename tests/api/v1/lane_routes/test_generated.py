@@ -30,7 +30,6 @@ async def test_claim_delegated_finding():
         }
 
 
-
 from api.v1.lane_routes import propose_diff
 
 
@@ -62,3 +61,26 @@ async def test_propose_diff():
         "approval_required": True,
         "scope_files": ["src/x.py", "tests/test_x.py"],
     }
+
+
+from unittest.mock import MagicMock
+
+import pytest
+
+from api.v1.lane_routes import get_delegated_finding
+
+
+@pytest.mark.asyncio
+# ID: f656f723-6fca-4c68-81a1-09231ec71c47
+async def test_get_delegated_finding():
+    expected = {"id": "abc-123", "bundle": {"foo": "bar"}}
+
+    with patch("api.v1.lane_routes.LaneService") as mock_lane_service_cls:
+        mock_instance = MagicMock()
+        mock_instance.get_finding_bundle = AsyncMock(return_value=expected)
+        mock_lane_service_cls.return_value = mock_instance
+
+        result = await get_delegated_finding(finding_id="abc-123")
+
+    assert result == expected
+    mock_instance.get_finding_bundle.assert_awaited_once_with("abc-123")
