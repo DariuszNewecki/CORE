@@ -79,6 +79,16 @@ from ._operations import (
 logger = getLogger(__name__)
 
 
+def _pending_source(core_context: Any) -> Any:
+    """The delivery branch's reader of a waiting test file, or None."""
+    git_service = getattr(core_context, "git_service", None)
+    if git_service is None:
+        return None
+    from body.infrastructure.delivery_branch import DeliveryBranch
+
+    return DeliveryBranch(git_service).pending_source
+
+
 # ID: e9f2a4b6-c1d8-4e3f-9a5b-7c8d1e2f3a4b
 class TestRemediatorWorker(Worker):
     """
@@ -173,7 +183,11 @@ class TestRemediatorWorker(Worker):
             by_source.setdefault(source_file, []).append(finding)
 
         active_symbol_proposals = await _get_active_symbol_proposals()
-        evaluator = TestGapEvaluator(repo_root=repo_root)
+        # Tests waiting on CORE's delivery branch count as coverage: they
+        # are not on HEAD until their pull request merges.
+        evaluator = TestGapEvaluator(
+            repo_root=repo_root, pending_source=_pending_source(self._core_context)
+        )
 
         proposals_created: list[str] = []
         source_files_skipped: list[str] = []

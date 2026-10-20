@@ -291,3 +291,33 @@ def test_the_clone_follows_main_by_default() -> None:
 
     assert UPSTREAM_BRANCH == "main"
     assert Settings().CORE_UPSTREAM_BRANCH == "main"
+
+
+# ID: 1f6d3b82-7c4a-4e19-9a5d-2b8e0f6c3a74
+def test_untracked_copy_of_an_arriving_file_does_not_block_the_ff(
+    pair: tuple[Path, Path],
+) -> None:
+    """A generated test left on disk that later arrives through its merged
+    pull request, byte for byte, must not stop the fast-forward."""
+    up, clone = pair
+    body = "def test_a():\n    assert True\n"
+    (clone / "tests").mkdir()
+    (clone / "tests/test_a.py").write_text(body)
+    new = _commit(up, {"tests/test_a.py": body}, "merged pull request")
+    assert _sync(clone, str(up)).sync().state == "fast_forwarded"
+    assert _head(clone) == new
+    assert (clone / "tests/test_a.py").read_text() == body
+
+
+# ID: 6b2e9d14-3a7f-4c58-8e1b-9d4f0a2c7e63
+def test_untracked_file_that_differs_still_blocks_the_ff(
+    pair: tuple[Path, Path],
+) -> None:
+    up, clone = pair
+    (clone / "tests").mkdir()
+    (clone / "tests/test_a.py").write_text("local edit\n")
+    _commit(up, {"tests/test_a.py": "upstream\n"}, "merged pull request")
+    head = _head(clone)
+    assert _sync(clone, str(up)).sync().state == "failed"
+    assert _head(clone) == head
+    assert (clone / "tests/test_a.py").read_text() == "local edit\n"

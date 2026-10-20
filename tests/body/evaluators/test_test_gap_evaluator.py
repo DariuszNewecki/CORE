@@ -377,3 +377,28 @@ async def test_bare_method_test_does_not_cover_ambiguous_method(repo_root, evalu
     )
     gaps = {g["name"] for g in result.data["gaps"]}
     assert {"A.verify", "B.verify"} <= gaps
+
+
+# ID: 2e8f4a16-9c3b-4d75-a1e6-5b0d7c9f3a82
+@pytest.mark.asyncio
+async def test_tests_waiting_for_delivery_count_as_covered(repo_root):
+    """A test on CORE's delivery branch is not on HEAD until its pull request
+    merges; it must not be generated again meanwhile."""
+    src = repo_root / "src" / "mypkg" / "service.py"
+    src.write_text("def alpha(): pass\ndef beta(): pass\n")
+    asked: list[str] = []
+
+    def pending(test_file: str) -> str:
+        asked.append(test_file)
+        return "def test_alpha(): assert True\n"
+
+    evaluator = TestGapEvaluator(repo_root=repo_root, pending_source=pending)
+    with patch(
+        "body.evaluators.test_gap_evaluator.source_to_test_path",
+        return_value="tests/mypkg/service/test_generated.py",
+    ):
+        result = await evaluator.execute(source_file="src/mypkg/service.py")
+
+    assert asked == ["tests/mypkg/service/test_generated.py"]
+    assert [g["name"] for g in result.data["gaps"]] == ["beta"]
+    assert result.data["covered_count"] == 1

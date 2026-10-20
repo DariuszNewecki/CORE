@@ -14,6 +14,7 @@ remediation into per-symbol proposals.
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,7 @@ from shared.utils.public_symbols import (
     leaf_name_counts,
     name_key,
     symbol_is_tested,
+    tested_names_in_source,
     tested_symbol_names,
 )
 
@@ -66,9 +68,18 @@ class TestGapEvaluator(BaseEvaluator):
     proposals (ADR-133 D1/D2/D4).
     """
 
-    def __init__(self, repo_root: Path, context: Any = None) -> None:
+    def __init__(
+        self,
+        repo_root: Path,
+        context: Any = None,
+        pending_source: Callable[[str], str | None] | None = None,
+    ) -> None:
+        """``pending_source(test_file)``: the test file's version still
+        waiting for delivery (body.infrastructure.delivery_branch), whose
+        tests count as coverage — else each would be generated again."""
         super().__init__(context)
         self._repo_root = repo_root
+        self._pending_source = pending_source
 
     @property
     # ID: b4a2dadf-88fa-431c-98d5-9f90fc6e33f8
@@ -137,6 +148,7 @@ class TestGapEvaluator(BaseEvaluator):
                     test_file,
                 )
 
+        tested_names |= self._pending_names(test_file)
         tested_keys = {name_key(name) for name in tested_names}
         leaf_counts = leaf_name_counts([sym.name for sym in symbols])
         gaps: list[SymbolGap] = []
@@ -174,6 +186,19 @@ class TestGapEvaluator(BaseEvaluator):
                 f"out of {len(symbols)} public symbols in {source_file}"
             ),
         )
+
+    def _pending_names(self, test_file: str) -> set[str]:
+        """Names the delivery branch's version of test_file covers (fail open)."""
+        if self._pending_source is None:
+            return set()
+        try:
+            source = self._pending_source(test_file)
+            return tested_names_in_source(source, test_file) if source else set()
+        except Exception as exc:
+            logger.warning(
+                "TestGapEvaluator: pending tests for %s unreadable: %s", test_file, exc
+            )
+            return set()
 
 
 # ID: a6b5bc75-c1b5-4cc2-b2b5-ceed9349d070

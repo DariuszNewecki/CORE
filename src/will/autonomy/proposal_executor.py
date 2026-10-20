@@ -22,11 +22,13 @@ from body.atomic.sandbox_lifecycle import SandboxLifecycle
 from body.flows.executor import FlowExecutor
 from body.flows.registry import StepKind, flow_registry
 from body.flows.result import declared_production
+from body.infrastructure.delivery_branch import DeliveryBranch, delivers
 from body.infrastructure.repo_sync import RepoBusy, async_repo_lock
 from body.services.service_registry import service_registry
 from mind.governance.violation_report import extract_error_data
 from shared.exceptions import GovernanceInstrumentError
 from shared.governance_token import approval_scope
+from shared.infrastructure.git_service import producer_identity
 from shared.infrastructure.intent.vocabulary_projection import (
     VocabularyProjectionError,
     load_vocabulary_projection,
@@ -200,6 +202,8 @@ class ProposalExecutor:
             lifecycle_status = "dry_run"
 
             sorted_actions = sorted(proposal.actions, key=lambda a: a.order)
+            # Generated tests commit to CORE's delivery branch, never to HEAD.
+            delivery = _delivery_for(self.core_context, sorted_actions, write)
 
             logger.info("Executing %d actions...", len(sorted_actions))
 
@@ -234,12 +238,12 @@ class ProposalExecutor:
                         # proposals previously skipped the sandbox single actions
                         # have had since ADR-071 D2.2.
                         sandbox = SandboxLifecycle(self.core_context)
+                        base = delivery.base() if delivery else pre_execution_sha
                         scoped_context, scoped_git = (
-                            sandbox.build_flow_execution_context(
-                                ref_id, write, pre_execution_sha
-                            )
+                            sandbox.build_flow_execution_context(ref_id, write, base)
                         )
                         try:
+                            _require_sandbox(delivery, scoped_git, ref_id)
                             cognitive_delegate = _build_cognitive_delegate(
                                 ref_id, scoped_context
                             )
@@ -261,8 +265,13 @@ class ProposalExecutor:
                                 # only_paths stays None and propagate falls back
                                 # to the full diff (D4, un-migrated flows).
                                 declared = declared_production(result)
-                                flow_target_paths = sandbox.propagate_changes(
-                                    scoped_git, only_paths=declared
+                                flow_target_paths = _land_flow(
+                                    sandbox,
+                                    scoped_git,
+                                    declared,
+                                    delivery,
+                                    base,
+                                    proposal,
                                 )
                         finally:
                             if scoped_git is not None:
@@ -356,16 +365,11 @@ class ProposalExecutor:
                     # mark_failed + rollback — never a completed row with no
                     # git record. Only a real commit or a legitimately-empty
                     # production set proceeds toward completion.
-                    commit_outcome = commit_proposal_changes(
-                        git_service=self.core_context.git_service,
-                        proposal_id=proposal.proposal_id,
-                        proposal_goal=proposal.goal,
-                        action_results=action_results,
-                        producer=(
-                            proposal.provenance.producer
-                            if proposal.provenance is not None
-                            else None
-                        ),
+                    commit_outcome = _commit_or_deliver(
+                        self.core_context.git_service,
+                        proposal,
+                        action_results,
+                        delivery,
                     )
 
                     if commit_outcome in (
@@ -419,10 +423,11 @@ class ProposalExecutor:
 
                         # -- Consequence recording --
                         # Delegated to ConsequenceLogService (Body layer).
-                        post_execution_sha = capture_git_sha(
+                        pre_execution_sha, post_execution_sha = _recorded_shas(
                             self.core_context.git_service,
-                            phase="post",
-                            proposal_id=proposal.proposal_id,
+                            proposal.proposal_id,
+                            pre_execution_sha,
+                            delivery,
                         )
 
                         changed_files = await compute_changed_files(
@@ -546,6 +551,79 @@ class ProposalExecutor:
                 "failure_reason": failure_reason,
                 "duration_sec": total_duration,
             }
+
+
+def _delivery_for(core_context: Any, actions: list[Any], write: bool) -> Any:
+    """The delivery branch when every action is a delivered flow, else None.
+
+    A commit on the clone's HEAD diverges it from upstream at the next merge
+    into main (2026-10-20); body.infrastructure.delivery_branch.
+    """
+    if write and delivers(a.ref_id for a in actions):
+        return DeliveryBranch(core_context.git_service)
+    return None
+
+
+def _require_sandbox(delivery: Any, scoped_git: Any, flow_id: str) -> None:
+    """A delivered flow must run in a sandbox: it never touches the main tree."""
+    if delivery is not None and scoped_git is None:
+        raise RuntimeError(
+            f"{flow_id} commits to the delivery branch but did not sandbox"
+        )
+
+
+def _land_flow(
+    sandbox: Any,
+    scoped_git: Any,
+    declared: set[str] | None,
+    delivery: Any,
+    base: Any,
+    proposal: Any,
+) -> set[str] | None:
+    """Propagate a flow's production to the main tree, or (delivered flow)
+    commit it from the sandbox onto the delivery branch. Returns the
+    propagated paths (None for a delivered flow: nothing reached the tree)."""
+    if delivery is None:
+        return sandbox.propagate_changes(scoped_git, only_paths=declared)
+    producer = proposal.provenance.producer if proposal.provenance else None
+    delivery.commit_from(
+        scoped_git,
+        base,
+        declared,
+        f"test({proposal.proposal_id[:16]}): {proposal.goal}",
+        author=producer_identity(producer) if producer else None,
+    )
+    return None
+
+
+def _commit_or_deliver(
+    git_service: Any, proposal: Any, action_results: dict[str, Any], delivery: Any
+) -> CommitOutcome:
+    """Commit the production set on HEAD — or, for a delivered proposal,
+    report what its flows already committed to the delivery branch."""
+    if delivery is not None:
+        if delivery.delivered:
+            return CommitOutcome.COMMITTED
+        return CommitOutcome.NOTHING_TO_COMMIT
+    return commit_proposal_changes(
+        git_service=git_service,
+        proposal_id=proposal.proposal_id,
+        proposal_goal=proposal.goal,
+        action_results=action_results,
+        producer=(
+            proposal.provenance.producer if proposal.provenance is not None else None
+        ),
+    )
+
+
+def _recorded_shas(
+    git_service: Any, proposal_id: str, pre_sha: str | None, delivery: Any
+) -> tuple[str | None, str | None]:
+    """(pre, post) for the consequence record: HEAD before and after, or a
+    delivered commit itself — its parent on the delivery branch to it."""
+    if delivery is not None and delivery.delivered:
+        return delivery.delivered[0].parent, delivery.delivered[-1].sha
+    return pre_sha, capture_git_sha(git_service, phase="post", proposal_id=proposal_id)
 
 
 def _build_cognitive_delegate(
