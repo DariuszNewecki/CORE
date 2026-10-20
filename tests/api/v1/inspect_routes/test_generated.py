@@ -197,7 +197,6 @@ async def test_analysis_bridges():
         assert result == {"bridges": ["a", "b"]}
 
 
-
 import pytest
 
 from api.v1.inspect_routes import refusals_stats
@@ -215,3 +214,30 @@ async def test_refusals_stats():
 
     assert result == fake_stats
     mock_get_stats.assert_awaited_once_with(days=7)
+
+
+
+import pytest
+
+from api.v1.inspect_routes import refusals_list
+
+
+@pytest.mark.asyncio
+# ID: 53acc890-63d0-46ef-9ac3-4aa5120592d6
+async def test_refusals_list():
+    expected = {"refusals": [{"id": "r1", "type": "scope"}]}
+    mock_get_refusals = AsyncMock(return_value=expected)
+
+    with patch("api.v1.inspect_routes.get_refusals", mock_get_refusals):
+        result = await refusals_list(
+            refusal_type="scope",
+            session_id="sess-123",
+            limit=10,
+        )
+
+    assert result == expected
+    mock_get_refusals.assert_awaited_once_with(
+        refusal_type="scope",
+        session_id="sess-123",
+        limit=10,
+    )
