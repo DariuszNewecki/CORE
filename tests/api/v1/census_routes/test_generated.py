@@ -23,3 +23,25 @@ async def test_census_diff():
             mock_core_context, baseline="some_baseline"
         )
         assert result == expected_result
+
+
+import asyncio
+
+from api.v1.census_routes import list_census_baselines
+
+
+# ID: 58aa8ffb-06c3-4b31-93c7-7ebe809b19d9
+def test_list_census_baselines():
+    core_context = MagicMock()
+    request = MagicMock()
+    request.app.state.core_context = core_context
+
+    expected = [{"id": "b2"}, {"id": "b1"}]
+
+    with patch(
+        "api.v1.census_routes.list_baselines", return_value=expected
+    ) as mock_list:
+        result = asyncio.run(list_census_baselines(request))
+
+    mock_list.assert_called_once_with(core_context)
+    assert result == expected
