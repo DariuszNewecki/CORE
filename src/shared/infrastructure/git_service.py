@@ -262,6 +262,48 @@ class GitService:
         except RuntimeError:
             return False
 
+    # ID: a6624660-9944-40ae-8c02-265c51dfe73f
+    def committed_bytes(self, rel_path: str, rev: str = "HEAD") -> bytes | None:
+        """The exact bytes of ``rel_path`` at ``rev``; None when ``rev`` has no
+        such file. Raises RuntimeError when git cannot answer (no repository,
+        unknown revision, timeout, git missing)."""
+        try:
+            listed = subprocess.run(
+                [
+                    "git",
+                    *SAFE_GIT_OPTIONS,
+                    "ls-tree",
+                    "--name-only",
+                    rev,
+                    "--",
+                    rel_path,
+                ],
+                cwd=self.repo_path,
+                capture_output=True,
+                check=False,
+                timeout=30,
+            )
+            if listed.returncode != 0:
+                raise RuntimeError(
+                    f"Git command failed: {listed.stderr.decode(errors='replace')}"
+                )
+            if not listed.stdout.strip():
+                return None
+            shown = subprocess.run(
+                ["git", *SAFE_GIT_OPTIONS, "show", f"{rev}:{rel_path}"],
+                cwd=self.repo_path,
+                capture_output=True,
+                check=False,
+                timeout=30,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise RuntimeError(f"Git command failed: {exc}") from exc
+        if shown.returncode != 0:
+            raise RuntimeError(
+                f"Git command failed: {shown.stderr.decode(errors='replace')}"
+            )
+        return shown.stdout
+
     # ID: 715fe14e-e905-4032-9721-35bc67639ed7
     def status_porcelain(self) -> str:
         """Return the porcelain status output with all untracked files listed
