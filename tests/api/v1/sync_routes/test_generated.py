@@ -94,7 +94,6 @@ async def test_get_sync_run():
     }
 
 
-
 import pytest
 
 from api.v1.sync_routes import sync_code_vectors
@@ -131,3 +130,42 @@ async def test_sync_code_vectors():
         session=session,
     )
     assert result == expected
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 174a4fc6-3ef3-4b20-bb09-125a3f0946bf
+async def test_sync_vectors():
+    from api.v1.sync_routes import sync_vectors
+
+    request = MagicMock()
+    response = MagicMock()
+    background_tasks = MagicMock()
+    payload = MagicMock()
+    session = MagicMock()
+
+    expected = {"status": "dispatched", "sync_type": "vectors"}
+
+    with patch(
+        "api.v1.sync_routes._dispatch_sync", new=AsyncMock(return_value=expected)
+    ) as mock_dispatch:
+        result = await sync_vectors(
+            request=request,
+            response=response,
+            background_tasks=background_tasks,
+            payload=payload,
+            session=session,
+        )
+
+    assert result == expected
+    mock_dispatch.assert_awaited_once_with(
+        sync_type="vectors",
+        request=request,
+        response=response,
+        background_tasks=background_tasks,
+        payload=payload,
+        session=session,
+    )
