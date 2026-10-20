@@ -136,7 +136,6 @@ async def test_refactor_stats():
     mock_get_stats.assert_called_once_with("/fake/repo/root")
 
 
-
 from api.v1.refactor_routes import refactor_candidates
 
 
@@ -156,3 +155,26 @@ async def test_refactor_candidates():
 
     assert result == expected
     mock_get.assert_called_once_with("/fake/repo", min_score=50.0, limit=10)
+
+
+import pytest
+
+from api.v1.refactor_routes import refactor_score
+
+
+@pytest.mark.asyncio
+# ID: 5b177166-b7a0-4870-a8bb-3eb62b0ac600
+async def test_refactor_score():
+    request = MagicMock()
+    request.app.state.core_context.git_service.repo_path = "/repo"
+
+    expected_payload = {"found": True, "score": 0.87, "details": {"modules": 3}}
+
+    with patch(
+        "api.v1.refactor_routes.get_refactor_score",
+        return_value=expected_payload,
+    ) as mock_get:
+        result = await refactor_score(request, file="src/foo.py")
+
+    mock_get.assert_called_once_with("/repo", "src/foo.py")
+    assert result == expected_payload
