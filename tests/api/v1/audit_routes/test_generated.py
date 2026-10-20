@@ -106,3 +106,30 @@ async def test_get_remediation_run():
         "result": {"ok": True},
         "error": None,
     }
+
+
+import uuid
+
+from api.v1.audit_routes import CreateRemediationRequest
+
+
+# ID: bb9ba714-e90c-41bb-b8df-b1c1d6de2e5e
+def test_CreateRemediationRequest():
+    audit_run_id = uuid.uuid4()
+    request = CreateRemediationRequest(audit_run_id=audit_run_id)
+
+    assert request.audit_run_id == audit_run_id
+    assert request.mode == "safe"
+    assert request.write is False
+    assert request.requested_by == "api"
+
+    custom = CreateRemediationRequest(
+        audit_run_id=audit_run_id,
+        mode="all",
+        write=True,
+        requested_by="tester",
+    )
+    assert custom.audit_run_id == audit_run_id
+    assert custom.mode == "all"
+    assert custom.write is True
+    assert custom.requested_by == "tester"
