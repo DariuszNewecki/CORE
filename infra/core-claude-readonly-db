@@ -11,7 +11,8 @@
 #
 # What it changes (safe to run again; a rerun sets a new password):
 #  1. in the database the services use (read from /opt/core/etc/secrets.env, values never
-#     printed): the role core_claude_ro — login, no superuser, no create rights, every
+#     printed), as the container's admin user (the service user may not create roles):
+#     the role core_claude_ro — login, no superuser, no create rights, every
 #     transaction read-only — with CONNECT on the database, USAGE on schema core and SELECT
 #     on its tables, now and future ones;
 #  2. /home/core-claude/.config/core/readonly.env (core-claude 0600): DATABASE_URL for that role.
@@ -51,10 +52,17 @@ if [[ $DRY -eq 1 ]]; then
   exit 0
 fi
 
+# The service user may not create roles; the container's superuser
+# (POSTGRES_USER of the postgres image, "postgres" when unset) can, over the
+# container's local socket.
+admin="$(docker exec "$CONTAINER" printenv POSTGRES_USER 2>/dev/null || true)"
+admin="${admin:-postgres}"
+say "creating the role as the container's admin user $admin"
+
 pw="$(openssl rand -hex 24)"
 
 # SQL goes in on stdin so the password never appears in a process list.
-docker exec -i "$CONTAINER" psql -q -v ON_ERROR_STOP=1 -U "$db_user" -d "$db_name" <<SQL
+docker exec -i "$CONTAINER" psql -q -v ON_ERROR_STOP=1 -U "$admin" -d "$db_name" <<SQL
 DO \$\$ BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$ROLE') THEN
     CREATE ROLE $ROLE LOGIN;
