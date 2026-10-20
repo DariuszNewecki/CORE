@@ -15,7 +15,8 @@
 #     the role core_claude_ro — login, no superuser, no create rights, every
 #     transaction read-only — with CONNECT on the database, USAGE on schema core and SELECT
 #     on its tables, now and future ones;
-#  2. /home/core-claude/.config/core/readonly.env (core-claude 0600): DATABASE_URL for that role.
+#  2. /home/core-claude/.config/core/readonly.env (core-claude 0600): DATABASE_URL for that role
+#     and QDRANT_URL; read by `core-admin --readonly`.
 #
 # Undo: in the database, DROP OWNED BY core_claude_ro; DROP ROLE core_claude_ro;
 # then delete /home/core-claude/.config/core/readonly.env.
@@ -37,6 +38,9 @@ id core-claude >/dev/null 2>&1 || { say "account core-claude not found"; exit 1;
 
 url="$(grep -E '^DATABASE_URL=' "$SECRETS" | head -1 | cut -d= -f2- | tr -d '"')"
 [[ -n "$url" ]] || { say "no DATABASE_URL in $SECRETS"; exit 1; }
+# core-admin --readonly takes the vector store's URL from the same file: core-claude cannot read .env.
+qdrant_url="$(grep -E '^QDRANT_URL=' "$SECRETS" | head -1 | cut -d= -f2- | tr -d '"' || true)"
+qdrant_url="${qdrant_url:-http://127.0.0.1:6333}"
 read -r db_user db_name db_host db_port < <(python3 -c '
 import sys, urllib.parse as u
 p = u.urlsplit(sys.argv[1])
@@ -81,6 +85,7 @@ install -d -o core-claude -g core-claude -m 0700 "$OUT_DIR"
 umask 077
 printf 'DATABASE_URL=postgresql+asyncpg://%s:%s@%s:%s/%s\n' \
   "$ROLE" "$pw" "$db_host" "$db_port" "$db_name" > "$OUT"
+printf 'QDRANT_URL=%s\n' "$qdrant_url" >> "$OUT"
 chown core-claude:core-claude "$OUT"
 chmod 0600 "$OUT"
 say "  ok: wrote $OUT"

@@ -335,6 +335,9 @@ class Settings(BaseSettings):
     DATABASE_POOL_MAX_OVERFLOW: int = Field(
         20, validation_alias="DATABASE_POOL_MAX_OVERFLOW"
     )
+    # Every database transaction opens read-only (`core-admin --readonly`):
+    # the server refuses a write whatever the login's own grants allow.
+    DATABASE_READ_ONLY: bool = Field(False, validation_alias="CORE_DATABASE_READ_ONLY")
 
     # --- Isolated Consequence-Chain Demo (ADR-155 D3) ---
     # Root for disposable demo run state (run-identity marker, isolation
