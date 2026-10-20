@@ -188,3 +188,17 @@ def test_CreateBaselineRequest():
     # Happy path: explicit snapshot_file provided
     req_with_file = CreateBaselineRequest(snapshot_file="snapshots/2024-01-01.json")
     assert req_with_file.snapshot_file == "snapshots/2024-01-01.json"
+
+
+from api.v1.census_routes import CreateCensusRunRequest
+
+
+# ID: d4039f31-cd10-498d-8af4-5a9dd60d8389
+def test_CreateCensusRunRequest():
+    req = CreateCensusRunRequest(snapshot=True, requested_by="alice")
+    assert req.snapshot is True
+    assert req.requested_by == "alice"
+
+    default_req = CreateCensusRunRequest()
+    assert default_req.snapshot is False
+    assert default_req.requested_by == "api"
