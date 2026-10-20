@@ -28,3 +28,384 @@ async def test_interactive_tests():
     mock_run_tests.assert_awaited_once_with(
         mock_core_context, target_file=mock_payload.target_file
     )
+
+
+from datetime import UTC, datetime
+from uuid import uuid4
+
+from api.v1.coverage_routes import get_coverage_run
+
+
+# ID: 7921520f-5cec-47ee-98e8-e785132c8992
+async def test_get_coverage_run() -> None:
+    run_id = uuid4()
+    requested_at = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+    started_at = datetime(2024, 1, 1, 12, 1, 0, tzinfo=UTC)
+    finished_at = datetime(2024, 1, 1, 12, 2, 0, tzinfo=UTC)
+
+    row = {
+        "id": run_id,
+        "target_file": "src/foo.py",
+        "batch_priority": 3,
+        "write": True,
+        "status": "completed",
+        "requested_by": "alice",
+        "requested_at": requested_at,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "result": {"ok": True},
+        "error": None,
+    }
+
+    mappings = MagicMock()
+    mappings.first = MagicMock(return_value=row)
+    result = MagicMock()
+    result.mappings = MagicMock(return_value=mappings)
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=result)
+
+    response = await get_coverage_run(run_id=run_id, session=session)
+
+    session.execute.assert_awaited_once()
+    assert response == {
+        "run_id": str(run_id),
+        "target_file": "src/foo.py",
+        "batch_priority": 3,
+        "write": True,
+        "status": "completed",
+        "requested_by": "alice",
+        "requested_at": requested_at.isoformat(),
+        "started_at": started_at.isoformat(),
+        "finished_at": finished_at.isoformat(),
+        "result": {"ok": True},
+        "error": None,
+    }
+
+
+from uuid import UUID
+
+import pytest
+
+from api.v1.coverage_routes import generate_coverage_batch
+
+
+@pytest.mark.asyncio
+# ID: 70e99170-a2a4-4ac3-a960-9ff6a78ddf4d
+async def test_generate_coverage_batch():
+    from api.v1.coverage_routes import GenerateBatchRequest
+
+    payload = GenerateBatchRequest(priority="high", write=True, requested_by="tester")
+
+    request = MagicMock()
+    request.app.state.core_context = MagicMock()
+
+    response = MagicMock()
+    background_tasks = MagicMock()
+
+    run_id = UUID("0d4e6f2a-3b5c-4d7e-8f9a-0b1c2d3e4f5c")
+    mock_result = MagicMock()
+    mock_result.scalar_one.return_value = run_id
+
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=mock_result)
+    session.commit = AsyncMock()
+
+    result = await generate_coverage_batch(
+        request=request,
+        response=response,
+        background_tasks=background_tasks,
+        payload=payload,
+        session=session,
+    )
+
+    assert result == {
+        "run_id": str(run_id),
+        "status": "pending",
+        "href": f"/v1/coverage/runs/{run_id}",
+    }
+    session.execute.assert_awaited_once()
+    session.commit.assert_awaited_once()
+    background_tasks.add_task.assert_called_once()
+
+
+import pytest
+from fastapi import BackgroundTasks, Response
+
+from api.v1.coverage_routes import generate_coverage
+
+
+@pytest.mark.asyncio
+# ID: 96238e4b-be43-44f1-a315-786a0c2c676e
+async def test_generate_coverage():
+    run_id = uuid4()
+
+    payload = MagicMock()
+    payload.write = True
+    payload.target_file = "src/foo.py"
+    payload.requested_by = "tester"
+
+    request = MagicMock(spec=Request)
+    request.app = MagicMock()
+    request.app.state = MagicMock()
+    request.app.state.core_context = MagicMock()
+
+    response = MagicMock(spec=Response)
+
+    background_tasks = MagicMock(spec=BackgroundTasks)
+
+    session = MagicMock()
+    session.execute = AsyncMock()
+    session.commit = AsyncMock()
+
+    exec_result = MagicMock()
+    exec_result.scalar_one = MagicMock(return_value=run_id)
+    session.execute.return_value = exec_result
+
+    result = await generate_coverage(
+        request=request,
+        response=response,
+        background_tasks=background_tasks,
+        payload=payload,
+        session=session,
+    )
+
+    assert result == {
+        "run_id": str(run_id),
+        "status": "pending",
+        "href": f"/v1/coverage/runs/{run_id}",
+    }
+    session.execute.assert_awaited_once()
+    session.commit.assert_awaited_once()
+    background_tasks.add_task.assert_called_once()
+
+
+from api.v1.coverage_routes import coverage_methods
+
+
+# ID: ca60da5b-c0fc-4e9e-99cf-24a876a0246f
+def test_coverage_methods():
+    with patch(
+        "api.v1.coverage_routes.get_coverage_methods",
+        return_value={"legacy": 1, "adaptive": 2},
+    ) as mock_get:
+        request = MagicMock()
+        core_context = MagicMock()
+        request.app.state.core_context = core_context
+
+        result = coverage_methods(request)
+
+    mock_get.assert_called_once_with(core_context)
+    assert result == {"legacy": 1, "adaptive": 2}
+
+
+from api.v1.coverage_routes import coverage_history
+
+
+# ID: 26d69c5b-dbb3-481f-80d5-65c5c6fc5411
+def test_coverage_history():
+    mock_core_context = MagicMock()
+    mock_request = MagicMock()
+    mock_request.app.state.core_context = mock_core_context
+
+    expected = {"measurements": [1, 2, 3]}
+
+    with patch(
+        "api.v1.coverage_routes.get_coverage_history",
+        return_value=expected,
+    ) as mock_get_history:
+        result = coverage_history(mock_request, limit=30)
+
+    mock_get_history.assert_called_once_with(mock_core_context, limit=30)
+    assert result == expected
+
+
+from api.v1.coverage_routes import coverage_gaps
+
+
+# ID: 6e061366-46f2-4a20-a464-314c2db61290
+async def test_coverage_gaps():
+    fake_context = MagicMock(name="core_context")
+    request = MagicMock(name="request")
+    request.app.state.core_context = fake_context
+
+    expected = {"gaps": [{"module": "a.b", "coverage": 42.0}]}
+
+    with patch(
+        "api.v1.coverage_routes.get_coverage_gaps",
+        new=AsyncMock(return_value=expected),
+    ) as mock_gaps:
+        result = await coverage_gaps(request, threshold=80.0, limit=10)
+
+    assert result == expected
+    mock_gaps.assert_awaited_once_with(fake_context, threshold=80.0, limit=10)
+
+
+from api.v1.coverage_routes import coverage_targets
+
+
+# ID: 0c97af8c-5da7-4216-be92-e446ebd38e56
+def test_coverage_targets() -> None:
+    mock_core_context = MagicMock()
+    mock_request = MagicMock()
+    mock_request.app.state.core_context = mock_core_context
+
+    expected = {"targets": {"coverage": 100}}
+    with patch(
+        "api.v1.coverage_routes.get_coverage_targets",
+        return_value=expected,
+    ) as mock_get_coverage_targets:
+        result = coverage_targets(mock_request)
+
+    assert result == expected
+    mock_get_coverage_targets.assert_called_once_with(mock_core_context)
+
+
+import pytest
+
+from api.v1.coverage_routes import request_coverage_report
+
+
+@pytest.mark.asyncio
+# ID: fd03913a-14fb-4967-a6b1-579f30a8d0f3
+async def test_request_coverage_report():
+    run_id = uuid4()
+
+    mock_scalar_result = MagicMock()
+    mock_scalar_result.scalar_one.return_value = run_id
+
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_scalar_result)
+    mock_session.commit = AsyncMock()
+
+    mock_request = MagicMock()
+    mock_request.app.state.core_context = MagicMock()
+
+    mock_response = MagicMock()
+
+    mock_background_tasks = MagicMock()
+
+    mock_payload = MagicMock()
+    mock_payload.requested_by = "tester"
+    mock_payload.format = "terminal"
+    mock_payload.show_missing = False
+
+    result = await request_coverage_report(
+        request=mock_request,
+        response=mock_response,
+        background_tasks=mock_background_tasks,
+        payload=mock_payload,
+        session=mock_session,
+    )
+
+    assert result == {
+        "run_id": str(run_id),
+        "status": "pending",
+        "href": f"/v1/coverage/runs/{run_id}",
+    }
+    mock_session.execute.assert_awaited_once()
+    mock_session.commit.assert_awaited_once()
+    mock_background_tasks.add_task.assert_called_once()
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 1b567016-5fe4-469e-a2b0-d4e9b0a647c4
+async def test_coverage_report():
+    from api.v1.coverage_routes import coverage_report
+
+    expected_report = {"run_id": "abc-123", "status": "completed", "format": "text"}
+    mock_session = MagicMock()
+
+    with patch(
+        "api.v1.coverage_routes.get_latest_coverage_report",
+        new=AsyncMock(return_value=expected_report),
+    ) as mock_get_latest:
+        result = await coverage_report(format="text", session=mock_session)
+
+    mock_get_latest.assert_awaited_once_with(mock_session, format="text")
+    assert result == expected_report
+
+
+from api.v1.coverage_routes import coverage_check
+
+
+# ID: 0530ebc0-ad60-4828-a2f3-55508c1372e7
+async def test_coverage_check():
+    mock_core_context = MagicMock()
+    mock_request = MagicMock()
+    mock_request.app.state.core_context = mock_core_context
+
+    expected = {"status": "ok", "coverage": 95.0}
+
+    with patch(
+        "api.v1.coverage_routes.get_coverage_check",
+        new=AsyncMock(return_value=expected),
+    ) as mock_get:
+        result = await coverage_check(mock_request)
+
+    mock_get.assert_awaited_once_with(mock_core_context)
+    assert result == expected
+
+
+from api.v1.coverage_routes import ReportRequest
+
+
+# ID: c6d7b239-406d-47f9-8fe8-41c31f22528b
+def test_ReportRequest():
+    req = ReportRequest()
+    assert req.format == "text"
+    assert req.show_missing is False
+    assert req.requested_by == "api"
+
+    custom = ReportRequest(format="html", show_missing=True, requested_by="tester")
+    assert custom.format == "html"
+    assert custom.show_missing is True
+    assert custom.requested_by == "tester"
+
+
+from api.v1.coverage_routes import InteractiveTestsRequest
+
+
+# ID: f689cfb6-ea8a-46bc-ac12-a97cf2edcbfc
+def test_InteractiveTestsRequest():
+    req = InteractiveTestsRequest(target_file="src/api/v1/coverage_routes.py")
+    assert req.target_file == "src/api/v1/coverage_routes.py"
+
+    default_req = InteractiveTestsRequest()
+    assert default_req.target_file is None
+
+
+from api.v1.coverage_routes import GenerateBatchRequest
+
+
+# ID: 17ff4c71-c52f-409b-9d3d-fed9b894f941
+def test_GenerateBatchRequest():
+    request = GenerateBatchRequest(priority="high", write=True, requested_by="tester")
+
+    assert request.priority == "high"
+    assert request.write is True
+    assert request.requested_by == "tester"
+
+    defaults = GenerateBatchRequest()
+    assert defaults.priority == "all"
+    assert defaults.write is False
+    assert defaults.requested_by == "api"
+
+    dumped = request.model_dump()
+    assert dumped == {"priority": "high", "write": True, "requested_by": "tester"}
+
+
+# ID: 10699ea6-55a9-4a07-ac19-8742e1fba943
+def test_GenerateRequest():
+    from api.v1.coverage_routes import GenerateRequest
+
+    req = GenerateRequest(target_file="src/module.py", write=True)
+    assert req.target_file == "src/module.py"
+    assert req.write is True
+    assert req.requested_by == "api"
+
+    req2 = GenerateRequest(target_file="other.py", write=True, requested_by="tester")
+    assert req2.requested_by == "tester"

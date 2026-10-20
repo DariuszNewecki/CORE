@@ -49,3 +49,250 @@ async def test_create_remediation_run():
     mock_session.execute.assert_awaited_once()
     mock_session.commit.assert_awaited_once()
     mock_background_tasks.add_task.assert_called_once()
+
+
+from datetime import datetime
+from uuid import uuid4
+
+import pytest
+
+from api.v1.audit_routes import get_remediation_run
+
+
+@pytest.mark.asyncio
+# ID: a0a0ddf1-3636-4c33-b6f0-c5c549953793
+async def test_get_remediation_run():
+    run_id = uuid4()
+    audit_run_id = uuid4()
+    requested_at = datetime(2024, 1, 1, 12, 0, 0)
+    started_at = datetime(2024, 1, 1, 12, 1, 0)
+    finished_at = datetime(2024, 1, 1, 12, 2, 0)
+
+    row = {
+        "id": run_id,
+        "audit_run_id": audit_run_id,
+        "mode": "apply",
+        "write": True,
+        "status": "completed",
+        "requested_by": "user@example.com",
+        "requested_at": requested_at,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "result": {"ok": True},
+        "error": None,
+    }
+
+    mappings = MagicMock()
+    mappings.first.return_value = row
+    result = MagicMock()
+    result.mappings.return_value = mappings
+
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=result)
+
+    out = await get_remediation_run(run_id=run_id, session=session)
+
+    session.execute.assert_awaited_once()
+    assert out == {
+        "run_id": str(run_id),
+        "audit_run_id": str(audit_run_id),
+        "mode": "apply",
+        "write": True,
+        "status": "completed",
+        "requested_by": "user@example.com",
+        "requested_at": requested_at.isoformat(),
+        "started_at": started_at.isoformat(),
+        "finished_at": finished_at.isoformat(),
+        "result": {"ok": True},
+        "error": None,
+    }
+
+
+import uuid
+
+from api.v1.audit_routes import CreateRemediationRequest
+
+
+# ID: bb9ba714-e90c-41bb-b8df-b1c1d6de2e5e
+def test_CreateRemediationRequest():
+    audit_run_id = uuid.uuid4()
+    request = CreateRemediationRequest(audit_run_id=audit_run_id)
+
+    assert request.audit_run_id == audit_run_id
+    assert request.mode == "safe"
+    assert request.write is False
+    assert request.requested_by == "api"
+
+    custom = CreateRemediationRequest(
+        audit_run_id=audit_run_id,
+        mode="all",
+        write=True,
+        requested_by="tester",
+    )
+    assert custom.audit_run_id == audit_run_id
+    assert custom.mode == "all"
+    assert custom.write is True
+    assert custom.requested_by == "tester"
+
+
+from api.v1.audit_routes import get_audit_run
+
+
+# ID: 0894bc7c-9371-4cfb-bdb2-3c5cffdfebcb
+async def test_get_audit_run():
+    run_id = uuid4()
+    started = datetime(2024, 1, 1, 12, 0, 0)
+    finished = datetime(2024, 1, 1, 12, 5, 0)
+
+    row = {
+        "run_id": run_id,
+        "verdict": "fail",
+        "finding_count": 3,
+        "blocking_count": 2,
+        "started_at": started,
+        "finished_at": finished,
+        "status": "completed",
+        "findings": [{"id": "f1"}, {"id": "f2"}, {"id": "f3"}],
+    }
+
+    mock_result = MagicMock()
+    mock_mappings = MagicMock()
+    mock_mappings.first.return_value = row
+    mock_result.mappings.return_value = mock_mappings
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=mock_result)
+
+    result = await get_audit_run(run_id=run_id, session=session)
+
+    session.execute.assert_awaited_once()
+    assert result["run_id"] == str(run_id)
+    assert result["verdict"] == "fail"
+    assert result["finding_count"] == 3
+    assert result["blocking_count"] == 2
+    assert result["started_at"] == started.isoformat()
+    assert result["finished_at"] == finished.isoformat()
+    assert result["status"] == "completed"
+    assert result["findings"] == row["findings"]
+
+
+from datetime import UTC
+
+import pytest
+
+from api.v1.audit_routes import list_audit_runs
+
+
+@pytest.mark.asyncio
+# ID: 0c5b1700-5503-4bbb-9fd7-4f4819e18a4d
+async def test_list_audit_runs() -> None:
+    started = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+    finished = datetime(2024, 1, 1, 12, 5, 0, tzinfo=UTC)
+
+    row = {
+        "run_id": "11111111-1111-1111-1111-111111111111",
+        "verdict": "pass",
+        "finding_count": 3,
+        "blocking_count": 0,
+        "started_at": started,
+        "finished_at": finished,
+        "status": "completed",
+    }
+
+    mappings = MagicMock()
+    mappings.all.return_value = [row]
+    result = MagicMock()
+    result.mappings.return_value = mappings
+
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=result)
+
+    response = await list_audit_runs(limit=50, after=None, session=session)
+
+    session.execute.assert_awaited_once()
+    assert response["count"] == 1
+    assert response["has_more"] is False
+    assert response["next_cursor"] is None
+    assert response["runs"] == [
+        {
+            "run_id": "11111111-1111-1111-1111-111111111111",
+            "verdict": "pass",
+            "finding_count": 3,
+            "blocking_count": 0,
+            "started_at": started.isoformat(),
+            "finished_at": finished.isoformat(),
+            "status": "completed",
+        }
+    ]
+
+
+import pytest
+
+from api.v1.audit_routes import create_audit_run
+
+
+@pytest.mark.asyncio
+# ID: c7317198-14fc-438a-9c8a-d9b7b53f3247
+async def test_create_audit_run():
+    run_id = uuid.uuid4()
+
+    request = MagicMock()
+    request.app.state.core_context = MagicMock()
+
+    response = MagicMock()
+    response.status_code = 202
+
+    background_tasks = MagicMock()
+
+    payload = MagicMock()
+    payload.wait = False
+    payload.rule_ids = []
+    payload.policy_ids = []
+    payload.files = None
+    payload.force_llm = False
+    payload.source = "api"
+
+    result = MagicMock()
+    result.scalar_one = MagicMock(return_value=run_id)
+
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=result)
+    session.commit = AsyncMock()
+
+    out = await create_audit_run(
+        request=request,
+        response=response,
+        background_tasks=background_tasks,
+        payload=payload,
+        session=session,
+    )
+
+    assert out["run_id"] == str(run_id)
+    assert out["status"] == "pending"
+    assert out["href"] == f"/v1/audit/runs/{run_id}"
+
+    session.execute.assert_awaited_once()
+    session.commit.assert_awaited_once()
+    background_tasks.add_task.assert_called_once()
+
+
+from api.v1.audit_routes import CreateAuditRunRequest
+
+
+# ID: 6d928827-9b1a-4d0d-acac-5bb1c68a8034
+def test_CreateAuditRunRequest():
+    req = CreateAuditRunRequest(
+        rule_ids=["rule-1"],
+        policy_ids=["policy-1"],
+        files=["src/main.py"],
+        force_llm=True,
+        wait=True,
+        source="cli",
+    )
+
+    assert req.rule_ids == ["rule-1"]
+    assert req.policy_ids == ["policy-1"]
+    assert req.files == ["src/main.py"]
+    assert req.force_llm is True
+    assert req.wait is True
+    assert req.source == "cli"

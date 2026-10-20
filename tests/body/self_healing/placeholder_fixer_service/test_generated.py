@@ -118,3 +118,29 @@ class TestFixPlaceholdersInContent:
         content = "file_path = 'none'"
         result = fix_placeholders_in_content(content)
         assert result == 'file_path="none"'
+
+
+# ID: f30da178-7747-406f-8aa0-b3bdd34b8d18
+def test_fix_placeholders_in_content():
+    content = (
+        "file_path = 'none'\n"
+        "TODO: implement\n"
+        "FIXME: broken\n"
+        "TBD later\n"
+        "PLACEHOLDER value\n"
+        "ratio = N/A\n"
+    )
+
+    result = fix_placeholders_in_content(content)
+
+    assert 'file_path="none"' in result
+    assert "FUTURE" in result
+    assert "PENDING" in result
+    assert "pending" in result
+    assert "template_value" in result
+    assert "none" in result
+    assert "TODO" not in result
+    assert "FIXME" not in result
+    assert "TBD" not in result
+    assert "PLACEHOLDER" not in result
+    assert "N/A" not in result
