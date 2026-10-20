@@ -201,3 +201,21 @@ async def test_refactor_threshold() -> None:
         result = await refactor_threshold(request)
 
     assert result == {"threshold": 0.75}
+
+
+from api.v1.refactor_routes import RunAutonomousRequest
+
+
+# ID: 9428ae20-8a4b-420e-98aa-85de6d4f963c
+def test_RunAutonomousRequest():
+    req = RunAutonomousRequest(goal="refactor the auth module")
+    assert req.goal == "refactor the auth module"
+    assert req.write is False
+    assert req.requested_by == "api"
+
+    req_write = RunAutonomousRequest(
+        goal="refactor the auth module", write=True, requested_by="tester"
+    )
+    assert req_write.goal == "refactor the auth module"
+    assert req_write.write is True
+    assert req_write.requested_by == "tester"
