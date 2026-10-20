@@ -302,3 +302,41 @@ def test_CreateProposalRequest():
     assert req.anchor_refs == ["F-123"]
     assert req.producer == "pytest"
     assert req.retires == ["old-flag"]
+
+
+from api.v1.proposals_routes import SubmitChangeRequest
+
+
+# ID: d6127562-ecc1-4c62-b81d-2c858297a8cf
+def test_SubmitChangeRequest():
+    # Happy path: constructing the model with required fields and the default
+    # for `retires` populated correctly (pure Pydantic model, no I/O).
+    model = SubmitChangeRequest(
+        patch="--- a/foo.py\n+++ b/foo.py",
+        validation_run_id="run-123",
+        goal="Fix flaky test",
+        anchor_kind="finding",
+        anchor_refs=["ref-1", "ref-2"],
+        producer="will-worker",
+    )
+
+    assert model.patch == "--- a/foo.py\n+++ b/foo.py"
+    assert model.validation_run_id == "run-123"
+    assert model.goal == "Fix flaky test"
+    assert model.anchor_kind == "finding"
+    assert model.anchor_refs == ["ref-1", "ref-2"]
+    assert model.producer == "will-worker"
+    # `retires` is an optional list defaulting to empty.
+    assert model.retires == []
+
+    # Explicit `retires` is honoured.
+    model2 = SubmitChangeRequest(
+        patch="diff",
+        validation_run_id="run-456",
+        goal="Another change",
+        anchor_kind="proposal",
+        anchor_refs=["ref-3"],
+        producer="human",
+        retires=["proposal-abc"],
+    )
+    assert model2.retires == ["proposal-abc"]
