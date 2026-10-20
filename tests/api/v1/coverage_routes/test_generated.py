@@ -376,3 +376,23 @@ def test_InteractiveTestsRequest():
 
     default_req = InteractiveTestsRequest()
     assert default_req.target_file is None
+
+
+from api.v1.coverage_routes import GenerateBatchRequest
+
+
+# ID: 17ff4c71-c52f-409b-9d3d-fed9b894f941
+def test_GenerateBatchRequest():
+    request = GenerateBatchRequest(priority="high", write=True, requested_by="tester")
+
+    assert request.priority == "high"
+    assert request.write is True
+    assert request.requested_by == "tester"
+
+    defaults = GenerateBatchRequest()
+    assert defaults.priority == "all"
+    assert defaults.write is False
+    assert defaults.requested_by == "api"
+
+    dumped = request.model_dump()
+    assert dumped == {"priority": "high", "write": True, "requested_by": "tester"}
