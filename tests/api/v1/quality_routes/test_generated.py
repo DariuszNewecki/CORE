@@ -189,3 +189,29 @@ def test_quality_policy_coverage():
         quality_routes.run_quality_policy_coverage = original
 
     assert result == expected
+
+
+
+import pytest
+
+from api.v1.quality_routes import quality_imports
+
+
+@pytest.mark.asyncio
+# ID: 8533c0c9-2612-46ad-ae23-5149bb28f3aa
+async def test_quality_imports() -> None:
+    fake_core_context = MagicMock(name="core_context")
+
+    request = MagicMock()
+    request.app.state.core_context = fake_core_context
+
+    expected = {"status": "ok", "violations": []}
+
+    with patch(
+        "api.v1.quality_routes.run_quality_imports",
+        new=AsyncMock(return_value=expected),
+    ) as mock_run:
+        result = await quality_imports(request)
+
+    mock_run.assert_awaited_once_with(fake_core_context)
+    assert result == expected
