@@ -9,6 +9,9 @@ Shows:
   - Open coverage gaps (files the sensor has flagged but no test exists yet)
   - Recent successful completions
 
+`tests symbols` lists every public symbol in coverage scope with its test
+status and generation attempts (cli.logic.test_symbol_ledger).
+
 Constitutional Alignment:
   - Read-only; no mutation surface.
   - Direct DB access is permitted in CLI (architecture.api.no_direct_database_access
@@ -27,6 +30,12 @@ from rich.panel import Panel
 from rich.table import Table
 from sqlalchemy import text
 
+from cli.logic.test_symbol_ledger import (
+    STATUSES,
+    AttemptStats,
+    build_symbol_ledger,
+    failing_test_names,
+)
 from cli.utils import core_command
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
@@ -292,3 +301,132 @@ async def tests_status(
                 border_style="dim",
             )
         )
+
+
+@tests_app.command("symbols")
+@core_command(dangerous=False, requires_context=False)
+# ID: af95df1d-9420-4307-b233-0f3bb1fc36f0
+async def tests_symbols(
+    ctx: typer.Context,
+    status: str | None = typer.Option(
+        None,
+        "--status",
+        "-s",
+        help="Show only rows with this status: " + ", ".join(STATUSES),
+    ),
+    file: str | None = typer.Option(
+        None, "--file", "-f", help="Show only symbols of this source file"
+    ),
+) -> None:
+    """Every public symbol in test scope: has a test, failing, attempts, last reason."""
+    _ = ctx
+    from shared.infrastructure.bootstrap_registry import BootstrapRegistry
+    from shared.infrastructure.intent.operational_config import (
+        load_operational_config,
+    )
+    from shared.infrastructure.intent.test_coverage_paths import (
+        load_test_coverage_config,
+    )
+    from shared.utils.public_symbols import has_public_testable_symbols
+    from will.workers.test_remediator._operations import failure_detail
+
+    if status is not None and status not in STATUSES:
+        raise typer.BadParameter(f"--status must be one of: {', '.join(STATUSES)}")
+
+    repo_root = BootstrapRegistry.get_repo_path()
+    config = load_test_coverage_config()
+    cap_n = load_operational_config().blackboard.remediation_cap_n
+    source_files = [
+        f
+        for f in config.get("include_files") or []
+        if (repo_root / f).exists()
+        and (file is None or f == file)
+        and has_public_testable_symbols(repo_root / f)
+    ]
+
+    async with get_session() as session:
+        attempt_rows: Sequence[Any] = (
+            await session.execute(
+                text(
+                    """
+                    SELECT p.scope->'files'->>0 AS source_file,
+                           p.constitutional_constraints->>'symbol_name' AS symbol,
+                           p.status,
+                           p.failure_reason,
+                           p.execution_results
+                    FROM core.autonomous_proposals p
+                    WHERE p.actions @> cast('[{"flow_id": "flow.build_test_for_symbol"}]' as jsonb)
+                      AND p.status IN ('completed', 'failed')
+                    ORDER BY p.updated_at
+                    """
+                )
+            )
+        ).fetchall()
+        failure_subjects: Sequence[str] = (
+            (
+                await session.execute(
+                    text(
+                        """
+                    SELECT subject FROM core.blackboard_entries
+                    WHERE entry_type = 'finding'
+                      AND subject LIKE 'python::test.runner.failure::%'
+                      AND status NOT IN ('resolved', 'abandoned')
+                    """
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+    attempts: dict[tuple[str, str], AttemptStats] = {}
+    for source_file, symbol, row_status, reason, results in attempt_rows:
+        stats = attempts.setdefault((source_file, symbol), AttemptStats())
+        if row_status == "completed":
+            stats.completed += 1
+        else:
+            stats.failed += 1
+            stats.last_failure = failure_detail(reason, results)
+
+    rows = build_symbol_ledger(
+        repo_root,
+        source_files,
+        config,
+        attempts,
+        failing_test_names(list(failure_subjects)),
+        cap_n,
+    )
+
+    counts = {s: sum(1 for r in rows if r.status == s) for s in STATUSES}
+    shown = [r for r in rows if status is None or r.status == status]
+
+    table = Table(box=None, show_header=True, header_style="bold")
+    table.add_column("Source file")
+    table.add_column("Symbol")
+    table.add_column("Status")
+    table.add_column("Landed", justify="right")
+    table.add_column("Failed", justify="right")
+    table.add_column("Last failure")
+    colors = {
+        "passing": "green",
+        "failing": "red",
+        "untested": "yellow",
+        "capped": "magenta",
+        "unreadable": "red",
+    }
+    for r in shown:
+        color = colors[r.status]
+        table.add_row(
+            r.source_file.removeprefix("src/"),
+            r.symbol,
+            f"[{color}]{r.status}[/{color}]",
+            str(r.attempts.completed),
+            str(r.attempts.failed),
+            (r.attempts.last_failure or "")[:80],
+        )
+    console.print(table)
+    summary = "  ".join(f"{s} {counts[s]}" for s in STATUSES if counts[s])
+    console.print(
+        f"[bold]{len(rows)} symbols in {len(source_files)} files[/bold] — "
+        f"{summary}  (cap {cap_n} attempts)"
+    )

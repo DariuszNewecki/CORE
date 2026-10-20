@@ -525,7 +525,7 @@ async def _query_symbol_failure_lineage(
     status, failure_reason, execution_results = rows[0]
     if status == "completed":
         return len(rows), _UNCREDITED_LANDING
-    return len(rows), _failure_detail(failure_reason, execution_results)
+    return len(rows), failure_detail(failure_reason, execution_results)
 
 
 _UNCREDITED_LANDING = (
@@ -534,7 +534,8 @@ _UNCREDITED_LANDING = (
 )
 
 
-def _failure_detail(failure_reason: str | None, execution_results: Any) -> str | None:
+# ID: 544e51b0-d2f8-441b-8fe5-fe36b8e15fad
+def failure_detail(failure_reason: str | None, execution_results: Any) -> str | None:
     """The most specific reason a build_test_for_symbol attempt failed."""
 
     def _first_detail(node: Any) -> str | None:

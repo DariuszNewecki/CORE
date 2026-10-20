@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-110 commands.
+111 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -34,7 +34,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`secrets`](#secrets) | 4 | Manage encrypted secrets in the database. |
 | [`status`](#status) | 1 | Single-glance system state and readiness. |
 | [`symbols`](#symbols) | 1 | Operations for the symbol registry and Knowledge Graph identification. |
-| [`tests`](#tests) | 1 | Test maturity dashboard and autonomous generation insights. |
+| [`tests`](#tests) | 2 | Test maturity dashboard and autonomous generation insights. |
 | [`tools`](#tools) | 2 | Governed, operator-focused maintenance and refactoring tools. |
 | [`vectors`](#vectors) | 3 | Vector store operations (Qdrant). |
 | [`workers`](#workers) | 6 | Constitutional worker management. |
@@ -1753,6 +1753,19 @@ Single-glance test maturity: sensor health, pipeline stats, coverage gaps.
 |---|---|---|
 | `--days`, `-d` | `30` | Lookback window for proposal stats (default 30) |
 | `--gaps`, `-g` | `20` | Max coverage gaps to show (default 20) |
+
+### `core-admin tests symbols` {#tests-symbols}
+
+```
+core-admin tests symbols [OPTIONS]
+```
+
+Every public symbol in test scope: has a test, failing, attempts, last reason.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--status`, `-s` |  | Show only rows with this status: passing, failing, untested, capped, unreadable |
+| `--file`, `-f` |  | Show only symbols of this source file |
 
 ---
 
