@@ -66,7 +66,6 @@ async def test_components_list():
     mock_get.assert_called_once_with(filter_type="tool")
 
 
-
 from api.v1.inspect_routes import analysis_test_targets
 
 
@@ -95,3 +94,28 @@ async def test_analysis_test_targets():
     assert called_fn is mock_get_targets
     assert called_arg is core_context
     assert result == expected_result
+
+
+import pytest
+
+from api.v1.inspect_routes import analysis_command_tree
+
+
+@pytest.mark.asyncio
+# ID: bb82eae8-7d87-4968-834f-2b710594f35a
+async def test_analysis_command_tree():
+    mock_core_context = MagicMock()
+    mock_request = MagicMock()
+    mock_request.app.state.core_context = mock_core_context
+    mock_request.app.state.__dict__ = {"core_context": mock_core_context}
+
+    expected_tree = {"commands": ["foo", "bar"]}
+
+    with patch(
+        "api.v1.inspect_routes.get_analysis_command_tree",
+        return_value=expected_tree,
+    ) as mock_get_tree:
+        result = await analysis_command_tree(mock_request)
+
+    assert result == expected_tree
+    mock_get_tree.assert_called_once_with(mock_core_context)
