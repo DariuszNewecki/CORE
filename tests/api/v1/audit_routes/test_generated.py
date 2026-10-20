@@ -135,7 +135,6 @@ def test_CreateRemediationRequest():
     assert custom.requested_by == "tester"
 
 
-
 from api.v1.audit_routes import get_audit_run
 
 
@@ -175,3 +174,53 @@ async def test_get_audit_run():
     assert result["finished_at"] == finished.isoformat()
     assert result["status"] == "completed"
     assert result["findings"] == row["findings"]
+
+
+from datetime import UTC
+
+import pytest
+
+from api.v1.audit_routes import list_audit_runs
+
+
+@pytest.mark.asyncio
+# ID: 0c5b1700-5503-4bbb-9fd7-4f4819e18a4d
+async def test_list_audit_runs() -> None:
+    started = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+    finished = datetime(2024, 1, 1, 12, 5, 0, tzinfo=UTC)
+
+    row = {
+        "run_id": "11111111-1111-1111-1111-111111111111",
+        "verdict": "pass",
+        "finding_count": 3,
+        "blocking_count": 0,
+        "started_at": started,
+        "finished_at": finished,
+        "status": "completed",
+    }
+
+    mappings = MagicMock()
+    mappings.all.return_value = [row]
+    result = MagicMock()
+    result.mappings.return_value = mappings
+
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=result)
+
+    response = await list_audit_runs(limit=50, after=None, session=session)
+
+    session.execute.assert_awaited_once()
+    assert response["count"] == 1
+    assert response["has_more"] is False
+    assert response["next_cursor"] is None
+    assert response["runs"] == [
+        {
+            "run_id": "11111111-1111-1111-1111-111111111111",
+            "verdict": "pass",
+            "finding_count": 3,
+            "blocking_count": 0,
+            "started_at": started.isoformat(),
+            "finished_at": finished.isoformat(),
+            "status": "completed",
+        }
+    ]
