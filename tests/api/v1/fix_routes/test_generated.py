@@ -117,7 +117,6 @@ async def test_run_fix_ir():
     assert result == {"path": "scaffolds/some_kind.ir.json"}
 
 
-
 import pytest
 
 from api.v1.fix_routes import run_fix_modularity
@@ -161,3 +160,44 @@ async def test_run_fix_modularity():
         "status": "pending",
         "href": f"/v1/fix/runs/{run_id}",
     }
+
+
+
+import pytest
+
+from api.v1.fix_routes import FIX_CODE_FLOW_ID, run_fix_all
+
+
+@pytest.mark.asyncio
+# ID: dc8684ae-52b9-4f4e-a0ad-d9846494b1eb
+async def test_run_fix_all():
+    request = MagicMock()
+    response = MagicMock()
+    background_tasks = MagicMock()
+    payload = MagicMock()
+    session = MagicMock()
+
+    expected = {"status": "ok", "flow_id": FIX_CODE_FLOW_ID}
+
+    with patch(
+        "api.v1.fix_routes._dispatch_flow",
+        new=AsyncMock(return_value=expected),
+    ) as mock_dispatch:
+        result = await run_fix_all(
+            request=request,
+            response=response,
+            background_tasks=background_tasks,
+            payload=payload,
+            session=session,
+        )
+
+    assert result == expected
+    mock_dispatch.assert_awaited_once_with(
+        flow_id=FIX_CODE_FLOW_ID,
+        kind="flow",
+        request=request,
+        response=response,
+        background_tasks=background_tasks,
+        payload=payload,
+        session=session,
+    )
