@@ -216,7 +216,6 @@ async def test_refusals_stats():
     mock_get_stats.assert_awaited_once_with(days=7)
 
 
-
 import pytest
 
 from api.v1.inspect_routes import refusals_list
@@ -241,3 +240,22 @@ async def test_refusals_list():
         session_id="sess-123",
         limit=10,
     )
+
+
+import pytest
+
+from api.v1.inspect_routes import decisions_patterns
+
+
+@pytest.mark.asyncio
+# ID: 2dc2141a-e1ad-4064-bc5c-40be166699cf
+async def test_decisions_patterns():
+    expected = {"patterns": {"stable": 3}, "days": 7}
+    with patch(
+        "api.v1.inspect_routes.get_decisions_patterns",
+        new=AsyncMock(return_value=expected),
+    ) as mock_get:
+        result = await decisions_patterns(days=7)
+
+    mock_get.assert_awaited_once_with(days=7)
+    assert result == expected
