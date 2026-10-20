@@ -241,7 +241,6 @@ async def test_coverage_gaps():
     mock_gaps.assert_awaited_once_with(fake_context, threshold=80.0, limit=10)
 
 
-
 from api.v1.coverage_routes import coverage_targets
 
 
@@ -260,3 +259,51 @@ def test_coverage_targets() -> None:
 
     assert result == expected
     mock_get_coverage_targets.assert_called_once_with(mock_core_context)
+
+
+
+import pytest
+
+from api.v1.coverage_routes import request_coverage_report
+
+
+@pytest.mark.asyncio
+# ID: fd03913a-14fb-4967-a6b1-579f30a8d0f3
+async def test_request_coverage_report():
+    run_id = uuid4()
+
+    mock_scalar_result = MagicMock()
+    mock_scalar_result.scalar_one.return_value = run_id
+
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_scalar_result)
+    mock_session.commit = AsyncMock()
+
+    mock_request = MagicMock()
+    mock_request.app.state.core_context = MagicMock()
+
+    mock_response = MagicMock()
+
+    mock_background_tasks = MagicMock()
+
+    mock_payload = MagicMock()
+    mock_payload.requested_by = "tester"
+    mock_payload.format = "terminal"
+    mock_payload.show_missing = False
+
+    result = await request_coverage_report(
+        request=mock_request,
+        response=mock_response,
+        background_tasks=mock_background_tasks,
+        payload=mock_payload,
+        session=mock_session,
+    )
+
+    assert result == {
+        "run_id": str(run_id),
+        "status": "pending",
+        "href": f"/v1/coverage/runs/{run_id}",
+    }
+    mock_session.execute.assert_awaited_once()
+    mock_session.commit.assert_awaited_once()
+    mock_background_tasks.add_task.assert_called_once()
