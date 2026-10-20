@@ -47,7 +47,6 @@ def test_list_census_baselines():
     assert result == expected
 
 
-
 from api.v1.census_routes import create_census_baseline
 
 
@@ -74,3 +73,55 @@ async def test_create_census_baseline():
         snapshot_file="snapshot.json",
     )
     assert result == {"baseline": baseline}
+
+
+from datetime import datetime
+from unittest.mock import AsyncMock
+from uuid import uuid4
+
+
+# ID: f1ce5753-570a-4b6f-9869-3839d0495c9d
+def test_get_census_run():
+    from api.v1.census_routes import get_census_run
+
+    run_id = uuid4()
+    requested_at = datetime(2024, 1, 1, 12, 0, 0)
+    started_at = datetime(2024, 1, 1, 12, 0, 5)
+    finished_at = datetime(2024, 1, 1, 12, 1, 0)
+
+    row = {
+        "id": run_id,
+        "snapshot": "snap-1",
+        "baseline_name": "baseline-a",
+        "status": "completed",
+        "requested_by": "tester",
+        "requested_at": requested_at,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "result": {"ok": True},
+        "error": None,
+    }
+
+    mappings = MagicMock()
+    mappings.first.return_value = row
+    result = MagicMock()
+    result.mappings.return_value = mappings
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=result)
+
+    out = asyncio.run(get_census_run(run_id, session=session))
+
+    session.execute.assert_awaited_once()
+    assert out == {
+        "run_id": str(run_id),
+        "snapshot": "snap-1",
+        "baseline_name": "baseline-a",
+        "status": "completed",
+        "requested_by": "tester",
+        "requested_at": requested_at.isoformat(),
+        "started_at": started_at.isoformat(),
+        "finished_at": finished_at.isoformat(),
+        "result": {"ok": True},
+        "error": None,
+    }
