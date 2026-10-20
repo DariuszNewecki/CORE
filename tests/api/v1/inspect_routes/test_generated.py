@@ -46,3 +46,21 @@ async def test_search_capabilities():
 
     assert result == expected
     mock_get.assert_awaited_once_with(core_context, q="foo", limit=5)
+
+
+import pytest
+
+from api.v1.inspect_routes import components_list
+
+
+@pytest.mark.asyncio
+# ID: c9b6f392-2e83-4cda-bfbc-ef587ffd7a7d
+async def test_components_list():
+    expected = {"components": [{"name": "alpha", "layer": "Mind"}]}
+    with patch(
+        "api.v1.inspect_routes.get_components_list",
+        return_value=expected,
+    ) as mock_get:
+        result = await components_list(filter_type="tool")
+    assert result == expected
+    mock_get.assert_called_once_with(filter_type="tool")
