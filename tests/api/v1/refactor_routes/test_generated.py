@@ -178,3 +178,27 @@ async def test_refactor_score():
 
     mock_get.assert_called_once_with("/repo", "src/foo.py")
     assert result == expected_payload
+
+
+
+import pytest
+
+from api.v1.refactor_routes import refactor_threshold
+
+
+@pytest.mark.asyncio
+# ID: 92bc8977-c719-44b3-b523-743274838639
+async def test_refactor_threshold() -> None:
+    request = MagicMock()
+    core_context = MagicMock()
+    repo_root = "/fake/repo/root"
+    core_context.git_service.repo_path = repo_root
+    request.app.state.core_context = core_context
+
+    with patch(
+        "api.v1.refactor_routes.get_refactor_threshold",
+        return_value=0.75,
+    ):
+        result = await refactor_threshold(request)
+
+    assert result == {"threshold": 0.75}
