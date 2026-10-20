@@ -79,7 +79,6 @@ async def test_quality_system():
     )
 
 
-
 import pytest
 
 from api.v1.quality_routes import quality_tests
@@ -115,6 +114,46 @@ async def test_quality_tests():
         check="tests",
         params={"path": "tests/unit"},
         requested_by="user@example.com",
+        request=request,
+        response=response,
+        background_tasks=background_tasks,
+        session=session,
+    )
+
+
+
+
+# ID: da1efe4b-dd90-40fa-ae0b-89ffde74eec6
+async def test_quality_lint():
+    from api.v1.quality_routes import quality_lint
+
+    request = MagicMock()
+    response = MagicMock()
+    background_tasks = MagicMock()
+    payload = MagicMock()
+    payload.fix = True
+    payload.requested_by = "tester"
+    session = AsyncMock()
+
+    expected = {"status": "ok"}
+
+    with patch(
+        "api.v1.quality_routes._dispatch_quality",
+        new=AsyncMock(return_value=expected),
+    ) as mock_dispatch:
+        result = await quality_lint(
+            request=request,
+            response=response,
+            background_tasks=background_tasks,
+            payload=payload,
+            session=session,
+        )
+
+    assert result == expected
+    mock_dispatch.assert_awaited_once_with(
+        check="lint",
+        params={"fix": True},
+        requested_by="tester",
         request=request,
         response=response,
         background_tasks=background_tasks,
