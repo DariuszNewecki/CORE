@@ -45,3 +45,32 @@ def test_list_census_baselines():
 
     mock_list.assert_called_once_with(core_context)
     assert result == expected
+
+
+
+from api.v1.census_routes import create_census_baseline
+
+
+# ID: 89ae4903-9cfe-4700-9742-ec12554a031e
+async def test_create_census_baseline():
+    request = MagicMock()
+    request.app.state.core_context = MagicMock()
+
+    payload = MagicMock()
+    payload.snapshot_file = "snapshot.json"
+
+    baseline = {"id": "b1", "name": "my-baseline"}
+
+    with patch(
+        "api.v1.census_routes.create_baseline", return_value=baseline
+    ) as mock_create_baseline:
+        result = await create_census_baseline(
+            request=request, name="my-baseline", payload=payload
+        )
+
+    mock_create_baseline.assert_called_once_with(
+        request.app.state.core_context,
+        name="my-baseline",
+        snapshot_file="snapshot.json",
+    )
+    assert result == {"baseline": baseline}
