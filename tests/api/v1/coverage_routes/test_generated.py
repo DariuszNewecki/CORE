@@ -127,3 +127,54 @@ async def test_generate_coverage_batch():
     session.execute.assert_awaited_once()
     session.commit.assert_awaited_once()
     background_tasks.add_task.assert_called_once()
+
+
+import pytest
+from fastapi import BackgroundTasks, Response
+
+from api.v1.coverage_routes import generate_coverage
+
+
+@pytest.mark.asyncio
+# ID: 96238e4b-be43-44f1-a315-786a0c2c676e
+async def test_generate_coverage():
+    run_id = uuid4()
+
+    payload = MagicMock()
+    payload.write = True
+    payload.target_file = "src/foo.py"
+    payload.requested_by = "tester"
+
+    request = MagicMock(spec=Request)
+    request.app = MagicMock()
+    request.app.state = MagicMock()
+    request.app.state.core_context = MagicMock()
+
+    response = MagicMock(spec=Response)
+
+    background_tasks = MagicMock(spec=BackgroundTasks)
+
+    session = MagicMock()
+    session.execute = AsyncMock()
+    session.commit = AsyncMock()
+
+    exec_result = MagicMock()
+    exec_result.scalar_one = MagicMock(return_value=run_id)
+    session.execute.return_value = exec_result
+
+    result = await generate_coverage(
+        request=request,
+        response=response,
+        background_tasks=background_tasks,
+        payload=payload,
+        session=session,
+    )
+
+    assert result == {
+        "run_id": str(run_id),
+        "status": "pending",
+        "href": f"/v1/coverage/runs/{run_id}",
+    }
+    session.execute.assert_awaited_once()
+    session.commit.assert_awaited_once()
+    background_tasks.add_task.assert_called_once()
