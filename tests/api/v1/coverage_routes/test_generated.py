@@ -329,7 +329,6 @@ async def test_coverage_report():
     assert result == expected_report
 
 
-
 from api.v1.coverage_routes import coverage_check
 
 
@@ -349,3 +348,19 @@ async def test_coverage_check():
 
     mock_get.assert_awaited_once_with(mock_core_context)
     assert result == expected
+
+
+from api.v1.coverage_routes import ReportRequest
+
+
+# ID: c6d7b239-406d-47f9-8fe8-41c31f22528b
+def test_ReportRequest():
+    req = ReportRequest()
+    assert req.format == "text"
+    assert req.show_missing is False
+    assert req.requested_by == "api"
+
+    custom = ReportRequest(format="html", show_missing=True, requested_by="tester")
+    assert custom.format == "html"
+    assert custom.show_missing is True
+    assert custom.requested_by == "tester"
