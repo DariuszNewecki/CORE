@@ -165,3 +165,19 @@ async def test_analysis_duplicates() -> None:
 
     assert result == expected
     mock_get.assert_awaited_once_with(request.app.state.core_context, threshold=0.9)
+
+
+
+from fastapi import Response
+
+from api.v1.inspect_routes import analysis_clusters
+
+
+# ID: 704c89c7-dbc8-4525-88c9-5404b18eaba0
+async def test_analysis_clusters():
+    response = Response()
+    with patch("api.v1.inspect_routes._signal_deprecation") as mock_signal:
+        result = await analysis_clusters(response=response, limit=25)
+
+    mock_signal.assert_called_once_with(response)
+    assert result == {"available": False, "clusters": []}
