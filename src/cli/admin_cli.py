@@ -13,6 +13,7 @@ from __future__ import annotations
 import importlib.metadata
 import os
 import sys
+from pathlib import Path
 
 
 # #1021 (proof run): every command printed the runtime's INFO logs (intent
@@ -53,6 +54,7 @@ if matches_external_run(sys.argv[1:]):
     sys.exit(run_external_run(sys.argv[1:]))
 
 import typer
+from dotenv import dotenv_values
 from rich.console import Console
 
 from body.infrastructure.bootstrap import create_core_context
@@ -90,6 +92,7 @@ from cli.resources.symbols import app as symbols_app
 from cli.resources.vectors import app as vectors_app
 from cli.resources.workers import app as workers_app
 from cli.utils.exit_codes import EXIT_CONFIG_ERROR
+from shared.config import settings
 from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.intent.errors import GovernanceError
 
@@ -185,6 +188,34 @@ def _print_version(value: bool) -> None:
     raise typer.Exit()
 
 
+def _use_readonly_login() -> None:
+    """Swap in the read-only login before anything opens a connection.
+
+    The file's DATABASE_URL replaces whatever .env or the secrets file gave,
+    so a read-only run never falls back to a login that can write. Its
+    QDRANT_URL, when present, is used too: the account running a read-only
+    command usually cannot read the installation's .env. URLs are never shown.
+    """
+    path = Path(
+        os.environ.get("CORE_READONLY_ENV")
+        or Path.home() / ".config" / "core" / "readonly.env"
+    )
+    try:
+        values = dotenv_values(path) if path.is_file() else {}
+    except OSError:
+        values = {}
+    if not values.get("DATABASE_URL"):
+        console.print(
+            f"[bold red]Configuration error:[/bold red] --readonly needs a "
+            f"DATABASE_URL in {path} (made by infra/core-claude-readonly-db)."
+        )
+        raise typer.Exit(EXIT_CONFIG_ERROR)
+    settings.DATABASE_URL = values["DATABASE_URL"]
+    settings.DATABASE_READ_ONLY = True
+    if values.get("QDRANT_URL"):
+        settings.QDRANT_URL = values["QDRANT_URL"]
+
+
 @app.callback(invoke_without_command=True)
 # ID: 1f5f3dc8-cbc5-426f-8049-271f45e155f5
 def main(
@@ -197,11 +228,21 @@ def main(
         is_eager=True,
         help="Show the installed core-runtime version and exit.",
     ),
+    readonly: bool = typer.Option(
+        False,
+        "--readonly",
+        help=(
+            "Use the read-only database login from ~/.config/core/readonly.env "
+            "(CORE_READONLY_ENV overrides); every transaction is read-only."
+        ),
+    ),
 ) -> None:
     """Bootstrap services and launch TUI if no command given."""
     # Rich log rendering is the CLI's call, taken here when a human is on
     # stderr; under systemd / pipes the shared logger's plain handler stays.
     install_rich_log_handler()
+    if readonly:
+        _use_readonly_login()
     service_registry.prime(get_session)
     # Click runs this callback before a subcommand parses its own arguments,
     # so `core-admin <group> <cmd> --help` used to build the whole CoreContext

@@ -92,6 +92,11 @@ def _create_state() -> _DbState:
     """
     if settings.DATABASE_URL is None:
         raise RuntimeError("DATABASE_URL is not configured")
+    connect_args = (
+        {"server_settings": {"default_transaction_read_only": "on"}}
+        if settings.DATABASE_READ_ONLY
+        else {}
+    )
     engine = create_async_engine(
         settings.DATABASE_URL,
         echo=_engine_echo(),
@@ -99,6 +104,7 @@ def _create_state() -> _DbState:
         pool_size=settings.DATABASE_POOL_SIZE,
         max_overflow=settings.DATABASE_POOL_MAX_OVERFLOW,
         pool_pre_ping=True,
+        connect_args=connect_args,
     )
     factory = async_sessionmaker(
         bind=engine,
