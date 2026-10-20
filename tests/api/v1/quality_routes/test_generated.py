@@ -226,3 +226,18 @@ def test_QualityAsyncRequest():
 
     custom = QualityAsyncRequest(requested_by="tester")
     assert custom.requested_by == "tester"
+
+
+from api.v1.quality_routes import QualityTestsRequest
+
+
+# ID: 911bac1a-4364-4d51-a773-f4cc73d2d5eb
+def test_QualityTestsRequest():
+    req = QualityTestsRequest(path="src/tests/unit", requested_by="tester")
+
+    assert req.path == "src/tests/unit"
+    assert req.requested_by == "tester"
+
+    default_req = QualityTestsRequest()
+    assert default_req.path is None
+    assert default_req.requested_by == "api"
