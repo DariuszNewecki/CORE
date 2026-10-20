@@ -39,3 +39,39 @@ async def test_execute_proposal():
     mock_executor.execute.assert_awaited_once_with(
         proposal_id, API_CLAIMER_UUID, write=payload.write
     )
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 57f02c11-752f-41a1-9a4a-6ced4d7e1b26
+async def test_reject_proposal():
+    from api.v1.proposals_routes import reject_proposal
+
+    payload = MagicMock()
+    payload.reason = "not a good fit"
+
+    mock_service = MagicMock()
+    mock_service.reject = AsyncMock(return_value=3)
+
+    mock_session = MagicMock()
+
+    with patch(
+        "api.v1.proposals_routes.ProposalService", return_value=mock_service
+    ) as mock_service_cls:
+        result = await reject_proposal(
+            proposal_id="prop-123",
+            payload=payload,
+            session=mock_session,
+        )
+
+    mock_service_cls.assert_called_once_with(mock_session)
+    mock_service.reject.assert_awaited_once_with("prop-123", reason="not a good fit")
+
+    assert result["ok"] is True
+    assert result["proposal_id"] == "prop-123"
+    assert result["reason"] == "not a good fit"
+    assert result["revived_count"] == 3
+    assert result["status"] == "rejected"
