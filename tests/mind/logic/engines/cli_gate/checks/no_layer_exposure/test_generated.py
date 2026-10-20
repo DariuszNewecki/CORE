@@ -184,9 +184,6 @@ class TestNoLayerExposureCheck:
             assert f.context["forbidden_resources"] == ["a", "c"]
 
 
-
-
-
 # ID: 686e9762-6168-491f-858f-5e7227ab66c7
 def test_NoLayerExposureCheck_verify():
     check = NoLayerExposureCheck()
@@ -206,3 +203,29 @@ def test_NoLayerExposureCheck_verify():
     assert finding.context["command_name"] == "db.query"
     assert finding.context["resource"] == "db"
     assert finding.context["forbidden_resources"] == ["db"]
+
+
+
+
+
+# ID: 02588e3e-8e8d-460c-aa3d-5898ca342414
+def test_NoLayerExposureCheck() -> None:
+    check = NoLayerExposureCheck()
+    check.verify = NoLayerExposureCheck.verify.__get__(check, NoLayerExposureCheck)
+
+    commands = [
+        {"name": "db.query", "file_path": "cmd1.py"},
+        {"name": "api.call", "file_path": "cmd2.py"},
+        {"name": "db.write", "file_path": "cmd3.py"},
+        {"name": "", "file_path": "cmd4.py"},
+    ]
+    params = {"forbidden_resources": ["db"]}
+
+    findings = check.verify(commands, params)
+
+    assert len(findings) == 2
+    assert findings[0].check_id == "cli_gate.no_layer_exposure"
+    assert findings[0].context["command_name"] == "db.query"
+    assert findings[0].context["resource"] == "db"
+    assert findings[0].file_path == "cmd1.py"
+    assert findings[1].context["command_name"] == "db.write"
