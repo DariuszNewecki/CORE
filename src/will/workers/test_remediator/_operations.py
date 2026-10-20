@@ -445,8 +445,14 @@ async def _query_symbol_failure_lineage(
     symbol_name: str,
 ) -> tuple[int, str | None]:
     """
-    Failed flow.build_test_for_symbol attempts for (source_file, symbol_name),
-    and the last failure's reason. Per-symbol circuit breaker (ADR-133 D4).
+    flow.build_test_for_symbol attempts for (source_file, symbol_name), and
+    the last attempt's reason. Per-symbol circuit breaker (ADR-133 D4).
+
+    Completed attempts count too (governor 2026-10-20; ADR-104 D10's capped
+    no-op loop): this is only asked while the symbol is still a gap, so a
+    completed attempt here landed a test the gap check did not credit. Only
+    failures counted before, and such a symbol was re-minted without bound
+    (one symbol 59 times, 173 extra runs over 31 symbols).
 
     Lineage-based, not time-windowed (ADR-104 D9 as amended 2026-10-03:
     elapsed time is not a materially changed condition). The lineage starts
@@ -466,10 +472,18 @@ async def _query_symbol_failure_lineage(
             result = await session.execute(
                 text(
                     """
-                    SELECT p.failure_reason, p.execution_results
+                    SELECT p.status, p.failure_reason, p.execution_results
                     FROM core.autonomous_proposals p
-                    WHERE p.status = 'failed'
-                      AND p.failure_reason LIKE 'Actions failed: flow.build_test_for_symbol%'
+                    WHERE (
+                        (
+                            p.status = 'failed'
+                            AND p.failure_reason LIKE 'Actions failed: flow.build_test_for_symbol%'
+                        )
+                        OR (
+                            p.status = 'completed'
+                            AND p.actions @> cast('[{"flow_id": "flow.build_test_for_symbol"}]' as jsonb)
+                        )
+                    )
                       AND p.scope->'files' @> cast(:source_file_json as jsonb)
                       AND p.constitutional_constraints->>'symbol_name' = :symbol_name
                       AND p.updated_at > COALESCE(
@@ -508,7 +522,16 @@ async def _query_symbol_failure_lineage(
         return 0, None
     if not rows:
         return 0, None
-    return len(rows), _failure_detail(rows[0][0], rows[0][1])
+    status, failure_reason, execution_results = rows[0]
+    if status == "completed":
+        return len(rows), _UNCREDITED_LANDING
+    return len(rows), _failure_detail(failure_reason, execution_results)
+
+
+_UNCREDITED_LANDING = (
+    "a generated test landed, but the gap check still finds the symbol "
+    "untested (the test's name is not credited to it)"
+)
 
 
 def _failure_detail(failure_reason: str | None, execution_results: Any) -> str | None:

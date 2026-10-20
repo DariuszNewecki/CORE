@@ -92,9 +92,9 @@ async def test_returns_count_and_the_acceptance_gate_reason() -> None:
         }
     }
     rows = [
-        ("Actions failed: flow.build_test_for_symbol:0", results),
-        ("Actions failed: flow.build_test_for_symbol:0", None),
-        ("Actions failed: flow.build_test_for_symbol:0", None),
+        ("failed", "Actions failed: flow.build_test_for_symbol:0", results),
+        ("failed", "Actions failed: flow.build_test_for_symbol:0", None),
+        ("failed", "Actions failed: flow.build_test_for_symbol:0", None),
     ]
     registry, _ = _registry(rows)
     with patch("body.services.service_registry.service_registry", registry):
@@ -102,6 +102,28 @@ async def test_returns_count_and_the_acceptance_gate_reason() -> None:
 
     assert count == 3
     assert last == "[code.tests.no_unresolved_free_names] Name: 'rule_id'"
+
+
+async def test_completed_attempts_count_toward_the_cap() -> None:
+    """A completed attempt asked about here left the symbol a gap: its test
+    was not credited. It counts, or the symbol is re-minted without bound
+    (governor 2026-10-20; one symbol was generated 59 times)."""
+    from will.workers.test_remediator._operations import _query_symbol_failure_lineage
+
+    rows = [
+        ("completed", None, None),
+        ("completed", None, None),
+        ("failed", "Actions failed: flow.build_test_for_symbol:0", None),
+    ]
+    registry, session = _registry(rows)
+    with patch("body.services.service_registry.service_registry", registry):
+        count, last = await _query_symbol_failure_lineage("src/foo/bar.py", "sym")
+
+    sql = session.execute.await_args.args[0].text
+    assert "p.status = 'completed'" in sql
+    assert "flow.build_test_for_symbol" in sql
+    assert count == 3
+    assert last is not None and "not credited" in last
 
 
 async def test_returns_zero_on_db_error() -> None:
