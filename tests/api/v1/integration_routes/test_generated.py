@@ -26,3 +26,12 @@ async def test_integrate():
 
     assert result == {"ok": True, "data": "result"}
     mock_run.assert_awaited_once_with(mock_core_context, "test commit")
+
+
+from api.v1.integration_routes import IntegrateRequest
+
+
+# ID: 083fef0a-56e7-45cf-8fd4-f83e79915c73
+def test_IntegrateRequest() -> None:
+    request = IntegrateRequest(commit_message="integration commit")
+    assert request.commit_message == "integration commit"

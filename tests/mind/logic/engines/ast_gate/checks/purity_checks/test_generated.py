@@ -368,3 +368,35 @@ def test_PurityChecks_check_orphan_id_anchors() -> None:
     assert len(result) == 1
     assert "Orphaned ID anchor" in result[0]
     assert "line 1" in result[0]
+
+
+
+
+
+# ID: 6159a960-b762-4329-8d28-3e06b07421bb
+def test_PurityChecks_check_no_swallowed_exceptions():
+    source = (
+        "def f():\n"
+        "    try:\n"
+        "        pass\n"
+        "    except:\n"
+        "        pass\n"
+        "    try:\n"
+        "        pass\n"
+        "    except Exception:\n"
+        "        pass\n"
+        "    try:\n"
+        "        pass\n"
+        "    except ValueError:\n"
+        "        handle()\n"
+    )
+    tree = ast.parse(source)
+    with patch(
+        "mind.logic.engines.ast_gate.checks.purity_checks.ASTHelpers.lineno",
+        side_effect=lambda node: getattr(node, "lineno", 0),
+    ):
+        violations = PurityChecks.check_no_swallowed_exceptions(tree)
+
+    assert len(violations) == 2
+    assert "bare 'except:'" in violations[0]
+    assert "'except Exception'" in violations[1]
