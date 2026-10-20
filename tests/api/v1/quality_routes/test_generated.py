@@ -121,8 +121,6 @@ async def test_quality_tests():
     )
 
 
-
-
 # ID: da1efe4b-dd90-40fa-ae0b-89ffde74eec6
 async def test_quality_lint():
     from api.v1.quality_routes import quality_lint
@@ -159,3 +157,35 @@ async def test_quality_lint():
         background_tasks=background_tasks,
         session=session,
     )
+
+
+import asyncio
+
+from api.v1.quality_routes import quality_policy_coverage
+
+
+# ID: 93b635d8-4ffb-4773-b3fb-180faedb949f
+def test_quality_policy_coverage():
+    from api.v1 import quality_routes
+
+    expected = {
+        "report_id": "rpt-1",
+        "generated_at_utc": "2026-01-01T00:00:00Z",
+        "repo_root": "/repo",
+        "summary": {},
+        "records": [],
+        "exit_code": 0,
+    }
+
+    core_context = MagicMock()
+    request = MagicMock()
+    request.app.state.core_context = core_context
+
+    original = quality_routes.run_quality_policy_coverage
+    quality_routes.run_quality_policy_coverage = AsyncMock(return_value=expected)
+    try:
+        result = asyncio.run(quality_policy_coverage(request))
+    finally:
+        quality_routes.run_quality_policy_coverage = original
+
+    assert result == expected
