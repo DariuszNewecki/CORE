@@ -170,7 +170,6 @@ async def test_sync_vectors():
     )
 
 
-
 import pytest
 
 from api.v1.sync_routes import sync_knowledge_graph
@@ -208,3 +207,26 @@ async def test_sync_knowledge_graph() -> None:
         payload=payload,
         session=session,
     )
+
+
+from api.v1.sync_routes import SyncRequest
+
+
+# ID: 49704157-6b67-4907-80cb-147173cbc61e
+def test_SyncRequest():
+    req = SyncRequest()
+    assert req.write is False
+    assert req.target is None
+    assert req.requested_by == "api"
+    assert req.force is False
+
+    custom = SyncRequest(
+        write=True,
+        target="scope-x",
+        requested_by="tester",
+        force=True,
+    )
+    assert custom.write is True
+    assert custom.target == "scope-x"
+    assert custom.requested_by == "tester"
+    assert custom.force is True
