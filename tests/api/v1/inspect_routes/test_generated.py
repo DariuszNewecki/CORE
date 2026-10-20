@@ -119,3 +119,26 @@ async def test_analysis_command_tree():
 
     assert result == expected_tree
     mock_get_tree.assert_called_once_with(mock_core_context)
+
+
+import inspect
+
+from api.v1.inspect_routes import analysis_common_knowledge
+
+
+# ID: 04e553e8-4492-42ec-983b-9f6bd5a5a6fa
+def test_analysis_common_knowledge():
+    assert inspect.iscoroutinefunction(analysis_common_knowledge)
+
+    response = MagicMock()
+    response.headers = {}
+
+    with patch(
+        "api.v1.inspect_routes._signal_deprecation", new=MagicMock()
+    ) as mock_signal:
+        import asyncio
+
+        result = asyncio.run(analysis_common_knowledge(response=response, limit=25))
+
+    mock_signal.assert_called_once_with(response)
+    assert result == {"available": False, "candidates": []}
