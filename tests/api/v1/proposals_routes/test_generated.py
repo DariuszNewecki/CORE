@@ -141,3 +141,24 @@ async def test_get_proposal():
     service.get.assert_awaited_once_with("prop-1")
     proposal.to_dict.assert_called_once_with()
     assert result == {"id": "prop-1", "name": "test"}
+
+
+import asyncio
+
+from api.v1.proposals_routes import get_proposal_chain
+
+
+# ID: aec2e524-d96d-4aeb-a440-bdc58d3482b4
+def test_get_proposal_chain():
+    proposal_id = "prop-123"
+    expected_chain = {"proposal_id": proposal_id, "steps": [{"step": 1}, {"step": 2}]}
+
+    svc = MagicMock()
+    svc.get_chain_for_proposal = AsyncMock(return_value=expected_chain)
+
+    session = MagicMock()
+
+    result = asyncio.run(get_proposal_chain(proposal_id, svc, session))
+
+    assert result == expected_chain
+    svc.get_chain_for_proposal.assert_awaited_once_with(proposal_id, session)
