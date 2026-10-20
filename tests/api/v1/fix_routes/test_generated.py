@@ -97,7 +97,6 @@ async def test_list_fix_commands():
     assert result == {"count": 2, "commands": fake_commands}
 
 
-
 from api.v1.fix_routes import run_fix_ir
 
 
@@ -116,3 +115,49 @@ async def test_run_fix_ir():
 
     mock_bootstrap.assert_called_once_with(request.app.state.core_context, "some_kind")
     assert result == {"path": "scaffolds/some_kind.ir.json"}
+
+
+
+import pytest
+
+from api.v1.fix_routes import run_fix_modularity
+
+
+@pytest.mark.asyncio
+# ID: 8b3f885d-6a16-4276-9521-2d5b476c5046
+async def test_run_fix_modularity():
+    run_id = uuid4()
+
+    request = MagicMock()
+    request.app.state.core_context = MagicMock()
+
+    response = MagicMock()
+    background_tasks = MagicMock()
+
+    payload = MagicMock()
+    payload.write = True
+    payload.requested_by = "tester"
+    payload.params = {"k": "v"}
+
+    session = AsyncMock()
+    result = MagicMock()
+    result.scalar_one.return_value = run_id
+    session.execute.return_value = result
+    session.commit = AsyncMock()
+
+    out = await run_fix_modularity(
+        request=request,
+        response=response,
+        background_tasks=background_tasks,
+        payload=payload,
+        session=session,
+    )
+
+    session.execute.assert_awaited_once()
+    session.commit.assert_awaited_once()
+    background_tasks.add_task.assert_called_once()
+    assert out == {
+        "run_id": str(run_id),
+        "status": "pending",
+        "href": f"/v1/fix/runs/{run_id}",
+    }
