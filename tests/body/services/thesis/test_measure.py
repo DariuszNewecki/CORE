@@ -388,6 +388,40 @@ def test_pr_trips() -> None:
     }
 
 
+def test_promotion_prs_are_not_counted_as_trips() -> None:
+    """A promotion PR's commits are main's own merges, already counted on
+    their own pull requests (#1147: 85 repeated trips)."""
+    approved = {
+        "__typename": "PullRequestReview",
+        "state": "APPROVED",
+        "submittedAt": "2026-10-10T09:00:00Z",
+    }
+    items = [approved, _commit("2026-10-10T10:00:00Z", "Merge pull request #9")]
+    promo = {
+        "state": "OPEN",
+        "mergedAt": None,
+        "closedAt": None,
+        "updatedAt": "2026-10-10T12:00:00Z",
+        "baseRefName": "live",
+        "headRefName": "promote/next",
+        "timelineItems": {"nodes": items},
+    }
+    into_live = {**promo, "headRefName": "main"}
+    from_promote = {**promo, "baseRefName": "other", "headRefName": "promote/x"}
+    feature = {**promo, "baseRefName": "main", "headRefName": "fix-x"}
+    assert pr_trips([promo, into_live, from_promote], date(2026, 10, 1)) == {}
+    assert pr_trips([feature], date(2026, 10, 1)) == {
+        "CI rerun after branch update": 1,
+        "branch updated after approval": 1,
+    }
+
+
+def test_the_timelines_query_asks_for_base_and_head_branches() -> None:
+    from body.services.thesis.measure import _PR_TIMELINES
+
+    assert "baseRefName" in _PR_TIMELINES and "headRefName" in _PR_TIMELINES
+
+
 def _line(kind: str, ts: str, content) -> str:
     return json.dumps({"type": kind, "timestamp": ts, "message": {"content": content}})
 
@@ -639,8 +673,18 @@ def _promotion(sha: str = PROMOTED, ref: str = "promote/next", **change) -> dict
     }
 
 
-def _review(commit: str = PROMOTED, login: str = GOV, state: str = "APPROVED"):
-    return {"user": {"login": login}, "state": state, "commit_id": commit}
+def _review(
+    commit: str = PROMOTED,
+    login: str = GOV,
+    state: str = "APPROVED",
+    at: str = "2026-10-18T00:00:00Z",
+):
+    return {
+        "user": {"login": login},
+        "state": state,
+        "commit_id": commit,
+        "submitted_at": at,
+    }
 
 
 def _ledger_file(tmp_path: Path, *entries: dict) -> Path:
@@ -663,7 +707,7 @@ def test_the_cutover_is_the_first_deploy_recorded_with_a_promotion(
 
 
 def test_promotion_verdict() -> None:
-    entry = {"sha": PROMOTED, "promotion": 1200}
+    entry = {"sha": PROMOTED, "promotion": 1200, "at": "2026-10-20T09:00:00+00:00"}
     assert promotion_verdict(entry, _promotion(), [_review()], GOV) is None
     merged = _promotion(state="closed", merged=True)
     assert promotion_verdict(entry, merged, [_review()], GOV) is None
@@ -677,7 +721,6 @@ def test_promotion_verdict() -> None:
             [_review()],
             "promote/",
         ),
-        (entry, _promotion(sha="o" * 40), [_review()], "head is"),
         (entry, _promotion(state="closed", merged=False), [_review()], "closed"),
         (entry, _promotion(), [], "did not approve"),
         (entry, _promotion(), [_review(login="bot")], "did not approve"),
@@ -692,6 +735,29 @@ def test_promotion_verdict() -> None:
     for e, pull, reviews, why in cases:
         verdict = promotion_verdict(e, pull, reviews, GOV)
         assert verdict is not None and why in verdict, (why, verdict)
+
+
+def test_a_reused_promotion_is_judged_by_the_approval_before_its_deploy() -> None:
+    """#1147: one promotion PR reused for 26h. The governor approved each
+    exact SHA just before its deploy; the PR's head moved on afterwards. The
+    deploy is judged by the governor's last decisive review submitted at or
+    before the deploy, not by the PR's current head."""
+    first, second = "1" * 40, "2" * 40
+    reused = _promotion(sha=second)  # the head today
+    reviews = [
+        _review(commit=first, at="2026-10-18T12:58:00Z"),
+        _review(commit=second, at="2026-10-18T19:33:00Z"),
+    ]
+    deploy_1 = {"sha": first, "promotion": 1147, "at": "2026-10-18T13:06:00+00:00"}
+    deploy_2 = {"sha": second, "promotion": 1147, "at": "2026-10-18T19:36:00+00:00"}
+    assert promotion_verdict(deploy_1, reused, reviews, GOV) is None
+    assert promotion_verdict(deploy_2, reused, reviews, GOV) is None
+    # an approval submitted only after the deploy never counts
+    early = {**deploy_2, "at": "2026-10-18T19:30:00+00:00"}
+    assert "did not approve" in str(promotion_verdict(early, reused, reviews, GOV))
+    # the last decisive review before the deploy decides, not any approval
+    asked = [reviews[0], _review(state="CHANGES_REQUESTED", at="2026-10-18T13:00Z")]
+    assert promotion_verdict(deploy_1, reused, asked, GOV) is not None
 
 
 async def test_after_the_cutover_deploys_count_and_main_writes_do_not(
@@ -741,6 +807,54 @@ async def test_after_the_cutover_deploys_count_and_main_writes_do_not(
         taken.detail["unverified"]["promotion_cutover"] == "2026-10-20T09:00:00+00:00"
     )
     assert taken.detail["unverified"]["deploys_judged"] == 2
+
+
+async def test_a_stored_false_deploy_breach_gets_a_correction_row(
+    tmp_path: Path,
+) -> None:
+    """A deploy stored as a breach only because the reused promotion's head
+    had moved on is named false in a correction row and leaves the count;
+    a deploy stored for having no promotion is never corrected."""
+    ledger = _ledger_file(
+        tmp_path,
+        {
+            "action": "deploy",
+            "at": "2026-10-18T13:06:00+00:00",
+            "sha": PROMOTED,
+            "promotion": 1147,
+        },
+    )
+    false = {
+        "sha": PROMOTED,
+        "reason": f"deploy: promotion #1147's head is {'n' * 12}",
+        "first_seen": "2026-10-18",
+    }
+    bare = {
+        "sha": "q" * 40,
+        "reason": "deploy: deployed without a promotion",
+        "first_seen": "2026-10-18",
+    }
+    gh = _FakeGitHub(
+        [],
+        [],
+        pulls={1147: _promotion(sha="n" * 40)},
+        reviews={1147: [_review(at="2026-10-18T12:58:00Z")]},
+    )
+    taken = await _measure(
+        date(2026, 10, 20),
+        gh,
+        tmp_path,
+        governor=GOV,
+        stored=[false, bare],
+        deploys=(ledger, tmp_path),
+    )
+    assert taken.measures.unverified_writes == 1
+    assert taken.unverified_breaches == [bare]
+    [row] = taken.unverified_corrections
+    assert row["sha"] == PROMOTED
+    assert row["stored_reason"] == false["reason"]
+    assert row["corrected_on"] == "2026-10-20"
+    assert "before the deploy approved this exact commit" in row["why_false"]
 
 
 async def test_before_any_promoted_deploy_main_writes_count_as_before(

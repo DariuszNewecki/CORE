@@ -11,8 +11,8 @@ account, or whose exact last commit that account approved, with green CI.
 From the first deploy recorded with its promotion (ADR-171, the promotion
 cutover: that deploy's exact moment, not its day) main is integration: its writes are no longer counted, and the
 writes that count are the deploys, each verified only when it records a
-promotion into ``live`` whose head is the deployed commit and whose exact
-head the governor approved. Sources: GitHub's
+promotion into ``live`` on which the governor's last decisive review
+before the deploy approved the exact deployed commit. Sources: GitHub's
 activity API and pull requests, git log of the merge branch, the blackboard
 (read-only transaction), Claude Code's transcripts for this project, and the
 deploy ledger with the post-merge runner's logs. A
@@ -70,7 +70,7 @@ _MERGED_PRS = """query($owner:String!,$name:String!,$after:String){
 
 _PR_TIMELINES = """query($owner:String!,$name:String!){repository(owner:$owner,name:$name){
   pullRequests(first:100,orderBy:{field:UPDATED_AT,direction:DESC}){
-    nodes{state mergedAt closedAt updatedAt
+    nodes{state mergedAt closedAt updatedAt baseRefName headRefName
       timelineItems(first:100,itemTypes:[PULL_REQUEST_REVIEW,REVIEW_DISMISSED_EVENT,
         PULL_REQUEST_COMMIT,HEAD_REF_FORCE_PUSHED_EVENT]){nodes{__typename
         ... on PullRequestReview{state submittedAt}
@@ -308,9 +308,14 @@ def promotion_verdict(
     governor: str,
 ) -> str | None:
     """Why the deploy *entry* is unverified, or None when it ran an approved
-    promotion: a pull request into ``live`` from a ``promote/`` branch whose
-    head is the deployed commit and whose exact head the governor approved
-    (core-deploy's own check). *pull* and *reviews* are GitHub's REST answers."""
+    promotion: a pull request into ``live`` from a ``promote/`` branch on
+    which the governor's last decisive review submitted at or before the
+    deploy (``entry["at"]``) approved the exact deployed commit. *pull* and
+    *reviews* are GitHub's REST answers.
+
+    The promotion's current head is not compared: one promotion PR is reused
+    across deploys (``promote/next`` moves on after each), so its head now
+    says nothing about what the governor approved when a deploy ran (#1147)."""
     sha = str(entry.get("sha", ""))
     number = entry.get("promotion")
     if number is None:
@@ -322,29 +327,36 @@ def promotion_verdict(
         return f"promotion #{number} does not go into {LIVE_BRANCH}"
     if not str(head.get("ref") or "").startswith("promote/"):
         return f"promotion #{number} is not from a promote/ branch"
-    if head.get("sha") != sha:
-        return f"promotion #{number}'s head is {str(head.get('sha'))[:12]}"
     if pull.get("state") != "open" and not pull.get("merged"):
         return f"promotion #{number} was closed without being merged"
+    deployed_at = _when(entry.get("at"))
     verdict = None
     for review in reviews:  # chronological
         if (review.get("user") or {}).get("login") != governor:
             continue
+        submitted = _when(review.get("submitted_at"))
+        if deployed_at is None or submitted is None or submitted > deployed_at:
+            continue
         if review.get("state") in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED"):
             verdict = (review.get("state"), review.get("commit_id"))
     if verdict != ("APPROVED", sha):
-        return f"promotion #{number}: {governor} did not approve {sha[:12]}"
+        return (
+            f"promotion #{number}: {governor} did not approve {sha[:12]} "
+            "before its deploy"
+        )
     return None
 
 
 # ID: 83f31623-af9a-4786-956d-7323e152cd07
 async def unverified_deploys(
     gh: GitHub, ledger: Path, since: datetime, governor: str
-) -> tuple[list[dict[str, str]], int]:
+) -> tuple[list[dict[str, str]], int, set[str]]:
     """(deploys at or after *since* that ran no approved promotion, as {sha,
-    reason}; how many deploys were judged). A rollback deploys nothing new
-    and is not judged."""
+    reason}; how many deploys were judged; the shas whose every judged
+    deploy ran an approved promotion). A rollback deploys nothing new and is
+    not judged."""
     bad: list[dict[str, str]] = []
+    passed: set[str] = set()
     deploys = [
         e
         for e in _ledger(ledger)
@@ -362,9 +374,44 @@ async def unverified_deploys(
                     f"pulls/{int(number)}/reviews?per_page=100"
                 )
         why = promotion_verdict(entry, pull, reviews, governor)
+        sha = str(entry.get("sha", ""))
         if why:
-            bad.append({"sha": str(entry.get("sha", "")), "reason": f"deploy: {why}"})
-    return bad, len(deploys)
+            bad.append({"sha": sha, "reason": f"deploy: {why}"})
+        else:
+            passed.add(sha)
+    return bad, len(deploys), passed - {b["sha"] for b in bad}
+
+
+# ID: 0e7c4b1a-6f3d-4a92-b8e5-2d9c71f4a036
+def false_deploy_breaches(
+    stored: list[dict[str, Any]], passed: set[str], day: date
+) -> list[dict[str, Any]]:
+    """Stored deploy breaches that were false: kept because a promotion's
+    current head was compared with the deployed commit (one promotion PR
+    reused across deploys, #1147), and that ``promotion_verdict`` now passes
+    (*passed*, from ``unverified_deploys``): the governor's last review
+    before the deploy approved that exact commit.
+
+    As in ``false_ci_breaches``, the stored rows are never changed or
+    deleted; each false one gets a correction row naming it and why. Only a
+    breach stored as ``deploy: promotion #N...`` is corrected here; one
+    stored for a deploy without a promotion never is."""
+    return [
+        {
+            "sha": breach["sha"],
+            "stored_reason": breach.get("reason"),
+            "first_seen": breach.get("first_seen"),
+            "why_false": (
+                "now judged verified: the governor's last review before the "
+                "deploy approved this exact commit; the promotion's later head "
+                "says nothing about that deploy (a reused promotion PR)"
+            ),
+            "corrected_on": day.isoformat(),
+        }
+        for breach in stored
+        if str(breach.get("reason", "")).startswith("deploy: promotion #")
+        and str(breach.get("sha", "")) in passed
+    ]
 
 
 # ID: 562ec047-1701-4c8e-9ebc-d175f6e9ee9b
@@ -387,11 +434,19 @@ def ai_share(rows: list[tuple[str, str]]) -> tuple[float | None, Counter]:
 def pr_trips(nodes: list[dict[str, Any]], since: date) -> Counter:
     """Pull-request round trips that did not move main: approvals dismissed,
     force-pushes, CI reruns after branch updates (and those after approval),
-    commits after approval, red CI runs, PRs closed unmerged."""
+    commits after approval, red CI runs, PRs closed unmerged.
+
+    A promotion PR (into ``live``, or from a ``promote/`` branch) is not
+    counted: its commits are main's own merges, each already counted on its
+    own pull request (#1147 alone repeated 85 of them)."""
     start = _iso(since)
     trips: Counter = Counter()
     for pr in nodes:
         if pr["updatedAt"] < start:
+            continue
+        if pr.get("baseRefName") == LIVE_BRANCH or str(
+            pr.get("headRefName") or ""
+        ).startswith("promote/"):
             continue
         items = pr["timelineItems"]["nodes"]
         approved = min(
@@ -687,13 +742,15 @@ async def measure(
             prs = await _merged_prs(gh, max(long_since, CUTOVER))
             bad, pending = count_unverified(writes, prs, governor)
             judged = 0
+            passed: set[str] = set()
             if deploys is not None and cutover is not None:
                 start = datetime.combine(long_since, time(), tzinfo=UTC)
-                bad_deploys, judged = await unverified_deploys(
+                bad_deploys, judged, passed = await unverified_deploys(
                     gh, deploys[0], max(start, cutover), governor
                 )
                 bad += bad_deploys
             corrections = false_ci_breaches(kept, prs, governor, day)
+            corrections += false_deploy_breaches(kept, passed, day)
             false_shas = {c["sha"] for c in corrections}
             kept = [b for b in kept if b["sha"] not in false_shas]
             known = {b["sha"] for b in kept} | false_shas
