@@ -191,7 +191,6 @@ def test_quality_policy_coverage():
     assert result == expected
 
 
-
 import pytest
 
 from api.v1.quality_routes import quality_imports
@@ -215,3 +214,15 @@ async def test_quality_imports() -> None:
 
     mock_run.assert_awaited_once_with(fake_core_context)
     assert result == expected
+
+
+from api.v1.quality_routes import QualityAsyncRequest
+
+
+# ID: 7e74f1ef-c9fe-4376-a910-f1aded8b5b48
+def test_QualityAsyncRequest():
+    request = QualityAsyncRequest()
+    assert request.requested_by == "api"
+
+    custom = QualityAsyncRequest(requested_by="tester")
+    assert custom.requested_by == "tester"
