@@ -100,3 +100,37 @@ async def test_run_refactor_autonomous():
         "status": "pending",
         "href": f"/v1/refactor/runs/{run_id}",
     }
+
+
+from unittest.mock import patch
+
+import pytest
+
+from api.v1.refactor_routes import refactor_stats
+
+
+@pytest.mark.asyncio
+# ID: 18418b32-8163-4f29-8aaa-1c4a6386d2c1
+async def test_refactor_stats():
+    expected_stats = {"high": 5, "medium": 10, "low": 3}
+
+    mock_git_service = MagicMock()
+    mock_git_service.repo_path = "/fake/repo/root"
+
+    mock_core_context = MagicMock()
+    mock_core_context.git_service = mock_git_service
+
+    mock_app = MagicMock()
+    mock_app.state.core_context = mock_core_context
+
+    mock_request = MagicMock()
+    mock_request.app = mock_app
+
+    with patch(
+        "api.v1.refactor_routes.get_refactor_stats",
+        return_value=expected_stats,
+    ) as mock_get_stats:
+        result = await refactor_stats(mock_request)
+
+    assert result == expected_stats
+    mock_get_stats.assert_called_once_with("/fake/repo/root")
