@@ -261,7 +261,6 @@ async def test_decisions_patterns():
     assert result == expected
 
 
-
 import pytest
 
 from api.v1.inspect_routes import decisions_list
@@ -291,3 +290,26 @@ async def test_decisions_list():
         limit=10,
         after_cursor="cursor-abc",
     )
+
+
+
+from api.v1.inspect_routes import status_drift
+
+
+# ID: 47f400de-a913-40ec-94c1-045f3edcfc41
+async def test_status_drift() -> None:
+    core_context = MagicMock()
+
+    request = MagicMock()
+    request.app.state.core_context = core_context
+
+    expected = {"symbols": [], "vectors": []}
+
+    with patch(
+        "api.v1.inspect_routes.get_drift_status",
+        new=AsyncMock(return_value=expected),
+    ) as mock_get_drift_status:
+        result = await status_drift(request, scope="all")
+
+    assert result == expected
+    mock_get_drift_status.assert_awaited_once_with(core_context, scope="all")
