@@ -276,3 +276,19 @@ def test_RunIRRequest():
     request = RunIRRequest(kind="triage")
     assert request.kind == "triage"
     assert isinstance(request, RunIRRequest)
+
+
+from api.v1.fix_routes import RunFlowRequest
+
+
+# ID: da52e97d-acb4-4849-aa3c-4ee06a87e5a4
+def test_RunFlowRequest():
+    request = RunFlowRequest(
+        write=True,
+        requested_by="tester",
+        params={"min_score": 0.5, "limit": 10},
+    )
+
+    assert request.write is True
+    assert request.requested_by == "tester"
+    assert request.params == {"min_score": 0.5, "limit": 10}
