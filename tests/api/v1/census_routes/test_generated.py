@@ -125,3 +125,52 @@ def test_get_census_run():
         "result": {"ok": True},
         "error": None,
     }
+
+
+import uuid
+
+import pytest
+
+from api.v1.census_routes import create_census_run
+
+
+@pytest.mark.asyncio
+# ID: 9eb59730-7b6b-4905-86b4-3cf692a6c4f6
+async def test_create_census_run():
+    run_id = uuid.uuid4()
+
+    request = MagicMock()
+    request.app.state.core_context = MagicMock()
+
+    response = MagicMock()
+    background_tasks = MagicMock()
+
+    payload = MagicMock()
+    payload.snapshot = "snap-001"
+    payload.requested_by = "tester"
+
+    result_mock = MagicMock()
+    result_mock.scalar_one.return_value = run_id
+
+    session = AsyncMock()
+    session.execute.return_value = result_mock
+    session.commit = AsyncMock()
+
+    out = await create_census_run(
+        request=request,
+        response=response,
+        background_tasks=background_tasks,
+        payload=payload,
+        session=session,
+    )
+
+    session.execute.assert_awaited_once()
+    session.commit.assert_awaited_once()
+
+    background_tasks.add_task.assert_called_once()
+
+    assert out == {
+        "run_id": str(run_id),
+        "status": "pending",
+        "href": f"/v1/census/runs/{run_id}",
+    }
