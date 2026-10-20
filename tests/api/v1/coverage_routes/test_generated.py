@@ -396,3 +396,16 @@ def test_GenerateBatchRequest():
 
     dumped = request.model_dump()
     assert dumped == {"priority": "high", "write": True, "requested_by": "tester"}
+
+
+# ID: 10699ea6-55a9-4a07-ac19-8742e1fba943
+def test_GenerateRequest():
+    from api.v1.coverage_routes import GenerateRequest
+
+    req = GenerateRequest(target_file="src/module.py", write=True)
+    assert req.target_file == "src/module.py"
+    assert req.write is True
+    assert req.requested_by == "api"
+
+    req2 = GenerateRequest(target_file="other.py", write=True, requested_by="tester")
+    assert req2.requested_by == "tester"
