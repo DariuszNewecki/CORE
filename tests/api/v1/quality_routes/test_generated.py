@@ -39,7 +39,6 @@ async def test_quality_gates():
     )
 
 
-
 from fastapi import BackgroundTasks
 
 
@@ -73,6 +72,49 @@ async def test_quality_system():
         check="system",
         params={},
         requested_by="tester",
+        request=request,
+        response=response,
+        background_tasks=background_tasks,
+        session=session,
+    )
+
+
+
+import pytest
+
+from api.v1.quality_routes import quality_tests
+
+
+@pytest.mark.asyncio
+# ID: 623fcc92-b220-4e8f-8f0b-67dc8bbc36ad
+async def test_quality_tests():
+    request = MagicMock()
+    response = MagicMock()
+    background_tasks = MagicMock()
+    session = MagicMock()
+    payload = MagicMock()
+    payload.path = "tests/unit"
+    payload.requested_by = "user@example.com"
+
+    expected = {"status": "dispatched", "check": "tests"}
+
+    with patch(
+        "api.v1.quality_routes._dispatch_quality",
+        new=AsyncMock(return_value=expected),
+    ) as mock_dispatch:
+        result = await quality_tests(
+            request=request,
+            response=response,
+            background_tasks=background_tasks,
+            payload=payload,
+            session=session,
+        )
+
+    assert result == expected
+    mock_dispatch.assert_awaited_once_with(
+        check="tests",
+        params={"path": "tests/unit"},
+        requested_by="user@example.com",
         request=request,
         response=response,
         background_tasks=background_tasks,
