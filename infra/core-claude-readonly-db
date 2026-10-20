@@ -1,0 +1,97 @@
+#!/bin/bash
+# infra/core-claude-readonly-db — a read-only database login for the coding assistant (core-claude).
+#
+# Governor decision 2026-10-20: core-claude may read CORE's database (proposals, Blackboard,
+# workers) but never write it. Until now it had no database access at all and answered
+# questions through the API only.
+#
+# Usage, as darek, from /opt/dev/CORE:
+#   sudo bash infra/core-claude-readonly-db --dry-run
+#   sudo bash infra/core-claude-readonly-db
+#
+# What it changes (safe to run again; a rerun sets a new password):
+#  1. in the database the services use (read from /opt/core/etc/secrets.env, values never
+#     printed), as the container's admin user (the service user may not create roles):
+#     the role core_claude_ro — login, no superuser, no create rights, every
+#     transaction read-only — with CONNECT on the database, USAGE on schema core and SELECT
+#     on its tables, now and future ones;
+#  2. /home/core-claude/.config/core/readonly.env (core-claude 0600): DATABASE_URL for that role.
+#
+# Undo: in the database, DROP OWNED BY core_claude_ro; DROP ROLE core_claude_ro;
+# then delete /home/core-claude/.config/core/readonly.env.
+
+set -euo pipefail
+
+ROLE=core_claude_ro
+SECRETS=/opt/core/etc/secrets.env
+CONTAINER=core_postgres_db
+OUT_DIR=/home/core-claude/.config/core
+OUT=$OUT_DIR/readonly.env
+
+DRY=0
+[[ "${1:-}" == "--dry-run" ]] && DRY=1
+say() { printf '%s\n' "$*"; }
+
+[[ $EUID -eq 0 ]] || { say "run with sudo"; exit 1; }
+id core-claude >/dev/null 2>&1 || { say "account core-claude not found"; exit 1; }
+
+url="$(grep -E '^DATABASE_URL=' "$SECRETS" | head -1 | cut -d= -f2- | tr -d '"')"
+[[ -n "$url" ]] || { say "no DATABASE_URL in $SECRETS"; exit 1; }
+read -r db_user db_name db_host db_port < <(python3 -c '
+import sys, urllib.parse as u
+p = u.urlsplit(sys.argv[1])
+print(p.username, p.path.lstrip("/"), p.hostname or "127.0.0.1", p.port or 5432)
+' "$url")
+
+say "database $db_name on $db_host:$db_port (service user $db_user)"
+docker ps --format '{{.Names}}' | grep -qx "$CONTAINER" \
+  || { say "container $CONTAINER is not running"; exit 1; }
+if [[ $DRY -eq 1 ]]; then
+  say "would create/update role $ROLE (read-only, SELECT on schema core)"
+  say "would write $OUT (core-claude 0600)"
+  exit 0
+fi
+
+# The service user may not create roles; the container's superuser
+# (POSTGRES_USER of the postgres image, "postgres" when unset) can, over the
+# container's local socket.
+admin="$(docker exec "$CONTAINER" printenv POSTGRES_USER 2>/dev/null || true)"
+admin="${admin:-postgres}"
+say "creating the role as the container's admin user $admin"
+
+pw="$(openssl rand -hex 24)"
+
+# SQL goes in on stdin so the password never appears in a process list.
+docker exec -i "$CONTAINER" psql -q -v ON_ERROR_STOP=1 -U "$admin" -d "$db_name" <<SQL
+DO \$\$ BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$ROLE') THEN
+    CREATE ROLE $ROLE LOGIN;
+  END IF;
+END \$\$;
+ALTER ROLE $ROLE WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD '$pw';
+ALTER ROLE $ROLE SET default_transaction_read_only = on;
+GRANT CONNECT ON DATABASE "$db_name" TO $ROLE;
+GRANT USAGE ON SCHEMA core TO $ROLE;
+GRANT SELECT ON ALL TABLES IN SCHEMA core TO $ROLE;
+ALTER DEFAULT PRIVILEGES FOR ROLE "$db_user" IN SCHEMA core GRANT SELECT ON TABLES TO $ROLE;
+SQL
+say "  ok: role $ROLE (read-only)"
+
+install -d -o core-claude -g core-claude -m 0700 "$OUT_DIR"
+umask 077
+printf 'DATABASE_URL=postgresql+asyncpg://%s:%s@%s:%s/%s\n' \
+  "$ROLE" "$pw" "$db_host" "$db_port" "$db_name" > "$OUT"
+chown core-claude:core-claude "$OUT"
+chmod 0600 "$OUT"
+say "  ok: wrote $OUT"
+
+# Check: the role reads, and cannot write.
+n="$(docker exec -i -e PGPASSWORD="$pw" "$CONTAINER" psql -tA -h 127.0.0.1 -U "$ROLE" -d "$db_name" \
+  -c 'SELECT count(*) FROM core.autonomous_proposals')"
+say "  ok: reads ($n proposals)"
+if docker exec -i -e PGPASSWORD="$pw" "$CONTAINER" psql -q -h 127.0.0.1 -U "$ROLE" -d "$db_name" \
+  -c 'CREATE TABLE core.core_claude_ro_probe (x int)' >/dev/null 2>&1; then
+  say "  FAIL: the role could write"; exit 1
+fi
+say "  ok: writes refused"
+say "done"
