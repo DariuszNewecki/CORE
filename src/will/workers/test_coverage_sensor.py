@@ -108,7 +108,7 @@ class TestCoverageSensor(ScheduledWorker):
                 subject="test_coverage_sensor.run.complete",
                 payload={
                     "uncovered": 0,
-                    "message": "All source files have corresponding test files.",
+                    "message": "All source files have test files covering their public symbols.",
                 },
             )
             logger.info("TestCoverageSensor: no coverage gaps found.")

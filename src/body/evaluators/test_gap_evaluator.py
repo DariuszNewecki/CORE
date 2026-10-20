@@ -13,7 +13,6 @@ remediation into per-symbol proposals.
 
 from __future__ import annotations
 
-import ast
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -23,7 +22,13 @@ from body.evaluators.base_evaluator import BaseEvaluator
 from shared.component_primitive import ComponentResult
 from shared.infrastructure.intent.test_coverage_paths import source_to_test_path
 from shared.logger import getLogger
-from shared.utils.public_symbols import extract_public_symbols
+from shared.utils.public_symbols import (
+    extract_public_symbols,
+    leaf_name_counts,
+    name_key,
+    symbol_is_tested,
+    tested_symbol_names,
+)
 
 
 logger = getLogger(__name__)
@@ -132,33 +137,12 @@ class TestGapEvaluator(BaseEvaluator):
                     test_file,
                 )
 
-        # The generator prompt asks for test_{symbol_name}; for a method
-        # "Class.method" that is not an identifier, so the LLM lands it as
-        # test_Class_method or test_class_method. Compare a normalized form
-        # (lowercase, no '_' or '.'), or the remediator re-mints the same
-        # symbol after every landing (2026-10-02 loop).
-        tested_keys = {_name_key(name) for name in tested_names}
-        # A method "Class.method" is also covered by a bare test_<method> when
-        # no other symbol in this file has that method/function name — the
-        # generator often drops the class, and an unrecognised landing is
-        # re-minted every cycle with the same function name, shadowing the
-        # previous copy (2026-10-03 loop: LoggingChecks.check_logger_not_presentation
-        # minted 8 times overnight). Ambiguous bare names (e.g. `verify` on
-        # several classes) are never credited.
-        leaf_counts: dict[str, int] = {}
-        for sym in symbols:
-            leaf = _name_key(sym.name.rsplit(".", 1)[-1])
-            leaf_counts[leaf] = leaf_counts.get(leaf, 0) + 1
+        tested_keys = {name_key(name) for name in tested_names}
+        leaf_counts = leaf_name_counts([sym.name for sym in symbols])
         gaps: list[SymbolGap] = []
         covered: list[SymbolGap] = []
         for sym in symbols:
-            leaf_key = _name_key(sym.name.rsplit(".", 1)[-1])
-            bare_method_covered = (
-                "." in sym.name
-                and leaf_counts.get(leaf_key) == 1
-                and leaf_key in tested_keys
-            )
-            if _name_key(sym.name) in tested_keys or bare_method_covered:
+            if symbol_is_tested(sym.name, tested_keys, leaf_counts):
                 sym.tested = True
                 covered.append(sym)
             else:
@@ -207,29 +191,6 @@ def _extract_public_symbols(source_path: Path) -> list[SymbolGap]:
     ]
 
 
-# ID: 26137180-53a9-4360-8535-a221d09ae847
 def _extract_tested_names(test_path: Path) -> set[str]:
-    """Return symbol names covered by test_<name> functions/methods in test_path.
-
-    Module-level test_<name> → covers top-level symbol <name>.
-    TestClassName.test_<method> → covers class method ClassName.<method>.
-    """
-    source = test_path.read_text(encoding="utf-8")
-    tree = ast.parse(source, filename=str(test_path))
-    tested: set[str] = set()
-    for node in ast.iter_child_nodes(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            if node.name.startswith("test_"):
-                tested.add(node.name[5:])
-        elif isinstance(node, ast.ClassDef) and node.name.startswith("Test"):
-            class_name = node.name[4:]
-            for child in ast.iter_child_nodes(node):
-                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    if child.name.startswith("test_"):
-                        tested.add(f"{class_name}.{child.name[5:]}")
-    return tested
-
-
-def _name_key(name: str) -> str:
-    """Case- and separator-insensitive key: 'Svc.run' == 'Svc_run' == 'svc_run'."""
-    return name.lower().replace("_", "").replace(".", "")
+    """Symbol names covered by test_path (``tested_symbol_names``)."""
+    return tested_symbol_names(test_path)
