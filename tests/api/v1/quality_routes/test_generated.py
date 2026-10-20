@@ -37,3 +37,44 @@ async def test_quality_gates():
         background_tasks=mock_background_tasks,
         session=mock_session,
     )
+
+
+
+from fastapi import BackgroundTasks
+
+
+# ID: 5a5487a9-afd7-439c-9e07-4f107c410fcb
+async def test_quality_system():
+    from api.v1.quality_routes import quality_system
+
+    request = MagicMock()
+    response = MagicMock()
+    background_tasks = MagicMock(spec=BackgroundTasks)
+    payload = MagicMock()
+    payload.requested_by = "tester"
+    session = AsyncMock()
+
+    sentinel = {"status": "dispatched", "check": "system"}
+
+    with patch(
+        "api.v1.quality_routes._dispatch_quality",
+        new=AsyncMock(return_value=sentinel),
+    ) as mock_dispatch:
+        result = await quality_system(
+            request=request,
+            response=response,
+            background_tasks=background_tasks,
+            payload=payload,
+            session=session,
+        )
+
+    assert result == sentinel
+    mock_dispatch.assert_awaited_once_with(
+        check="system",
+        params={},
+        requested_by="tester",
+        request=request,
+        response=response,
+        background_tasks=background_tasks,
+        session=session,
+    )
