@@ -314,7 +314,6 @@ async def test_status_drift() -> None:
     mock_get_drift_status.assert_awaited_once_with(core_context, scope="all")
 
 
-
 from api.v1.inspect_routes import status_health
 
 
@@ -331,3 +330,24 @@ async def test_status_health() -> None:
 
     assert result == expected
     mock_get_health.assert_awaited_once_with(mock_session)
+
+
+import pytest
+
+from api.v1.inspect_routes import status_db
+
+
+@pytest.mark.asyncio
+# ID: c00e8d4d-a6e4-441b-a78e-1f0367a10436
+async def test_status_db():
+    fake_session = MagicMock()
+    fake_status = {"connected": True, "schema": "ok"}
+
+    with patch(
+        "api.v1.inspect_routes.get_db_status",
+        new=AsyncMock(return_value=fake_status),
+    ) as mock_get_db_status:
+        result = await status_db(session=fake_session)
+
+    assert result == fake_status
+    mock_get_db_status.assert_awaited_once_with(fake_session)
