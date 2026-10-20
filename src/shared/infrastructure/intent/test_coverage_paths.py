@@ -27,7 +27,10 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from shared.logger import getLogger
-from shared.utils.public_symbols import has_public_testable_symbols
+from shared.utils.public_symbols import (
+    has_public_testable_symbols,
+    has_untested_public_symbols,
+)
 
 
 logger = getLogger(__name__)
@@ -260,7 +263,10 @@ def uncovered_source_files(
 ) -> list[str]:
     """
     Walk source_root and return repo-relative paths for in-scope Python
-    source files that have no corresponding test file.
+    source files that have no corresponding test file, or whose test file
+    leaves a public symbol untested (2026-10-20: a module with a partial
+    test file was never reported again, so the loop stopped while symbols
+    were still untested).
 
     Shared between TestCoverageSensor (which posts
     `python::test.coverage::*` for these sources) and TestRunnerSensor (which
@@ -319,6 +325,8 @@ def uncovered_source_files(
         test_path = repo_root / test_rel
 
         if test_path.exists():
+            if has_untested_public_symbols(py_file, test_path):
+                uncovered.append(source_file)
             continue
         if exempt_symbol_less and not has_public_testable_symbols(py_file):
             continue

@@ -40,6 +40,7 @@ from shared.infrastructure.intent.test_coverage_paths import (
     uncovered_source_files,
 )
 from shared.logger import getLogger
+from shared.utils.public_symbols import has_untested_public_symbols
 from shared.workers.scheduled_worker import ScheduledWorker
 
 
@@ -232,6 +233,30 @@ class TestRunnerSensor(ScheduledWorker):
                     count_failed += 1
             else:
                 count_passed += result.get("passed", 0)
+                # A passing test file can still leave public symbols untested
+                # (2026-10-20: 116 symbols in 31 files sat unreported for ten
+                # days). Report them as missing so the remediator evaluates
+                # the gaps; the missing-drain resolves the finding once the
+                # coverage scan no longer lists the file.
+                if has_untested_public_symbols(
+                    self._repo_root / source_file, test_path
+                ):
+                    missing_subject = (
+                        f"{self._artifact_type}"
+                        f"::{self._rule_namespace}.missing"
+                        f"::{source_file}"
+                    )
+                    if missing_subject not in existing_missing:
+                        await self.post_artifact_finding(
+                            artifact_type=self._artifact_type,
+                            sub_namespace=f"{self._rule_namespace}.missing",
+                            identity_key_value=source_file,
+                            payload={
+                                "source_file": source_file,
+                                "test_file": test_file,
+                            },
+                        )
+                    count_missing += 1
 
             # Resolve the python::test.coverage entry regardless of pass/fail
             await svc.resolve_entries([entry_id])
