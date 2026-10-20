@@ -451,8 +451,6 @@ class TestNodeImportsCli:
         assert _node_imports_cli(node) is True
 
 
-
-
 # ID: 4b3bea5e-8897-4094-a5ae-0dec19842583
 def test_discovery_strict_check_verify():
     path_resolver = MagicMock()
@@ -473,3 +471,39 @@ def test_discovery_strict_check_verify():
     path_resolver.repo_root.__truediv__.assert_called_once_with(loader_rel)
     loader_path.is_file.assert_called_once()
     loader_path.read_text.assert_called_once_with(encoding="utf-8")
+
+
+from unittest.mock import patch
+
+
+# ID: fd47cda8-9737-40f1-bf6f-3757e9f54e0a
+def test_DiscoveryStrictCheck(tmp_path: Path) -> None:
+    resolver = MagicMock()
+    resolver.repo_root = tmp_path
+
+    loader_rel = "loader.py"
+    loader_content = (
+        "try:\n    import cli_module\nexcept ImportError:\n    cli_module = None\n"
+    )
+    (tmp_path / loader_rel).write_text(loader_content, encoding="utf-8")
+
+    with (
+        patch(
+            "mind.logic.engines.cli_gate.checks.discovery_strict._node_imports_cli",
+            return_value=True,
+        ),
+        patch(
+            "mind.logic.engines.cli_gate.checks.discovery_strict._handler_suppresses_import",
+            return_value=True,
+        ),
+    ):
+        check = DiscoveryStrictCheck(resolver)
+        findings = check.verify(commands=[], params={"loader": loader_rel})
+
+    assert isinstance(findings, list)
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.check_id == "cli_gate.discovery_strict"
+    assert finding.file_path == loader_rel
+    assert finding.context is not None
+    assert finding.context["loader"] == loader_rel
