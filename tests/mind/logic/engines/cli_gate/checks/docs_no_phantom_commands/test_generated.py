@@ -50,9 +50,6 @@ def test_DocsNoPhantomCommandsCheck_verify(tmp_path: Path) -> None:
     mock_find.assert_called_once()
 
 
-
-
-
 # ID: 859f0b9e-14b7-4903-83e9-2a5e8857efbd
 def test_DocsNoPhantomCommandsCheck(tmp_path: Path) -> None:
     repo_root = tmp_path
@@ -92,3 +89,37 @@ def test_DocsNoPhantomCommandsCheck(tmp_path: Path) -> None:
     assert findings == []
     core_admin_tree.assert_called_once()
     mock_find.assert_called_once()
+
+
+
+from mind.logic.engines.cli_gate.checks.docs_no_phantom_commands import (
+    find_phantom_mentions,
+)
+
+
+# ID: fe8212ce-1762-4596-81e7-556157582734
+def test_find_phantom_mentions():
+    inventory = MagicMock()
+
+    docs = {"README.md": "run will foo bar\n"}
+    inventories = {"will": inventory}
+
+    with (
+        patch(
+            "mind.logic.engines.cli_gate.checks.docs_no_phantom_commands.iter_code_mentions",
+            return_value=[(1, "will", ("foo", "bar"))],
+        ),
+        patch(
+            "mind.logic.engines.cli_gate.checks.docs_no_phantom_commands.resolve_mention",
+            return_value=("phantom", ("foo", "bar")),
+        ) as mock_resolve,
+    ):
+        problems = find_phantom_mentions(docs, inventories)
+
+    mock_resolve.assert_called_once_with(("foo", "bar"), inventory)
+    assert len(problems) == 1
+    problem = problems[0]
+    assert problem.file_path == "README.md"
+    assert problem.line == 1
+    assert problem.kind == "phantom"
+    assert problem.mention == "will foo bar"
