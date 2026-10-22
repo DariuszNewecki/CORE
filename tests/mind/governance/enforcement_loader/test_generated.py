@@ -60,3 +60,35 @@ def test_EnforcementMappingLoader_get_enforcement_strategy():
 
     # Unmapped rule returns None.
     assert loader.get_enforcement_strategy("unknown.rule") is None
+
+
+
+
+
+# ID: 932c1ec8-f85d-45e7-b8cd-f7be6069e91c
+def test_EnforcementMappingLoader_load_all_mappings(tmp_path: Path) -> None:
+    intent_root = tmp_path / ".intent"
+    enforcement_dir = intent_root / "enforcement"
+    mappings_dir = enforcement_dir / "mappings"
+    domain_dir = mappings_dir / "domain_a"
+    domain_dir.mkdir(parents=True)
+
+    yaml_file = domain_dir / "rules.yaml"
+    yaml_file.write_text("placeholder: true\n", encoding="utf-8")
+
+    loader = EnforcementMappingLoader(intent_root)
+
+    fake_mappings = {
+        "rule.one": {"strategy": "implement", "handler": "h1"},
+        "rule.two": {"strategy": "declared_only"},
+    }
+
+    with patch.object(
+        loader, "_load_mapping_file", return_value=fake_mappings
+    ) as mock_load:
+        result = loader.load_all_mappings()
+
+    mock_load.assert_called_once_with(yaml_file)
+    assert result == fake_mappings
+    assert result is loader._mappings_cache
+    assert yaml_file in loader._loaded_files
