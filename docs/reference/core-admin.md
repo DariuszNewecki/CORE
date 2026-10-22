@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-111 commands.
+112 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -34,7 +34,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`secrets`](#secrets) | 4 | Manage encrypted secrets in the database. |
 | [`status`](#status) | 1 | Single-glance system state and readiness. |
 | [`symbols`](#symbols) | 1 | Operations for the symbol registry and Knowledge Graph identification. |
-| [`tests`](#tests) | 2 | Test maturity dashboard and autonomous generation insights. |
+| [`tests`](#tests) | 3 | Test maturity dashboard and autonomous generation insights. |
 | [`tools`](#tools) | 2 | Governed, operator-focused maintenance and refactoring tools. |
 | [`vectors`](#vectors) | 3 | Vector store operations (Qdrant). |
 | [`workers`](#workers) | 6 | Constitutional worker management. |
@@ -1740,6 +1740,18 @@ symbols that currently have 'unassigned' status in the registry.
 ## `core-admin tests` {#tests}
 
 Test maturity dashboard and autonomous generation insights.
+
+### `core-admin tests cost` {#tests-cost}
+
+```
+core-admin tests cost [OPTIONS]
+```
+
+What CORE's LLM calls cost, per role and model, from core.llm_exchange_log.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--days`, `-d` | `30` | How many days back |
 
 ### `core-admin tests status` {#tests-status}
 
