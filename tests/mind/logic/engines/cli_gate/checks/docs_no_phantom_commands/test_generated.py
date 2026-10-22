@@ -167,7 +167,6 @@ def test_inventory_from_reference():
     )
 
 
-
 from mind.logic.engines.cli_gate.checks.docs_no_phantom_commands import (
     inventory_from_tree,
 )
@@ -214,3 +213,25 @@ def test_inventory_from_tree():
 
     assert expected_visible in set_values
     assert expected_hidden in set_values
+
+
+from mind.logic.engines.cli_gate.checks.docs_no_phantom_commands import CommandInventory
+
+
+# ID: 7d11be00-9405-4c73-972d-30bb0c9b2b7f
+def test_CommandInventory_groups():
+    inventory = CommandInventory(
+        commands=frozenset({("a", "b", "c")}),
+        hidden=frozenset({("x", "y")}),
+    )
+
+    result = inventory.groups
+
+    assert result == frozenset(
+        {
+            ("a",),
+            ("a", "b"),
+            ("x",),
+        }
+    )
+    assert isinstance(result, frozenset)
