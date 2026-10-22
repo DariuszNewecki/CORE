@@ -45,3 +45,30 @@ async def test_run_audit_workflow():
     mock_auditor_cls.assert_called_once_with(auditor_context)
     mock_auditor.run_full_audit_async.assert_awaited_once()
     assert result == expected_result
+
+
+
+
+# ID: 36c57bae-835d-4614-91db-10a3aac495df
+async def test_test_system():
+    from mind.enforcement.audit import test_system
+
+    expected_result = MagicMock()
+    expected_result.ok = True
+
+    executor = MagicMock()
+    executor.execute = AsyncMock(return_value=expected_result)
+
+    core_context = MagicMock()
+    core_context.action_executor = executor
+    # Bypass governance token verification for direct invocation in test.
+    core_context._executor_token = "test.execute"
+
+    result = (
+        await test_system.__wrapped__(core_context)
+        if hasattr(test_system, "__wrapped__")
+        else await test_system(core_context)
+    )
+
+    executor.execute.assert_awaited_once_with("test.execute")
+    assert result is expected_result
