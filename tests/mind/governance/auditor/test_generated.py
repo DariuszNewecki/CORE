@@ -60,3 +60,76 @@ def test_ConstitutionalAuditor_run_full_audit_async():
     assert isinstance(result["executed_rule_ids"], set)
     assert isinstance(result["crashed_rule_ids"], set)
     assert isinstance(result["unavailable_rule_ids"], set)
+
+
+import pytest
+
+from mind.governance.auditor import AuditVerdict, ConstitutionalAuditor
+
+
+@pytest.mark.asyncio
+# ID: fe48b7a8-f94b-4f2c-aa5d-e6310722ae5d
+async def test_ConstitutionalAuditor():
+    # Build a mocked AuditorContext with all attributes/methods the audit touches.
+    context = MagicMock()
+    context.reload_governance = MagicMock(return_value=None)
+    context.invalidate_file_cache = MagicMock(return_value=None)
+    context.sweep_llm_gate_cache = AsyncMock(return_value=None)
+    context.load_knowledge_graph = AsyncMock(return_value=None)
+
+    # intent_repo.root used by observe_law_state
+    intent_repo = MagicMock()
+    intent_repo.root = "/fake/intent/repo"
+    context.intent_repo = intent_repo
+
+    law_state = MagicMock()
+    law_state.to_dict = MagicMock(return_value={"law": "of_record"})
+    law_state.relationship = "of_record"
+
+    auditor = ConstitutionalAuditor(context)
+
+    # Patch module-level collaborators used inside run_full_audit_async.
+    with (
+        patch("mind.governance.auditor.observe_law_state", return_value=law_state),
+        patch("mind.governance.auditor.EngineRegistry") as mock_engine_registry,
+        patch(
+            "mind.governance.auditor.run_dynamic_rules",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "mind.governance.auditor.get_dynamic_execution_stats",
+            return_value={"executed_dynamic_rules": 0},
+        ),
+        patch(
+            "mind.governance.auditor.law_drift_findings",
+            return_value=[],
+        ),
+        patch.object(
+            auditor, "_determine_verdict", return_value=AuditVerdict.PASS
+        ) as mock_determine_verdict,
+    ):
+        result = await auditor.run_full_audit_async()
+
+    # Assertions on the returned structured data
+    assert result["findings"] == []
+    assert "stats" in result
+    assert result["executed_rule_ids"] == set()
+    assert result["crashed_rule_ids"] == set()
+    assert result["unavailable_rule_ids"] == set()
+    assert result["verdict"] == AuditVerdict.PASS
+    assert result["passed"] is True
+    assert result["law_state"] == {"law": "of_record"}
+
+    # Context lifecycle calls happened
+    context.reload_governance.assert_called_once()
+    context.invalidate_file_cache.assert_called_once()
+    context.sweep_llm_gate_cache.assert_awaited_once()
+    context.load_knowledge_graph.assert_awaited_once()
+
+    # EngineRegistry initialized with context paths and llm client
+    mock_engine_registry.initialize.assert_called_once_with(
+        context.paths, llm_client=context.llm_client
+    )
+
+    # Verdict determination invoked
+    mock_determine_verdict.assert_called_once()
