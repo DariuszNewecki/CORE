@@ -102,3 +102,35 @@ def test_ValidationReport():
     assert report.documents_valid == 3
     assert report.documents_invalid == 0
     assert report.documents_valid + report.documents_invalid == report.documents_checked
+
+
+from mind.governance.meta_validator import ValidationError
+
+
+# ID: 626f7cef-4264-4f2d-b833-2fe9894dc9ed
+def test_ValidationError():
+    error = ValidationError(
+        document="docs/adr/ADR-133.md",
+        error_type="missing_field",
+        message="Required field 'status' is missing",
+    )
+
+    assert error.document == "docs/adr/ADR-133.md"
+    assert error.error_type == "missing_field"
+    assert error.message == "Required field 'status' is missing"
+    assert error.severity == "error"
+    assert error.field is None
+
+    explicit_error = ValidationError(
+        document="docs/adr/ADR-134.md",
+        error_type="invalid_value",
+        message="Value must be one of the allowed set",
+        severity="warning",
+        field="status",
+    )
+
+    assert explicit_error.document == "docs/adr/ADR-134.md"
+    assert explicit_error.error_type == "invalid_value"
+    assert explicit_error.message == "Value must be one of the allowed set"
+    assert explicit_error.severity == "warning"
+    assert explicit_error.field == "status"
