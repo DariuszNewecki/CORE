@@ -1568,3 +1568,41 @@ Enforced by: no ENFORCED rule cites ADR-171. The files that enforce it: `infra/c
 `infra/core-deploy`, `infra/core-one-path-setup` (the timer), `src/body/services/promotion.py`,
 `src/cli/resources/promote/`, `src/body/services/thesis/measure.py`,
 `scripts/thesis_baseline.py`; and the three GitHub rulesets above.
+
+## ADR-172 — CORE keeps its own test ledger and its own AI spend; the law states the rule and the cap
+
+2026-10-22 · accepted by the governor's `law apply`; implemented by the PRs below  
+**Why.** The law listed, by hand, the 134 files CORE may write tests for
+(`test_coverage.yaml` `include_files`). Whether a symbol has a test was worked out on demand
+from whatever checkout ran the command, so a stale checkout reported 98 symbols capped when
+main had 9 (2026-10-22). AI spend was logged per call (`core.llm_exchange_log.cost_estimate`)
+but no command, API route or MCP tool showed it, and nothing limited it. Reading the database
+only through CORE's own commands made both gaps visible.  
+**Decision.**
+- **The law states the rule, not the list.** `.intent/` says which public symbols must have a
+  test, as layers or path patterns with named exceptions (for example: every public symbol in
+  `src/mind/` and `src/will/`, except listed paths). `include_files` is retired once the rule
+  covers the same files; the change that retires it shows the before/after file count.
+- **CORE keeps the ledger.** One row per public symbol in scope, in the database, keyed to
+  `core.symbols`: has a credited test, failing, attempts used, last failure reason, last
+  change. A sensor updates it from the code CORE runs (its own clone at the deployed SHA),
+  never from a developer checkout. The test generator reads its work from this ledger; the
+  per-symbol cap stays `remediation_cap_n` (3).
+- **Spend is a CORE fact, read through the API.** An API route returns spend per day, role and
+  model from `core.llm_exchange_log`; `core-admin` and the MCP read that route. One command
+  for all AI spend, not a `tests` subcommand (`tests cost`, #1226, is replaced).
+- **A daily money cap.** `.intent/` holds `test_generation.daily_spend_usd_max: 0.05`. Before
+  each attempt, the test generator sums today's (UTC) test-generation spend; at or over the
+  cap it stops until the next day and posts one finding. A call logged without a price counts
+  as reaching the cap (fail closed). Only the governor changes the cap, through `law apply`.  
+**Measured at the decision (2026-10-22).** Test generation runs as Coder on deepseek-chat:
+304 calls for 249 attempts in 7 days, USD 0.0863, about USD 0.0003 per call. USD 0.05/day is
+about 150 calls. The largest 30-day spend was ConstitutionalCoherenceAnalyst on
+claude-sonnet-4-6 (USD 3.81).  
+**Implementing pull requests, in order (planned):**
+1. Spend: the API route and one `core-admin` command over it; the MCP status reads it.
+2. The daily money cap in `.intent/` and its check in the test generator (law proposal + PR).
+3. The ledger table, its sensor, and the generator reading from it.
+4. The scope rule in `.intent/` replacing `include_files` (law proposal + PR).
+
+Enforced by: not enforced (planned: the cap check in the test generator, item 2).
