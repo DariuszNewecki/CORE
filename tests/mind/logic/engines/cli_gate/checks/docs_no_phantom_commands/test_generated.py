@@ -235,3 +235,24 @@ def test_CommandInventory_groups():
         }
     )
     assert isinstance(result, frozenset)
+
+
+
+
+# ID: 5bd1a1cc-d934-406b-a7e4-118d8be9b1d3
+def test_CommandInventory():
+    inventory = CommandInventory(
+        commands=frozenset({("project", "new"), ("project", "delete")}),
+        hidden=frozenset({("config", "set", "value")}),
+    )
+
+    assert inventory.commands == frozenset({("project", "new"), ("project", "delete")})
+    assert inventory.hidden == frozenset({("config", "set", "value")})
+
+    assert inventory.groups == frozenset(
+        {
+            ("project",),
+            ("config",),
+            ("config", "set"),
+        }
+    )
