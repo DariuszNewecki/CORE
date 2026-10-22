@@ -2,6 +2,7 @@ budgets:
   test_generation:
     max_iterations: 5
     wall_clock_cap_secs: 600
+    daily_spend_usd_max: 0.05
   code_modification:
     max_iterations: 3
     wall_clock_cap_secs: 600
