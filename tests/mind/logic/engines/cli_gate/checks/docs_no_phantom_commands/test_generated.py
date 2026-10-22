@@ -237,8 +237,6 @@ def test_CommandInventory_groups():
     assert isinstance(result, frozenset)
 
 
-
-
 # ID: 5bd1a1cc-d934-406b-a7e4-118d8be9b1d3
 def test_CommandInventory():
     inventory = CommandInventory(
@@ -256,3 +254,24 @@ def test_CommandInventory():
             ("config", "set"),
         }
     )
+
+
+from mind.logic.engines.cli_gate.checks.docs_no_phantom_commands import (
+    iter_code_mentions,
+)
+
+
+# ID: a6f32ea8-cb45-4b0f-b36c-92a757ebdb10
+def test_iter_code_mentions():
+    text = (
+        "Intro text core-admin should-not-match.\n"
+        "Use `core admin status` to check.\n"
+        "Inline `core admin version` here.\n"
+    )
+
+    results = list(iter_code_mentions(text))
+
+    assert results == [
+        (2, "core", ("admin", "status")),
+        (3, "core", ("admin", "version")),
+    ]
