@@ -43,3 +43,45 @@ async def test_IntentBindingCheck_run():
 
     check._collect_bindings.assert_called_once()
     assert check._check_binding.call_count == 2
+
+
+import asyncio
+
+
+# ID: 7e9562bb-9bdb-4689-9240-967682878866
+def test_IntentBindingCheck(tmp_path: Path) -> None:
+    # Build a real fake source tree so _resolve_module / _symbol_in_file work
+    src_dir = tmp_path / "src" / "pkg"
+    src_dir.mkdir(parents=True)
+    module_file = src_dir / "mod.py"
+    module_file.write_text("class Thing:\n    pass\n", encoding="utf-8")
+
+    check = IntentBindingCheck(repo_root=tmp_path)
+
+    bindings = [
+        (tmp_path / ".intent" / "phases" / "p.yaml", "implementation", "pkg.mod.Thing"),
+        (
+            tmp_path / ".intent" / "phases" / "p.yaml",
+            "implementation",
+            "pkg.mod.Missing",
+        ),
+    ]
+
+    with (
+        patch.object(check, "_collect_bindings", return_value=bindings),
+        patch(
+            "mind.coherence.checks.intent_binding.law_relpath",
+            side_effect=lambda root, p: str(Path(p).relative_to(root)),
+        ),
+        patch(
+            "mind.coherence.checks.intent_binding._symbol_in_file",
+            side_effect=lambda src, sym: sym == "Thing",
+        ),
+    ):
+        candidates = asyncio.run(check.run())
+
+    assert len(candidates) == 1
+    candidate = candidates[0]
+    assert candidate.relation == "INTENT_BINDING"
+    assert candidate.documents == [".intent/phases/p.yaml"]
+    assert "pkg.mod.Missing" in candidate.claim
