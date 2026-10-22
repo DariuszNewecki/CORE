@@ -133,3 +133,19 @@ async def test_ConstitutionalAuditor():
 
     # Verdict determination invoked
     mock_determine_verdict.assert_called_once()
+
+
+
+
+# ID: ec8a0429-1c28-4fda-8362-33ac203c526c
+def test_AuditVerdict():
+    assert AuditVerdict.PASS.value == "PASS"
+    assert AuditVerdict.FAIL.value == "FAIL"
+    assert AuditVerdict.DEGRADED.value == "DEGRADED"
+
+    assert AuditVerdict("PASS") is AuditVerdict.PASS
+    assert AuditVerdict("FAIL") is AuditVerdict.FAIL
+    assert AuditVerdict("DEGRADED") is AuditVerdict.DEGRADED
+
+    members = {member.name for member in AuditVerdict}
+    assert members == {"PASS", "FAIL", "DEGRADED"}
