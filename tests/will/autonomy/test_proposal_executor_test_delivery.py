@@ -119,6 +119,11 @@ async def test_generated_test_lands_on_the_delivery_branch_not_head(
     with (
         patch("will.autonomy.proposal_executor.async_repo_lock", _free),
         patch("will.autonomy.proposal_executor.service_registry.session", _session),
+        # Delivery is under test, not the ADR-172 spend cap (law sets one).
+        patch(
+            "will.autonomy.proposal_executor.refuse_when_daily_spend_cap_reached",
+            AsyncMock(),
+        ),
         patch(
             "will.autonomy.proposal_executor.ProposalRepository",
             MagicMock(return_value=repo),

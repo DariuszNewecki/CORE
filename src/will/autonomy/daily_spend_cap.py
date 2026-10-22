@@ -52,8 +52,16 @@ async def refuse_when_daily_spend_cap_reached(session: Any, actions: Any) -> Non
     cap = load_generation_budget().for_task_type("test_generation").daily_spend_usd_max
     if cap is None:
         return
-    row = (await session.execute(_TODAY_SQL, {"role": TEST_GEN_ROLE})).one()
-    spent, unpriced = float(row[0]), int(row[1])
+    try:
+        row = (await session.execute(_TODAY_SQL, {"role": TEST_GEN_ROLE})).one()
+        spent, unpriced = float(row[0]), int(row[1])
+    except Exception as exc:
+        # Fail closed, but blocked rather than failed: a symbol attempt is
+        # not spent because today's spend could not be read.
+        raise GovernanceInstrumentError(
+            instrument=INSTRUMENT,
+            reason=f"today's spend could not be read: {type(exc).__name__}: {exc}",
+        ) from exc
     if unpriced:
         raise GovernanceInstrumentError(
             instrument=INSTRUMENT,
