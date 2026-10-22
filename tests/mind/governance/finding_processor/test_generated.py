@@ -71,3 +71,24 @@ def test_process_findings_with_downgrade():
     assert ignored["justification"] == "We export the CLI."
     assert ignored["original_rule_id"] == "dead-rule-1"
     assert ignored["downgraded_to"] == "info"
+
+
+from mind.governance.finding_processor import safe_symbol_meta
+
+
+# ID: be6febd4-18ac-455e-8596-50fbd3c1477d
+def test_safe_symbol_meta():
+    symbol_index = {
+        "sym_alpha": {"kind": "function", "line": 42},
+        "sym_beta": {"kind": "class", "line": 7},
+    }
+
+    result = safe_symbol_meta(symbol_index, "sym_alpha")
+    assert result == {"kind": "function", "line": 42}
+
+    # Missing key falls back to empty mapping
+    assert safe_symbol_meta(symbol_index, "sym_missing") == {}
+
+    # Falsy stored value (None) also falls back to empty mapping
+    symbol_index_with_none = {"sym_gamma": None}
+    assert safe_symbol_meta(symbol_index_with_none, "sym_gamma") == {}
