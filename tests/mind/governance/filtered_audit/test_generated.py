@@ -58,3 +58,24 @@ async def test_run_filtered_audit():
     context.reload_governance.assert_called_once()
     context.invalidate_file_cache.assert_called_once()
     context.sweep_llm_gate_cache.assert_awaited_once()
+
+
+from mind.governance.filtered_audit import normalize_file_filter
+
+
+# ID: 5fdb75d9-eac2-45c5-90da-e7816178856b
+def test_normalize_file_filter(tmp_path):
+    repo_root = tmp_path / "repo"
+    (repo_root / "src").mkdir(parents=True)
+    (repo_root / "src" / "foo.py").write_text("x = 1\n")
+    (repo_root / "src" / "bar.py").write_text("y = 2\n")
+
+    result = normalize_file_filter(
+        ["src/foo.py", "./src/bar.py", str(repo_root / "src" / "foo.py")],
+        repo_root,
+    )
+
+    assert result == frozenset({"src/foo.py", "src/bar.py"})
+
+    assert normalize_file_filter(None, repo_root) is None
+    assert normalize_file_filter([], repo_root) is None
