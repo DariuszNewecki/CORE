@@ -37,7 +37,7 @@
           "Proposals"
         ],
         "summary": "Submit a producer's validated change as a pending proposal",
-        "description": "One way in for a change not born from a finding (ADR-168 Amendment 2026-10-10). The patch must have cleared a general-mode `assisted.validate_diff` run (dispatched via `POST /fix/run/{fix_id}`), which CORE re-reads. CORE answers step 0 (what it retires, related decisions, similar existing code) and creates a PENDING proposal carrying the anchor, problem owner (the governor) and producer. Approval is always required; this route never approves. 422 when the run does not bind the patch or the submission is malformed.",
+        "description": "One way in for a change not born from a finding (ADR-168 Amendment 2026-10-10). The patch must have cleared a general-mode `assisted.validate_diff` run (dispatched via `POST /fix/run/{fix_id}`), which CORE re-reads. CORE answers step 0 (what it retires, related decisions, similar existing code) and creates a PENDING proposal carrying the anchor, problem owner (the governor) and producer. Only on CORE's Unix socket, from an account bound to a producer or the governor; the producer recorded is that account (403 otherwise). Approval is always required; this route never approves. 422 when the run does not bind the patch or the submission is malformed.",
         "operationId": "submit_change_v1_proposals_submit_post",
         "requestBody": {
           "content": {
@@ -5765,7 +5765,14 @@
             "title": "Anchor Refs"
           },
           "producer": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Producer"
           },
           "retires": {
@@ -5783,8 +5790,7 @@
           "validation_run_id",
           "goal",
           "anchor_kind",
-          "anchor_refs",
-          "producer"
+          "anchor_refs"
         ],
         "title": "SubmitChangeRequest",
         "description": "Body for POST /proposals/submit (ADR-168 Amendment 2026-10-10).\n\nA producer's change not born from a finding: the patch, the id of the\ngeneral-mode ``assisted.validate_diff`` run that cleared it (CORE re-reads\nthat run; the caller's word is never the verdict), and who and why."

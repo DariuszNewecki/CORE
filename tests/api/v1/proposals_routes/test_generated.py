@@ -242,6 +242,7 @@ def test_create_proposal():
     )
 
 
+from api.dependencies import CallerPrincipal
 from api.v1.proposals_routes import submit_change
 
 
@@ -262,7 +263,14 @@ def test_submit_change():
         "will.autonomy.producer_submission.submit_producer_change",
         new=AsyncMock(return_value=expected),
     ) as mock_submit:
-        result = asyncio.run(submit_change(payload))
+        result = asyncio.run(
+            submit_change(
+                payload,
+                principal=CallerPrincipal(
+                    uid=1001, account="producer-x", role="principal.producer"
+                ),
+            )
+        )
 
     assert result == expected
     mock_submit.assert_awaited_once_with(
