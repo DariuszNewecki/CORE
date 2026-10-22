@@ -18,7 +18,26 @@ import re
 from dataclasses import dataclass, field
 
 
-_DIFF_GIT = re.compile(r"^diff --git a/(.+?) b/(.+)$")
+_DIFF_GIT_PREFIX = "diff --git a/"
+
+
+def _diff_git_target(line: str) -> str | None:
+    """The b/ path of a ``diff --git a/X b/Y`` header line, else None.
+
+    String operations, not a regex: the old ``a/(.+?) b/(.+)`` pattern was
+    polynomial on crafted headers (CodeQL py/polynomial-redos; a submitted
+    patch is caller-provided). Same split: at the first " b/" after a
+    non-empty a/ path.
+    """
+    if not line.startswith(_DIFF_GIT_PREFIX):
+        return None
+    rest = line[len(_DIFF_GIT_PREFIX) :]
+    cut = rest.find(" b/", 1)
+    if cut < 1 or len(rest) == cut + 3:
+        return None
+    return rest[cut + 3 :]
+
+
 _TOP_LEVEL_DEF = re.compile(r"^(?:async\s+def|def|class)\s+([A-Za-z_]\w*)")
 
 
@@ -53,10 +72,10 @@ def read_patch(patch: str) -> PatchFacts:
         ].append(current)
 
     for line in patch.splitlines():
-        header = _DIFF_GIT.match(line)
-        if header:
+        target = _diff_git_target(line)
+        if target is not None:
             _close()
-            current, status = header.group(2), "modified"
+            current, status = target, "modified"
             continue
         if current is None:
             continue
@@ -134,11 +153,11 @@ def added_symbol_source(patch: str, path: str, name: str, limit: int = 4000) -> 
     collected: list[str] = []
     in_file = collecting = False
     for line in patch.splitlines():
-        header = _DIFF_GIT.match(line)
-        if header:
+        target = _diff_git_target(line)
+        if target is not None:
             if collecting:
                 break
-            in_file = header.group(2) == path
+            in_file = target == path
             continue
         if not in_file or line.startswith(("+++", "---", "@@", "-")):
             if collecting and line.startswith("@@"):
