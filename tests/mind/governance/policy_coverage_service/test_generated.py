@@ -596,3 +596,52 @@ def test_PolicyCoverageService_run() -> None:
         "RULE-3": "declared_only",
     }
     assert str(report.repo_root) == "/repo"
+
+
+
+
+
+# ID: 6eb5f775-0c98-48b6-8067-08ba28ad533f
+def test_PolicyCoverageService() -> None:
+    path_resolver = MagicMock()
+    path_resolver.repo_root = MagicMock()
+    path_resolver.reports_dir = MagicMock()
+    path_resolver.intent_root = MagicMock()
+
+    with (
+        patch.object(
+            PolicyCoverageService, "_load_audit_evidence", return_value={"R1"}
+        ),
+        patch.object(
+            PolicyCoverageService, "_discover_rules_via_intent", return_value=[]
+        ),
+    ):
+        service = PolicyCoverageService(path_resolver)
+
+    assert service.repo_root is path_resolver.repo_root
+    assert (
+        service.evidence_path
+        == path_resolver.reports_dir / "audit" / "latest_audit.json"
+    )
+
+    rule_enforced = MagicMock(
+        policy_id="P1", rule_id="R1", enforcement="error", has_engine=False
+    )
+    rule_implementable = MagicMock(
+        policy_id="P1", rule_id="R2", enforcement="warn", has_engine=True
+    )
+    rule_declared_only = MagicMock(
+        policy_id="P2", rule_id="R3", enforcement="warn", has_engine=False
+    )
+
+    service.all_rules = [rule_enforced, rule_implementable, rule_declared_only]
+
+    report = service.run()
+
+    assert report.summary["rules_total"] == 3
+    assert report.summary["rules_enforced"] == 1
+    assert report.summary["rules_implementable"] == 1
+    assert report.summary["rules_declared_only"] == 1
+    assert report.summary["uncovered_error_rules"] == 0
+    assert report.exit_code == 0
+    assert len(report.records) == 3
