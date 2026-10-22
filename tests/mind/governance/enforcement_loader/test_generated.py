@@ -62,9 +62,6 @@ def test_EnforcementMappingLoader_get_enforcement_strategy():
     assert loader.get_enforcement_strategy("unknown.rule") is None
 
 
-
-
-
 # ID: 932c1ec8-f85d-45e7-b8cd-f7be6069e91c
 def test_EnforcementMappingLoader_load_all_mappings(tmp_path: Path) -> None:
     intent_root = tmp_path / ".intent"
@@ -92,3 +89,64 @@ def test_EnforcementMappingLoader_load_all_mappings(tmp_path: Path) -> None:
     assert result == fake_mappings
     assert result is loader._mappings_cache
     assert yaml_file in loader._loaded_files
+
+
+
+
+# ID: fada0b5f-f9ec-4b3a-91c0-99f67ee506dd
+def test_EnforcementMappingLoader(tmp_path: Path) -> None:
+    from mind.governance.enforcement_loader import EnforcementMappingLoader
+
+    intent_root = tmp_path / ".intent"
+    enforcement_dir = intent_root / "enforcement"
+    mappings_dir = enforcement_dir / "mappings"
+    presets_dir = enforcement_dir / "presets"
+    mappings_dir.mkdir(parents=True)
+    presets_dir.mkdir(parents=True)
+
+    mapping_file = mappings_dir / "domain.yaml"
+    mapping_file.write_text("mappings: {}\n")
+    preset_file = presets_dir / "python_source.yaml"
+    preset_file.write_text("name: python_source\napplies_to:\n  - 'src/**/*.py'\n")
+
+    loader = EnforcementMappingLoader(intent_root)
+
+    preset = {"name": "python_source", "applies_to": ["src/**/*.py"]}
+    mapping_data = {
+        "presets": {"python_source": "python_source"},
+        "mappings": {
+            "architecture.max_file_size": {
+                "engine": "ast",
+                "scope": "!ref python_source",
+            },
+            "architecture.no_cycles": {
+                "engine": "graph",
+                "scope": {"applies_to": ["src/**/*.py"]},
+            },
+        },
+    }
+
+    mock_processor = MagicMock()
+    mock_processor.load_strict.side_effect = [mapping_data, preset]
+
+    with patch(
+        "mind.governance.enforcement_loader.strict_yaml_processor",
+        mock_processor,
+    ):
+        result = loader.load_all_mappings()
+
+        assert "architecture.max_file_size" in result
+        assert result["architecture.max_file_size"]["engine"] == "ast"
+        assert result["architecture.max_file_size"]["scope"] == preset
+        assert "architecture.no_cycles" in result
+        assert result["architecture.no_cycles"]["engine"] == "graph"
+
+        assert (
+            loader.get_enforcement_strategy("architecture.max_file_size")
+            == result["architecture.max_file_size"]
+        )
+
+        stats = loader.get_stats()
+        assert stats["total_mappings"] == 2
+        assert stats["total_files"] == 1
+        assert "engines_used" in stats
