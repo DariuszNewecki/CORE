@@ -42,8 +42,6 @@ def test_ReferenceCurrentCheck_verify(tmp_path: Path) -> None:
     assert findings == []
 
 
-
-
 # ID: e26ccada-de73-42fb-a8bf-2c77892da96b
 def test_ReferenceCurrentCheck(tmp_path):
     from mind.logic.engines.cli_gate.checks.reference_current import (
@@ -77,3 +75,27 @@ def test_ReferenceCurrentCheck(tmp_path):
     core_admin_tree.assert_called_once()
     core_cli_tree.assert_called_once()
     assert findings == []
+
+
+
+
+# ID: a5506aaa-545d-4352-ba85-46ad667fbae7
+def test_live_core_admin_tree():
+    from mind.logic.engines.cli_gate.checks.reference_current import (
+        live_core_admin_tree,
+    )
+
+    fake_app = MagicMock(name="app")
+    sentinel_command = MagicMock(name="command")
+
+    with (
+        patch("cli.admin_cli.app", fake_app),
+        patch(
+            "mind.logic.engines.cli_gate.checks.reference_current.click_command_for",
+            return_value=sentinel_command,
+        ) as mock_click_command_for,
+    ):
+        result = live_core_admin_tree()
+
+    mock_click_command_for.assert_called_once_with(fake_app)
+    assert result is sentinel_command
