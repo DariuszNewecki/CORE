@@ -101,3 +101,45 @@ def test_ReferenceGateEngine_verify() -> None:
     assert "verify_context" in result.message
     assert result.violations == []
     assert result.engine_id == engine.engine_id
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: a7f15ae5-913f-46c9-917e-ca4e41a0a5b4
+async def test_ReferenceGateEngine() -> None:
+    path_resolver = MagicMock()
+    engine = ReferenceGateEngine(path_resolver)
+
+    # verify() reports that per-file dispatch is a mis-mapping.
+    params = {"check_type": "intent_references_resolve"}
+    result = await engine.verify(Path("/repo/.intent/foo.md"), params)
+    assert result.ok is False
+    assert result.engine_id == engine.engine_id
+    assert result.violations == []
+
+    # verify_context() delegates to find_dangling_references for the valid check.
+    context = MagicMock()
+    context.repo_path = "/repo"
+    fake_findings = [MagicMock()]
+    with patch(
+        "mind.logic.engines.reference_gate.find_dangling_references",
+        return_value=fake_findings,
+    ) as mock_find:
+        findings = await engine.verify_context(context, params)
+
+    mock_find.assert_called_once_with(Path("/repo"))
+    assert findings == fake_findings
+
+    # Unknown check_type yields a single BLOCK finding.
+    unknown_params = {"check_type": "bogus"}
+    with patch(
+        "mind.logic.engines.reference_gate.find_dangling_references"
+    ) as mock_find2:
+        unknown_findings = await engine.verify_context(context, unknown_params)
+
+    mock_find2.assert_not_called()
+    assert len(unknown_findings) == 1
+    assert unknown_findings[0].check_id == "reference_gate.unknown_check_type"
