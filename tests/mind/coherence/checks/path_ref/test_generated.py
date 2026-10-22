@@ -34,3 +34,32 @@ def test_PathRefCheck_run():
 
     # If construction left relation unset, ensure it is a valid value.
     assert isinstance(candidates, list)
+
+
+
+
+from mind.coherence.checks.path_ref import PathRefCheck
+
+
+# ID: f2237200-c4b3-495c-86e7-2f1029dd1474
+async def test_PathRefCheck(tmp_path: Path) -> None:
+    repo_root = tmp_path
+    doc = repo_root / ".specs" / "governance" / "doc.md"
+    doc.parent.mkdir(parents=True)
+    doc.write_text(
+        "See `.src/missing_module.py` for details.\n",
+        encoding="utf-8",
+    )
+
+    check = PathRefCheck(repo_root)
+    check._governance_docs = MagicMock(return_value=[doc])
+
+    candidates = await check.run()
+
+    assert len(candidates) == 1
+    candidate = candidates[0]
+    assert candidate.relation == "PATH_REF"
+    assert len(candidate.documents) == 1
+    assert ".specs/governance/doc.md" in candidate.documents[0]
+    assert ".src/missing_module.py" in candidate.claim
+    assert "does not exist" in candidate.claim
