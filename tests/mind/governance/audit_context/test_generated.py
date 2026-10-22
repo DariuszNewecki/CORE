@@ -392,8 +392,6 @@ def test_AuditorContext_intent_root():
     assert result == context.intent_path
 
 
-
-
 # ID: bea38b95-c6e2-4626-8fdc-743136162fa5
 def test_AuditorContext(tmp_path: Path) -> None:
     from mind.governance.audit_context import AuditorContext
@@ -438,3 +436,21 @@ def test_AuditorContext(tmp_path: Path) -> None:
     assert ctx.policies == {}
     assert ctx.force_llm is False
     assert ctx._llm_gate_cache_swept is False
+
+
+
+import mind.governance.audit_context as audit_context
+from mind.governance.audit_context import clear_knowledge_graph_cache
+
+
+# ID: f72c1c14-f8c2-41c1-8d9b-c125c8710b5d
+def test_clear_knowledge_graph_cache() -> None:
+    audit_context._KNOWLEDGE_GRAPH_CACHE["k"] = {"a": 1}
+    audit_context._AST_CACHE[__import__("pathlib").Path("x.py")] = ((1, 2), None)
+
+    with patch.object(audit_context, "logger") as mock_logger:
+        clear_knowledge_graph_cache()
+
+    assert audit_context._KNOWLEDGE_GRAPH_CACHE == {}
+    assert audit_context._AST_CACHE == {}
+    mock_logger.debug.assert_called_once()
