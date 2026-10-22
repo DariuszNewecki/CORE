@@ -587,3 +587,62 @@ def test_get_dynamic_execution_stats():
     assert stats["mapped_coverage_percent"] == 67
     assert stats["coverage_percent"] == stats["mapped_coverage_percent"]
     assert "stats_error" not in stats
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 6ca11ff8-2b8e-4bc7-93f4-ba7a970912c1
+async def test_run_dynamic_rules():
+    from mind.governance.constitutional_auditor_dynamic import run_dynamic_rules
+
+    context = MagicMock()
+    context.policies = MagicMock()
+    context.enforcement_loader = MagicMock()
+
+    rule = MagicMock()
+    rule.rule_id = "RULE-1"
+    rule.engine = "static"
+    rule.policy_id = "POLICY-1"
+
+    finding1 = MagicMock()
+    finding1.check_id = "RULE-1"
+    finding1.context = {}
+
+    fake_engine = MagicMock()
+    fake_engine.__class__ = type("StaticEngine", (), {})
+
+    executed_rule_ids: set[str] = set()
+    crashed_rule_ids: set[str] = set()
+    unavailable_rule_ids: set[str] = set()
+
+    with (
+        patch(
+            "mind.governance.constitutional_auditor_dynamic.extract_executable_rules",
+            return_value=[rule],
+        ),
+        patch(
+            "mind.governance.constitutional_auditor_dynamic._check_per_file_scope_coverage",
+            return_value=[],
+        ),
+        patch(
+            "mind.logic.engines.registry.EngineRegistry.get",
+            return_value=fake_engine,
+        ),
+        patch(
+            "mind.governance.rule_executor.execute_rule",
+            new=AsyncMock(return_value=[finding1]),
+        ),
+    ):
+        findings = await run_dynamic_rules(
+            context,
+            executed_rule_ids=executed_rule_ids,
+            crashed_rule_ids=crashed_rule_ids,
+            unavailable_rule_ids=unavailable_rule_ids,
+        )
+
+    assert findings == [finding1]
+    assert executed_rule_ids == {"RULE-1"}
+    assert crashed_rule_ids == set()
+    assert unavailable_rule_ids == set()
