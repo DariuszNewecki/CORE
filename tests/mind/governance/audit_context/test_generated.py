@@ -221,3 +221,47 @@ def test_AuditorContext_sweep_llm_gate_cache():
     session.execute.assert_awaited_once()
     session.commit.assert_awaited_once()
     assert ctx._llm_gate_cache_swept is True
+
+
+
+
+
+# ID: 37b294e9-2047-4347-92b1-ff5ed70d2cd3
+def test_AuditorContext_reload_governance(tmp_path: Path) -> None:
+    intent_repo = MagicMock()
+    intent_repo.root = tmp_path / ".intent"
+
+    with (
+        patch("mind.governance.audit_context.EnforcementMappingLoader") as mock_loader,
+        patch("mind.logic.engines.registry.EngineRegistry") as mock_registry,
+    ):
+        mock_registry.initialize = MagicMock()
+        mock_loader_instance = MagicMock()
+        mock_loader.return_value = mock_loader_instance
+
+        context = AuditorContext(
+            repo_path=tmp_path,
+            intent_repository=intent_repo,
+            session_provider=None,
+            llm_client=None,
+        )
+
+        new_policies = {"rule_a": object()}
+        with (
+            patch.object(
+                AuditorContext, "_load_governance_resources", return_value=new_policies
+            ) as mock_load,
+            patch(
+                "mind.governance.audit_context.EnforcementMappingLoader"
+            ) as mock_loader2,
+        ):
+            new_loader_instance = MagicMock()
+            mock_loader2.return_value = new_loader_instance
+
+            context.reload_governance()
+
+            intent_repo.reload.assert_called_once_with()
+            mock_load.assert_called_once_with()
+            assert context.policies == new_policies
+            mock_loader2.assert_called_once_with(intent_repo.root)
+            assert context.enforcement_loader is new_loader_instance
