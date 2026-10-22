@@ -81,3 +81,15 @@ def test_JudgeUnavailable():
     exc = JudgeUnavailable(message)
     assert isinstance(exc, Exception)
     assert str(exc) == message
+
+
+from mind.coherence.checks.base import CheckSkipped
+
+
+# ID: 40a8a37f-b5dd-46b9-b70a-43f49f5e4db8
+def test_CheckSkipped() -> None:
+    exc = CheckSkipped("seed_gap")
+
+    assert isinstance(exc, Exception)
+    assert str(exc) == "seed_gap"
+    assert exc.args == ("seed_gap",)
