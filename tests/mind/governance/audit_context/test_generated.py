@@ -76,8 +76,6 @@ def test_AuditorContext_get_tree(tmp_path: Path):
     assert len(tree.body) == 1
 
 
-
-
 # ID: 2708c753-dd76-4279-8c61-1a3e5ab3b1b7
 def test_auditor_context_rel_path(tmp_path):
     from mind.governance.audit_context import AuditorContext
@@ -140,3 +138,57 @@ def test_auditor_context_rel_path(tmp_path):
 
         mock_law_relpath2.assert_not_called()
         assert cached == "src/module.py"
+
+
+
+
+# ID: 82e9944b-daaf-451f-af6d-bcf889368108
+def test_AuditorContext_get_files(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "a.py").write_text("x")
+    sub = repo / "pkg"
+    sub.mkdir()
+    (sub / "b.py").write_text("y")
+    (sub / "c.txt").write_text("z")
+
+    intent_repo = MagicMock()
+    intent_repo.root = str(repo / ".intent")
+
+    with (
+        patch(
+            "mind.governance.audit_context.get_intent_repository",
+            return_value=intent_repo,
+        ),
+        patch(
+            "mind.logic.engines.registry.EngineRegistry.initialize",
+        ),
+        patch(
+            "mind.governance.audit_context.EnforcementMappingLoader",
+        ) as mock_loader,
+        patch.object(
+            AuditorContext,
+            "_load_governance_resources",
+            return_value={},
+        ),
+    ):
+        mock_loader.return_value = MagicMock()
+        ctx = AuditorContext(repo_path=repo, intent_repository=intent_repo)
+
+        ctx._active_per_file_rule_scopes = MagicMock(return_value=[])
+        # Seed the derived file cache directly so get_files serves them from
+        # _file_list_cache without relying on internal walk behaviour.
+        ctx._file_list_cache = [repo / "a.py", sub / "b.py"]
+        ctx._rel_path_map = {
+            repo / "a.py": "a.py",
+            sub / "b.py": "pkg/b.py",
+        }
+
+        files = ctx.get_files(include=["**/*.py"])
+
+        names = sorted(p.name for p in files)
+        assert names == ["a.py", "b.py"]
+        assert all(isinstance(p, Path) for p in files)
+
+        cached = ctx.get_files(include=["**/*.py"])
+        assert sorted(p.name for p in cached) == names
