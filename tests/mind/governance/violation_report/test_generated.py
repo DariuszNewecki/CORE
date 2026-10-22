@@ -42,3 +42,36 @@ def test_extract_error_data():
         mock_exc2.to_dict.return_value = {"rule_name": "R1", "path": "orig"}
         result_override = extract_error_data(mock_exc2, path="override")
         assert result_override == {"rule_name": "R1", "path": "override"}
+
+
+
+from mind.governance.violation_report import ConstitutionalViolationError
+
+
+# ID: 6c9c6f19-7ccf-499e-9497-cbb533acba25
+def test_ConstitutionalViolationError_to_dict():
+    violation = MagicMock()
+    violation.rule_name = "no_print_in_prod"
+    violation.path = "src/app.py"
+    violation.severity = "error"
+    violation.source_policy = "constitutional"
+    violation.message = "print() is forbidden in production code"
+    violation.suggested_fix = "Use logging instead of print()"
+
+    error = ConstitutionalViolationError([violation])
+
+    result = error.to_dict()
+
+    assert result["blocked_by"] == "IntentGuard"
+    assert result["violation_count"] == 1
+    assert result["error"] == str(error)
+    assert result["violations"] == [
+        {
+            "rule_name": "no_print_in_prod",
+            "path": "src/app.py",
+            "severity": "error",
+            "source_policy": "constitutional",
+            "message": "print() is forbidden in production code",
+            "suggested_fix": "Use logging instead of print()",
+        }
+    ]
