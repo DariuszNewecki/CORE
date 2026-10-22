@@ -90,3 +90,24 @@ async def test_ExclusionGateEngine_verify_context():
         "entry": "src/legacy",
         "reason": "matched no files",
     }
+
+
+
+
+
+# ID: f952055e-a37d-4b5b-ab43-be5aef711a64
+def test_ExclusionGateEngine_verify():
+    engine = ExclusionGateEngine.__new__(ExclusionGateEngine)
+    engine_id = "exclusion_gate"
+    type(engine).engine_id = engine_id
+
+    file_path = MagicMock(spec=Path)
+    params = {"check_type": "exclusion_level"}
+
+    result = asyncio.run(engine.verify(file_path, params))
+
+    assert result.ok is False
+    assert result.violations == []
+    assert result.engine_id == engine_id
+    assert "exclusion_level" in result.message
+    assert "verify_context" in result.message
