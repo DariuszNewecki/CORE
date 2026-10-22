@@ -35,3 +35,26 @@ def test_EntryPointAllowList_default():
     }
     assert instance.allowed == expected_types
     assert "capability" in instance.allowed
+
+
+
+
+# ID: 72cbf3b4-393e-40d8-9831-fec40824ae9d
+def test_EntryPointAllowList():
+    # Direct construction with a custom set of allowed types
+    allow_list = EntryPointAllowList(["cli_command", "  factory  ", "", None])
+    assert "cli_command" in allow_list
+    assert "factory" in allow_list
+    assert "" not in allow_list
+    assert None not in allow_list
+    assert "unknown_type" not in allow_list
+
+    # Default allow-list exposes CORE's architectural patterns
+    default_list = EntryPointAllowList.default()
+    assert isinstance(default_list, EntryPointAllowList)
+    assert "data_model" in default_list
+    assert "cli_command" in default_list
+    assert "governance_check" in default_list
+    assert "capability" in default_list
+    assert "not_a_real_entry_point" not in default_list
+    assert None not in default_list
