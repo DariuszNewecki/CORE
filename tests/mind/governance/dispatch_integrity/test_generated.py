@@ -23,3 +23,24 @@ def test_declared_check_types():
     engine_empty = MagicMock(spec=["_SUPPORTED_CHECK_TYPES"])
     engine_empty._SUPPORTED_CHECK_TYPES = ()
     assert declared_check_types(engine_empty) == frozenset()
+
+
+# ID: 5bf77674-46e4-4683-adf9-d341db3ecbe8
+def test_VocabularyUnavailableError():
+    from mind.governance.dispatch_integrity import VocabularyUnavailableError
+
+    message = "engine 'x' vocabulary could not be read"
+    error = VocabularyUnavailableError(message)
+
+    assert isinstance(error, Exception)
+    assert str(error) == message
+    assert error.args == (message,)
+
+    raised = False
+    try:
+        raise VocabularyUnavailableError(message)
+    except VocabularyUnavailableError as caught:
+        raised = True
+        assert caught is not None
+        assert str(caught) == message
+    assert raised is True
