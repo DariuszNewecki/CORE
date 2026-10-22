@@ -66,3 +66,68 @@ def test_Row3CitationCheck_run():
     cand = candidates[0]
     assert cand.relation is check.relation
     assert "Enforcement" in cand.claim
+
+
+
+from mind.coherence.checks.row3_citation import Row3CitationCheck
+
+
+# ID: 633345ec-22d7-447c-bb97-fd0c35fdcb08
+async def test_Row3CitationCheck(tmp_path):
+    papers_dir = tmp_path / ".specs" / "papers"
+    papers_dir.mkdir(parents=True)
+
+    paper = papers_dir / "paper.md"
+    paper.write_text(
+        "# Paper\n\n"
+        "## Purpose\n\nThis is boilerplate and should be skipped.\n\n"
+        "## Enforcement Rules\n\nWe MUST do the thing. This is aspirational for now.\n",
+        encoding="utf-8",
+    )
+
+    register = MagicMock()
+    register.aspirational_markers = ["aspirational", "pending"]
+    register.marker_pattern = MagicMock()
+    register.marker_pattern.search = MagicMock(
+        side_effect=lambda text: bool(
+            __import__("re").search(r"\bMUST\b", text, __import__("re").IGNORECASE)
+        )
+    )
+
+    with (
+        patch(
+            "shared.infrastructure.intent.intent_repository.get_intent_repository"
+        ) as mock_get_repo,
+        patch(
+            "mind.coherence.checks.row3_citation.specs_root_for",
+            return_value=tmp_path / ".specs",
+        ),
+        patch(
+            "mind.coherence.checks.row3_citation.law_glob",
+            return_value=[paper],
+        ),
+        patch("mind.coherence.checks.row3_citation.GitService") as mock_git_cls,
+        patch(
+            "mind.coherence.checks.row3_citation.document_status",
+            return_value="in-force",
+        ),
+        patch(
+            "mind.coherence.checks.row3_citation.law_relpath",
+            return_value=".specs/papers/paper.md",
+        ),
+    ):
+        mock_repo = MagicMock()
+        mock_repo.get_artifact_type.return_value.content = {
+            "discovery": [".specs/papers/**/*.md"]
+        }
+        mock_get_repo.return_value = mock_repo
+
+        mock_git = MagicMock()
+        mock_git.first_seen_date.return_value = None
+        mock_git_cls.return_value = mock_git
+
+        check = Row3CitationCheck(repo_root=tmp_path, register=register)
+        candidates = await check.run()
+
+    assert isinstance(candidates, list)
+    assert candidates == []
