@@ -264,8 +264,6 @@ def test_AuditorContext_reload_governance(tmp_path: Path) -> None:
             assert context.enforcement_loader is new_loader_instance
 
 
-
-
 # ID: 103efbd5-90ca-4a2d-a334-701b40f60849
 def test_AuditorContext_invalidate_file_cache(tmp_path):
     with (
@@ -306,3 +304,46 @@ def test_AuditorContext_invalidate_file_cache(tmp_path):
         assert ctx._rel_path_map == {}
         assert ctx._pattern_cache == {}
         assert ctx._per_file_scopes_cache is None
+
+
+
+
+# ID: 0fb7bf15-23e1-42f1-b1a1-8d8fdc2717d5
+def test_AuditorContext_mind_path():
+    from mind.governance.audit_context import AuditorContext
+
+    fake_mind_dir = Path("/fake/repo/.mind")
+    mock_paths = MagicMock()
+    mock_paths.mind_dir = fake_mind_dir
+    mock_paths.repo_root = Path("/fake/repo")
+    mock_paths.intent_root = Path("/fake/repo/intent")
+
+    mock_intent_repo = MagicMock()
+    mock_intent_repo.root = Path("/fake/repo/intent")
+
+    with (
+        patch("mind.governance.audit_context.PathResolver", return_value=mock_paths),
+        patch(
+            "mind.governance.audit_context.get_intent_repository",
+            return_value=mock_intent_repo,
+        ),
+        patch("mind.logic.engines.registry.EngineRegistry"),
+        patch.object(AuditorContext, "_load_governance_resources", return_value={}),
+        patch("mind.governance.audit_context.EnforcementMappingLoader"),
+    ):
+        ctx = AuditorContext(
+            repo_path=Path("/fake/repo"),
+            intent_repository=mock_intent_repo,
+            session_provider=None,
+            llm_client=None,
+            stateless=False,
+        )
+
+        # mind_path is exposed as a property-like attribute via PathResolver;
+        # access the underlying path value rather than calling it.
+        result = getattr(ctx, "mind_path")
+        if callable(result):
+            result = result()
+
+    assert result == fake_mind_dir
+    assert result is fake_mind_dir
