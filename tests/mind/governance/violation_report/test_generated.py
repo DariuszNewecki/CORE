@@ -141,3 +141,36 @@ def test_ConstitutionalViolationPayload() -> None:
     assert payload.violation_count == 2
     assert payload.violations == violations
     assert payload.violations[0]["rule"] == "ADR-001"
+
+
+from mind.governance.violation_report import ViolationReport
+
+
+# ID: faf2b3d2-feda-4d27-9571-b35246c5faab
+def test_ViolationReport():
+    report = ViolationReport(
+        rule_name="no-tabs",
+        path="src/mind/governance/violation_report.py",
+        message="File contains tab characters",
+        severity="error",
+    )
+
+    assert report.rule_name == "no-tabs"
+    assert report.path == "src/mind/governance/violation_report.py"
+    assert report.message == "File contains tab characters"
+    assert report.severity == "error"
+    assert report.suggested_fix == ""
+    assert report.source_policy == "unknown"
+
+    detailed = ViolationReport(
+        rule_name="max-line-length",
+        path="src/mind/core.py",
+        message="Line exceeds 100 characters",
+        severity="warning",
+        suggested_fix="Wrap the line",
+        source_policy="pyproject.toml",
+    )
+
+    assert detailed.severity == "warning"
+    assert detailed.suggested_fix == "Wrap the line"
+    assert detailed.source_policy == "pyproject.toml"
