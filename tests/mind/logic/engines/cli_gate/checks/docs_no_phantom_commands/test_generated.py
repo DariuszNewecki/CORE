@@ -91,7 +91,6 @@ def test_DocsNoPhantomCommandsCheck(tmp_path: Path) -> None:
     mock_find.assert_called_once()
 
 
-
 from mind.logic.engines.cli_gate.checks.docs_no_phantom_commands import (
     find_phantom_mentions,
 )
@@ -123,3 +122,20 @@ def test_find_phantom_mentions():
     assert problem.line == 1
     assert problem.kind == "phantom"
     assert problem.mention == "will foo bar"
+
+
+
+from mind.logic.engines.cli_gate.checks.docs_no_phantom_commands import resolve_mention
+
+
+# ID: b82cbbfc-7599-4c5e-b36e-c69f406fd05e
+def test_resolve_mention():
+    inventory = MagicMock()
+    inventory.commands = {("build",), ("deploy",)}
+    inventory.groups = {("build",), ("deploy",)}
+    inventory.hidden = {("secret",)}
+
+    assert resolve_mention(("build",), inventory) is None
+    assert resolve_mention(("deploy", "--flag"), inventory) is None
+    assert resolve_mention(("secret",), inventory) == ("hidden", ("secret",))
+    assert resolve_mention(("nope", "--x"), inventory) == ("phantom", ("nope",))
