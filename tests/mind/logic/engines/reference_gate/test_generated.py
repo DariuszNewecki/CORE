@@ -57,7 +57,6 @@ def test_find_dangling_references(tmp_path: Path) -> None:
     mock_remediation.assert_called_once()
 
 
-
 from mind.logic.engines.reference_gate import ReferenceGateEngine
 
 
@@ -82,3 +81,23 @@ async def test_ReferenceGateEngine_verify_context() -> None:
     called_path = mock_find.call_args[0][0]
     assert str(called_path) == "/some/repo/path"
     assert result is mock_findings
+
+
+import asyncio
+
+
+# ID: 37aa78fd-1c19-41f7-a960-86cb02331dad
+def test_ReferenceGateEngine_verify() -> None:
+    path_resolver = MagicMock()
+    engine = ReferenceGateEngine(path_resolver)
+
+    file_path = Path("/tmp/some_file.py")
+    params = {"check_type": "context_level_check"}
+
+    result = asyncio.run(engine.verify(file_path, params))
+
+    assert result.ok is False
+    assert "context_level_check" in result.message
+    assert "verify_context" in result.message
+    assert result.violations == []
+    assert result.engine_id == engine.engine_id
