@@ -44,3 +44,38 @@ async def test_SpecGapCheck_run():
     assert candidate.documents == [ur_rel, f".intent/phases/{phase}.yaml"]
     assert ur_id in candidate.claim
     assert phase in candidate.claim
+
+
+
+
+
+# ID: 20b2234e-eac0-4246-af4c-8100afb67d9a
+def test_SpecGapCheck(tmp_path: Path):
+    register = MagicMock()
+    register.action_verbs = ["halt", "block"]
+
+    check = SpecGapCheck(repo_root=tmp_path, register=register)
+
+    check._load_phase_failure_modes = MagicMock(
+        return_value={"P1": {"contradiction": "review"}}
+    )
+    check._load_phase_responsibility = MagicMock(return_value={})
+    check._extract_ur_paragraphs = MagicMock(
+        return_value=[
+            (
+                "UR-01",
+                "src/mind/coherence/data/CORE-USER-REQUIREMENTS.md",
+                "The P1 phase must halt on error.",
+            )
+        ]
+    )
+
+    with patch("mind.coherence.checks.specgap._phases", return_value=["P1"]):
+        import asyncio
+
+        result = asyncio.run(check.run())
+
+    assert isinstance(result, list)
+    for candidate in result:
+        assert candidate.relation == "SPECGAP"
+        assert len(candidate.documents) == 2
