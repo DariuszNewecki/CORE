@@ -430,3 +430,80 @@ async def tests_symbols(
         f"[bold]{len(rows)} symbols in {len(source_files)} files[/bold] — "
         f"{summary}  (cap {cap_n} attempts)"
     )
+
+
+@tests_app.command("cost")
+@core_command(dangerous=False, requires_context=False)
+# ID: 2f6d8c1e-7a43-4b9e-9d15-6e0c3a8b5f72
+async def tests_cost(
+    ctx: typer.Context,
+    days: int = typer.Option(30, "--days", "-d", help="How many days back"),
+) -> None:
+    """What CORE's LLM calls cost, per role and model, from core.llm_exchange_log."""
+    _ = ctx
+    async with get_session() as session:
+        rows: Sequence[Any] = (
+            await session.execute(
+                text(
+                    """
+                    SELECT cognitive_role,
+                           model_snapshot,
+                           count(*) AS calls,
+                           coalesce(sum(prompt_tokens), 0) AS prompt_tokens,
+                           coalesce(sum(completion_tokens), 0) AS completion_tokens,
+                           coalesce(sum(cost_estimate), 0) AS cost,
+                           count(*) FILTER (WHERE cost_estimate IS NULL) AS unpriced
+                    FROM core.llm_exchange_log
+                    WHERE ts > now() - make_interval(days => :days)
+                    GROUP BY cognitive_role, model_snapshot
+                    ORDER BY cost DESC, calls DESC
+                    """
+                ),
+                {"days": days},
+            )
+        ).fetchall()
+        attempts: int = (
+            await session.execute(
+                text(
+                    """
+                    SELECT count(*) FROM core.autonomous_proposals p
+                    WHERE p.actions @> cast('[{"flow_id": "flow.build_test_for_symbol"}]' as jsonb)
+                      AND p.status IN ('completed', 'failed')
+                      AND p.updated_at > now() - make_interval(days => :days)
+                    """
+                ),
+                {"days": days},
+            )
+        ).scalar_one()
+
+    table = Table(box=None, show_header=True, header_style="bold")
+    table.add_column("Role")
+    table.add_column("Model")
+    for name in (
+        "Calls",
+        "Tokens in",
+        "Tokens out",
+        "USD",
+        "USD/call",
+        "Unpriced",
+    ):
+        table.add_column(name, justify="right")
+    total = 0.0
+    for role, model, calls, p_tok, c_tok, cost, unpriced in rows:
+        total += float(cost)
+        table.add_row(
+            role,
+            model,
+            str(calls),
+            f"{p_tok:,}",
+            f"{c_tok:,}",
+            f"{float(cost):.4f}",
+            f"{float(cost) / calls:.5f}" if calls else "-",
+            str(unpriced),
+        )
+    console.print(table)
+    console.print(
+        f"[bold]Last {days} days:[/bold] USD {total:.4f} in "
+        f"{sum(r[2] for r in rows)} calls; "
+        f"{attempts} test-generation attempts finished"
+    )
