@@ -50,3 +50,23 @@ def test_CheckClass():
 
     assert isinstance(CheckClass, type)
     assert hasattr(CheckClass, "run")
+
+
+from mind.coherence.checks.base import CheckIncomplete
+
+
+# ID: 83b83fcd-5438-4ab5-a604-a8205d7514be
+def test_CheckIncomplete():
+    candidates = [object(), object()]
+    exc = CheckIncomplete(
+        candidates=candidates,
+        judged=3,
+        unjudged=2,
+        first_error="judge unreachable",
+    )
+
+    assert exc.candidates is candidates
+    assert exc.judged == 3
+    assert exc.unjudged == 2
+    assert str(exc) == "2 of 5 pairs unjudged: judge unreachable"
+    assert isinstance(exc, Exception)
