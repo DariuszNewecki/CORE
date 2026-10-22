@@ -82,3 +82,12 @@ async def test_blocked_posts_one_finding_per_day() -> None:
     kwargs = worker.post_finding.await_args.kwargs
     assert kwargs["subject"].startswith("test_generation.daily_spend_cap_reached::")
     assert kwargs["resolution_mechanism"] == "human"
+
+
+# ID: 6c9e2a17-4f83-4b5d-a1e0-8d3b7f5c2e96
+async def test_an_unreadable_spend_blocks_instead_of_failing() -> None:
+    session = MagicMock()
+    session.execute = AsyncMock(side_effect=OSError("db down"))
+    with _cap(0.05), pytest.raises(GovernanceInstrumentError) as exc:
+        await refuse_when_daily_spend_cap_reached(session, _TEST_GEN)
+    assert "could not be read" in exc.value.reason
