@@ -140,8 +140,6 @@ def test_auditor_context_rel_path(tmp_path):
         assert cached == "src/module.py"
 
 
-
-
 # ID: 82e9944b-daaf-451f-af6d-bcf889368108
 def test_AuditorContext_get_files(tmp_path):
     repo = tmp_path / "repo"
@@ -192,3 +190,34 @@ def test_AuditorContext_get_files(tmp_path):
 
         cached = ctx.get_files(include=["**/*.py"])
         assert sorted(p.name for p in cached) == names
+
+
+import asyncio
+
+
+# ID: 57758456-6e5c-45b3-ae97-2261b0240d38
+def test_AuditorContext_sweep_llm_gate_cache():
+    ctx = AuditorContext.__new__(AuditorContext)
+    ctx.stateless = False
+    ctx._llm_gate_cache_swept = False
+
+    cfg = MagicMock()
+    cfg.audit.llm_gate_verdict_cache_ttl_days = 7
+
+    execute_result = MagicMock()
+    execute_result.rowcount = 3
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=execute_result)
+    session.commit = AsyncMock()
+    ctx.db_session = session
+
+    with patch(
+        "shared.infrastructure.intent.operational_config.load_operational_config",
+        return_value=cfg,
+    ):
+        purged = asyncio.run(AuditorContext.sweep_llm_gate_cache(ctx))
+
+    assert purged == 3
+    session.execute.assert_awaited_once()
+    session.commit.assert_awaited_once()
+    assert ctx._llm_gate_cache_swept is True
