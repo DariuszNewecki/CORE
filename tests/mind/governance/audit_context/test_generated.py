@@ -347,9 +347,6 @@ def test_AuditorContext_mind_path():
     assert result is fake_mind_dir
 
 
-
-
-
 # ID: 76adb032-55f4-475b-8d97-d700e5ebdc2f
 def test_AuditorContext_intent_root():
     repo_path = Path("/tmp/repo")
@@ -393,3 +390,51 @@ def test_AuditorContext_intent_root():
 
     assert result == intent_root
     assert result == context.intent_path
+
+
+
+
+# ID: bea38b95-c6e2-4626-8fdc-743136162fa5
+def test_AuditorContext(tmp_path: Path) -> None:
+    from mind.governance.audit_context import AuditorContext
+
+    repo_path = tmp_path / "repo"
+    repo_path.mkdir()
+
+    intent_repo = MagicMock()
+    intent_repo.root = tmp_path / "law"
+    intent_repo.root.mkdir()
+    intent_repo.list_policies.return_value = []
+
+    mock_paths = MagicMock()
+    mock_paths.repo_root = repo_path
+    mock_paths.intent_root = intent_repo.root
+    mock_paths.mind_dir = tmp_path / "mind"
+
+    with (
+        patch("mind.governance.audit_context.PathResolver", return_value=mock_paths),
+        patch("mind.logic.engines.registry.EngineRegistry") as mock_engine_registry,
+        patch(
+            "mind.governance.audit_context.EnforcementMappingLoader"
+        ) as mock_enforcement_loader,
+    ):
+        ctx = AuditorContext(
+            repo_path=repo_path,
+            intent_repository=intent_repo,
+            stateless=True,
+        )
+
+    mock_engine_registry.initialize.assert_called_once()
+    mock_enforcement_loader.assert_called_once_with(intent_repo.root)
+
+    assert ctx.repo_path == repo_path.resolve()
+    assert ctx.intent_repo is intent_repo
+    assert ctx.intent_root == intent_repo.root
+    assert ctx.mind_path == mock_paths.mind_dir
+    assert ctx.stateless is True
+    assert ctx.knowledge_graph == {"symbols": {}}
+    assert ctx.symbols_list == []
+    assert ctx.symbols_map == {}
+    assert ctx.policies == {}
+    assert ctx.force_llm is False
+    assert ctx._llm_gate_cache_swept is False
