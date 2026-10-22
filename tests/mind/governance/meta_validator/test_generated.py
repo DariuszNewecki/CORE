@@ -54,7 +54,6 @@ def test_MetaValidator_validate_all_documents(tmp_path: Path) -> None:
     assert report.warnings == []
 
 
-
 from mind.governance.meta_validator import MetaValidator
 
 
@@ -80,3 +79,26 @@ def test_MetaValidator(tmp_path):
     assert validator._validated_directories is None or isinstance(
         validator._validated_directories, list
     )
+
+
+from mind.governance.meta_validator import ValidationReport
+
+
+# ID: a20f9472-9630-4e80-b68c-84c19ce44ce3
+def test_ValidationReport():
+    report = ValidationReport(
+        valid=True,
+        errors=[],
+        warnings=[],
+        documents_checked=3,
+        documents_valid=3,
+        documents_invalid=0,
+    )
+
+    assert report.valid is True
+    assert report.errors == []
+    assert report.warnings == []
+    assert report.documents_checked == 3
+    assert report.documents_valid == 3
+    assert report.documents_invalid == 0
+    assert report.documents_valid + report.documents_invalid == report.documents_checked
