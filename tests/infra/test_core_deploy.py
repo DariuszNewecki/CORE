@@ -1092,27 +1092,11 @@ def _deployer(root: Path, dev: Path) -> cd.Deployer:
 
 
 # ID: 12677f45-5c87-4150-887e-938cf48f9440
-def test_claude_md_is_copied_to_the_dev_tree_not_applied_as_law(root: Path) -> None:
-    assert "CLAUDE.md" not in cd.GOVERNED_PATHSPECS
-    dev = root / "dev"
-    dev.mkdir()
-    (dev / "CLAUDE.md").write_bytes(b"old\n")
-    deployer = _deployer(root, dev)
-    assert deployer.update_claude_md(SHA) is True
-    target = str(dev / "CLAUDE.md")
-    assert deployer.host.calls[-3:] == [
-        (None, ["cp", "-T", str(root / ".CLAUDE.md.new"), target]),
-        (None, ["chown", "core-law:core-law", target]),
-        (None, ["chmod", "0644", target]),
-    ]
-    assert not (root / ".CLAUDE.md.new").exists()
-    (dev / "CLAUDE.md").write_bytes(PYPROJECT)  # FakeHost's `git show` content
-    assert deployer.update_claude_md(SHA) is False  # already equal
-
-
-# ID: 50de6d93-8c03-454e-92e8-88c5711b0f8d
-def test_claude_md_is_skipped_without_a_dev_tree(root: Path) -> None:
-    assert _deployer(root, root / "absent").update_claude_md(SHA) is False
+def test_claude_md_is_governed_text_delivered_by_core_law() -> None:
+    """Law 0040 / #1186: CLAUDE.md reaches the dev tree through law apply-merge
+    (a ledger line), never a root copy."""
+    assert "CLAUDE.md" in cd.GOVERNED_PATHSPECS
+    assert not hasattr(cd.Deployer, "update_claude_md")
 
 
 def test_a_switched_back_deploy_updates_no_host_script(root: Path) -> None:
