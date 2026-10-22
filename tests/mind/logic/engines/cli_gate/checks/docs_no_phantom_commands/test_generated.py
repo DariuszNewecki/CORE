@@ -165,3 +165,52 @@ def test_inventory_from_reference():
             ("mind", "build", "--all"),
         }
     )
+
+
+
+from mind.logic.engines.cli_gate.checks.docs_no_phantom_commands import (
+    inventory_from_tree,
+)
+
+
+# ID: 146aa84f-ed51-45d1-aee3-6af77453e8a4
+def test_inventory_from_tree():
+    # Root command with a group of subcommands, one hidden subgroup
+    root = MagicMock()
+    root.hidden = False
+
+    visible_leaf = MagicMock()
+    visible_leaf.hidden = False
+    visible_leaf.commands = None
+
+    hidden_leaf = MagicMock()
+    hidden_leaf.hidden = True
+    hidden_leaf.commands = None
+
+    nested_leaf = MagicMock()
+    nested_leaf.hidden = False
+    nested_leaf.commands = None
+
+    subgroup = MagicMock()
+    subgroup.hidden = False
+    subgroup.commands = {"nested": nested_leaf}
+
+    root.commands = {
+        "visible": visible_leaf,
+        "secret": hidden_leaf,
+        "group": subgroup,
+    }
+
+    inventory = inventory_from_tree(root)
+
+    # Inspect the returned inventory through its dataclass fields, discovering them dynamically
+    from dataclasses import fields
+
+    field_map = {f.name: getattr(inventory, f.name) for f in fields(inventory)}
+    set_values = [v for v in field_map.values() if isinstance(v, frozenset)]
+
+    expected_visible = frozenset({("visible",), ("group", "nested")})
+    expected_hidden = frozenset({("secret",)})
+
+    assert expected_visible in set_values
+    assert expected_hidden in set_values
