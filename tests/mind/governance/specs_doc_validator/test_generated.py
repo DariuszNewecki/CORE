@@ -120,3 +120,13 @@ def test_SpecsDocValidator() -> None:
         errors = validator.validate_header(schema, {"id": "abc"}, document="doc.md")
 
     assert errors == []
+
+
+from mind.governance.specs_doc_validator import parse_frontmatter
+
+
+# ID: 991533db-d66b-401d-bc70-31b56833db0c
+def test_parse_frontmatter() -> None:
+    text = "---\ntitle: My Spec\ntags:\n  - a\n  - b\n---\n\n# Body\n"
+    result = parse_frontmatter(text)
+    assert result == {"title": "My Spec", "tags": ["a", "b"]}
