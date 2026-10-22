@@ -39,3 +39,41 @@ async def test_CoherenceChecker_run():
     checker._dispatch_checks.assert_awaited_once_with("run-123")
     coherence_service.update_manifest.assert_awaited_once()
     coherence_service.close_run_if_empty.assert_awaited_once_with("run-123")
+
+
+
+
+
+# ID: af84c03a-8294-4301-acfa-221b8b58fc02
+def test_CoherenceChecker(tmp_path: Path):
+    import asyncio
+
+    cognitive_service = MagicMock()
+    coherence_service = MagicMock()
+
+    coherence_service.create_run = AsyncMock(return_value="run-123")
+    coherence_service.get_latest_run = AsyncMock(return_value=None)
+    coherence_service.update_manifest = AsyncMock()
+    coherence_service.close_run_if_empty = AsyncMock()
+    coherence_service.dismissed_and_unchanged = AsyncMock(return_value=False)
+    coherence_service.add_candidate = AsyncMock()
+
+    checker = CoherenceChecker(
+        cognitive_service=cognitive_service,
+        coherence_service=coherence_service,
+        repo_root=tmp_path,
+        claims_service=None,
+    )
+
+    fake_status = {
+        "DISPATCH_PARITY": {"status": "ok", "emitted": 0, "carried_forward": 0}
+    }
+    checker._dispatch_checks = AsyncMock(return_value=fake_status)
+
+    result = asyncio.run(checker.run(full=True))
+
+    assert result == "run-123"
+    coherence_service.create_run.assert_awaited_once_with("manual")
+    coherence_service.update_manifest.assert_awaited_once()
+    coherence_service.close_run_if_empty.assert_awaited_once_with("run-123")
+    checker._dispatch_checks.assert_awaited_once_with("run-123")
