@@ -92,9 +92,6 @@ async def test_ExclusionGateEngine_verify_context():
     }
 
 
-
-
-
 # ID: f952055e-a37d-4b5b-ab43-be5aef711a64
 def test_ExclusionGateEngine_verify():
     engine = ExclusionGateEngine.__new__(ExclusionGateEngine)
@@ -111,3 +108,63 @@ def test_ExclusionGateEngine_verify():
     assert result.engine_id == engine_id
     assert "exclusion_level" in result.message
     assert "verify_context" in result.message
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: afd963fa-7340-4b49-ab02-24f0b79f2925
+async def test_ExclusionGateEngine():
+    engine = ExclusionGateEngine()
+    assert engine.engine_id == "exclusion_gate"
+
+    # Happy path for verify_context: one dead exclude entry reported.
+    context = MagicMock()
+    context.repo_path = "/tmp/repo"
+    context.policies = MagicMock()
+    context.enforcement_loader = MagicMock()
+
+    rule = MagicMock()
+    rule.rule_id = "architecture.intent.some_other_rule"
+    rule.engine = "some_engine"
+    rule.params = {}
+
+    dead = MagicMock()
+    dead.rule_id = rule.rule_id
+    dead.entry = "src/generated/**"
+    dead.reason = "matches no files"
+
+    with (
+        patch(
+            "mind.governance.rule_extractor.extract_executable_rules",
+            return_value=[rule],
+        ),
+        patch(
+            "mind.logic.engines.registry.EngineRegistry",
+        ) as mock_registry,
+        patch(
+            "mind.logic.engines.exclusion_gate.find_dead_excludes",
+            new=AsyncMock(return_value=[dead]),
+        ),
+        patch(
+            "mind.logic.engines.exclusion_gate._repo_files",
+            return_value=MagicMock(),
+        ),
+    ):
+        mock_registry.get.return_value.verify = AsyncMock(
+            return_value=MagicMock(violations=[], ok=True)
+        )
+
+        findings = await engine.verify_context(
+            context, {"check_type": "excludes_exempt_something"}
+        )
+
+    assert len(findings) == 1
+    assert findings[0].check_id == "architecture.intent.excludes_exempt_something"
+    assert findings[0].context == {
+        "rule_id": rule.rule_id,
+        "entry": dead.entry,
+        "reason": dead.reason,
+    }
