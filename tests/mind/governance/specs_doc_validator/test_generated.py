@@ -58,8 +58,6 @@ def test_SpecsDocValidator_validate_all_documents(tmp_path):
         )
 
 
-
-
 # ID: 365196b1-fa43-4079-96e1-dc08f85e4b92
 def test_SpecsDocValidator_validate_header():
     from mind.governance.specs_doc_validator import SpecsDocValidator
@@ -89,3 +87,36 @@ def test_SpecsDocValidator_validate_header():
 
     assert errors == []
     validator._build_registry.assert_called_once()
+
+
+from pathlib import Path
+
+
+# ID: 60cd36e5-8a68-460b-a18c-f0296cb15869
+def test_SpecsDocValidator() -> None:
+    fake_repo = MagicMock()
+    fake_repo.root = Path("/tmp/intent")
+
+    with patch(
+        "mind.governance.specs_doc_validator.get_intent_repository",
+        return_value=fake_repo,
+    ):
+        validator = SpecsDocValidator(repo_root=Path("/tmp/repo"))
+
+    assert validator._repo is fake_repo
+    assert validator._intent_root == Path("/tmp/intent")
+    assert validator._repo_root == Path("/tmp/repo")
+    assert validator._enums_path == Path("/tmp/intent") / "META" / "enums.json"
+    assert validator._schema_cache == {}
+    assert validator.errors == []
+    assert validator.warnings == []
+
+    schema = {
+        "type": "object",
+        "required": ["id"],
+        "properties": {"id": {"type": "string"}},
+    }
+    with patch.object(validator, "_build_registry", return_value=MagicMock()):
+        errors = validator.validate_header(schema, {"id": "abc"}, document="doc.md")
+
+    assert errors == []
