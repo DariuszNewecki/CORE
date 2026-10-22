@@ -124,7 +124,6 @@ def test_find_phantom_mentions():
     assert problem.mention == "will foo bar"
 
 
-
 from mind.logic.engines.cli_gate.checks.docs_no_phantom_commands import resolve_mention
 
 
@@ -139,3 +138,30 @@ def test_resolve_mention():
     assert resolve_mention(("deploy", "--flag"), inventory) is None
     assert resolve_mention(("secret",), inventory) == ("hidden", ("secret",))
     assert resolve_mention(("nope", "--x"), inventory) == ("phantom", ("nope",))
+
+
+from mind.logic.engines.cli_gate.checks.docs_no_phantom_commands import (
+    inventory_from_reference,
+)
+
+
+# ID: 67bd6628-a508-48cb-a91d-9bec462be8aa
+def test_inventory_from_reference():
+    text = (
+        "# Core Reference\n"
+        "Some intro text.\n"
+        "### `core mind run`\n"
+        "Description of run.\n"
+        "### `core mind build --all`\n"
+        "### not a command heading\n"
+        "#### `core ignored`\n"
+    )
+
+    inventory = inventory_from_reference(text)
+
+    assert inventory.commands == frozenset(
+        {
+            ("mind", "run"),
+            ("mind", "build", "--all"),
+        }
+    )
