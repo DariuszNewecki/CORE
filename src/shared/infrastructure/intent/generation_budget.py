@@ -33,6 +33,8 @@ class TaskBudget:
 
     max_iterations: int
     wall_clock_cap_secs: int
+    # ADR-172: USD per UTC day; None when the law sets no cap.
+    daily_spend_usd_max: float | None = None
 
 
 @dataclass(frozen=True)
@@ -58,11 +60,13 @@ def _parse_budget(raw: Any) -> TaskBudget:
     if not isinstance(raw, dict):
         return TaskBudget(_DEFAULT_MAX_ITERATIONS, _DEFAULT_WALL_CLOCK_CAP_SECS)
     try:
+        cap = raw.get("daily_spend_usd_max")
         return TaskBudget(
             max_iterations=int(raw.get("max_iterations", _DEFAULT_MAX_ITERATIONS)),
             wall_clock_cap_secs=int(
                 raw.get("wall_clock_cap_secs", _DEFAULT_WALL_CLOCK_CAP_SECS)
             ),
+            daily_spend_usd_max=None if cap is None else float(cap),
         )
     except (TypeError, ValueError):
         return TaskBudget(_DEFAULT_MAX_ITERATIONS, _DEFAULT_WALL_CLOCK_CAP_SECS)
