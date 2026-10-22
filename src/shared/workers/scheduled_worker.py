@@ -64,7 +64,8 @@ class ScheduledWorker(Worker, ABC):
     async def run_loop(self) -> None:
         """Continuous self-scheduling loop.  Sanctuary calls this once on bootstrap.
 
-        Registers the worker, runs the ``_before_loop`` hook, then cycles:
+        Registers the worker and runs the ``_before_loop`` hook (retried until
+        both succeed, see ``_start_until_ready``), then cycles:
         ``run()`` → catch exceptions → sleep for remainder of ``max_interval``.
         Never raises — exceptions are caught, logged, and posted to the blackboard.
         """
@@ -74,8 +75,7 @@ class ScheduledWorker(Worker, ABC):
             self._max_interval,
             self._glide_off,
         )
-        await self._register()
-        await self._before_loop()
+        await self._start_until_ready()
 
         while True:
             cycle_start = time.monotonic()
@@ -106,6 +106,31 @@ class ScheduledWorker(Worker, ABC):
                     )
             elapsed = time.monotonic() - cycle_start
             await asyncio.sleep(max(self._max_interval - elapsed, 0))
+
+    async def _start_until_ready(self) -> None:
+        """Register and run ``_before_loop``, retrying until both succeed.
+
+        Both reach the database. At daemon start Postgres may still be down or
+        restarting; an exception here used to end run_loop's task silently,
+        with the worker gone and nothing reporting it. Retries back off from
+        5s to max_interval (at most 300s) and log each failure.
+        """
+        delay = 5
+        cap = min(max(self._max_interval, 5), 300)
+        while True:
+            try:
+                await self._register()
+                await self._before_loop()
+                return
+            except Exception as exc:
+                logger.error(
+                    "%s: start failed, retrying in %ds: %s",
+                    self._worker_name,
+                    delay,
+                    exc,
+                )
+                await asyncio.sleep(delay)
+                delay = min(delay * 2, cap)
 
     async def _before_loop(self) -> None:
         """Called once after registration, before the first cycle.
