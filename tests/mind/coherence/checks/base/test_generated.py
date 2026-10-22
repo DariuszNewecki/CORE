@@ -93,3 +93,21 @@ def test_CheckSkipped() -> None:
     assert isinstance(exc, Exception)
     assert str(exc) == "seed_gap"
     assert exc.args == ("seed_gap",)
+
+
+from mind.coherence.checks.base import CoherenceCandidate
+
+
+# ID: 03105188-36e9-4b94-8013-1f367f1f9039
+def test_CoherenceCandidate():
+    candidate = CoherenceCandidate(
+        relation="contradicts",
+        documents=["doc-1", "doc-2"],
+        claim="X is true",
+        rationale="Because the sources disagree.",
+    )
+
+    assert candidate.relation == "contradicts"
+    assert candidate.documents == ["doc-1", "doc-2"]
+    assert candidate.claim == "X is true"
+    assert candidate.rationale == "Because the sources disagree."
