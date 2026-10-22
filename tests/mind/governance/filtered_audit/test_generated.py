@@ -81,7 +81,6 @@ def test_normalize_file_filter(tmp_path):
     assert normalize_file_filter([], repo_root) is None
 
 
-
 from mind.governance.filtered_audit import RuleFilter
 
 
@@ -112,3 +111,28 @@ def test_RuleFilter_matches():
         rule_ids=["OTHER"], policy_ids=["NOPE"], rule_patterns=[r"^XYZ$"]
     )
     assert non_matching.matches(rule) is False
+
+
+
+
+
+# ID: d090bf3f-8c68-4320-bf70-4db85ef4e656
+def test_RuleFilter() -> None:
+    # Happy path: an unfiltered RuleFilter matches any rule.
+    unfiltered = RuleFilter()
+    rule = MagicMock()
+    rule.rule_id = "rule-123"
+    rule.policy_id = "policy-abc"
+    assert unfiltered.matches(rule) is True
+
+    # Exact rule ID match
+    by_rule_id = RuleFilter(rule_ids=["rule-123"])
+    assert by_rule_id.matches(rule) is True
+
+    # Policy ID match
+    by_policy = RuleFilter(policy_ids=["policy-abc"])
+    assert by_policy.matches(rule) is True
+
+    # Pattern match on rule id
+    by_pattern = RuleFilter(rule_patterns=[r"rule-\d+"])
+    assert by_pattern.matches(rule) is True
