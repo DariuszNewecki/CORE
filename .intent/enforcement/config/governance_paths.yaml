@@ -19,3 +19,4 @@ governed_text:
     - ".specs/"
     - ".claude/settings.json"
     - ".claude/hooks/"
+    - "CLAUDE.md"
