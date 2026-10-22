@@ -42,3 +42,19 @@ async def test_execute_rule() -> None:
 
     assert findings == []
     context.get_files.assert_called_once()
+
+
+
+
+# ID: a31d89b4-98a8-43fb-98c9-0a68f9190293
+def test_clear_eval_cache():
+    from mind.governance.rule_executor import _EVAL_CACHE, clear_eval_cache
+
+    _EVAL_CACHE[("a.py", "hash1", "rule-x", 1, 2)] = [MagicMock()]
+    _EVAL_CACHE[("b.py", "hash2", "rule-y", 3, 4)] = [MagicMock(), MagicMock()]
+    assert len(_EVAL_CACHE) == 2
+
+    clear_eval_cache()
+
+    assert _EVAL_CACHE == {}
+    assert len(_EVAL_CACHE) == 0
