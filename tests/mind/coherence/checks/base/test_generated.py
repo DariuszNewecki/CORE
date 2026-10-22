@@ -70,3 +70,14 @@ def test_CheckIncomplete():
     assert exc.unjudged == 2
     assert str(exc) == "2 of 5 pairs unjudged: judge unreachable"
     assert isinstance(exc, Exception)
+
+
+from mind.coherence.checks.base import JudgeUnavailable
+
+
+# ID: cc4d2967-5c42-4f03-9d7f-60f489bdbd28
+def test_JudgeUnavailable():
+    message = "judge call timed out"
+    exc = JudgeUnavailable(message)
+    assert isinstance(exc, Exception)
+    assert str(exc) == message
