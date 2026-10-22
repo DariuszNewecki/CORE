@@ -55,3 +55,30 @@ def test_find_dangling_references(tmp_path: Path) -> None:
     mock_workers.assert_called_once()
     mock_ns.assert_called_once()
     mock_remediation.assert_called_once()
+
+
+
+from mind.logic.engines.reference_gate import ReferenceGateEngine
+
+
+# ID: b81943fe-b18d-47cc-925d-b030c8606fc5
+async def test_ReferenceGateEngine_verify_context() -> None:
+    engine = ReferenceGateEngine(path_resolver=MagicMock())
+
+    mock_context = MagicMock()
+    mock_context.repo_path = "/some/repo/path"
+
+    mock_findings = [MagicMock(), MagicMock()]
+
+    with patch(
+        "mind.logic.engines.reference_gate.find_dangling_references",
+        return_value=mock_findings,
+    ) as mock_find:
+        params = {"check_type": "intent_references_resolve"}
+
+        result = await engine.verify_context(mock_context, params)
+
+    mock_find.assert_called_once()
+    called_path = mock_find.call_args[0][0]
+    assert str(called_path) == "/some/repo/path"
+    assert result is mock_findings
