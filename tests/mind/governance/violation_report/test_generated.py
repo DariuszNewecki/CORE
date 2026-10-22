@@ -44,7 +44,6 @@ def test_extract_error_data():
         assert result_override == {"rule_name": "R1", "path": "override"}
 
 
-
 from mind.governance.violation_report import ConstitutionalViolationError
 
 
@@ -75,3 +74,48 @@ def test_ConstitutionalViolationError_to_dict():
             "suggested_fix": "Use logging instead of print()",
         }
     ]
+
+
+
+
+# ID: f01b7fd3-a15d-4681-a313-24d994e99573
+def test_ConstitutionalViolationError():
+    from mind.governance.violation_report import ConstitutionalViolationError
+
+    violation = MagicMock()
+    violation.rule_name = "no_direct_writes"
+    violation.path = "/tmp/foo.txt"
+    violation.severity = "high"
+    violation.source_policy = "core_safety"
+    violation.message = "Direct file writes are prohibited"
+    violation.suggested_fix = "Use the approved write API"
+
+    err = ConstitutionalViolationError([violation])
+
+    assert isinstance(err, ValueError)
+    assert err.violations == [violation]
+    assert str(err) == "Blocked by IntentGuard: Direct file writes are prohibited"
+
+    result = err.to_dict()
+
+    assert isinstance(result, dict)
+    assert result["error"] == str(err)
+    assert result["blocked_by"] == "IntentGuard"
+    assert result["violation_count"] == 1
+    assert result["violations"] == [
+        {
+            "rule_name": "no_direct_writes",
+            "path": "/tmp/foo.txt",
+            "severity": "high",
+            "source_policy": "core_safety",
+            "message": "Direct file writes are prohibited",
+            "suggested_fix": "Use the approved write API",
+        }
+    ]
+
+    empty_err = ConstitutionalViolationError([])
+    assert empty_err.violations == []
+    assert str(empty_err) == "Blocked by IntentGuard: constitutional rule violated"
+    empty_result = empty_err.to_dict()
+    assert empty_result["violation_count"] == 0
+    assert empty_result["violations"] == []
