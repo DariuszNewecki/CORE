@@ -306,8 +306,6 @@ def test_AuditorContext_invalidate_file_cache(tmp_path):
         assert ctx._per_file_scopes_cache is None
 
 
-
-
 # ID: 0fb7bf15-23e1-42f1-b1a1-8d8fdc2717d5
 def test_AuditorContext_mind_path():
     from mind.governance.audit_context import AuditorContext
@@ -347,3 +345,51 @@ def test_AuditorContext_mind_path():
 
     assert result == fake_mind_dir
     assert result is fake_mind_dir
+
+
+
+
+
+# ID: 76adb032-55f4-475b-8d97-d700e5ebdc2f
+def test_AuditorContext_intent_root():
+    repo_path = Path("/tmp/repo")
+    intent_root = Path("/tmp/intent")
+
+    mock_intent_repo = MagicMock()
+    mock_intent_repo.root = intent_root
+
+    mock_paths = MagicMock()
+    mock_paths.repo_root = repo_path
+    mock_paths.intent_root = intent_root
+
+    with (
+        patch(
+            "mind.governance.audit_context.get_intent_repository",
+            return_value=mock_intent_repo,
+        ),
+        patch(
+            "mind.governance.audit_context.PathResolver",
+            return_value=mock_paths,
+        ),
+        patch(
+            "mind.logic.engines.registry.EngineRegistry.initialize",
+        ),
+        patch.object(
+            AuditorContext,
+            "_load_governance_resources",
+            return_value={},
+        ),
+        patch(
+            "mind.governance.audit_context.EnforcementMappingLoader",
+        ),
+    ):
+        context = AuditorContext(
+            repo_path=repo_path,
+            intent_repository=mock_intent_repo,
+            stateless=True,
+        )
+
+        result = context.intent_root
+
+    assert result == intent_root
+    assert result == context.intent_path
