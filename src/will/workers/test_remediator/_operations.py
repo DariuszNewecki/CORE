@@ -554,4 +554,27 @@ def failure_detail(failure_reason: str | None, execution_results: Any) -> str | 
                     return found
         return None
 
-    return _first_detail(execution_results) or failure_reason
+    # A flow step that raised records only {"error", "step_ref"} (FlowExecutor),
+    # no "details"; without this the ledger showed "Actions failed: ...:0".
+    def _first_error(node: Any) -> str | None:
+        if isinstance(node, dict):
+            error = node.get("error")
+            if isinstance(error, str) and error:
+                step = node.get("step_ref")
+                return f"{step}: {error}" if step else error
+            for value in node.values():
+                found = _first_error(value)
+                if found:
+                    return found
+        elif isinstance(node, list):
+            for value in node:
+                found = _first_error(value)
+                if found:
+                    return found
+        return None
+
+    return (
+        _first_detail(execution_results)
+        or _first_error(execution_results)
+        or failure_reason
+    )
