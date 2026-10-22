@@ -33,3 +33,30 @@ def test_EnforcementMappingLoader_get_stats():
         "total_presets": 1,
         "engines_used": 2,
     }
+
+
+from unittest.mock import patch
+
+
+# ID: 0625abb6-f5c9-46b4-921b-35ce9ce63937
+def test_EnforcementMappingLoader_get_enforcement_strategy():
+    from mind.governance.enforcement_loader import EnforcementMappingLoader
+
+    loader = EnforcementMappingLoader(intent_root=Path("/fake/.intent"))
+
+    # Pre-populate the mappings cache so load_all_mappings() is NOT triggered,
+    # isolating the happy-path behavior of get_enforcement_strategy.
+    expected = {"strategy": "block", "level": "hard"}
+    loader._mappings_cache = {"architecture.max_file_size": expected}
+
+    with patch.object(loader, "load_all_mappings", MagicMock()) as mock_load:
+        result = loader.get_enforcement_strategy("architecture.max_file_size")
+
+    assert result == expected
+    assert result is expected
+
+    # Cache was non-empty, so loader should not have reloaded.
+    mock_load.assert_not_called()
+
+    # Unmapped rule returns None.
+    assert loader.get_enforcement_strategy("unknown.rule") is None
