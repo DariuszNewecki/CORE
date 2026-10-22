@@ -35,6 +35,7 @@ from shared.infrastructure.intent.vocabulary_projection import (
 )
 from shared.logger import getLogger
 from shared.protocols.cognitive_flow_delegate import CognitiveFlowDelegate
+from will.autonomy.daily_spend_cap import refuse_when_daily_spend_cap_reached
 from will.autonomy.proposal import ProposalStatus
 from will.autonomy.proposal_execution_pipeline import (
     CommitOutcome,
@@ -127,6 +128,9 @@ class ProposalExecutor:
                 proposal.status.value,
                 len(proposal.actions),
             )
+
+            # ADR-172: blocked, not failed, before anything is claimed.
+            await refuse_when_daily_spend_cap_reached(session, proposal.actions)
 
             # 2. Validate status. A dry run of a PENDING proposal is the
             # pre-approval run (will.autonomy.pending_proposal_gate): it

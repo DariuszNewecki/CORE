@@ -34,12 +34,14 @@ accounting.
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
 from typing import Any
 
 from shared.exceptions import GovernanceInstrumentError
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
+from will.autonomy.daily_spend_cap import INSTRUMENT as SPEND_CAP_INSTRUMENT
 from will.autonomy.proposal_consumer_effects import (
     apply_success_effects,
     summarize_flow_step_failures,
@@ -294,6 +296,8 @@ class ProposalConsumerWorker(Worker):
                             "error": str(e),
                         }
                     )
+                    if e.instrument == SPEND_CAP_INSTRUMENT:
+                        await _post_spend_cap_reached(self, e.reason)
 
                 except Exception as e:
                     failed += 1
@@ -491,3 +495,17 @@ class ProposalConsumerWorker(Worker):
                 "ProposalConsumerWorker: failed to load approved proposals: %s", e
             )
             return []
+
+
+async def _post_spend_cap_reached(worker: Any, reason: str) -> None:
+    """One open finding per UTC day the cap stops test generation (ADR-172);
+    later posts that day upsert the same subject."""
+    day = datetime.now(UTC).date().isoformat()
+    try:
+        await worker.post_finding(
+            subject=f"test_generation.daily_spend_cap_reached::{day}",
+            payload={"day": day, "reason": reason},
+            resolution_mechanism="human",
+        )
+    except Exception as exc:
+        logger.warning("ProposalConsumerWorker: spend-cap finding not posted: %s", exc)
