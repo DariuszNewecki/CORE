@@ -110,7 +110,6 @@ def test_ExclusionGateEngine_verify():
     assert "verify_context" in result.message
 
 
-
 import pytest
 
 
@@ -168,3 +167,25 @@ async def test_ExclusionGateEngine():
         "entry": dead.entry,
         "reason": dead.reason,
     }
+
+
+from dataclasses import fields, is_dataclass
+
+from mind.logic.engines.exclusion_gate import DeadExclude
+
+
+# ID: 295bd7a7-c9dc-4d00-b274-9a3e5c5262c9
+def test_DeadExclude():
+    dead = DeadExclude(
+        rule_id="rule_42",
+        entry="some/redundant/path.py",
+        reason="redundant with project-wide exclude",
+    )
+
+    assert dead.rule_id == "rule_42"
+    assert dead.entry == "some/redundant/path.py"
+    assert dead.reason == "redundant with project-wide exclude"
+
+    assert is_dataclass(DeadExclude)
+    field_names = {f.name for f in fields(DeadExclude)}
+    assert field_names == {"rule_id", "entry", "reason"}
