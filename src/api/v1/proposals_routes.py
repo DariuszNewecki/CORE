@@ -22,9 +22,11 @@ CONSTITUTIONAL:
 
 GOVERNOR GATE (ADR-132 D10.11 step 4): approve, reject, execute and create
 need the governor on CORE's Unix socket; approve is stamped from that
-identity (D10.4). Submitting a producer's change (ADR-168) and reading
-proposals are open: a submission is only a pending proposal, and nothing
-lands without the governor's approval.
+identity (D10.4). Submitting a producer's change (ADR-168) needs a producer
+or the governor identified on the Unix socket, and the producer recorded is
+that account, never the request's word (review M2: over TCP any local
+account could name any producer and fill the governor's queue). Reading
+proposals is open.
 """
 
 from __future__ import annotations
@@ -37,9 +39,12 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import (
+    CallerPrincipal,
     ConsequenceLogDep,
+    caller_principal,
     get_api_session,
     require_governor,
+    require_identified_producer,
 )
 from api.v1.schemas import (
     GovernanceChainResponse,
@@ -123,8 +128,19 @@ class SubmitChangeRequest(BaseModel):
     goal: str
     anchor_kind: str
     anchor_refs: list[str]
-    producer: str
+    # The caller's own name for itself; the recorded producer is the
+    # socket-identified account (see recorded_producer).
+    producer: str | None = None
     retires: list[str] = []
+
+
+# ID: 0e5b9c27-4a81-4f36-9d2e-6c1a8f3b7d54
+def recorded_producer(account: str, claimed: str | None) -> str:
+    """The producer stamped on a submission: the identified account, with the
+    caller's own label kept beside it when it differs."""
+    if not claimed or claimed == account:
+        return account
+    return f"{account} as {claimed}"
 
 
 # ID: 71caa34a-1661-4178-b982-626bff254539
@@ -162,13 +178,19 @@ class CreateProposalRequest(BaseModel):
         "which CORE re-reads. CORE answers step 0 (what it retires, related "
         "decisions, similar existing code) and creates a PENDING proposal "
         "carrying the anchor, problem owner (the governor) and producer. "
+        "Only on CORE's Unix socket, from an account bound to a producer or the "
+        "governor; the producer recorded is that account (403 otherwise). "
         "Approval is always required; this route never approves. 422 when the "
         "run does not bind the patch or the submission is malformed."
     ),
 )
 # ID: 1ea37180-f337-40c5-aa43-2283da29e563
-async def submit_change(payload: SubmitChangeRequest) -> dict:
+async def submit_change(
+    payload: SubmitChangeRequest,
+    principal: CallerPrincipal = caller_principal,
+) -> dict:
     """Route a producer's validated change to the Will-layer submission service."""
+    account = require_identified_producer(principal)
     from shared.models.validated_remediation_candidate import (
         CandidateConstructionError,
     )
@@ -184,7 +206,7 @@ async def submit_change(payload: SubmitChangeRequest) -> dict:
             goal=payload.goal,
             anchor_kind=payload.anchor_kind,
             anchor_refs=payload.anchor_refs,
-            producer=payload.producer,
+            producer=recorded_producer(account, payload.producer),
             retires=payload.retires,
             created_by="api.proposals_submit",
         )

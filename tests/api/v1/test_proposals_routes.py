@@ -506,6 +506,12 @@ async def test_execute_proposal_passes_write_true_when_requested():
 # ── submit (ADR-168 Amendment 2026-10-10) ────────────────────────────────────
 
 
+def _producer():
+    from api.dependencies import CallerPrincipal
+
+    return CallerPrincipal(uid=1001, account="core-claude", role="principal.producer")
+
+
 def _submit_request():
     from api.v1.proposals_routes import SubmitChangeRequest
 
@@ -525,10 +531,11 @@ async def test_submit_routes_to_the_will_submission_service():
 
     service = AsyncMock(return_value={"proposal_id": "p1"})
     with patch("will.autonomy.producer_submission.submit_producer_change", service):
-        out = await submit_change(payload=_submit_request())
+        out = await submit_change(payload=_submit_request(), principal=_producer())
 
     assert out == {"proposal_id": "p1"}
     assert service.await_args.kwargs["created_by"] == "api.proposals_submit"
+    assert service.await_args.kwargs["producer"] == "core-claude as p"
 
 
 # ID: 3fceb8a5-ecfb-4737-b804-aa3006bb479e
@@ -539,5 +546,31 @@ async def test_submit_refusal_is_422():
     service = AsyncMock(side_effect=ProducerSubmissionError("no"))
     with patch("will.autonomy.producer_submission.submit_producer_change", service):
         with pytest.raises(HTTPException) as exc_info:
-            await submit_change(payload=_submit_request())
+            await submit_change(payload=_submit_request(), principal=_producer())
     assert exc_info.value.status_code == 422
+
+
+# ID: 5a2d8e61-3f97-4c0b-8e14-9b6c7d2a1f35
+async def test_submit_over_tcp_is_refused_and_nothing_is_submitted():
+    """Review M2: TCP carries no identity, so it cannot name a producer."""
+    from api.dependencies import CallerPrincipal
+    from api.v1.proposals_routes import submit_change
+
+    service = AsyncMock(return_value={"proposal_id": "p1"})
+    with patch("will.autonomy.producer_submission.submit_producer_change", service):
+        with pytest.raises(HTTPException) as exc_info:
+            await submit_change(
+                payload=_submit_request(),
+                principal=CallerPrincipal(uid=None, account=None, role=None),
+            )
+    assert exc_info.value.status_code == 403
+    service.assert_not_awaited()
+
+
+# ID: 7c4f1b92-8d26-4e5a-a3b0-1e9d6f2c8b47
+def test_recorded_producer_is_the_account():
+    from api.v1.proposals_routes import recorded_producer
+
+    assert recorded_producer("core-claude", None) == "core-claude"
+    assert recorded_producer("core-claude", "core-claude") == "core-claude"
+    assert recorded_producer("core-claude", "governor") == "core-claude as governor"

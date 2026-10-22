@@ -177,6 +177,9 @@ DEV_REPO = Path("/opt/dev/CORE")
 GOVERNED_PATHSPECS = (
     ".intent",
     ".specs",
+    # Governed again (law 0040, 2026-10-22, #1186): delivered by core-law with
+    # a ledger line, no longer copied in by root.
+    "CLAUDE.md",
     ".claude/settings.json",
     ".claude/hooks",
     ":(exclude).intent/custody",
@@ -1377,33 +1380,6 @@ class Deployer:
             self.say(f"host scripts updated from {sha[:12]}: {', '.join(updated)}")
         return updated
 
-    def update_claude_md(self, sha: str) -> bool:
-        """Make the dev tree's CLAUDE.md equal to the deployed commit's.
-
-        CLAUDE.md is no longer governed text, but core-law-setup still gives it
-        to core-law, so nothing else can write it. Runs after a verified switch;
-        a failure is reported and never undoes the deploy.
-        """
-        target = self.options.dev_repo / "CLAUDE.md"
-        if not self.options.dev_repo.is_dir():
-            return False
-        staged = self.layout.root / ".CLAUDE.md.new"
-        try:
-            data = self.git("show", f"{sha}:CLAUDE.md")
-            if target.is_file() and target.read_bytes() == data:
-                return False
-            staged.write_bytes(data)
-            self.host.run(["cp", "-T", str(staged), str(target)])
-            self.host.run(["chown", f"{LAW_USER}:{LAW_USER}", str(target)])
-            self.host.run(["chmod", "0644", str(target)])
-        except (Refused, OSError) as exc:
-            self.say(f"CLAUDE.md not updated: {exc}")
-            return False
-        finally:
-            staged.unlink(missing_ok=True)
-        self.say(f"CLAUDE.md updated from {sha[:12]}")
-        return True
-
     def _dev_git(
         self, *args: str, check: bool = True
     ) -> subprocess.CompletedProcess[bytes]:
@@ -1589,7 +1565,6 @@ class Deployer:
         self.enable(units)
         scripts = self.update_host_scripts(sha)
         law_setup = self.apply_law_setup(setup_changed, wheel_sha)
-        claude_md = self.update_claude_md(sha)
         dev_checkout = self.follow_dev_checkout(sha)
         pruned = self.prune_releases(sha, previous)
         self.ledger(
@@ -1600,7 +1575,6 @@ class Deployer:
                 "host_scripts_updated": scripts,
                 "host_setup": host_setup,
                 "law_setup": law_setup,
-                "claude_md_updated": claude_md,
                 "dev_checkout": dev_checkout,
                 "pruned": pruned,
                 "wheel_sha256": wheel_sha,
