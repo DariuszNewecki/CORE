@@ -76,8 +76,6 @@ def test_ConstitutionalViolationError_to_dict():
     ]
 
 
-
-
 # ID: f01b7fd3-a15d-4681-a313-24d994e99573
 def test_ConstitutionalViolationError():
     from mind.governance.violation_report import ConstitutionalViolationError
@@ -119,3 +117,27 @@ def test_ConstitutionalViolationError():
     empty_result = empty_err.to_dict()
     assert empty_result["violation_count"] == 0
     assert empty_result["violations"] == []
+
+
+from mind.governance.violation_report import ConstitutionalViolationPayload
+
+
+# ID: 93813bd2-7bfb-4c31-a9ba-36355ec3e25a
+def test_ConstitutionalViolationPayload() -> None:
+    violations = [
+        {"rule": "ADR-001", "message": "missing authority"},
+        {"rule": "ADR-002", "message": "invalid scope"},
+    ]
+
+    payload = ConstitutionalViolationPayload(
+        error="ConstitutionalViolationError",
+        blocked_by="proposal_gate",
+        violation_count=len(violations),
+        violations=violations,
+    )
+
+    assert payload.error == "ConstitutionalViolationError"
+    assert payload.blocked_by == "proposal_gate"
+    assert payload.violation_count == 2
+    assert payload.violations == violations
+    assert payload.violations[0]["rule"] == "ADR-001"
