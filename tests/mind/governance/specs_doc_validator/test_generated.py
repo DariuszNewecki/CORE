@@ -56,3 +56,36 @@ def test_SpecsDocValidator_validate_all_documents(tmp_path):
         validator.validate_header.assert_called_once_with(
             schema, {"title": "hi"}, document="docs/example.spec.md"
         )
+
+
+
+
+# ID: 365196b1-fa43-4079-96e1-dc08f85e4b92
+def test_SpecsDocValidator_validate_header():
+    from mind.governance.specs_doc_validator import SpecsDocValidator
+
+    mock_repo = MagicMock()
+    mock_repo.root = MagicMock()
+    mock_repo.root.parent = MagicMock()
+
+    with patch(
+        "mind.governance.specs_doc_validator.get_intent_repository",
+        return_value=mock_repo,
+    ):
+        validator = SpecsDocValidator()
+
+    validator._build_registry = MagicMock(return_value=MagicMock())
+
+    schema = {
+        "type": "object",
+        "properties": {
+            "title": {"type": "string"},
+        },
+        "required": ["title"],
+    }
+    header = {"title": "Hello"}
+
+    errors = validator.validate_header(schema, header, document="test.md")
+
+    assert errors == []
+    validator._build_registry.assert_called_once()
