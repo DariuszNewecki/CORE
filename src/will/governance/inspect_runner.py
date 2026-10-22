@@ -50,6 +50,7 @@ __all__ = [
     "get_refusals_stats",
     "get_search_capabilities",
     "get_search_commands",
+    "get_spend",
 ]
 
 
@@ -185,6 +186,74 @@ async def get_health(session: Any) -> dict:
         ],
     )
     return health
+
+
+# ID: 5c2e8f41-9b6d-4a37-8e1f-0d4a7b3c6e92
+async def get_spend(session: Any, days: int = 7) -> dict:
+    """What CORE's LLM calls cost (ADR-172): totals, per UTC day, and per
+    role and model, from ``core.llm_exchange_log.cost_estimate``.
+
+    ``unpriced`` counts calls logged without a cost; the spend figures
+    exclude them, so a non-zero count means the totals are a floor.
+    Nothing is written.
+    """
+    params = {"days": days}
+    by_role = (
+        await session.execute(
+            text(
+                "SELECT cognitive_role, model_snapshot, count(*), "
+                "coalesce(sum(prompt_tokens), 0), coalesce(sum(completion_tokens), 0), "
+                "coalesce(sum(cost_estimate), 0), "
+                "count(*) FILTER (WHERE cost_estimate IS NULL) "
+                "FROM core.llm_exchange_log "
+                "WHERE ts > now() - make_interval(days => :days) "
+                "GROUP BY 1, 2 ORDER BY 6 DESC, 3 DESC"
+            ),
+            params,
+        )
+    ).fetchall()
+    by_day = (
+        await session.execute(
+            text(
+                "SELECT (ts AT TIME ZONE 'UTC')::date, count(*), "
+                "coalesce(sum(cost_estimate), 0), "
+                "count(*) FILTER (WHERE cost_estimate IS NULL) "
+                "FROM core.llm_exchange_log "
+                "WHERE ts > now() - make_interval(days => :days) "
+                "GROUP BY 1 ORDER BY 1 DESC"
+            ),
+            params,
+        )
+    ).fetchall()
+    roles = [
+        {
+            "role": r[0],
+            "model": r[1],
+            "calls": r[2],
+            "prompt_tokens": r[3],
+            "completion_tokens": r[4],
+            "usd": float(r[5]),
+            "usd_per_call": float(r[5]) / r[2] if r[2] else 0.0,
+            "unpriced": r[6],
+        }
+        for r in by_role
+    ]
+    return {
+        "days": days,
+        "usd": sum(r["usd"] for r in roles),
+        "calls": sum(r["calls"] for r in roles),
+        "unpriced": sum(r["unpriced"] for r in roles),
+        "by_day": [
+            {
+                "day": d[0].isoformat(),
+                "calls": d[1],
+                "usd": float(d[2]),
+                "unpriced": d[3],
+            }
+            for d in by_day
+        ],
+        "by_role_model": roles,
+    }
 
 
 # ID: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d

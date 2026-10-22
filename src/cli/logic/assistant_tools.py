@@ -218,7 +218,11 @@ async def _core_status(repo_root: Path, arguments: dict[str, Any]) -> dict[str, 
             "available": False,
             "reason": f"CORE's API could not be reached: {type(exc).__name__}: {exc}",
         }
-    return {"available": True, **health}
+    try:
+        spend = await CoreApiClient()._request("GET", "/v1/status/spend?days=7")
+    except Exception as exc:
+        spend = {"error": f"{type(exc).__name__}: {exc}"}
+    return {"available": True, **health, "spend_7_days": spend}
 
 
 _STRING = {"type": "string"}
@@ -375,8 +379,9 @@ TOOLS: dict[str, AssistantTool] = {
                 "with heartbeat ages and liveness, open blackboard entries, the "
                 "oldest open finding, stuck signals, live proposals, and findings "
                 "created vs resolved in 7 days, with the ten rules that abandoned "
-                "the most findings in those days. Read-only; without a running CORE "
-                "it answers available: false."
+                "the most findings in those days, and LLM spend for the last 7 days "
+                "(spend_7_days: per day, per role and model). Read-only; without a "
+                "running CORE it answers available: false."
             ),
             input_schema={
                 "type": "object",

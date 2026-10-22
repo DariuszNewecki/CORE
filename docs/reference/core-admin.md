@@ -30,11 +30,11 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`project`](#project) | 3 | Operations for project lifecycle: scaffolding. |
 | [`promote`](#promote) | 1 | Promotions: main's commits the governor approves to run live. |
 | [`refactor`](#refactor) | 4 | Refactoring analysis and suggestions |
-| [`runtime`](#runtime) | 4 | Runtime state and health of the running CORE system. |
+| [`runtime`](#runtime) | 5 | Runtime state and health of the running CORE system. |
 | [`secrets`](#secrets) | 4 | Manage encrypted secrets in the database. |
 | [`status`](#status) | 1 | Single-glance system state and readiness. |
 | [`symbols`](#symbols) | 1 | Operations for the symbol registry and Knowledge Graph identification. |
-| [`tests`](#tests) | 3 | Test maturity dashboard and autonomous generation insights. |
+| [`tests`](#tests) | 2 | Test maturity dashboard and autonomous generation insights. |
 | [`tools`](#tools) | 2 | Governed, operator-focused maintenance and refactoring tools. |
 | [`vectors`](#vectors) | 3 | Vector store operations (Qdrant). |
 | [`workers`](#workers) | 6 | Constitutional worker management. |
@@ -1626,6 +1626,19 @@ Run the sandbox closure probes and show which walls held.
 | `--mode` | `service` | service \| local |
 | `--socket` | `/run/core/sandbox.sock` | The sandbox service's socket. |
 
+### `core-admin runtime spend` {#runtime-spend}
+
+```
+core-admin runtime spend [OPTIONS]
+```
+
+What CORE's LLM calls cost: per day, per role and model.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--days`, `-d` | `7` | How many days back |
+| `--api` | `http://127.0.0.1:8000` |  |
+
 ### `core-admin runtime status` {#runtime-status}
 
 ```
@@ -1740,18 +1753,6 @@ symbols that currently have 'unassigned' status in the registry.
 ## `core-admin tests` {#tests}
 
 Test maturity dashboard and autonomous generation insights.
-
-### `core-admin tests cost` {#tests-cost}
-
-```
-core-admin tests cost [OPTIONS]
-```
-
-What CORE's LLM calls cost, per role and model, from core.llm_exchange_log.
-
-| Argument / option | Default | Description |
-|---|---|---|
-| `--days`, `-d` | `30` | How many days back |
 
 ### `core-admin tests status` {#tests-status}
 
