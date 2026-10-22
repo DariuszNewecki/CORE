@@ -23,3 +23,30 @@ async def test_CheckClass_run():
     check.run.assert_awaited_once_with()
     assert result == expected
     assert isinstance(result, list)
+
+
+import asyncio
+
+
+# ID: e994f248-1cd3-4836-9504-e0a7dd4f722c
+def test_CheckClass():
+    from mind.coherence.checks.base import CheckClass
+
+    class _DummyCheck:
+        relation = "test_relation"
+
+        # ID: fd19de08-e07d-4c65-a5e8-5ac28e508811
+        async def run(self):
+            return []
+
+    assert isinstance(_DummyCheck.relation, str)
+    assert hasattr(_DummyCheck, "run")
+
+    instance = _DummyCheck()
+    instance.run = AsyncMock(return_value=[])
+    result = asyncio.run(instance.run())
+    assert result == []
+    instance.run.assert_awaited_once()
+
+    assert isinstance(CheckClass, type)
+    assert hasattr(CheckClass, "run")
