@@ -598,9 +598,6 @@ def test_PolicyCoverageService_run() -> None:
     assert str(report.repo_root) == "/repo"
 
 
-
-
-
 # ID: 6eb5f775-0c98-48b6-8067-08ba28ad533f
 def test_PolicyCoverageService() -> None:
     path_resolver = MagicMock()
@@ -645,3 +642,29 @@ def test_PolicyCoverageService() -> None:
     assert report.summary["uncovered_error_rules"] == 0
     assert report.exit_code == 0
     assert len(report.records) == 3
+
+
+
+
+# ID: a9921f6a-176a-4cbd-8d03-c56a69b62134
+def test_PolicyCoverageReport():
+    report = PolicyCoverageReport(
+        report_id="rpt-001",
+        generated_at_utc="2024-01-01T00:00:00Z",
+        repo_root="/repo/root",
+        summary={"total": 2, "covered": 1},
+        records=[
+            {"policy": "P1", "covered": True},
+            {"policy": "P2", "covered": False},
+        ],
+        exit_code=0,
+    )
+
+    assert report.report_id == "rpt-001"
+    assert report.generated_at_utc == "2024-01-01T00:00:00Z"
+    assert report.repo_root == "/repo/root"
+    assert report.summary == {"total": 2, "covered": 1}
+    assert len(report.records) == 2
+    assert report.records[0]["policy"] == "P1"
+    assert report.records[1]["covered"] is False
+    assert report.exit_code == 0
