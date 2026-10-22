@@ -48,3 +48,47 @@ def test_DocsNoPhantomCommandsCheck_verify(tmp_path: Path) -> None:
     mock_inv_tree.assert_called_once()
     mock_inv_ref.assert_called_once()
     mock_find.assert_called_once()
+
+
+
+
+
+# ID: 859f0b9e-14b7-4903-83e9-2a5e8857efbd
+def test_DocsNoPhantomCommandsCheck(tmp_path: Path) -> None:
+    repo_root = tmp_path
+    reference = repo_root / "docs" / "reference" / "core.md"
+    reference.parent.mkdir(parents=True, exist_ok=True)
+    reference.write_text("core reference text", encoding="utf-8")
+
+    path_resolver = MagicMock()
+    path_resolver.repo_root = repo_root
+
+    core_admin_tree = MagicMock()
+    core_admin_tree.return_value = MagicMock()
+
+    check = DocsNoPhantomCommandsCheck(
+        path_resolver=path_resolver,
+        core_admin_tree=core_admin_tree,
+    )
+
+    params = {"include": [], "exclude": [], "extra_paths": [], "allow_mentions": []}
+
+    with (
+        patch(
+            "mind.logic.engines.cli_gate.checks.docs_no_phantom_commands.inventory_from_tree",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "mind.logic.engines.cli_gate.checks.docs_no_phantom_commands.inventory_from_reference",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "mind.logic.engines.cli_gate.checks.docs_no_phantom_commands.find_phantom_mentions",
+            return_value=[],
+        ) as mock_find,
+    ):
+        findings = check.verify([], params)
+
+    assert findings == []
+    core_admin_tree.assert_called_once()
+    mock_find.assert_called_once()
