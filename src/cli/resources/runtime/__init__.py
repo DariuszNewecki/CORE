@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from . import sandbox_check, status  # register the commands
+from . import sandbox_check, spend, status  # register the commands
 from .health import runtime_app
 
 

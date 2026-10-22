@@ -45,6 +45,7 @@ from will.governance.inspect_runner import (
     get_refusals_stats,
     get_search_capabilities,
     get_search_commands,
+    get_spend,
 )
 
 
@@ -114,6 +115,25 @@ async def status_db(session: AsyncSession = Depends(get_api_session)) -> dict:
 async def status_health(session: AsyncSession = Depends(get_api_session)) -> dict:
     """Return the runtime health picture."""
     return await get_health(session)
+
+
+@status_router.get(
+    "/spend",
+    summary="What CORE's LLM calls cost (ADR-172)",
+    description=(
+        "Read-only: LLM spend over the last `days` days from "
+        "core.llm_exchange_log, in total, per UTC day, and per cognitive role "
+        "and model (calls, tokens, USD, USD per call, calls without a price). "
+        "core-admin runtime spend and the MCP tool core_status read this."
+    ),
+)
+# ID: e4b7a2c9-3f18-4d6e-b05a-8c1d9f2e7a34
+async def status_spend(
+    days: int = Query(7, ge=1, le=366),
+    session: AsyncSession = Depends(get_api_session),
+) -> dict:
+    """Return LLM spend for the last `days` days."""
+    return await get_spend(session, days)
 
 
 @status_router.get(

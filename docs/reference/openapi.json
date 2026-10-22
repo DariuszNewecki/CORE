@@ -2489,6 +2489,54 @@
         }
       }
     },
+    "/v1/status/spend": {
+      "get": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "What CORE's LLM calls cost (ADR-172)",
+        "description": "Read-only: LLM spend over the last `days` days from core.llm_exchange_log, in total, per UTC day, and per cognitive role and model (calls, tokens, USD, USD per call, calls without a price). core-admin runtime spend and the MCP tool core_status read this.",
+        "operationId": "status_spend_v1_status_spend_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 366,
+              "minimum": 1,
+              "default": 7,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Status Spend V1 Status Spend Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/status/drift": {
       "get": {
         "tags": [

@@ -329,11 +329,15 @@ async def test_core_status_reads_the_health_route_and_writes_nothing(
     repo: Path,
 ) -> None:
     health = {"workers": {"workers": []}, "blackboard": []}
-    request = AsyncMock(return_value=health)
+    spend = {"days": 7, "usd": 0.0}
+    request = AsyncMock(side_effect=[health, spend])
     with patch("cli.logic.assistant_tools.CoreApiClient._request", request):
         out = await invoke("core_status", {}, repo)
-    assert out == {"available": True, **health}
-    request.assert_awaited_once_with("GET", "/v1/status/health")
+    assert out == {"available": True, **health, "spend_7_days": spend}
+    assert [c.args for c in request.await_args_list] == [
+        ("GET", "/v1/status/health"),
+        ("GET", "/v1/status/spend?days=7"),
+    ]
 
 
 @pytest.mark.asyncio
