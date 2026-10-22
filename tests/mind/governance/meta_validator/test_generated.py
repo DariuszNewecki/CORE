@@ -52,3 +52,31 @@ def test_MetaValidator_validate_all_documents(tmp_path: Path) -> None:
     assert report.documents_invalid == 0
     assert report.errors == []
     assert report.warnings == []
+
+
+
+from mind.governance.meta_validator import MetaValidator
+
+
+# ID: ed08507d-f2ac-476c-a51b-b70eb99d2afb
+def test_MetaValidator(tmp_path):
+    with patch("mind.governance.meta_validator.get_intent_repository") as mock_get_repo:
+        mock_repo = MagicMock()
+        mock_repo.root = tmp_path
+        mock_repo.load_document = MagicMock(
+            return_value={"scope": {}, "type": "object"}
+        )
+        mock_repo.resolve_rel = MagicMock(return_value=tmp_path / "meta.json")
+        mock_get_repo.return_value = mock_repo
+
+        validator = MetaValidator(intent_root=tmp_path)
+
+    assert validator.repo is mock_repo
+    assert validator.intent_root == tmp_path
+    assert validator.errors == []
+    assert validator.warnings == []
+    assert isinstance(validator._all_schemas, dict)
+    assert isinstance(validator.meta_schema, dict)
+    assert validator._validated_directories is None or isinstance(
+        validator._validated_directories, list
+    )
