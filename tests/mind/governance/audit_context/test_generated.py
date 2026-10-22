@@ -223,9 +223,6 @@ def test_AuditorContext_sweep_llm_gate_cache():
     assert ctx._llm_gate_cache_swept is True
 
 
-
-
-
 # ID: 37b294e9-2047-4347-92b1-ff5ed70d2cd3
 def test_AuditorContext_reload_governance(tmp_path: Path) -> None:
     intent_repo = MagicMock()
@@ -265,3 +262,47 @@ def test_AuditorContext_reload_governance(tmp_path: Path) -> None:
             assert context.policies == new_policies
             mock_loader2.assert_called_once_with(intent_repo.root)
             assert context.enforcement_loader is new_loader_instance
+
+
+
+
+# ID: 103efbd5-90ca-4a2d-a334-701b40f60849
+def test_AuditorContext_invalidate_file_cache(tmp_path):
+    with (
+        patch(
+            "mind.governance.audit_context.get_intent_repository"
+        ) as mock_get_intent_repo,
+        patch("mind.logic.engines.registry.EngineRegistry.initialize"),
+        patch("mind.governance.audit_context.EnforcementMappingLoader"),
+        patch.object(
+            __import__(
+                "mind.governance.audit_context", fromlist=["AuditorContext"]
+            ).AuditorContext,
+            "_load_governance_resources",
+            return_value={},
+        ),
+    ):
+        mock_intent_repo = MagicMock()
+        mock_intent_repo.root = tmp_path
+        mock_get_intent_repo.return_value = mock_intent_repo
+
+        ctx = __import__(
+            "mind.governance.audit_context", fromlist=["AuditorContext"]
+        ).AuditorContext(
+            repo_path=tmp_path,
+            intent_repository=mock_intent_repo,
+            stateless=True,
+        )
+
+        # Populate caches to exercise the clear paths.
+        ctx._file_list_cache = [tmp_path / "a.py", tmp_path / "b.py"]
+        ctx._rel_path_map = {tmp_path / "a.py": "a.py"}
+        ctx._pattern_cache = {"*.py": [tmp_path / "a.py"]}
+        ctx._per_file_scopes_cache = ["scope1", "scope2"]
+
+        ctx.invalidate_file_cache()
+
+        assert ctx._file_list_cache is None
+        assert ctx._rel_path_map == {}
+        assert ctx._pattern_cache == {}
+        assert ctx._per_file_scopes_cache is None
