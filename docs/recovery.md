@@ -267,6 +267,75 @@ What changed in the live VM before that backup, on 2026-10-16:
 4. The audit's `mypy_check` timed out after 60 s (NOT EVALUATED). Healthy by the row, but no
    type check ran.
 
+## Drill record: 2026-10-23, second run
+
+- **Restored from:** `vzdump-qemu-200-2026_10_23-15_01_09.vma.zst` (14.86 GB), a hand backup taken for this run
+  instead of the 02:30 nightly, with the nightly job's settings (`--mode snapshot --compress zstd --storage backup`)
+  plus `--protected 1`, so that the job's pruning keeps the 02:30 archive the first run cites. 13:01:08 to
+  13:06:11 UTC, 5 min 2 s, both disks included, job finished successfully. VM 200's release at that time:
+  `23d10ebe` (deploy of 11:35:30, promotion #1276), which holds the fix for #1271 (#1273, `490b1af4`).
+- **Restored to:** VM 990 `core-restore-drill` on `ZFS-pool`, full size (24 GB, 12 cores). It was isolated from
+  the network the whole time, then destroyed. VM 200 was only read (state at backup time, below). Run from the
+  page at aa32fb82, nothing else.
+- **Recorded at backup time on VM 200 (13:00:49–13:01:00 UTC):** 37 of 38 workers alive; 22 open findings;
+  ledger 54 lines, sha256 `8800ff8a…`; checkout `23d10ebe`, clean; vector point counts as in the Checks below.
+  Timers: only `core-pipeline.timer`. `core-claude`'s crontab: the 06:00 promotion job and the 15-minute alert check.
+
+| # | Step | Time | Result |
+|---|---|---|---|
+| 1 | Restore the archive | 9 min 0 s | ok, new MAC (`--unique 1`) |
+| 2 | Isolate before first boot | 3 s | ok: cloud-init drive and settings removed, `link_down=1`, `onboot 0`, renamed |
+| 3 | Boot until the guest agent answers | 38 s | ok |
+| 4 | Stop the timers, remove the crontab | 3 s | ok; only `core-pipeline.timer` exists in this backup, `core-promote-propose` no longer does. `core-claude`'s crontab was there and was removed 34 s after boot, before its next entry was due (13:30) |
+| 5 | PostgreSQL crash recovery | ready 2 min 16 s after start | ok, automatic |
+| 6 | Start the API | `{"status":"ok"}` 4 min 21 s after start | ok, no manual restart |
+| 7 | The checks | 6 min 59 s | see below |
+| 8 | Destroy the clone | 5 s | nothing left: no config, zvols or job entries |
+
+- **Total:** 24 min 26 s, 13:06:45 to 13:31:11 UTC, of which 3 min 27 s between steps 7 and 8 went to reading the
+  clone's findings for the Open findings row. From the restore's start to the API, 13 min 45 s. With the backup, 30 min 3 s.
+- **Checks:**
+  - Checkout: `23d10ebe`, 0 uncommitted files, equal to the clone's live release. Audit and Law ran in the
+    checkout itself (table rows), not in a worktree.
+  - Audit: PASS, 0 blocking (9 INFO; 187 of 189 rules executed, 2 reporting rules skipped), 229 s.
+  - Law: `law check-tree` exit 0; law loads, 140 intent files valid, 0 dangling.
+  - Database: connected, 50 migrations applied, 0 pending, exit 0.
+  - Data: the last row before PostgreSQL started is 13:01:01, 7 s before the backup started. 218 rows were
+    written by the clone after boot and are left out.
+  - API: `{"status":"ok"}`.
+  - Workers: **all 31** workers with a heartbeat in the hour before the backup sent one after boot. 37 of 38 alive,
+    as on VM 200 before the backup. #1271 holds (#1273). Not counted: the Goal Execution Worker (last seen
+    2026-09-13) and six long-period workers last seen at the 11:36 deploy.
+  - Services: `core-daemon`, `core-api` and the 15 `core-daemon-worker@` units active; `core-sandbox.socket`
+    active; every timer inactive; no `core-law-*` unit.
+  - Sandbox: 8 of 8 passed.
+  - Pipeline: `live commit` 23d10ebe, the release the backup holds.
+  - Open findings: 18 on the clone, 22 on VM 200 at backup time. The clone's own database also counts 22 open at
+    the backup. The difference: four `test.coverage` findings resolved by reaudit (VM 200 resolved the same four at
+    13:01:38–13:01:51); `repo_sync::clone` opened, because the clone has no network; and the blocking
+    `access_register::github::bypass::live-writers` finding, resolved only on the clone, see finding 1.
+  - Ledger: 54 lines, sha256 `8800ff8a…`, equal to VM 200's at backup time (no line added since).
+  - Vector store: every collection's point count equals VM 200's at backup time: `core-code` 6,921, `core-tests`
+    7,577, `core-docs` 629, `core-prompts` 156, `core-patterns` 2,492, `core_policies` 265, `core_specs` 2,546,
+    `governance_claims` 516. The first three are above the table in [Vector store](#vector-store), which was counted
+    earlier in the day; VM 200 had embedded more since.
+  - GitHub: no event, issue, comment, pull request, commit or workflow run on the repository from 13:01:08 to
+    13:31:11 UTC. Nothing from the clone.
+- **Logs:** `/root/drill-990-2026-10-23-run2.log`, `/root/drill-990-2026-10-23-run2-checks.txt`,
+  `/root/drill-990-2026-10-23-run2-pre200.txt` and `/root/drill-990-2026-10-23-run2-findings.txt` on `pve`.
+- **Result: clean pass** against #1070's done-when: throwaway install, restored only from the backup and this
+  page, audit and law pass, services up, ledger and `.intent/` (checkout `23d10ebe`, clean) equal to the
+  pre-drill state, findings equal with the difference explained, every gap opened as an issue (finding 1).
+
+**Findings**
+
+1. Without GitHub, the State Sensor resolved a blocking finding it could not check
+   ([#1285](https://github.com/DariuszNewecki/CORE/issues/1285)). `check_github_access` records an unreadable source
+   only as not evaluated, and `_sync_access` then resolves every open access finding it did not see again. On the
+   clone this cleared `bypass::live-writers::DeployKey:None`, which is still open on VM 200. It does not change
+   what the backup restores, but a restored VM without network reports a cleaner access state than it has, and so
+   does the live VM during any GitHub outage.
+
 ## What a complete backup contains
 
 Rebuildable means that git (by commit SHA), GitHub or PyPI can make the part again. Unique means
