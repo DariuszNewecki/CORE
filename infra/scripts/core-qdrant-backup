@@ -1,0 +1,360 @@
+#!/usr/bin/python3 -I
+# infra/scripts/core-qdrant-backup — installed as /usr/local/sbin/core-qdrant-backup
+# (root:root 0755) by infra/core-one-path-setup; run nightly by core-qdrant-backup.timer (#1081).
+"""
+core-qdrant-backup — snapshot every Qdrant collection, and restore them.
+
+  core-qdrant-backup backup  [--url URL] [--dir DIR] [--keep N]
+  core-qdrant-backup restore --from DIR/<stamp> --url URL [--replace] [--collection C ...]
+
+backup: for each collection on the server, create a snapshot (POST
+/collections/{c}/snapshots), download it, check its sha256 against the one the
+server reports, and delete it from the server again. The files land in
+DIR/<stamp>/ with a manifest.json (collection, file, sha256, exact point count
+before and after the snapshot). A run writes into DIR/.partial-<stamp> and is
+renamed only when every collection succeeded; then all but the newest N
+complete runs are deleted. A failed run keeps every older backup.
+
+restore: upload each snapshot of one run to URL (POST
+/collections/{c}/snapshots/upload, priority=snapshot) and compare the restored
+exact point count with the manifest. A collection that already exists on URL is
+refused unless --replace. Exit 1 when any collection fails or differs.
+
+Only the standard library; QDRANT_API_KEY (optional) is sent as api-key.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime
+import hashlib
+import json
+import os
+import re
+import shutil
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+import uuid
+from pathlib import Path
+
+
+DEFAULT_URL = "http://127.0.0.1:6333"
+DEFAULT_DIR = Path("/var/lib/core-qdrant-backup")
+DEFAULT_KEEP = 7
+MANIFEST = "manifest.json"
+STAMP_RE = re.compile(r"^\d{8}T\d{6}Z$")
+CHUNK = 1 << 20
+
+
+class QdrantError(RuntimeError):
+    """A Qdrant call failed."""
+
+
+class Qdrant:
+    """The few Qdrant REST calls this script needs."""
+
+    def __init__(self, url: str, api_key: str | None = None, timeout: float = 600):
+        self.url = url.rstrip("/")
+        self.api_key = api_key
+        self.timeout = timeout
+
+    def _request(
+        self,
+        method: str,
+        path: str,
+        body: object = None,
+        data=None,
+        headers: dict[str, str] | None = None,
+    ):
+        hdrs = dict(headers or {})
+        if self.api_key:
+            hdrs["api-key"] = self.api_key
+        if body is not None:
+            data = json.dumps(body).encode()
+            hdrs["Content-Type"] = "application/json"
+        req = urllib.request.Request(
+            self.url + path, data=data, method=method, headers=hdrs
+        )
+        try:
+            return urllib.request.urlopen(req, timeout=self.timeout)
+        except urllib.error.HTTPError as exc:
+            detail = exc.read()[:500].decode(errors="replace")
+            raise QdrantError(f"{method} {path}: HTTP {exc.code} {detail}") from exc
+        except urllib.error.URLError as exc:
+            raise QdrantError(f"{method} {path}: {exc.reason}") from exc
+
+    def _json(self, method: str, path: str, body: object = None, **kw) -> object:
+        with self._request(method, path, body=body, **kw) as resp:
+            return json.load(resp).get("result")
+
+    def collections(self) -> list[str]:
+        result = self._json("GET", "/collections")
+        return sorted(c["name"] for c in result["collections"])
+
+    def exists(self, name: str) -> bool:
+        return name in self.collections()
+
+    def count(self, name: str) -> int:
+        q = urllib.parse.quote(name, safe="")
+        return int(
+            self._json("POST", f"/collections/{q}/points/count", {"exact": True})[
+                "count"
+            ]
+        )
+
+    def create_snapshot(self, name: str) -> dict:
+        q = urllib.parse.quote(name, safe="")
+        return self._json("POST", f"/collections/{q}/snapshots?wait=true")
+
+    def download_snapshot(self, name: str, snapshot: str, target: Path) -> str:
+        """Stream the snapshot into target; return its sha256."""
+        q = urllib.parse.quote(name, safe="")
+        s = urllib.parse.quote(snapshot, safe="")
+        digest = hashlib.sha256()
+        with (
+            self._request("GET", f"/collections/{q}/snapshots/{s}") as resp,
+            open(target, "wb") as out,
+        ):
+            while block := resp.read(CHUNK):
+                digest.update(block)
+                out.write(block)
+        return digest.hexdigest()
+
+    def delete_snapshot(self, name: str, snapshot: str) -> None:
+        q = urllib.parse.quote(name, safe="")
+        s = urllib.parse.quote(snapshot, safe="")
+        self._json("DELETE", f"/collections/{q}/snapshots/{s}?wait=true")
+
+    def upload_snapshot(self, name: str, source: Path, checksum: str) -> None:
+        q = urllib.parse.quote(name, safe="")
+        boundary = uuid.uuid4().hex
+        head = (
+            f'--{boundary}\r\nContent-Disposition: form-data; name="snapshot"; '
+            f'filename="{source.name}"\r\nContent-Type: application/octet-stream\r\n\r\n'
+        ).encode()
+        tail = f"\r\n--{boundary}--\r\n".encode()
+        size = len(head) + source.stat().st_size + len(tail)
+        with open(source, "rb") as fh:
+            body = _Chain(head, fh, tail)
+            path = (
+                f"/collections/{q}/snapshots/upload?wait=true&priority=snapshot"
+                f"&checksum={checksum}"
+            )
+            self._json(
+                "POST",
+                path,
+                data=body,
+                headers={
+                    "Content-Type": f"multipart/form-data; boundary={boundary}",
+                    "Content-Length": str(size),
+                },
+            )
+
+
+class _Chain:
+    """A file-like reader over bytes, a file, bytes (a streamed multipart body)."""
+
+    def __init__(self, head: bytes, fh, tail: bytes) -> None:
+        self._parts = [_Bytes(head), fh, _Bytes(tail)]
+
+    def read(self, size: int = -1) -> bytes:
+        out = b""
+        while self._parts and (size < 0 or len(out) < size):
+            block = self._parts[0].read(-1 if size < 0 else size - len(out))
+            if not block:
+                self._parts.pop(0)
+                continue
+            out += block
+        return out
+
+
+class _Bytes:
+    def __init__(self, data: bytes) -> None:
+        self._data = data
+
+    def read(self, size: int = -1) -> bytes:
+        if size < 0:
+            size = len(self._data)
+        block, self._data = self._data[:size], self._data[size:]
+        return block
+
+
+def _stamp(now: datetime.datetime) -> str:
+    return now.astimezone(datetime.UTC).strftime("%Y%m%dT%H%M%SZ")
+
+
+def complete_runs(backup_dir: Path) -> list[Path]:
+    """Finished runs, oldest first: stamp-named directories with a manifest."""
+    if not backup_dir.is_dir():
+        return []
+    return sorted(
+        p
+        for p in backup_dir.iterdir()
+        if p.is_dir()
+        and not p.is_symlink()
+        and STAMP_RE.match(p.name)
+        and (p / MANIFEST).is_file()
+    )
+
+
+def prune(backup_dir: Path, keep: int) -> list[Path]:
+    """Delete all but the newest `keep` (at least 1) complete runs and stale partials."""
+    keep = max(1, keep)
+    runs = complete_runs(backup_dir)
+    doomed = runs[:-keep]
+    newest = runs[-1].name if runs else ""
+    for p in backup_dir.iterdir() if backup_dir.is_dir() else ():
+        name = p.name
+        if (
+            p.is_dir()
+            and not p.is_symlink()
+            and name.startswith(".partial-")
+            and name[len(".partial-") :] < newest
+        ):
+            doomed.append(p)
+    for p in doomed:
+        shutil.rmtree(p)
+    return doomed
+
+
+def backup(client: Qdrant, backup_dir: Path, keep: int, now: datetime.datetime) -> int:
+    stamp = _stamp(now)
+    final = backup_dir / stamp
+    partial = backup_dir / f".partial-{stamp}"
+    if final.exists():
+        print(f"refused: {final} exists", file=sys.stderr)
+        return 1
+    names = client.collections()
+    partial.mkdir(parents=True, mode=0o750)
+    entries: list[dict] = []
+    failed: list[str] = []
+    for name in names:
+        try:
+            entries.append(_snapshot_one(client, name, partial))
+            e = entries[-1]
+            print(
+                f"ok {name}: {e['points_after']} points, {e['size']} bytes, sha256 {e['sha256'][:16]}"
+            )
+        except (QdrantError, OSError, KeyError, ValueError) as exc:
+            failed.append(name)
+            print(f"FAILED {name}: {exc}", file=sys.stderr)
+    if failed:
+        print(
+            f"backup incomplete ({', '.join(failed)}); kept in {partial}",
+            file=sys.stderr,
+        )
+        return 1
+    manifest = {"created": stamp, "source": client.url, "collections": entries}
+    (partial / MANIFEST).write_text(json.dumps(manifest, indent=2) + "\n")
+    partial.rename(final)
+    removed = prune(backup_dir, keep)
+    print(f"backup {final}: {len(entries)} collections; pruned {len(removed)}")
+    return 0
+
+
+def _snapshot_one(client: Qdrant, name: str, out_dir: Path) -> dict:
+    before = client.count(name)
+    snap = client.create_snapshot(name)
+    try:
+        after = client.count(name)
+        target = out_dir / f"{name}.snapshot"
+        digest = client.download_snapshot(name, snap["name"], target)
+    finally:
+        client.delete_snapshot(name, snap["name"])
+    expected = snap.get("checksum")
+    if expected and expected != digest:
+        raise ValueError(f"sha256 {digest} differs from the server's {expected}")
+    return {
+        "collection": name,
+        "file": target.name,
+        "sha256": digest,
+        "size": target.stat().st_size,
+        "points_before": before,
+        "points_after": after,
+    }
+
+
+def restore(
+    client: Qdrant, run_dir: Path, replace: bool, only: list[str] | None
+) -> int:
+    manifest = json.loads((run_dir / MANIFEST).read_text())
+    entries = manifest["collections"]
+    if only:
+        unknown = set(only) - {e["collection"] for e in entries}
+        if unknown:
+            print(
+                f"refused: not in this backup: {', '.join(sorted(unknown))}",
+                file=sys.stderr,
+            )
+            return 1
+        entries = [e for e in entries if e["collection"] in only]
+    existing = set(client.collections())
+    bad = 0
+    print(f"{'collection':<24} {'backup':>9} {'restored':>9}  result")
+    for e in entries:
+        name = e["collection"]
+        lo, hi = sorted((e["points_before"], e["points_after"]))
+        expected = str(lo) if lo == hi else f"{lo}-{hi}"
+        if name in existing and not replace:
+            print(f"{name:<24} {expected:>9} {'-':>9}  refused: exists (use --replace)")
+            bad += 1
+            continue
+        source = run_dir / e["file"]
+        try:
+            digest = _sha256(source)
+            if digest != e["sha256"]:
+                raise ValueError(f"file sha256 {digest[:16]} differs from manifest")
+            client.upload_snapshot(name, source, digest)
+            got = client.count(name)
+        except (QdrantError, OSError, ValueError) as exc:
+            print(f"{name:<24} {expected:>9} {'-':>9}  FAILED: {exc}")
+            bad += 1
+            continue
+        ok = lo <= got <= hi
+        bad += not ok
+        print(f"{name:<24} {expected:>9} {got:>9}  {'ok' if ok else 'DIFFERS'}")
+    print(
+        f"restore from {run_dir} to {client.url}: {len(entries) - bad}/{len(entries)} ok"
+    )
+    return 1 if bad else 0
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as fh:
+        while block := fh.read(CHUNK):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="core-qdrant-backup", description=__doc__.split("\n\n")[0]
+    )
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    b = sub.add_parser("backup", help="snapshot every collection into DIR/<stamp>")
+    b.add_argument("--url", default=os.environ.get("QDRANT_URL", DEFAULT_URL))
+    b.add_argument("--dir", type=Path, default=DEFAULT_DIR)
+    b.add_argument("--keep", type=int, default=DEFAULT_KEEP)
+    r = sub.add_parser("restore", help="upload one run's snapshots and compare counts")
+    r.add_argument("--from", dest="run_dir", type=Path, required=True)
+    r.add_argument("--url", required=True)
+    r.add_argument("--replace", action="store_true")
+    r.add_argument("--collection", action="append")
+    args = parser.parse_args(argv)
+    client = Qdrant(args.url, os.environ.get("QDRANT_API_KEY") or None)
+    try:
+        if args.cmd == "backup":
+            return backup(
+                client, args.dir, args.keep, datetime.datetime.now(datetime.UTC)
+            )
+        return restore(client, args.run_dir, args.replace, args.collection)
+    except QdrantError as exc:
+        print(f"failed: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

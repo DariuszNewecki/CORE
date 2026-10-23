@@ -32,6 +32,7 @@ _spec.loader.exec_module(pfl)
         "infra/core-deploy",
         "infra/core-pipeline",
         "infra/core-sandbox-check",
+        "infra/scripts/core-qdrant-backup",
     ],
 )
 def test_a_host_path_without_the_first_line_fails(path: str) -> None:
