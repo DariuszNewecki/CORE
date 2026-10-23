@@ -38,7 +38,7 @@ the VM run as root through `qm guest exec <vmid> --`. The guest agent works on a
 | 1 | `qmrestore <archive> <vmid> --storage ZFS-pool --unique 1` | a drill uses a new `<vmid>`; a real restore replaces VM 200 |
 | 2 | Before the first boot: `qm set <vmid> --delete ide2,cicustom,ipconfig0,nameserver,searchdomain` (remove the cloud-init drive). A drill clone also gets `qm set <vmid> --name core-restore-drill --net0 <…>,link_down=1 --onboot 0` | without step 2, cloud-init would run its setup again: reset passwords, upgrade packages, re-own `/mnt/vector_db`. The drill clone must not reach the network next to the live VM. The new name is not needed for isolation (the guest keeps its hostname `core`, and its network is down); it keeps `qm list` and the Proxmox UI from showing two VMs named `core`. `qmrestore` has no `--name`, so step 2 sets it |
 | 3 | `qm start <vmid>`, then wait until `qm agent <vmid> ping` answers | |
-| 4 | Drill clone only, as soon as the agent answers: `systemctl stop core-pipeline.timer core-law-auto-apply.timer core-law-digest.timer` (the two law timers exist only in backups from before 2026-10-18; stopping a missing timer is harmless) | see [Timers on a restored VM](#timers-on-a-restored-vm) |
+| 4 | Drill clone only, as soon as the agent answers: `systemctl stop core-pipeline.timer core-promote-propose.timer core-qdrant-backup.timer core-law-auto-apply.timer core-law-digest.timer; crontab -u core-claude -r` (each backup has only some of these timers; stopping a missing one is harmless) | see [Timers on a restored VM](#timers-on-a-restored-vm) |
 | 5 | Wait for PostgreSQL to finish crash recovery | about 2.5 minutes after boot; see [Startup on a restored VM](#startup-on-a-restored-vm) |
 | 6 | Wait until `curl http://127.0.0.1:8000/health` answers `{"status":"ok"}`. Do not restart anything | the API retries by itself while PostgreSQL recovers, at most a minute apart ([#1092](https://github.com/DariuszNewecki/CORE/pull/1092)); it reaches Qdrant on loopback, with or without network ([#1088](https://github.com/DariuszNewecki/CORE/issues/1088)) |
 | 7 | The checks in [Check the result](#check-the-result) | the audit and the law check run as `core-claude` ([#1089](https://github.com/DariuszNewecki/CORE/issues/1089)) |
@@ -49,13 +49,17 @@ the VM run as root through `qm guest exec <vmid> --`. The guest agent works on a
 The backup restores `core-pipeline` enabled (deploys approved promotions, first run 2 minutes
 after boot). A backup from before 2026-10-18 also restores `core-law-auto-apply` (applied record-only law
 without a merge, first run 5 minutes after boot) and `core-law-digest` (a daily read-only digest);
-core-law-setup now removes both. They are not stopped before the first boot,
+core-law-setup now removes both. Backups from 2026-10-19 to the deploy that runs
+core-one-path-setup step 8b/8c also restore `core-promote-propose` (never ran: no token) and
+`core-qdrant-backup` (a Qdrant snapshot job, removed by #1258). From 2026-10-23 `core-claude`'s
+crontab runs the daily promotion proposal at 06:00 (`infra/scripts/core-promote-daily.sh`). None of
+these is stopped before the first boot,
 because that would mean editing the VM's disk from `pve` ([#1090](https://github.com/DariuszNewecki/CORE/issues/1090)).
 
 - **Drill clone:** step 2 takes its network down before the first boot. The pipeline cannot reach
   GitHub, so it can neither fetch nor deploy, and law auto-apply writes only the clone's own disk,
-  which step 8 destroys. Step 4 stops all three as soon as the guest agent answers (about 40 s
-  after boot), before the first one is due. They are not started again: the clone is destroyed.
+  which step 8 destroys. Step 4 stops every timer and removes `core-claude`'s crontab as soon as
+  the guest agent answers (about 40 s after boot), before the first one is due. They are not started again: the clone is destroyed.
 - **Real restore (replaces VM 200):** leave `core-pipeline` enabled. The restored VM is CORE again,
   and the pipeline then deploys a promotion approved after the backup. If the two law timers came back,
   remove them at once: `sudo core-law-setup --governor core-darek --apply`. The Services check
@@ -361,7 +365,16 @@ root with `runuser -l`, so that `core-claude`'s home and git settings apply. Oth
 
 `core-claude` can read neither `/opt/dev/CORE/.env` nor the secrets; the offline audit needs
 neither. The checkout must be at the deployed commit, which every deploy now sees to
-([#1063](https://github.com/DariuszNewecki/CORE/issues/1063)).
+([#1063](https://github.com/DariuszNewecki/CORE/issues/1063)). When the backup's checkout is not
+there (a deploy refuses to move a checkout with uncommitted files; on 2026-10-23 it held
+`855040a6` with 17, while `0a636dbf` was live), run the Audit and Law rows in a detached worktree
+at the live commit instead, and record the checkout's state as a drill finding:
+
+```
+runuser -l core-claude -c 'git -C /opt/dev/CORE worktree add -q --detach /opt/dev/CORE/var/tmp/wt-drill "$(basename "$(readlink -f /opt/core/current)")"'
+runuser -l core-claude -c 'cd /opt/dev/CORE/var/tmp/wt-drill && REPO_PATH=$PWD PYTHONPATH=$PWD/src /opt/dev/CORE/.venv/bin/core-admin code audit --offline'
+runuser -l core-claude -c 'cd /opt/dev/CORE/var/tmp/wt-drill && REPO_PATH=$PWD PYTHONPATH=$PWD/src /opt/dev/CORE/.venv/bin/core-admin law check-tree'
+```
 
 | Check | Command | Healthy |
 |---|---|---|
@@ -371,7 +384,7 @@ neither. The checkout must be at the deployed commit, which every deploy now see
 | Data | `docker exec core_postgres_db psql -U <db-user> -d <db-name> -Atc "select max(created_at) from core.blackboard_entries where created_at < pg_postmaster_start_time()"` (user and database from `DATABASE_URL` in `/opt/core/etc/secrets.env`). Rows from after PostgreSQL started on the clone are the clone's own and are left out | a time within minutes before the backup started |
 | API | `curl http://127.0.0.1:8000/health` | `{"status":"ok"}` |
 | Workers | `curl http://127.0.0.1:8000/v1/daemon/status` | every worker whose last heartbeat before the backup was within its last hour is alive again, with a heartbeat after the boot. Rows last seen long before the backup (on 2026-10-16: 19 test registrations from June and the Goal Execution Worker, last seen 2026-09-13) are not counted |
-| Services | `systemctl --user -M core@ status core-daemon core-api 'core-daemon-worker@*'` and `systemctl status core-sandbox.socket core-pipeline.timer` | both active, and no `core-law-auto-apply` or `core-law-digest` unit. On a drill clone the pipeline timer is inactive: step 4 stops it |
+| Services | `systemctl --user -M core@ status core-daemon core-api 'core-daemon-worker@*'` and `systemctl status core-sandbox.socket core-pipeline.timer` | both active, and no `core-law-auto-apply` or `core-law-digest` unit. On a drill clone every timer is inactive: step 4 stops them |
 | Sandbox | `sudo runuser -u core -- bash -c 'set -a; . /opt/core/etc/core.env; /opt/core/current/venv/bin/core-admin runtime sandbox-check --mode service'` | every row `passed` |
 | Pipeline | `runuser -l core-claude -c '/opt/core/current/venv/bin/core-admin runtime status'` | `live commit` is the recorded commit. On a drill clone `main` cannot be read from GitHub (no network) |
 | Open findings | `curl -s http://127.0.0.1:8000/v1/status/health \| python3 -I -c 'import json,sys; print(sum(r["count"] for r in json.load(sys.stdin)["blackboard"] if r["entry_type"]=="finding" and r["status"]=="open"))'` | equal to the value recorded at backup time, or the difference explained |
