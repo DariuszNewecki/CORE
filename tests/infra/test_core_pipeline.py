@@ -649,7 +649,10 @@ def test_a_forbidden_call_that_is_not_the_rate_limit_stays_an_error(world) -> No
         )
 
     host.http = forbidden  # type: ignore[method-assign]
-    assert _tick(world)["state"] == "error"
+    _, layout = world
+    # Review finding F4: a failed tick exits 1, so systemd sees it.
+    assert cp.main([], host=host, layout=layout) == 1
+    assert json.loads(layout.status.read_text())["state"] == "error"
 
 
 def test_waiting_for_ci_costs_one_api_call_a_tick(world) -> None:

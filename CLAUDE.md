@@ -29,6 +29,8 @@ src/cli/     Typer commands; Rich rendering only here
     closes a superseded one and deletes its branch. After
     review finding F2: also opens the PR for CORE's generated tests. The 06:00
     job hands this login's token to `promote propose` as `CORE_GITHUB_TOKEN`.
+    Every 15 minutes `infra/scripts/core_alert_check.py` opens and closes the
+    `[alert]` issues that mention the governor (review F4); no new credential.
   - CORE's own token (CORE daemon): read as `CORE_GITHUB_TOKEN` from the
     environment, else the unit credential `github-token`
     (`delivery_branch.py`). Pushes CORE's branches; cannot open PRs (#1252).
