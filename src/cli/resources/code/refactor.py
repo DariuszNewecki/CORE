@@ -14,6 +14,12 @@ from .hub import app
 async def refactor_settings_cmd(
     ctx: typer.Context,
     write: bool = typer.Option(False, "--write", help="Apply DI refactoring."),
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Skip confirmation prompt for this dangerous operation.",
+    ),
     layers: str = typer.Option("mind,will", help="Comma-separated layers to process."),
 ):
     """

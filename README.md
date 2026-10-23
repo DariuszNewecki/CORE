@@ -35,11 +35,15 @@ To bring CORE into an existing repository, no services are needed either:
 
 ```bash
 cd your-repo
-core-admin project init . --write
+core-admin project init . --write --yes
 core-admin project adopt-pack core/starter-python --write
 git add .intent && git commit -m "Adopt CORE"
 core-admin code audit --offline
 ```
+
+`project init --write` asks for confirmation at a terminal; `--yes` skips the
+question, and without a terminal (CI, scripts, AI agents) it stops at once
+unless `--yes` is given.
 
 The audit judges the law committed at `HEAD`, so commit `.intent/` first;
 uncommitted law reads DEGRADED, never PASS.

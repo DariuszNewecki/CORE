@@ -42,6 +42,12 @@ async def init_project_command(
     write: bool = typer.Option(
         False, "--write", help="Actually copy the machinery floor."
     ),
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Skip confirmation prompt for this dangerous operation.",
+    ),
 ) -> None:
     """
     Prepare an existing repository to host project law (no law is created).
