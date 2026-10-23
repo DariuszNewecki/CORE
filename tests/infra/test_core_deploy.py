@@ -124,6 +124,12 @@ class FakeHost(cd.Host):
         self.migrated = False
         self.migrate_rc = 0
         self.backup_ok = True
+        # The pre-migration dump's restore check (#1113).
+        self.list_rc = 0
+        self.live_rows = {"core.a": 3, "core.b": 0}
+        self.restored_rows: dict[str, int] | None = None  # None: same as live
+        self.restore_rc = 0
+        self.live_inputs: list[bytes] = []
         self.health = True
         self.new_health = True
         self.inactive: set[str] = set()
@@ -268,6 +274,20 @@ class FakeHost(cd.Host):
                 out = " ".join(["basic.target", *self.wanted]).encode()
             elif verb == "is-active":
                 rc = 1 if cmd[5] in self.inactive else 0
+        elif cmd[0] == "pg_restore" and cmd[1] == "--list":
+            rc = self.list_rc
+            if rc == 0:
+                out = b";\n; Archive created\n;\n3; 2615 2200 SCHEMA - core x\n"
+        elif cmd[:2] == ["/bin/sh", "-c"] and "docker run" in cmd[2]:
+            rc = self.restore_rc
+            rows = self.live_rows if self.restored_rows is None else self.restored_rows
+            if rc == 0:
+                out = "".join(f"{t}|{n}\n" for t, n in rows.items()).encode()
+        elif cmd[:2] == ["/bin/sh", "-c"] and "psql" in cmd[2]:
+            self.live_inputs.append(input or b"")
+            out = "".join(f"{t}|{n}\n" for t, n in self.live_rows.items()).encode()
+        elif cmd[:2] == ["docker", "rm"]:
+            rc = 1
         elif cmd[:2] == ["/bin/sh", "-c"]:
             if self.backup_ok:
                 out_path = Path(joined.split("> ")[-1])
@@ -738,6 +758,120 @@ def test_failed_backup_restarts_units_and_migrates_nothing(root: Path) -> None:
     assert _deploy(root, host, "--migrate") == 1
     assert "start" in host.systemctl_verbs()
     assert not any("migrate" in c for c in host.commands("systemd-run"))
+
+
+CHECKED_CONF = (
+    "BACKUP_COMMAND=pg_dump x > {out}\n"
+    "PSQL_COMMAND=docker exec -i db psql -U u -d core\n"
+    "RESTORE_IMAGE=postgres:16\n"
+)
+
+
+def _migrating(root: Path, conf: str = CHECKED_CONF) -> FakeHost:
+    (root / "etc" / "deploy.conf").write_text(conf)
+    _with_previous(root)
+    host = FakeHost(root)
+    host.status = {
+        "connected": True,
+        "pending_migrations": ["20261011_x.sql"],
+        "probe_failures": [],
+    }
+    return host
+
+
+def _check_record(root: Path) -> dict:
+    (record,) = (root / "backups").glob("*.dump.check.json")
+    return json.loads(record.read_text())
+
+
+def _migrate_ran(host: FakeHost) -> bool:
+    return any("migrate" in c for c in host.commands("systemd-run"))
+
+
+# ID: eaca523d-aec9-406a-a946-b6862582dc22
+def test_restore_check_passes_and_records_dump_time_counts(root: Path) -> None:
+    """#1113: the dump is listed, restored into a throwaway container (no
+    network, the server's image) and its row counts equal the live ones,
+    counted read-only; the ledger line carries the result."""
+    host = _migrating(root)
+    assert _deploy(root, host, "--migrate") == 0
+    entry = json.loads((root / "deploy-ledger.jsonl").read_text().splitlines()[-1])
+    check = entry["backup_check"]
+    assert check["verdict"] == "pass"
+    assert check["live_rows"] == {"core.a": 3, "core.b": 0}
+    assert check["list"].startswith("ok")
+    assert check == _check_record(root)
+    (live_input,) = host.live_inputs
+    assert live_input.startswith(b"BEGIN TRANSACTION READ ONLY;")
+    (restore,) = [c for _, c in host.calls if "docker run" in " ".join(c)]
+    assert "--network none" in restore[2] and "--rm" in restore[2]
+    assert "postgres:16" in restore and restore[-1] == entry["backup"]
+    assert ["docker", "rm", "-f"] in [c[:3] for _, c in host.calls]
+    # The check runs after the dump, before the migration.
+    joined = [" ".join(c) for _, c in host.calls]
+    first = lambda word: next(i for i, c in enumerate(joined) if word in c)  # noqa: E731
+    assert (
+        first("pg_dump")
+        < first("--list")
+        < first("docker run")
+        < first("migrate --write")
+    )
+
+
+# ID: 06ee81ab-7d2f-4649-8bc9-5d12f9c0f32c
+def test_unreadable_dump_refuses_before_migrating(root: Path) -> None:
+    host = _migrating(root)
+    host.list_rc = 1
+    assert _deploy(root, host, "--migrate") == 1
+    assert not _migrate_ran(host)
+    assert "start" in host.systemctl_verbs()
+    assert _current(root) == OLD
+    assert _check_record(root)["verdict"] == "fail"
+    assert not any("docker run" in " ".join(c) for _, c in host.calls)
+
+
+# ID: 0acda82e-46da-466e-9edf-ccdba36a227c
+def test_row_count_mismatch_refuses_and_names_the_tables(root: Path) -> None:
+    host = _migrating(root)
+    host.restored_rows = {"core.a": 2, "core.b": 0}
+    assert _deploy(root, host, "--migrate") == 1
+    assert not _migrate_ran(host)
+    assert "start" in host.systemctl_verbs()
+    record = _check_record(root)
+    assert record["verdict"] == "fail"
+    assert record["differ"] == {"core.a": {"live": 3, "restored": 2}}
+
+
+# ID: 3a8a49ce-397a-42bb-830b-3c570f012d73
+def test_failed_restore_refuses_and_removes_the_container(root: Path) -> None:
+    host = _migrating(root)
+    host.restore_rc = 1
+    assert _deploy(root, host, "--migrate") == 1
+    assert not _migrate_ran(host)
+    assert ["docker", "rm", "-f"] in [c[:3] for _, c in host.calls]
+    assert _check_record(root)["reason"].startswith("restore failed")
+
+
+# ID: 885744b1-1a2d-43d5-8a3e-6c1507c47c82
+def test_without_restore_config_the_dump_is_listed_and_the_deploy_warns(
+    root: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    host = _migrating(root, "BACKUP_COMMAND=pg_dump x > {out}\n")
+    assert _deploy(root, host, "--migrate") == 0
+    assert "WARNING: no restore check" in capsys.readouterr().out
+    entry = json.loads((root / "deploy-ledger.jsonl").read_text().splitlines()[-1])
+    assert entry["backup_check"]["verdict"] == "unchecked"
+    assert any(c[:2] == ["pg_restore", "--list"] for _, c in host.calls)
+
+
+# ID: bac89eb9-67d1-4315-9afd-15aacce23783
+def test_row_counts_parse_only_table_lines() -> None:
+    out = b"core.a|3\ncore.weird|name|7\nNOTICE: x\n\npublic.b|0\n"
+    assert cd.parse_row_counts(out) == {
+        "core.a": 3,
+        "core.weird|name": 7,
+        "public.b": 0,
+    }
 
 
 # ID: ee3fa739-9ace-4edc-b742-0aaad3d57a39
