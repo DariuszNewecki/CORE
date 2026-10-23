@@ -135,8 +135,6 @@ async def test_ConstitutionalAuditor():
     mock_determine_verdict.assert_called_once()
 
 
-
-
 # ID: ec8a0429-1c28-4fda-8362-33ac203c526c
 def test_AuditVerdict():
     assert AuditVerdict.PASS.value == "PASS"

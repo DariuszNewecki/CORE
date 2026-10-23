@@ -68,7 +68,6 @@ def test_Row3CitationCheck_run():
     assert "Enforcement" in cand.claim
 
 
-
 from mind.coherence.checks.row3_citation import Row3CitationCheck
 
 

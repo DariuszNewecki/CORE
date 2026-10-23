@@ -113,9 +113,6 @@ def test_RuleFilter_matches():
     assert non_matching.matches(rule) is False
 
 
-
-
-
 # ID: d090bf3f-8c68-4320-bf70-4db85ef4e656
 def test_RuleFilter() -> None:
     # Happy path: an unfiltered RuleFilter matches any rule.

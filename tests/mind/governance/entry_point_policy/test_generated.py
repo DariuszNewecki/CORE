@@ -37,8 +37,6 @@ def test_EntryPointAllowList_default():
     assert "capability" in instance.allowed
 
 
-
-
 # ID: 72cbf3b4-393e-40d8-9831-fec40824ae9d
 def test_EntryPointAllowList():
     # Direct construction with a custom set of allowed types

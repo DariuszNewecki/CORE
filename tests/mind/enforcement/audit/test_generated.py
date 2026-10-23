@@ -47,8 +47,6 @@ async def test_run_audit_workflow():
     assert result == expected_result
 
 
-
-
 # ID: 36c57bae-835d-4614-91db-10a3aac495df
 async def test_test_system():
     from mind.enforcement.audit import test_system

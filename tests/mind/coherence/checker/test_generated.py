@@ -41,9 +41,6 @@ async def test_CoherenceChecker_run():
     coherence_service.close_run_if_empty.assert_awaited_once_with("run-123")
 
 
-
-
-
 # ID: af84c03a-8294-4301-acfa-221b8b58fc02
 def test_CoherenceChecker(tmp_path: Path):
     import asyncio

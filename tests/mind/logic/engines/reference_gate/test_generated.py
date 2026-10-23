@@ -103,7 +103,6 @@ def test_ReferenceGateEngine_verify() -> None:
     assert result.engine_id == engine.engine_id
 
 
-
 import pytest
 
 

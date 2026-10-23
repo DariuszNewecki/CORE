@@ -438,7 +438,6 @@ def test_AuditorContext(tmp_path: Path) -> None:
     assert ctx._llm_gate_cache_swept is False
 
 
-
 import mind.governance.audit_context as audit_context
 from mind.governance.audit_context import clear_knowledge_graph_cache
 

@@ -30,8 +30,6 @@ def test_PolicyRule_from_dict():
     assert rule.authority == "policy"
 
 
-
-
 # ID: c1dd7065-0bf5-44ac-85fd-2d6ca16876b1
 def test_PolicyRule():
     data = {

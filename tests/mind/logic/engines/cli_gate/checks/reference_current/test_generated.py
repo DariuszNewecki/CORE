@@ -77,8 +77,6 @@ def test_ReferenceCurrentCheck(tmp_path):
     assert findings == []
 
 
-
-
 # ID: a5506aaa-545d-4352-ba85-46ad667fbae7
 def test_live_core_admin_tree():
     from mind.logic.engines.cli_gate.checks.reference_current import (

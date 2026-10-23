@@ -36,8 +36,6 @@ def test_PathRefCheck_run():
     assert isinstance(candidates, list)
 
 
-
-
 from mind.coherence.checks.path_ref import PathRefCheck
 
 

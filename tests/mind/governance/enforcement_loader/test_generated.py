@@ -91,8 +91,6 @@ def test_EnforcementMappingLoader_load_all_mappings(tmp_path: Path) -> None:
     assert yaml_file in loader._loaded_files
 
 
-
-
 # ID: fada0b5f-f9ec-4b3a-91c0-99f67ee506dd
 def test_EnforcementMappingLoader(tmp_path: Path) -> None:
     from mind.governance.enforcement_loader import EnforcementMappingLoader

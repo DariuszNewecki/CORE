@@ -44,8 +44,6 @@ async def test_execute_rule() -> None:
     context.get_files.assert_called_once()
 
 
-
-
 # ID: a31d89b4-98a8-43fb-98c9-0a68f9190293
 def test_clear_eval_cache():
     from mind.governance.rule_executor import _EVAL_CACHE, clear_eval_cache

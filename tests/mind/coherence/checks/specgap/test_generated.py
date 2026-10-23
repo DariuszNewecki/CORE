@@ -46,9 +46,6 @@ async def test_SpecGapCheck_run():
     assert phase in candidate.claim
 
 
-
-
-
 # ID: 20b2234e-eac0-4246-af4c-8100afb67d9a
 def test_SpecGapCheck(tmp_path: Path):
     register = MagicMock()

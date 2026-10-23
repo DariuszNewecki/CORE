@@ -644,8 +644,6 @@ def test_PolicyCoverageService() -> None:
     assert len(report.records) == 3
 
 
-
-
 # ID: a9921f6a-176a-4cbd-8d03-c56a69b62134
 def test_PolicyCoverageReport():
     report = PolicyCoverageReport(
