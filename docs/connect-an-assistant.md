@@ -46,7 +46,7 @@ core-admin code verify
   `core-admin` itself. A virtual environment puts it there only while it is
   active, so activate it before you start `claude`, or install with
   `pipx install core-runtime` (then `pipx ensurepath`), which works in every
-  shell. Everyone who uses the committed `.mcp.json` needs the same.
+  shell; get pipx first with `sudo apt install pipx` on Debian/Ubuntu. Everyone who uses the committed `.mcp.json` needs the same.
 - A project with a `.intent/` directory. To start one, see
   [Start a governed project](start-a-project.md) or
   [Add a rule pack](adopt-a-pack.md).
