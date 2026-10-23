@@ -386,9 +386,32 @@ def test_a_required_check_missing_while_others_run_is_pending(world) -> None:
     host.required = [{"context": "tests"}, {"context": "lint"}]
     host.runs = [{"name": "tests", "status": "in_progress", "conclusion": None}]
     assert _tick(world)["state"] == "waiting for CI"
-    host.runs = [_run(1, "tests", "success"), _run(2, "lint", "skipped")]
+    host.runs = [_run(1, "tests", "success"), _run(2, "lint", "success")]
     _later(host)
-    assert _tick(world)["last"]["result"] == "live"  # skipped passes, as on GitHub
+    assert _tick(world)["last"]["result"] == "live"
+
+
+def test_a_skipped_required_check_is_red(world) -> None:
+    # Review finding F1: a skipped job tested nothing.
+    host, _ = world
+    host.required = [{"context": "tests"}, {"context": "lint"}]
+    host.runs = [_run(1, "tests", "success"), _run(2, "lint", "skipped")]
+    assert _tick(world)["last"]["result"] == "failed"
+    assert "lint: completed/skipped" in host.issues[0]["body"]
+
+
+def test_a_hand_started_run_cannot_turn_a_red_required_check_green(world) -> None:
+    # Review finding F1: the newest run replaces the older one, so a later
+    # run that skipped the red check must not stand in for it.
+    host, _ = world
+    host.required = [{"context": "tests"}, {"context": "released-engine"}]
+    host.runs = [
+        _run(1, "released-engine", "failure"),
+        _run(2, "released-engine", "skipped"),
+        _run(3, "tests", "success"),
+    ]
+    assert _tick(world)["last"]["result"] == "failed"
+    assert _privileged(host) == []
 
 
 def test_every_required_check_green_deploys_without_pull_request_only_checks(
