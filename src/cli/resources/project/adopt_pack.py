@@ -264,9 +264,12 @@ async def adopt_pack_command(
     if tree_update is not None:
         console.print(f"  Updated: {tree_yaml} (packs: section)")
 
+    # #1317: name the workflow too when init wrote it, as init and the README do.
+    paths = ".intent .github" if (target_dir / ".github").is_dir() else ".intent"
+    what = "Commit .intent/ and the workflow" if " " in paths else "Commit .intent/"
     console.print(
-        "\n[bold green]Pack applied.[/bold green] Commit .intent/ "
-        "('git add .intent && git commit'), then run "
+        f"\n[bold green]Pack applied.[/bold green] {what} "
+        f"('git add {paths} && git commit'), then run "
         "'core-admin code audit --offline' to see findings: until the law is "
         "committed the verdict is DEGRADED."
     )

@@ -275,3 +275,31 @@ async def test_output_says_wrote_only_when_it_wrote(
         assert "Updated: " in out and "intent_tree.yaml" in out
     else:
         assert "Would write: " in out and "Wrote:" not in out
+
+
+@pytest.mark.parametrize("workflow", [True, False])
+async def test_the_final_hint_names_github_when_init_wrote_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, workflow: bool
+) -> None:
+    """#1317 (proof run 7): init and the README say `git add .intent .github`;
+    adopt-pack's last line said only `.intent`."""
+    import io
+
+    from rich.console import Console
+
+    from cli.resources.project import adopt_pack
+
+    buf = io.StringIO()
+    monkeypatch.setattr(adopt_pack, "console", Console(file=buf, width=300))
+    target = _floored_repo(tmp_path)
+    if workflow:
+        (target / ".github" / "workflows").mkdir(parents=True)
+        (target / ".github" / "workflows" / "core-audit.yml").write_text("on: push\n")
+
+    await _run(target, write=True)
+
+    out = buf.getvalue()
+    if workflow:
+        assert "git add .intent .github && git commit" in out
+    else:
+        assert "git add .intent && git commit" in out and ".github" not in out
