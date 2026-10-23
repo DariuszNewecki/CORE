@@ -12,6 +12,7 @@ from body.services.access_register import (
     check_accounts,
     check_binding,
     check_bypass,
+    check_deploy_keys,
     check_github,
     check_governed_modes,
     check_groups,
@@ -237,3 +238,50 @@ def test_the_producer_socket_group_is_registered_before_the_host_has_it(
     del host.members["core-producer"]
     findings = check_groups(register, host)
     assert [f.subject for f in findings] == ["group::core-producer"]
+
+
+# -- #1285: the deploy-key bypass of live-writers (governor 2026-10-23) ---------
+
+
+def test_the_registered_deploy_key_bypass_of_live_writers_is_no_finding(
+    register,
+) -> None:
+    found, hidden = check_bypass(
+        register,
+        [
+            {
+                "name": "live-writers",
+                "bypass_actors": [{"actor_type": "DeployKey", "actor_id": None}],
+            }
+        ],
+    )
+    assert found == [] and hidden == []
+
+
+def test_the_same_bypass_on_another_ruleset_is_still_a_finding(register) -> None:
+    found, _ = check_bypass(
+        register,
+        [{"name": "main-checks", "bypass_actors": [{"actor_type": "DeployKey"}]}],
+    )
+    assert [f.subject for f in found] == ["github::bypass::main-checks::DeployKey:None"]
+
+
+def test_exactly_one_write_deploy_key_is_registered(register) -> None:
+    assert register.write_deploy_keys == 1
+    one = [{"id": 1, "title": "pipeline", "read_only": False}]
+    assert check_deploy_keys(register, one) == []
+    read_only = [{"id": 2, "title": "mirror", "read_only": True}]
+    assert check_deploy_keys(register, one + read_only) == []
+
+
+def test_a_second_write_deploy_key_is_a_finding(register) -> None:
+    keys = [
+        {"id": 1, "title": "pipeline", "read_only": False},
+        {"id": 3, "title": "stray", "read_only": False},
+    ]
+    (finding,) = check_deploy_keys(register, keys)
+    assert finding.subject == "github::write_deploy_keys"
+    assert "2 write deploy key(s) (pipeline, stray)" in finding.message
+    assert [f.subject for f in check_deploy_keys(register, [])] == [
+        "github::write_deploy_keys"
+    ]
