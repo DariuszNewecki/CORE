@@ -590,7 +590,7 @@ def _check(name: str, conclusion: str = "success", app: int = 15368) -> dict:
 MAIN_CHECKS = [  # main's ruleset (main-checks), as GitHub lists it
     {"context": "Static checks", "integration_id": 15368},
     {"context": "Hermetic tests", "integration_id": 15368},
-    {"context": "host-change-stated", "integration_id": 15368},
+    {"context": "freeze-scope", "integration_id": 15368},
 ]
 
 
@@ -610,7 +610,7 @@ def test_a_sha_with_one_required_check_missing_is_refused(root: Path, capsys) ->
 
 # ID: 03b9a3f6-9f16-4d78-893e-a45b616ebdab
 def test_every_required_check_green_deploys(root: Path) -> None:
-    # host-change-stated runs only on pull requests: a main commit has none.
+    # freeze-scope runs only on pull requests: a main commit has none.
     host = FakeHost(root)
     host.required = MAIN_CHECKS
     host.check_runs = [
@@ -628,7 +628,7 @@ def test_every_required_check_green_deploys(root: Path) -> None:
         ([_check("Static checks", app=99)], MAIN_CHECKS[:1]),  # another app
         ([_check("Static checks", "failure")], MAIN_CHECKS[:1]),
         ([_check("Static checks")], []),  # the rules require nothing
-        ([_check("Static checks")], [{"context": "host-change-stated"}]),
+        ([_check("Static checks")], [{"context": "freeze-scope"}]),
         (  # a red check that is not required still refuses
             [_check("Static checks"), _check("docs", "failure")],
             MAIN_CHECKS[:1],
