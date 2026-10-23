@@ -89,3 +89,31 @@ def test_a_cleared_problem_closes_its_issue() -> None:
         "closed pipeline-stalled (#9)"
     ]
     assert gh.calls[0][:3] == ("issue", "close", "9")
+
+
+# -- #1252: generated tests that never got their pull request -------------------
+
+OLD = (NOW - dt.timedelta(hours=25)).isoformat()
+RECENT = (NOW - dt.timedelta(hours=2)).isoformat()
+
+
+def test_test_gen_ahead_for_a_day_without_a_pr_is_a_problem() -> None:
+    found = ac.test_gen_problem(3, OLD, 0, NOW)
+    assert set(found) == {"test-gen-undelivered"}
+    assert "3 generated test commit(s)" in found["test-gen-undelivered"]
+
+
+def test_test_gen_is_not_a_problem_otherwise() -> None:
+    assert ac.test_gen_problem(3, RECENT, 0, NOW) == {}  # under 24 h
+    assert ac.test_gen_problem(3, OLD, 1, NOW) == {}  # a PR is open
+    assert ac.test_gen_problem(0, OLD, 0, NOW) == {}  # nothing ahead
+    assert ac.test_gen_problem(3, None, 0, NOW) == {}
+
+
+def test_the_test_gen_alert_dedupes_and_closes_like_the_others() -> None:
+    gh = _Gh()
+    found = ac.test_gen_problem(3, OLD, 0, NOW)
+    assert ac.reconcile(found, {"test-gen-undelivered": 11}, gh) == []
+    assert ac.reconcile({}, {"test-gen-undelivered": 11}, gh) == [
+        "closed test-gen-undelivered (#11)"
+    ]
