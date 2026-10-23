@@ -11,7 +11,10 @@ the governor so GitHub emails them:
 - ``pipeline-error``: the last tick failed (status ``state`` is ``error``);
 - ``pipeline-stalled``: no tick wrote the status for STALL_AFTER, or the
   status file cannot be read;
-- ``promotion-failed-<sha12>``: the last promotion did not go live.
+- ``promotion-failed-<sha12>``: the last promotion did not go live;
+- ``test-gen-undelivered``: core/test-gen has been ahead of main for more
+  than TEST_GEN_AFTER with no open pull request from it (#1252: the 06:00
+  job opens that pull request; this says when it did not).
 
 An issue already open for a problem is left as it is (no new issue, no new
 comment); when the problem is gone it gets a "cleared" comment and is
@@ -37,6 +40,7 @@ GOVERNOR = "DariuszNewecki"
 STATUS = Path("/var/lib/core-pipeline/status.json")
 STALL_AFTER = dt.timedelta(minutes=15)
 PREFIX = "[alert] "
+TEST_GEN_AFTER = dt.timedelta(hours=24)
 
 
 def problems(status: dict | None, now: dt.datetime) -> dict[str, str]:
@@ -66,6 +70,54 @@ def problems(status: dict | None, now: dt.datetime) -> dict[str, str]:
             f"{last.get('what')}. Details: {last.get('issue') or 'the deploy log'}."
         )
     return found
+
+
+def test_gen_problem(
+    ahead: int, oldest: str | None, open_prs: int, now: dt.datetime
+) -> dict[str, str]:
+    """The ``test-gen-undelivered`` problem, or none: *ahead* commits on
+    core/test-gen not on main, the oldest committed at *oldest*."""
+    if ahead <= 0 or open_prs > 0 or not oldest:
+        return {}
+    try:
+        since = dt.datetime.fromisoformat(oldest.replace("Z", "+00:00"))
+    except ValueError:
+        return {}
+    if now - since <= TEST_GEN_AFTER:
+        return {}
+    return {
+        "test-gen-undelivered": (
+            f"{ahead} generated test commit(s) on core/test-gen have waited since "
+            f"{oldest} with no pull request into main (#1252)."
+        )
+    }
+
+
+def _test_gen(now: dt.datetime) -> dict[str, str]:
+    try:
+        compare = json.loads(_gh("api", f"repos/{REPO}/compare/main...core/test-gen"))
+    except subprocess.CalledProcessError:
+        return {}  # no core/test-gen branch: nothing waits
+    commits = compare.get("commits") or []
+    oldest = commits[0]["commit"]["committer"]["date"] if commits else None
+    open_prs = int(
+        _gh(
+            "pr",
+            "list",
+            "--repo",
+            REPO,
+            "--head",
+            "core/test-gen",
+            "--state",
+            "open",
+            "--json",
+            "number",
+            "--jq",
+            "length",
+        ).strip()
+        or 0
+    )
+    return test_gen_problem(int(compare.get("ahead_by") or 0), oldest, open_prs, now)
 
 
 def _gh(*args: str) -> str:
@@ -145,7 +197,7 @@ def main(argv: list[str]) -> int:
     if _gh("api", f"repos/{REPO}", "--jq", ".permissions.push").strip() != "true":
         print(f"{now:%FT%TZ} core-alert-check: the gh login cannot write to {REPO}")
         return 1
-    found = problems(_status(), now)
+    found = problems(_status(), now) | _test_gen(now)
     if "--test" in argv:
         found["test"] = "Test alert: if this reached your inbox, alerts work."
     for line in reconcile(found, _open_alerts()) or ["nothing to do"]:
