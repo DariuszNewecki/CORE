@@ -11,21 +11,16 @@ on:
     branches: [develop, main]
   pull_request:
     branches: [main, develop]
+  # No sha input (review finding F1, 2026-10-23): a run's check results land
+  # on the head of the ref it was started on, so it must test that commit.
+  # To test another commit, push a branch at it and start the run there.
   workflow_dispatch:
-    inputs:
-      sha:
-        description: >-
-          Commit SHA to check out and test. Optional — omit to test the
-          ref used to trigger this dispatch. Lets hosted CI run against an
-          arbitrary commit (e.g. on a branch that never targets main or
-          develop) without a throwaway PR (#827).
-        required: false
 
 # ADR-157 D2: cancel a superseded push/PR run when a newer commit lands on the
 # same ref -- rapid-fire pushes (e.g. #842's fix-up series) otherwise let each
 # run's full ~25min ephemeral-DB job complete after its result is already
 # moot. workflow_dispatch runs get a unique group per invocation (github.run_id)
-# so an intentional dispatch against an old SHA (#827) is never auto-cancelled
+# so an intentional dispatch on an old branch (#827) is never auto-cancelled
 # by an unrelated later push.
 concurrency:
   group: "${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}"
@@ -45,8 +40,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -223,11 +216,11 @@ jobs:
   # is red here, not DEGRADED: CORE's CLI gates refuse to judge a CLI that
   # is not the installed one, so this run is DEGRADED by design; the audit
   # above still runs them against the PR's own CLI.
-  # Pull requests and pushes only: it checks out the event's own commit,
-  # never a dispatch input (CodeQL: cache poisoning from an untrusted ref).
+  # It checks out the event's own commit on every event, a hand-started
+  # run included: skipping it there let such a run replace a red result
+  # with a skipped one (review finding F1).
   released-engine-audit:
     name: Audit with the released engine (blocking)
-    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -287,8 +280,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -323,8 +314,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
@@ -359,8 +348,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
@@ -435,8 +422,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -531,8 +516,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.sha || (github.event_name == 'schedule' && 'main' || '') }}
       - name: Setup Python
         uses: actions/setup-python@v7
         with:

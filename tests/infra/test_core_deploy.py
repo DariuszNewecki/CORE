@@ -613,7 +613,7 @@ def test_every_required_check_green_deploys(root: Path) -> None:
     host.required = MAIN_CHECKS
     host.check_runs = [
         _check("Static checks"),
-        _check("Hermetic tests", "skipped"),  # GitHub counts skipped as passing
+        _check("Hermetic tests"),
         _check("docs", "success", app=99),  # not required, green
     ]
     assert _deploy(root, host) == 0
@@ -632,8 +632,20 @@ def test_every_required_check_green_deploys(root: Path) -> None:
             [_check("Static checks"), _check("docs", "failure")],
             MAIN_CHECKS[:1],
         ),
+        # review finding F1: a skipped required job tested nothing
+        ([_check("Static checks", "skipped")], MAIN_CHECKS[:1]),
+        ([_check("Static checks", "neutral")], MAIN_CHECKS[:1]),
     ],
-    ids=["other-app", "red", "none", "pr-only", "unreadable", "other-red"],
+    ids=[
+        "other-app",
+        "red",
+        "none",
+        "pr-only",
+        "unreadable",
+        "other-red",
+        "skipped",
+        "neutral",
+    ],
 )
 def test_required_checks_not_met_are_refused(
     root: Path, runs: list[dict], required: object

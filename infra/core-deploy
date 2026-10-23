@@ -195,6 +195,10 @@ READINESS_UNIT = "core-deploy-readiness"
 KEEP_NEWEST = 3
 RELEASE_NAME = re.compile(r"[0-9a-f]{40}")
 GREEN = {"success", "skipped", "neutral"}
+# A required check passes only when it ran and succeeded: a skipped job
+# tested nothing, and a hand-started run skipped one and stood in for
+# a red run of it (review finding F1, 2026-10-23).
+REQUIRED_GREEN = {"success"}
 # Required checks that run only on a pull request: host-change-stated reads
 # the pull request's description, so no merge commit on main ever has a run
 # of it. GitHub itself required it green before that pull request merged.
@@ -432,8 +436,8 @@ def unmet_required(
 ) -> list[str]:
     """Each required check without a green newest run, with why. A run counts
     only under the exact name and, when the rule names one, from that app
-    (another app cannot stand in for GitHub Actions). Skipped and neutral
-    count as passing, as GitHub counts them for a required check."""
+    (another app cannot stand in for GitHub Actions). Only success
+    passes: skipped and neutral do not, unlike on GitHub."""
     unmet = []
     for name, app in required:
         mine = [
@@ -445,7 +449,7 @@ def unmet_required(
         if not mine:
             unmet.append(f"{name}: missing")
         elif not any(
-            r.get("status") == "completed" and r.get("conclusion") in GREEN
+            r.get("status") == "completed" and r.get("conclusion") in REQUIRED_GREEN
             for r in mine
         ):
             r = mine[0]
