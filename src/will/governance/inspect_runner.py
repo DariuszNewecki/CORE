@@ -77,9 +77,27 @@ _RULE_OF_SUBJECT = (
     "ELSE split_part(subject, '::', 1) END"
 )
 _WEEK = "now() - interval '7 days'"
+# Telemetry samples are not findings (#1107, #1114): left out of the 7-day
+# counts as the thesis leaves them out. :t is telemetry_patterns().
+_TELEMETRY = "subject LIKE ANY(CAST(:t AS text[]))"
 _STUCK_SUBJECTS = (
     "subject LIKE 'proposal.stuck%' OR subject LIKE 'proposal.repeated_failure::%' "
     "OR subject LIKE 'blackboard.entry_stale::%' OR subject LIKE 'worker.silent::%'"
+)
+
+
+# The 7-day finding counts of ``core status`` (#1114): the rolling 7 days
+# before now (``>``), telemetry left out; resolved by resolved_at, abandoned
+# by updated_at. The thesis counts the same way over 30 days from a midnight
+# (body.services.thesis.measure.convergence_counts).
+LAST_7_DAYS_SQL = (
+    f"SELECT count(*) FILTER (WHERE created_at > {_WEEK} AND NOT {_TELEMETRY}), "
+    f"count(*) FILTER (WHERE status = 'resolved' AND resolved_at > {_WEEK} "
+    f"AND NOT {_TELEMETRY}), "
+    f"count(*) FILTER (WHERE status = 'abandoned' AND updated_at > {_WEEK} "
+    f"AND NOT {_TELEMETRY}), "
+    f"count(*) FILTER (WHERE created_at > {_WEEK} AND {_TELEMETRY}) "
+    "FROM core.blackboard_entries WHERE entry_type = 'finding'"
 )
 
 
@@ -97,12 +115,12 @@ async def get_health(session: Any) -> dict:
 
     health: dict[str, Any] = {"workers": await get_status(None)}
 
-    async def _part(name: str, sql: str, shape) -> None:
+    async def _part(name: str, sql: str, shape, params: dict | None = None) -> None:
         try:
             # A savepoint per part: one failed query must not abort the
             # transaction the other parts read in.
             async with session.begin_nested():
-                rows = (await session.execute(text(sql))).fetchall()
+                rows = (await session.execute(text(sql), params or {})).fetchall()
             health[name] = shape(rows)
         except Exception as exc:
             health[name] = {"error": f"{type(exc).__name__}: {exc}"}
@@ -150,17 +168,17 @@ async def get_health(session: Any) -> dict:
             {"status": r[0], "count": r[1], "oldest_age_sec": r[2]} for r in rows
         ],
     )
+    telemetry = {"t": telemetry_patterns()}
     await _part(
         "last_7_days",
-        "SELECT count(*) FILTER (WHERE created_at > now() - interval '7 days'), "
-        "count(*) FILTER (WHERE status = 'resolved' AND resolved_at > now() - interval '7 days'), "
-        "count(*) FILTER (WHERE status = 'abandoned' AND updated_at > now() - interval '7 days') "
-        "FROM core.blackboard_entries WHERE entry_type = 'finding'",
+        LAST_7_DAYS_SQL,
         lambda rows: {
             "findings_created": rows[0][0],
             "findings_resolved": rows[0][1],
             "findings_abandoned": rows[0][2],
+            "telemetry_excluded": rows[0][3],
         },
+        telemetry,
     )
     # Per rule: a rule that keeps re-creating findings on the same subjects
     # shows many created per subject and many abandoned.
@@ -172,6 +190,7 @@ async def get_health(session: Any) -> dict:
         f"count(*) FILTER (WHERE status = 'resolved' AND resolved_at > {_WEEK}), "
         f"count(*) FILTER (WHERE status = 'abandoned' AND updated_at > {_WEEK}) "
         "FROM core.blackboard_entries WHERE entry_type = 'finding' "
+        f"AND NOT {_TELEMETRY} "
         f"AND (created_at > {_WEEK} OR updated_at > {_WEEK} OR resolved_at > {_WEEK}) "
         "GROUP BY 1 ORDER BY 5 DESC, 2 DESC, 1 LIMIT 10",
         lambda rows: [
@@ -184,8 +203,22 @@ async def get_health(session: Any) -> dict:
             }
             for r in rows
         ],
+        telemetry,
     )
     return health
+
+
+# ID: 2038216f-b46c-4622-bf47-05551cd0fa77
+def telemetry_patterns() -> list[str]:
+    """LIKE patterns for telemetry subjects, from the operational config."""
+    from body.services.thesis.measure import telemetry_like_patterns as patterns
+    from shared.infrastructure.intent.operational_config import (
+        load_operational_config,
+    )
+
+    return patterns(
+        tuple(load_operational_config().blackboard.telemetry_subject_prefixes)
+    )
 
 
 # ID: 5c2e8f41-9b6d-4a37-8e1f-0d4a7b3c6e92

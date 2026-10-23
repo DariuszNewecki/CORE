@@ -18,6 +18,7 @@ class _Session:
         self.answers = answers
         self.failing = failing
         self.savepoints = 0
+        self.params: dict[str, dict] = {}
 
     @asynccontextmanager
     async def _nested(self):
@@ -27,8 +28,9 @@ class _Session:
     def begin_nested(self):
         return self._nested()
 
-    async def execute(self, statement):
+    async def execute(self, statement, params=None):
         sql = str(statement)
+        self.params[sql] = params or {}
         if self.failing in sql:
             raise RuntimeError("relation does not exist")
         for key, rows in self.answers.items():
@@ -47,7 +49,7 @@ async def test_one_failing_part_does_not_hide_the_others() -> None:
             "GROUP BY 1, 2": [("finding", "open", 3)],
             "ORDER BY created_at LIMIT 1": [("x::y", created, 600)],
             "split_part": [("proposal.stuck_approved", 1, 60)],
-            "FILTER": [(10, 7, 1)],
+            "FILTER": [(10, 7, 1, 5)],
         },
         failing="core.autonomous_proposals",
     )
@@ -67,6 +69,7 @@ async def test_one_failing_part_does_not_hide_the_others() -> None:
         "findings_created": 10,
         "findings_resolved": 7,
         "findings_abandoned": 1,
+        "telemetry_excluded": 5,
     }
     assert session.savepoints == 6
 
@@ -82,7 +85,7 @@ async def test_findings_per_rule_name_the_rule_and_count_repeats() -> None:
             "ORDER BY created_at LIMIT 1": [],
             "split_part(subject, '::', 1), count(*), ": [],
             "core.autonomous_proposals": [],
-            "FILTER": [(43, 1, 38)],
+            "FILTER": [(43, 1, 38, 0)],
         },
         failing="never-matches",
     )
@@ -107,3 +110,30 @@ def test_an_audit_finding_belongs_to_its_rule_not_to_audit_violation() -> None:
 
     sql = inspect_runner._RULE_OF_SUBJECT
     assert "audit.violation::%" in sql and "split_part(subject, '::', 2)" in sql
+
+
+async def test_telemetry_is_left_out_of_the_7_day_counts() -> None:
+    # #1114: the status counts and the thesis agree on what a finding is.
+    from will.governance.inspect_runner import LAST_7_DAYS_SQL
+
+    session = _Session(
+        {
+            "count(DISTINCT subject)": [],
+            "GROUP BY 1, 2": [],
+            "ORDER BY created_at LIMIT 1": [],
+            "split_part(subject, '::', 1), count(*), ": [],
+            "core.autonomous_proposals": [],
+            "FILTER": [(1, 0, 0, 2)],
+        },
+        failing="never-matches",
+    )
+    with patch(
+        "will.governance.daemon_runner.get_status",
+        AsyncMock(return_value={"workers": []}),
+    ):
+        await get_health(session)
+    assert "NOT subject LIKE ANY" in LAST_7_DAYS_SQL
+    (week,) = [p for sql, p in session.params.items() if sql == LAST_7_DAYS_SQL]
+    assert any(t.startswith("loop\\_hold.sample::") for t in week["t"])
+    (by_rule,) = [p for sql, p in session.params.items() if "DISTINCT" in sql]
+    assert by_rule == week

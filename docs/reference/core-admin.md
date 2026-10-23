@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-112 commands.
+113 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -17,7 +17,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`constitution`](#constitution) | 4 | Operations for the system mind: policies, schemas, and rule coverage. |
 | [`context`](#context) | 3 | Build and explore context packages for LLM assistance. |
 | [`daemon`](#daemon) | 6 | Background worker daemon management. |
-| [`database`](#database) | 6 | PostgreSQL state and operational data management. |
+| [`database`](#database) | 7 | PostgreSQL state and operational data management. |
 | [`decisions`](#decisions) | 2 | Decision history: the repository's ADRs, with their files. |
 | [`demo`](#demo) | 2 | Isolated, opt-in demonstrations that CORE governs its own changes. |
 | [`dev`](#dev) | 11 | High-level developer workflows: synchronization, refactor, and stability tools. |
@@ -772,6 +772,18 @@ Dry run (default): prints pending migration IDs from the manifest.
 | `--write` | off | Execute pending migrations (or record the adopted baseline). Without this flag nothing is mutated. |
 | `--apply` | off | DEPRECATED alias for --write; removed next release. |
 | `--adopt-baseline` |  | Verify that the database is at the declared baseline TAG (e.g. v2.9.1) and, with --write, record the manifest entries through it. Refuses unless every probe of TAG holds and no later baseline also holds. |
+
+### `core-admin database recount` {#database-recount}
+
+```
+core-admin database recount [OPTIONS]
+```
+
+Recount findings apart from CORE's own queries and compare (#1114).
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--days` | `30` | The thesis window: from 00:00 UTC this many days ago. |
 
 ### `core-admin database status` {#database-status}
 

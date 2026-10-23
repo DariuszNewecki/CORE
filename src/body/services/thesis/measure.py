@@ -622,7 +622,8 @@ async def _merged_prs(gh: GitHub, since: date) -> dict[str, dict[str, Any]]:
         after = info.get("endCursor")
 
 
-def _telemetry_patterns(prefixes: tuple[str, ...]) -> list[str]:
+# ID: ac52f2d7-a869-447f-abc5-2daa4eacfbf2
+def telemetry_like_patterns(prefixes: tuple[str, ...]) -> list[str]:
     """LIKE patterns for subjects that begin with one of *prefixes*: telemetry
     samples, not findings (#1107). ``_``, ``%`` and ``\\`` are escaped."""
     return [
@@ -631,15 +632,40 @@ def _telemetry_patterns(prefixes: tuple[str, ...]) -> list[str]:
     ]
 
 
+_telemetry_patterns = telemetry_like_patterns
+
+
 async def _convergence(since: date) -> tuple[float | None, dict[str, int]]:
-    """Resolved / created findings since *since*. Telemetry samples
-    (``blackboard.telemetry_subject_prefixes``, e.g. ``loop_hold.sample::``)
-    are left out on both sides: they are never resolved, only expire, so
-    counting them reads as findings abandoned (#1107). How many were left
-    out is reported as ``telemetry_excluded``."""
+    """Resolved / created findings since *since*, in its own read-only
+    transaction (see convergence_counts)."""
     from sqlalchemy import text
 
     from body.services.service_registry import ServiceRegistry
+
+    async with ServiceRegistry.session() as session:
+        await session.execute(text("SET TRANSACTION READ ONLY"))
+        counts = await convergence_counts(session, since)
+    created = counts["created"]
+    value = round(counts["resolved"] / created, 3) if created else None
+    return value, counts
+
+
+# ID: db8b1822-3ebf-4e85-b361-f8b37220ecf6
+async def convergence_counts(session: Any, since: date) -> dict[str, int]:
+    """The thesis's finding counts since 00:00 UTC of *since* (the window is
+    30 days; it has no end, so it runs to the moment of the query).
+
+    What a finding is, the same as ``core status``'s ``last_7_days`` (#1114):
+    an ``entry_type = 'finding'`` entry whose subject is not telemetry
+    (``blackboard.telemetry_subject_prefixes``, e.g. ``loop_hold.sample::``;
+    telemetry is never resolved, only expires, #1107). Created counts by
+    ``created_at``, resolved by ``resolved_at``, abandoned by ``updated_at``
+    (it has no time of its own). How much telemetry was left out is
+    ``telemetry_excluded``. Differences from ``last_7_days``: this window
+    starts at a day's midnight and counts ``>=``; that one is the rolling 7
+    days before now and counts ``>``."""
+    from sqlalchemy import text
+
     from shared.infrastructure.intent.operational_config import (
         load_operational_config,
     )
@@ -649,42 +675,26 @@ async def _convergence(since: date) -> tuple[float | None, dict[str, int]]:
     )
     telemetry = "subject LIKE ANY(CAST(:t AS text[]))"
     start = datetime.combine(since, time(), tzinfo=UTC)
-    params = {"s": start, "t": patterns}
-    async with ServiceRegistry.session() as session:
-        await session.execute(text("SET TRANSACTION READ ONLY"))
-        created, excluded = (
-            await session.execute(
-                text(
-                    f"SELECT count(*) FILTER (WHERE NOT {telemetry}), "
-                    f"count(*) FILTER (WHERE {telemetry}) "
-                    "FROM core.blackboard_entries "
-                    "WHERE entry_type = 'finding' AND created_at >= :s"
-                ),
-                params,
-            )
-        ).one()
-        closed = dict(
-            (
-                await session.execute(
-                    text(
-                        "SELECT status, count(*) FROM core.blackboard_entries "
-                        "WHERE entry_type = 'finding' AND updated_at >= :s "
-                        "AND status IN ('resolved', 'abandoned') "
-                        f"AND NOT {telemetry} GROUP BY status"
-                    ),
-                    params,
-                )
-            ).all()
+    row = (
+        await session.execute(
+            text(
+                f"SELECT count(*) FILTER (WHERE created_at >= :s AND NOT {telemetry}), "
+                "count(*) FILTER (WHERE status = 'resolved' AND resolved_at >= :s "
+                f"AND NOT {telemetry}), "
+                "count(*) FILTER (WHERE status = 'abandoned' AND updated_at >= :s "
+                f"AND NOT {telemetry}), "
+                f"count(*) FILTER (WHERE created_at >= :s AND {telemetry}) "
+                "FROM core.blackboard_entries WHERE entry_type = 'finding'"
+            ),
+            {"s": start, "t": patterns},
         )
-    created = int(created or 0)
-    counts = {
-        "created": created,
-        "resolved": int(closed.get("resolved", 0)),
-        "abandoned": int(closed.get("abandoned", 0)),
-        "telemetry_excluded": int(excluded or 0),
+    ).one()
+    return {
+        "created": int(row[0] or 0),
+        "resolved": int(row[1] or 0),
+        "abandoned": int(row[2] or 0),
+        "telemetry_excluded": int(row[3] or 0),
     }
-    value = round(counts["resolved"] / created, 3) if created else None
-    return value, counts
 
 
 # ID: b5ac3580-864c-424e-bdd5-44ad4251555a
