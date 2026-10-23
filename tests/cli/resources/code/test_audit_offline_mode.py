@@ -500,3 +500,61 @@ async def test_offline_advisory_only_skips_still_exit_ok(tmp_path: Path) -> None
                 output_format="json",
             )
     assert exc_info.value.exit_code == EXIT_OK
+
+
+@pytest.mark.parametrize("floor", ["info", "low", "medium", "high", "block"])
+async def test_a_pass_exits_zero_at_any_severity(tmp_path: Path, floor: str) -> None:
+    """#1315 (proof run 7): `--severity info` listed a reporting finding and
+    turned a PASS into exit 1. --severity chooses what is listed, never the
+    exit code."""
+    findings = [
+        {
+            "rule_id": "starter.no_print",
+            "file": "src/greet/__init__.py",
+            "line": 1,
+            "severity": "info",
+            "message": "print() call",
+        }
+    ]
+    with (
+        patch("cli.resources.code.audit.get_intent_repository") as mock_repo,
+        patch("cli.resources.code.audit.get_repo_root", return_value=tmp_path),
+        patch(
+            "cli.resources.code.audit.run_stateless_audit",
+            new=AsyncMock(return_value=_result(passed=True, findings=findings)),
+        ),
+    ):
+        mock_repo.return_value = MagicMock()
+        with pytest.raises(typer.Exit) as exc_info:
+            await _run_offline_audit(
+                files=[], min_severity_str=floor, output_format="json"
+            )
+    assert exc_info.value.exit_code == EXIT_OK
+
+
+async def test_a_fail_exits_one_even_when_its_findings_are_not_listed(
+    tmp_path: Path,
+) -> None:
+    findings = [
+        {
+            "rule_id": "r.1",
+            "file": "x.py",
+            "line": 1,
+            "severity": "medium",
+            "message": "m",
+        }
+    ]
+    with (
+        patch("cli.resources.code.audit.get_intent_repository") as mock_repo,
+        patch("cli.resources.code.audit.get_repo_root", return_value=tmp_path),
+        patch(
+            "cli.resources.code.audit.run_stateless_audit",
+            new=AsyncMock(return_value=_result(passed=False, findings=findings)),
+        ),
+    ):
+        mock_repo.return_value = MagicMock()
+        with pytest.raises(typer.Exit) as exc_info:
+            await _run_offline_audit(
+                files=[], min_severity_str="block", output_format="json"
+            )
+    assert exc_info.value.exit_code == EXIT_FINDINGS

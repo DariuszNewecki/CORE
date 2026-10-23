@@ -253,8 +253,10 @@ async def _run_offline_audit(
 
     Routes to mind.governance.stateless_audit (F-10.1a). Exit code matrix:
 
-    - EXIT_OK (0)             : no findings >= severity floor, verdict PASS
-    - EXIT_FINDINGS (1)       : N findings >= severity floor; merge-block.
+    - EXIT_OK (0)             : verdict PASS, at any --severity (#1315:
+                                --severity only chooses which findings
+                                are listed, never the exit code)
+    - EXIT_FINDINGS (1)       : verdict FAIL (a blocking finding); merge-block.
                                 Also the exit for verdict DEGRADED (#907):
                                 a blocking rule was skipped / not
                                 evaluated, so compliance is unknown. This
@@ -337,10 +339,6 @@ async def _run_offline_audit(
             console.print(f"[bold red]Governance error:[/bold red] {msg}")
         raise typer.Exit(EXIT_CONFIG_ERROR)
 
-    blocking_findings = [
-        f for f in result["findings"] if to_audit_finding(f).severity >= min_severity
-    ]
-
     if output_format == "json":
         sys.stdout.write(json.dumps(result, indent=2, default=str) + "\n")
     elif output_format == "github-annotations":
@@ -350,11 +348,11 @@ async def _run_offline_audit(
     else:
         _render_text_summary(result, min_severity, verbose=verbose)
 
-    # #907 / ADR-005 S3: DEGRADED must never be silently treated as PASS.
-    # A skipped BLOCKING rule is "not evaluated", which is never "passed",
-    # so the gate exits non-success even when every executed rule is clean.
-    degraded = result.get("verdict") == "DEGRADED"
-    raise typer.Exit(EXIT_FINDINGS if (blocking_findings or degraded) else EXIT_OK)
+    # The exit follows the verdict alone (#1315): --severity only chooses
+    # which findings are listed. #907 / ADR-005 S3: DEGRADED is never PASS --
+    # a skipped BLOCKING rule is "not evaluated", so the gate exits non-success
+    # even when every executed rule is clean.
+    raise typer.Exit(EXIT_OK if result.get("verdict") == "PASS" else EXIT_FINDINGS)
 
 
 # ID: 4d8287ab-678e-4fb9-bcf5-05eab155ace1
