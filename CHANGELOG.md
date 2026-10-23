@@ -8,6 +8,41 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.16.0] — 2026-10-23
+
+Minor release. No database migrations. The README now says what each install path needs and gives, and the
+runtime's own counts, recovery and access checks are verified against independent sources.
+
+### Added
+
+- **`core-admin database recount` (#1114):** counts findings created, resolved and abandoned row by row, apart from
+  CORE's own queries, and compares them with `core status` and the thesis measure in one read-only snapshot;
+  exits 1 on any difference.
+- **The access register covers write deploy keys (#1285):** the repository's write deploy keys are compared with the
+  registered count, and a ruleset bypass is a finding unless the register grants it for that ruleset.
+
+### Changed
+
+- **`core status` and the thesis count findings the same way (#1114):** telemetry samples are left out of both, and
+  a finding counts as resolved when it was resolved (`resolved_at`), not when it was last touched.
+
+### Fixed
+
+- **Workers retry their first registration (#1271):** a worker started while PostgreSQL is down or recovering (after a
+  restore or a power loss) retries after 5 s, backing off to 300 s, instead of staying missing for up to an hour.
+- **An access check that could not run keeps its findings (#1285):** without GitHub (no network, an outage, no token)
+  open access findings stay open instead of being resolved.
+
+### Documentation
+
+- **Install prerequisites (#1293):** Python 3.12+ and git (and `python3-venv` on Debian/Ubuntu) for `pip install`;
+  Docker with Compose v2 and Poetry for the full runtime.
+- **What the pip install gives (#1294),** and what needs the full runtime: recorded findings, fixes, the loop and
+  submitted changes.
+- **The MCP server needs `core-admin` on `PATH` where the assistant starts (#1292):** activate the venv or use `pipx`.
+- **Adopting CORE commits `.github` with the law (#1295),** and `--severity info` lists the findings that are only
+  counted.
+
 ## [2.15.2] — 2026-10-19
 
 Patch release. No database migrations. Fixes from the fifth 'Prove it' run.
@@ -1307,7 +1342,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.15.2...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.16.0...HEAD
+[2.16.0]: https://github.com/DariuszNewecki/CORE/compare/v2.15.2...v2.16.0
 [2.15.2]: https://github.com/DariuszNewecki/CORE/compare/v2.15.1...v2.15.2
 [2.15.1]: https://github.com/DariuszNewecki/CORE/compare/v2.15.0...v2.15.1
 [2.15.0]: https://github.com/DariuszNewecki/CORE/compare/v2.14.5...v2.15.0
