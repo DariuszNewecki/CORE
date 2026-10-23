@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import datetime as dt
 import importlib.util
+import json
+import subprocess
 from pathlib import Path
 
 
@@ -116,4 +118,52 @@ def test_the_test_gen_alert_dedupes_and_closes_like_the_others() -> None:
     assert ac.reconcile(found, {"test-gen-undelivered": 11}, gh) == []
     assert ac.reconcile({}, {"test-gen-undelivered": 11}, gh) == [
         "closed test-gen-undelivered (#11)"
+    ]
+
+
+def _fake_gh(compare=None, prs="0", compare_err=None, prs_err=None):
+    def gh(*args: str) -> str:
+        if args[0] == "api":
+            if compare_err:
+                raise subprocess.CalledProcessError(1, "gh", stderr=compare_err)
+            return json.dumps(compare)
+        if prs_err:
+            raise subprocess.CalledProcessError(1, "gh", stderr=prs_err)
+        return prs
+
+    return gh
+
+
+def test_a_404_from_compare_means_no_test_branch() -> None:
+    gh = _fake_gh(compare_err="gh: Not Found (HTTP 404)")
+    assert ac._test_gen(NOW, gh) == {}
+
+
+def test_any_other_compare_failure_is_a_problem() -> None:
+    gh = _fake_gh(compare_err="gh: Bad credentials (HTTP 401)")
+    found = ac._test_gen(NOW, gh)
+    assert set(found) == {"test-gen-check-failed"}
+    assert "HTTP 401" in found["test-gen-check-failed"]
+
+
+def test_a_pr_list_failure_is_a_problem() -> None:
+    compare = {"ahead_by": 1, "commits": [{"commit": {"committer": {"date": OLD}}}]}
+    gh = _fake_gh(compare=compare, prs_err="error connecting to api.github.com")
+    found = ac._test_gen(NOW, gh)
+    assert set(found) == {"test-gen-check-failed"}
+    assert "pr list" in found["test-gen-check-failed"]
+
+
+def test_a_working_check_reports_through_test_gen_problem() -> None:
+    compare = {"ahead_by": 2, "commits": [{"commit": {"committer": {"date": OLD}}}]}
+    assert set(ac._test_gen(NOW, _fake_gh(compare=compare))) == {"test-gen-undelivered"}
+    assert ac._test_gen(NOW, _fake_gh(compare=compare, prs="1")) == {}
+
+
+def test_the_check_failed_alert_dedupes_and_closes_like_the_others() -> None:
+    gh = _Gh()
+    found = ac._test_gen(NOW, _fake_gh(compare_err="HTTP 502"))
+    assert ac.reconcile(found, {"test-gen-check-failed": 12}, gh) == []
+    assert ac.reconcile({}, {"test-gen-check-failed": 12}, gh) == [
+        "closed test-gen-check-failed (#12)"
     ]
