@@ -1,0 +1,41 @@
+# .github/workflows/freeze-scope.yml
+# Governor 2026-10-23 (CLAUDE.md "Freeze until 2026-10-29"): a pull request
+# into main names a v3 exit issue or a CORE 3.1 issue in its description.
+# Runs again when the description is edited. The check's code is taken from
+# the base branch when it has it, so a pull request cannot loosen it for
+# itself; the first pull request, which adds it, runs its own copy.
+name: Freeze scope
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  freeze-scope:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the base branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Checkout the pull request
+        uses: actions/checkout@v7
+        with:
+          path: head
+
+      - name: Check the description
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          HEAD_REF: ${{ github.head_ref }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          script=base/infra/scripts/freeze_scope.py
+          [ -f "$script" ] || script=head/infra/scripts/freeze_scope.py
+          python3 -I "$script"

@@ -1,5 +1,14 @@
 # CLAUDE.md — CORE
 
+## Freeze until 2026-10-29
+
+v3 done = issues #1055, #1070, #1081, #1114, #1115, #1237, #1239, #1243, #1252,
+#1255. Work only on these. No new reviews. Anything newly found is filed in
+milestone CORE 3.1 unless it breaks one of these issues or a v3 gate. New
+infrastructure (timers, crons, credentials, services) needs the governor's yes
+first. The PR check `freeze-scope` refuses a PR whose description names none of
+these issues and no CORE 3.1 issue.
+
 CORE is a Python runtime that audits a codebase against rules in `.intent/`, records
 violations in PostgreSQL, proposes fixes, and logs the chain from finding to commit.
 
@@ -75,8 +84,10 @@ poetry run core-admin law check-tree  # validate .intent/ and .specs/
 
 ## Working rules
 
-- Fixes on a branch that touch only `src/`, `tests/` or `infra/` scripts: do them
-  and report afterwards. Never ask permission for these.
+- Fixes on a branch that touch only `src/`, `tests/` or `infra/` scripts, within
+  the freeze above: do them and report afterwards. A fix needs no permission;
+  new infrastructure (timers, crons, credentials, services) is not a fix and
+  needs the governor's yes first.
 - Everything the governor must act on goes in one list: at most once a day, at most 3 items.
 - Never push while CI is red.
 - Main is integration and not live (ADR-171 promotion flow, ruleset switched
