@@ -725,6 +725,24 @@ def test_migration_happy_path_backs_up_then_migrates_and_records(root: Path) -> 
     assert Path(entry["backup"]).read_bytes() == b"dump"
 
 
+# ID: 19167f6b-6e84-4ebb-bc0e-6dfa199c0f98
+def test_pending_migrations_apply_without_the_migrate_flag(root: Path) -> None:
+    # #1255 item 6: the refusal without --migrate never blocked (the
+    # pipeline always passed it); the backup and its check still guard.
+    (root / "etc" / "deploy.conf").write_text("BACKUP_COMMAND=pg_dump x > {out}\n")
+    _with_previous(root)
+    host = FakeHost(root)
+    host.status = {
+        "connected": True,
+        "pending_migrations": ["20261011_x.sql"],
+        "probe_failures": [],
+    }
+    assert _deploy(root, host) == 0
+    entry = json.loads((root / "deploy-ledger.jsonl").read_text().splitlines()[-1])
+    assert entry["migrations_applied"] == ["20261011_x.sql"]
+    assert Path(entry["backup"]).read_bytes() == b"dump"
+
+
 # ID: 34dfc2bc-e5f0-4de8-b711-a4569983ca55
 def test_failed_migration_stops_for_the_governor_and_never_restarts_old(
     root: Path,
