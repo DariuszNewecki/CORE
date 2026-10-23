@@ -33,12 +33,15 @@ src/cli/     Typer commands; Rich rendering only here
     environment, else the unit credential `github-token`
     (`delivery_branch.py`). Pushes CORE's branches; cannot open PRs (#1252).
     Same variable name as above, a different credential.
-  - `/etc/core/pipeline-github-token` (core-runner): only opens the issue for a
-    failed promotion; every other pipeline read is unauthenticated.
+  - `/etc/core/pipeline-github-token` (core-runner): an issues-only token on
+    the governor's own account (#1198); it opens the issue for a failed
+    promotion, and every other pipeline read is unauthenticated. GitHub sends
+    no email for one's own issue, so an alert meant to reach the governor is
+    opened as core-claude-bot (#1201 was opened as the governor).
   - `/etc/core/pipeline-deploy-key` (core-runner): the write deploy key; moves
     `live`. Ruleset `live-writers` lets any write deploy key do so; this is
     the only one (governor counted, 2026-10-23), and it stays the only one.
-  - Deliberately not on the list: the governor's own GitHub account, the
+  - Deliberately not on the list: the governor's own GitHub login, the
     built-in `GITHUB_TOKEN` of Actions jobs, and PyPI (Trusted Publishing, no
     stored token).
 
