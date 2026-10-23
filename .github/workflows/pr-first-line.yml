@@ -18,4 +18,4 @@ jobs:
   host-change-stated:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "retired by #1255; the promotion lists host changes"
+      - run: "echo retired by issue 1255, the promotion lists host changes"
