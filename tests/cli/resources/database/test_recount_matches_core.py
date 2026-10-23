@@ -50,9 +50,10 @@ async def worker_id():
                 await session.execute(
                     text(
                         "INSERT INTO core.blackboard_entries (id, worker_uuid, "
-                        "entry_type, phase, status, subject, payload, resolved_at, "
-                        "created_at, updated_at, last_seen_at) VALUES (:i, :w, "
-                        "'finding', 'audit', :st, :s, '{}'::jsonb, "
+                        "entry_type, phase, status, subject, payload, "
+                        "resolution_mechanism, resolved_at, created_at, "
+                        "updated_at, last_seen_at) VALUES (:i, :w, 'finding', "
+                        "'audit', :st, :s, '{}'::jsonb, 'human', "
                         "CASE WHEN CAST(:r AS int) IS NULL THEN NULL "
                         "ELSE now() - CAST(:r AS int) * interval '1 day' END, "
                         "now() - :c * interval '1 day', "
