@@ -1,7 +1,8 @@
 # Start a Governed Project
 
 This tutorial creates a new Python project that CORE governs, adds a set of rules,
-and audits it. It needs **only Python 3.12+**: no database, no vector store, no LLM,
+and audits it. It needs **only Python 3.12+ and git** (on Debian and Ubuntu also the
+`python3-venv` package): no database, no vector store, no LLM,
 no running service.
 
 You will finish with a project whose `.intent/` directory holds its law, and an audit
