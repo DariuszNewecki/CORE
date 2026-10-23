@@ -3,10 +3,10 @@
 > **Executable constitutional governance for AI-assisted software development.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/DariuszNewecki/CORE/blob/main/LICENSE)
-[![Release](https://img.shields.io/badge/Release-v2.15.2-blue)](https://github.com/DariuszNewecki/CORE/releases)
+[![Release](https://img.shields.io/badge/Release-v2.16.0-blue)](https://github.com/DariuszNewecki/CORE/releases)
 [![Docs](https://img.shields.io/badge/Docs-online-green)](https://dariusznewecki.github.io/CORE/)
 
-**Current Release:** v2.15.2 — see [CHANGELOG.md](https://github.com/DariuszNewecki/CORE/blob/main/CHANGELOG.md).
+**Current Release:** v2.16.0 — see [CHANGELOG.md](https://github.com/DariuszNewecki/CORE/blob/main/CHANGELOG.md).
 
 ## What CORE is
 
