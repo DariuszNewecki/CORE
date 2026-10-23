@@ -71,8 +71,8 @@ core-admin code audit --offline
 ```
 
 The audit now evaluates every rule in `.intent/` against the project and reports a
-verdict. A **blocking** finding fails the audit; reporting and advisory findings are
-listed without failing it.
+verdict. A **blocking** finding fails the audit; reporting and advisory findings do not
+fail it and are only counted. Add `--severity info` to list them too.
 
 ## 6. Break a rule
 

@@ -37,7 +37,7 @@ To bring CORE into an existing repository, no services are needed either:
 cd your-repo
 core-admin project init . --write --yes
 core-admin project adopt-pack core/starter-python --write
-git add .intent && git commit -m "Adopt CORE"
+git add .intent .github && git commit -m "Adopt CORE"
 core-admin code audit --offline
 ```
 
@@ -46,7 +46,10 @@ question, and without a terminal (CI, scripts, AI agents) it stops at once
 unless `--yes` is given.
 
 The audit judges the law committed at `HEAD`, so commit `.intent/` first;
-uncommitted law reads DEGRADED, never PASS.
+uncommitted law reads DEGRADED, never PASS. `project init` also writes CORE's
+GitHub Action (`.github/workflows/core-audit.yml`); commit it with the law. The
+audit lists blocking and high findings; reporting and advisory ones are only
+counted. Add `--severity info` to list them too.
 
 Connect your AI assistant (Claude Code shown; any MCP client works) so it asks
 CORE about your project's rules and checks its change before committing; see
