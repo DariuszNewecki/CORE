@@ -1,6 +1,6 @@
 """#907 -- the CI gate that consumes the offline audit's JSON verdict.
 
-`core-ci.yml` (static-checks) and `daily_sync.yml` run
+`core-ci.yml` (static-checks) runs
 `core-admin code audit --offline --severity=block --format=json` and then
 gate on the *verdict in the JSON*, never on the exit code alone. Governor's
 CI policy (2026-09-18):
@@ -12,8 +12,8 @@ CI policy (2026-09-18):
   missing/unknown verdict, or any BLOCK-severity finding.
 
 These tests execute the *actual* python block embedded in the workflow
-files (extracted by heredoc marker), so a drift in the YAML is a drift in
-the test. Both workflows must carry byte-identical gate logic.
+file (extracted by heredoc marker), so a drift in the YAML is a drift in
+the test. (daily_sync.yml carried a copy until #1255 removed it.)
 """
 
 from __future__ import annotations
@@ -32,7 +32,6 @@ import yaml
 REPO = Path(__file__).resolve().parents[2]
 WORKFLOWS = [
     REPO / ".github" / "workflows" / "core-ci.yml",
-    REPO / ".github" / "workflows" / "daily_sync.yml",
 ]
 _HEREDOC = re.compile(r"<<'PY'\n(.*?)\nPY\n", re.DOTALL)
 
@@ -123,11 +122,6 @@ def _block_finding() -> dict:
         "line_number": 3,
         "message": "shared imports from src/mind",
     }
-
-
-def test_both_workflows_carry_identical_gate_logic() -> None:
-    """Drift guard: the gate is inlined twice; the bytes must not diverge."""
-    assert _gate_source(WORKFLOWS[0]) == _gate_source(WORKFLOWS[1])
 
 
 def test_workflows_parse_as_yaml_and_preserve_the_json_artifact() -> None:

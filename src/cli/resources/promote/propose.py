@@ -1,8 +1,8 @@
 # src/cli/resources/promote/propose.py
 """``core-admin promote propose`` — open or update the promotion pull request.
 
-Run once a day by core-promote-propose.timer (infra/core-one-path-setup) and
-by hand for an urgent promotion (``--urgent``): it proposes main's newest
+Run once a day from core-claude's crontab (infra/scripts/core-promote-daily.sh,
+#1255) and by hand for an urgent promotion (``--urgent``): it proposes main's newest
 green commit since ``live`` and names the high-risk changes first. The token
 comes from ``CORE_GITHUB_TOKEN`` or the unit's credential ``github-token``.
 """

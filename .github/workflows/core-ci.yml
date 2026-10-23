@@ -383,12 +383,6 @@ jobs:
       # test's own logic (not a workaround) picks it up.
       - name: Build wheel
         run: poetry build
-      # Raw zero-error gate over the live .intent/ + .specs/ (MetaValidator);
-      # exits 1 on any error. Companion to the pytest-side ratchet in
-      # tests/mind/governance/test_meta_validator_live_intent_ratchet.py,
-      # which pins the exact error set (empty since 2026-09-14).
-      - name: Constitution validate (zero-error gate)
-        run: poetry run core-admin constitution validate
       # addopts (pyproject.toml) already supplies --cov=src and the
       # html/term-missing report types; --cov-report= does NOT clear an
       # already-accumulated report list (verified empirically -- it's
@@ -560,15 +554,3 @@ jobs:
         run: coverage combine .coverage.hermetic .coverage.integration
       - name: Coverage report (combined suite, enforced)
         run: coverage report --fail-under=65
-      - name: Coverage XML (combined, for Codecov)
-        run: coverage xml -o coverage.xml
-      - name: Upload coverage to Codecov
-        if: github.repository == 'DariuszNewecki/CORE'
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage.xml
-          flags: unittests
-          name: core-ci-combined
-          fail_ci_if_error: true
-          verbose: true
