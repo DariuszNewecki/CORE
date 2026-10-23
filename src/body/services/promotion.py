@@ -150,8 +150,10 @@ class Proposal:
             "",
             "## Your decision",
             f"- **Approve** this pull request's last commit to make `{short}` live.",
-            "- **Reject** by closing it; the rejected changes are then reverted on "
-            "main and the next proposal carries the revert.",
+            "- **Reject** by closing it: nothing goes live. Nothing is reverted "
+            "on main, so the next daily proposal carries these changes again; "
+            "to keep one out of live, name it and it is reverted on main by a "
+            "pull request.",
         ]
         return "\n".join(lines) + "\n"
 

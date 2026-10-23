@@ -170,6 +170,13 @@ async def test_the_body_lists_high_risk_changes_first_in_the_adr_order() -> None
     assert "tests/infra" not in body.split("## Checks")[0]  # tests are not high risk
 
 
+async def test_reject_promises_only_what_the_code_does() -> None:
+    # Review finding F6: no code reverts a rejected promotion's changes.
+    decision = (await _build(_GitHub())).body().split("## Your decision")[1]
+    assert "then reverted" not in decision
+    assert "the next daily proposal carries these changes again" in decision
+
+
 async def test_a_change_to_a_check_the_governance_engine_or_ci_is_high_risk() -> None:
     fake = _GitHub()
     fake.files[13] = [
