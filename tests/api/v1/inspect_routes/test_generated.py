@@ -351,3 +351,23 @@ async def test_status_db():
 
     assert result == fake_status
     mock_get_db_status.assert_awaited_once_with(fake_session)
+
+
+
+import pytest
+
+
+# ID: 672d2eec-c5f4-4da4-bf02-554d85b54842
+async def test_status_spend():
+    from api.v1.inspect_routes import status_spend
+
+    mock_session = MagicMock()
+    mock_spend_result = {"total_spend": 42.5, "days": 7}
+
+    with patch(
+        "api.v1.inspect_routes.get_spend", new=AsyncMock(return_value=mock_spend_result)
+    ) as mock_get_spend:
+        result = await status_spend(days=7, session=mock_session)
+
+    mock_get_spend.assert_awaited_once_with(mock_session, 7)
+    assert result == mock_spend_result
