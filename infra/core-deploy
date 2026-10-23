@@ -199,10 +199,10 @@ GREEN = {"success", "skipped", "neutral"}
 # tested nothing, and a hand-started run skipped one and stood in for
 # a red run of it (review finding F1, 2026-10-23).
 REQUIRED_GREEN = {"success"}
-# Required checks that run only on a pull request: host-change-stated and
-# freeze-scope read the pull request's description, so no merge commit on
-# main ever has a run of them. GitHub required them green before it merged.
-PULL_REQUEST_ONLY = frozenset({"host-change-stated", "freeze-scope"})
+# Required checks that run only on a pull request: freeze-scope reads the
+# pull request's description, so no merge commit on main ever has a run of
+# it. GitHub required it green before that pull request merged.
+PULL_REQUEST_ONLY = frozenset({"freeze-scope"})
 
 # Restore check of the pre-migration dump (#1113). One line per table,
 # "schema.table|rows", from a count query psql's \gexec runs (no libxml,
@@ -407,7 +407,7 @@ def latest_runs(runs: list[dict]) -> list[dict]:
     """The newest run of each check: a re-run supersedes the run before it.
 
     GitHub keeps every run of a check on a commit (a PR description edit
-    re-runs host-change-stated), and run ids increase. A check is its name
+    re-runs freeze-scope), and run ids increase. A check is its name
     within one app; runs without a name or an id are each kept.
     """
     latest: dict[object, dict] = {}

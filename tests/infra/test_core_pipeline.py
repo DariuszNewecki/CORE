@@ -325,8 +325,8 @@ def test_a_failed_check_rerun_green_counts_as_green(world) -> None:
     # #1133: a re-run supersedes the failed run before it.
     host, _ = world
     host.runs = [
-        _run(2, "host-change-stated", "success"),
-        _run(1, "host-change-stated", "failure"),
+        _run(2, "freeze-scope", "success"),
+        _run(1, "freeze-scope", "failure"),
         _run(3, "tests", "success"),
     ]
     assert _tick(world)["last"]["result"] == "live"
@@ -420,7 +420,7 @@ def test_every_required_check_green_deploys_without_pull_request_only_checks(
     host, _ = world
     host.required = [
         {"context": "tests", "integration_id": 15368},
-        {"context": "host-change-stated", "integration_id": 15368},
+        {"context": "freeze-scope", "integration_id": 15368},
     ]
     host.runs = [_run(1, "tests", "success")]
     assert _tick(world)["last"]["result"] == "live"
