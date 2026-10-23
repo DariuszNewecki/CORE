@@ -199,6 +199,74 @@ What changed in the live VM before that backup, on 2026-10-16:
 5. The page did not say whether a drill clone must be renamed; it kept the name `core`. Settled: it
    need not be for isolation; step 2 renames it so the two VMs are told apart.
 
+## Drill record: 2026-10-23
+
+- **Restored from:** `vzdump-qemu-200-2026_10_23-02_30_01.vma.zst` (15 GB, nightly job, finished 02:35:09, both
+  disks included), storage `backup` on `pve`.
+- **Restored to:** VM 990 `core-restore-drill` on `ZFS-pool`, full size (24 GB, 12 cores). It was isolated from
+  the network the whole time, then destroyed. VM 200 was not touched. Run from the page as merged in #1270
+  (985efa66), nothing else.
+
+| # | Step | Time | Result |
+|---|---|---|---|
+| 1 | Restore the archive | 8 min 39 s | ok, new MAC (`--unique 1`) |
+| 2 | Isolate before first boot | 3 s | ok: cloud-init drive and settings removed, `link_down=1`, `onboot 0`, renamed |
+| 3 | Boot until the guest agent answers | 42 s | ok |
+| 4 | Stop the timers, remove the crontab | 2 s | ok; three of the five timers do not exist in this backup, and it has no `core-claude` crontab (both harmless, as the step says). `core-promote-propose` had already fired at boot, see finding 2 |
+| 5 | PostgreSQL crash recovery | ready 2 min 20 s after start | ok, automatic; redo 0.89 s |
+| 6 | Start the API | `{"status":"ok"}` 4 min 7 s after start | ok, no manual restart, no alias; systemd restarted it 4 times by itself (#1092 exit 3) |
+| 7 | The checks | 4 min 35 s | see below |
+| 8 | Destroy the clone | 5 s | nothing left: no config, zvols or job entries |
+
+- **Total:** 20 min 16 s, 09:21:44 to 09:42:00 UTC; from the restore's start to the API, 13 min 25 s.
+- **Checks:**
+  - Checkout: `855040a6` with 17 uncommitted files; the clone's live release is `1c1ece1f`. Audit and Law ran
+    in the detached worktree at `1c1ece1f`, as the page says. Recorded as finding 3.
+  - Audit: DEGRADED, 0 blocking (9 INFO, 1 NOT EVALUATED: `mypy_check` timed out after 60 s). Healthy by the row.
+  - Law: `law check-tree` exit 0; law loads, 140 intent files valid, 0 dangling.
+  - Database: connected, 50 migrations applied, 0 pending, exit 0.
+  - Data: the last row before PostgreSQL started is 02:29:43, 17 s before the backup started. 86 rows were
+    written by the clone after boot and are left out.
+  - API: `{"status":"ok"}`.
+  - Workers: **13 of 38 alive** at 09:39 (14 at 09:41). 19 workers with a heartbeat in the hour before the
+    backup (00:24–00:29 UTC) had none after boot. Not healthy, see finding 1.
+  - Services: `core-daemon`, `core-api` and the 15 `core-daemon-worker@` units active; `core-sandbox.socket`
+    active; every timer inactive; no `core-law-*` unit.
+  - Sandbox: 8 of 8 passed.
+  - Pipeline: `live commit` 1c1ece1f, the release the backup holds.
+  - Open findings: 20. VM 200 had 18 at 09:04 UTC. The two extra are `repo_sync::clone` (f3efb061) and its
+    stale marker (ffb28098), both open at backup time and resolved on VM 200 at 02:57 and 03:04. The clone
+    created no open finding after boot.
+  - Ledger: 51 lines; sha256 equals the first 51 of VM 200's 53 lines (`5216129e…`). A prefix, as required.
+  - Vector store: every collection's point count equals the table in [Vector store](#vector-store).
+- **Logs:** `/root/drill-990-2026-10-23.log` and `/root/drill-990-2026-10-23-checks.txt` on `pve`.
+- **Result: not a clean pass**, because of the Workers row. Restore, isolation, database, API, audit, law,
+  sandbox, data, ledger and vectors are all good. #1070 stays open.
+
+**Findings**
+
+1. 19 workers that the Workers row counts did not come back: Worker ShopManager, DB Sync Worker, System
+   Observer, State Sensor, Test Runner Sensor, Proposal Pipeline ShopManager, Blackboard ShopManager,
+   Violation Executor, Repo Embedder, Governance Embedder, Test Coverage Sensor, Coherence Sensor, Prompt
+   Drift Sensor, Repo Crawler, Audit Ingest Worker, Canary Sandbox Janitor, Quality Ingest Worker, Dead Shim
+   Sensor, Thesis Sensor. None sent a heartbeat in the 10 minutes after boot; 13 of them run every 132–990 s,
+   so they missed several runs. `core-daemon` started at 09:31:50, during PostgreSQL's crash recovery. Its log shows ten workers
+   failing to register (`Connect call failed ('127.0.0.1', 5432)`, `Connection reset by peer`,
+   `unexpected connection_lost()`) with no retry. Two of them, `test_remediator` and `violation_remediator`,
+   were alive later. The 2-minute watchdog did not fire (`NRestarts=0`). On 2026-10-17 it did, and that
+   restart is what brought the workers back. So [Startup on a restored VM](#startup-on-a-restored-vm) held
+   by chance, and the same applies to a real restore or a power loss. The daemon needs the API's treatment
+   (#1092): retry registration, or exit so systemd restarts it ([#1271](https://github.com/DariuszNewecki/CORE/issues/1271)). Nothing was restarted by hand (step 6).
+2. Step 4 does not always come "before the first one is due". `core-promote-propose.timer` is
+   `Persistent=true` (06:00), so the missed 06:00 run fired at boot, 09:31:40, 4 s before the guest agent
+   answered. It was skipped (`ConditionFileNotEmpty=/etc/core/promote-github-token`; the backup has no token).
+   It was harmless here. On a backup that holds the token it would run, and step 4 cannot stop it in time.
+3. The backup's dev checkout was not at the live release: `855040a6` with 17 uncommitted files, against
+   `1c1ece1f`. The page's note names `0a636dbf` as live. That is VM 200's release today, after the backup.
+   The worktree route made the checks independent of it.
+4. The audit's `mypy_check` timed out after 60 s (NOT EVALUATED). Healthy by the row, but no
+   type check ran.
+
 ## What a complete backup contains
 
 Rebuildable means that git (by commit SHA), GitHub or PyPI can make the part again. Unique means
@@ -367,7 +435,7 @@ root with `runuser -l`, so that `core-claude`'s home and git settings apply. Oth
 neither. The checkout must be at the deployed commit, which every deploy now sees to
 ([#1063](https://github.com/DariuszNewecki/CORE/issues/1063)). When the backup's checkout is not
 there (a deploy refuses to move a checkout with uncommitted files; on 2026-10-23 it held
-`855040a6` with 17, while `0a636dbf` was live), run the Audit and Law rows in a detached worktree
+`855040a6` with 17, while the backup's live release was `1c1ece1f`), run the Audit and Law rows in a detached worktree
 at the live commit instead, and record the checkout's state as a drill finding:
 
 ```
