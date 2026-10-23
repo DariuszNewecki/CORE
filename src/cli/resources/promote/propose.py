@@ -80,7 +80,7 @@ async def propose_cmd(
         )
         raise typer.Exit(1)
     pipeline = _pipeline(status_file)
-    alarms = await open_alarms()
+    alarms = await open_alarms(settings.CORE_DEPLOY_LEDGER)
     for alarm in alarms:
         console.print(f"[red]Needs the governor:[/red] {alarm}")
     async with httpx.AsyncClient() as client:
