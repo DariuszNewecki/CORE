@@ -20,6 +20,18 @@ src/cli/     Typer commands; Rich rendering only here
 
 - PyPI: `core-runtime` 2.15.2 (2026-10-19).
 - Latest proof run: 6 (#1053, 2026-10-19, on 2.15.2); zero new proof issues, #1053 closed (v3 gate 1 met).
+- Credentials: a closed list (governor 2026-10-23). No new token, no permission
+  change, never asked of the governor. A job uses one of these and checks it at
+  start, failing loudly if it does not work.
+  - core-claude-bot gh login (core-claude): opens PRs into main, the promotion
+    PR, and the PR for CORE's generated tests.
+  - `CORE_GITHUB_TOKEN` (CORE daemon): pushes CORE's branches; cannot open PRs (#1252).
+  - `/etc/core/pipeline-github-token` (core-runner): only opens the issue for a
+    failed promotion; every other pipeline read is unauthenticated.
+  - `/etc/core/pipeline-deploy-key` (core-runner): the one write deploy key; moves `live`.
+  - Deliberately not on the list: the governor's own GitHub account, the
+    built-in `GITHUB_TOKEN` of Actions jobs, and PyPI (Trusted Publishing, no
+    stored token).
 
 ## Commands
 
