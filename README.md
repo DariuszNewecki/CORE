@@ -15,6 +15,12 @@ violation, proposes fixes, and logs the chain from finding to commit. AI
 assistants and CORE's own loop can propose changes; only the human governor
 approves them. What it is for, in plain words: [What CORE does](https://dariusznewecki.github.io/CORE/what-core-does/).
 
+The `pip install` below gives you the offline audit, CORE's audit on every pull
+request (GitHub Action) and, for your AI assistant, the rules and a verdict on
+its change before it commits. Recording findings, proposing fixes, CORE's own
+loop and changes submitted for your approval need the full local runtime (last
+block of this section).
+
 ## Install and first run
 
 ```bash
