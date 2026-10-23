@@ -111,6 +111,10 @@ poetry run core-admin law check-tree  # validate .intent/ and .specs/
   `core-admin` status queries need no permission.
 - The governor decides only: design and policy choices, pushes or releases outside a PR,
   credentials, live-database writes, and stopping running processes.
+- A release needs a named consumer: a proof run, or a user who needs the fix. The release
+  request names that consumer and lists every change since the last release. No release
+  for a single fix unless it breaks an installed user. One release per proof run, not per
+  fix. Publishing waits for the governor's approval on the pypi environment.
 
 ## What we measure (governor 2026-10-18)
 Every task and PR serves at least one of these; say which in the PR's first line after any "Host change:".
