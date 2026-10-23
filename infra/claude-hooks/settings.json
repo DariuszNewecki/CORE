@@ -26,6 +26,11 @@
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/core-chat-length.sh",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/core-question-count.sh",
+            "timeout": 10
           }
         ]
       }
