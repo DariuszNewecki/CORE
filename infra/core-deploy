@@ -93,8 +93,8 @@ Order (ADR-132 D10 · D2):
 
 Host setup (governor 2026-10-15: a merge is the only approval). A merge that
 changes ``infra/core-runtime-setup`` or ``infra/systemd/`` runs
-core-runtime-setup, and one that changes ``infra/core-one-path-setup`` runs
-that script: as root, the copy in the deployed commit, before anything is
+core-runtime-setup, and one that changes ``infra/core-one-path-setup`` or
+``infra/scripts/core-qdrant-backup`` (which it installs) runs that script: as root, the copy in the deployed commit, before anything is
 built. A failure refuses the deploy. The governor account they need is the
 one member of the group ``core-gov``.
 
@@ -155,6 +155,7 @@ HOST_SETUP_PATHS = (
     "infra/core-runtime-setup",
     "infra/core-law-setup",
     "infra/core-one-path-setup",
+    "infra/scripts/core-qdrant-backup",
 )
 # Run before the build, from the deployed commit: (script, its interpreter,
 # the paths it applies). core-law-setup runs after the switch instead.
@@ -164,7 +165,11 @@ PRE_SWITCH_SETUP = (
         "/usr/bin/python3",
         ("infra/core-runtime-setup", "infra/systemd"),
     ),
-    ("core-one-path-setup", "/bin/bash", ("infra/core-one-path-setup",)),
+    (
+        "core-one-path-setup",
+        "/bin/bash",
+        ("infra/core-one-path-setup", "infra/scripts/core-qdrant-backup"),
+    ),
 )
 LAW_SETUP_PATH = "infra/core-law-setup"
 GOVERNOR_GROUP = "core-gov"
