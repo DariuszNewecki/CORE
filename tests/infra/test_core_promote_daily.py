@@ -17,9 +17,13 @@ import pytest
 SCRIPT = Path(__file__).resolve().parents[2] / "infra/scripts/core-promote-daily.sh"
 
 FAKE_GH = """#!/bin/bash
+echo "$*" >> "$GH_LOG"
 case "$1 $2" in
   "auth token") echo bot-token ;;
   "api repos/DariuszNewecki/CORE") echo "${FAKE_PUSH:-true}" ;;
+  "pr list") echo "${FAKE_OPEN:-0}" ;;
+  "pr create") [ -n "${FAKE_CREATE_FAIL:-}" ] && exit 1; echo https://github.com/DariuszNewecki/CORE/pull/9 ;;
+  "pr merge") ;;
   *) echo "unexpected gh $*" >&2; exit 2 ;;
 esac
 """
@@ -48,7 +52,7 @@ def _commit(repo: Path, message: str) -> None:
 def host(tmp_path: Path) -> dict:
     repo = tmp_path / "dev"
     repo.mkdir()
-    _git(repo, "init", "-q")
+    _git(repo, "init", "-q", "-b", "main")
     _commit(repo, "live")
     live = _git(repo, "rev-parse", "HEAD")
     _commit(repo, "main, not approved")
@@ -72,8 +76,16 @@ def host(tmp_path: Path) -> dict:
         "CORE_DEV_REPO": str(repo),
         "CORE_CURRENT": str(current),
         "RECORD": str(tmp_path / "record"),
+        "GH_LOG": str(tmp_path / "gh.log"),
     }
-    return {"env": env, "live": live, "record": tmp_path / "record", "current": current}
+    return {
+        "env": env,
+        "live": live,
+        "record": tmp_path / "record",
+        "current": current,
+        "repo": repo,
+        "gh_log": tmp_path / "gh.log",
+    }
 
 
 def _run(host: dict, *args: str, **env: str) -> subprocess.CompletedProcess:
@@ -114,5 +126,56 @@ def test_a_current_that_is_not_a_release_stops(host: dict, tmp_path: Path) -> No
     assert not host["record"].exists()
 
 
-def test_the_script_never_reads_main() -> None:
-    assert "origin/main" not in SCRIPT.read_text()
+def test_the_script_never_runs_or_reads_mains_code() -> None:
+    text = SCRIPT.read_text()
+    assert "origin/main:" not in text  # never git show main's files
+    (worktree,) = [line for line in text.splitlines() if "worktree add" in line]
+    assert worktree.rstrip().endswith('"$live"')
+
+
+# -- #1252: the pull request for CORE's generated tests -------------------------
+
+
+def _test_gen(host: dict) -> None:
+    repo = host["repo"]
+    _git(repo, "checkout", "-q", "-b", "core/test-gen")
+    _commit(repo, "test: a generated test")
+    _git(repo, "checkout", "-q", "main")
+
+
+def _gh_calls(host: dict) -> list[str]:
+    return host["gh_log"].read_text().splitlines()
+
+
+def test_generated_tests_ahead_of_main_get_one_pull_request(host: dict) -> None:
+    _test_gen(host)
+    result = _run(host)
+    assert result.returncode == 0, result.stderr
+    calls = _gh_calls(host)
+    (create,) = [c for c in calls if c.startswith("pr create")]
+    assert "--head core/test-gen" in create and "--base main" in create
+    assert "#1252" in create
+    assert any(c.startswith("pr merge") and "--auto" in c for c in calls)
+    assert "args=--readonly promote propose" in host["record"].read_text()
+
+
+def test_an_open_test_pull_request_is_not_opened_again(host: dict) -> None:
+    _test_gen(host)
+    assert _run(host, FAKE_OPEN="1").returncode == 0
+    assert not [c for c in _gh_calls(host) if c.startswith("pr create")]
+
+
+def test_no_test_branch_or_nothing_ahead_opens_nothing(host: dict) -> None:
+    assert _run(host).returncode == 0  # no core/test-gen at all
+    repo = host["repo"]
+    _git(repo, "branch", "core/test-gen")  # at main: nothing ahead
+    assert _run(host).returncode == 0
+    assert not [c for c in _gh_calls(host) if c.startswith("pr create")]
+
+
+def test_a_failed_test_delivery_never_stops_the_promotion(host: dict) -> None:
+    _test_gen(host)
+    result = _run(host, FAKE_CREATE_FAIL="1")
+    assert result.returncode == 1
+    assert "delivering core/test-gen failed" in result.stderr
+    assert "args=--readonly promote propose" in host["record"].read_text()
