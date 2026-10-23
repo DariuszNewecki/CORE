@@ -71,7 +71,7 @@ claude mcp add --scope project core -- core-admin mcp run
 Claude Code starts `core-admin` itself, so it must be on `PATH` in the shell
 you start `claude` from: activate the virtual environment first, or install
 with `pipx install core-runtime` (then `pipx ensurepath`) so it is on `PATH` in
-every shell. Everyone who uses the committed `.mcp.json` needs the same.
+every shell; get pipx first with `sudo apt install pipx` on Debian/Ubuntu. Everyone who uses the committed `.mcp.json` needs the same.
 
 A new project:
 
