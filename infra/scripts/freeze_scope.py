@@ -22,7 +22,10 @@ import urllib.request
 
 
 FREEZE_END = dt.datetime(2026, 10, 29, 23, 59, tzinfo=dt.UTC)
-EXIT_ISSUES = frozenset({1055, 1070, 1081, 1114, 1115, 1237, 1239, 1243, 1252, 1255})
+# 1285 added by the governor 2026-10-23: found by the #1070 drill.
+EXIT_ISSUES = frozenset(
+    {1055, 1070, 1081, 1114, 1115, 1237, 1239, 1243, 1252, 1255, 1285}
+)
 NEXT_MILESTONE = "CORE 3.1"
 EXEMPT_PREFIXES = ("promote/", "core/test-gen")
 _REFERENCE = re.compile(r"(?<![\w/])#(\d+)(?!\d)|/issues/(\d+)(?!\d)")
