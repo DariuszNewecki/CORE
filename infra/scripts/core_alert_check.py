@@ -75,7 +75,8 @@ def _gh(*args: str) -> str:
 
 
 def _open_alerts() -> dict[str, int]:
-    """{key: issue number} of the open alert issues core-claude-bot opened."""
+    """{key: issue number} of the open alert issues core-claude-bot opened.
+    Listed, not searched: the search index lags behind a new issue."""
     out = _gh(
         "issue",
         "list",
@@ -85,8 +86,6 @@ def _open_alerts() -> dict[str, int]:
         "open",
         "--author",
         "@me",
-        "--search",
-        "alert in:title",
         "--json",
         "number,title",
         "--limit",
