@@ -23,7 +23,8 @@
 #     (/etc/core/pipeline-github-token, root:core-runner 0640); DEPLOY_KEY names the key that
 #     pushes `live` (/etc/core/pipeline-deploy-key, core-runner 0600, made by the governor);
 #  5. /opt/core/etc/deploy.conf: DEPLOY_BRANCH=main (core-deploy then deploys only commits on main),
-#     and BACKUP_COMMAND when missing (the dump core-deploy takes before a migration);
+#     and, each when missing, BACKUP_COMMAND (the dump core-deploy takes before a migration),
+#     PSQL_COMMAND and RESTORE_IMAGE (the dump's restore check, #1113);
 #  6. /etc/sudoers.d/core-runner, checked with visudo: core-runner may run exactly
 #     /usr/local/sbin/core-deploy as root and /usr/local/sbin/core-sandbox-check (no arguments)
 #     as core, without a password. Nothing else, no shell;
@@ -141,27 +142,62 @@ else
   echo 'DEPLOY_BRANCH=main' >> /opt/core/etc/deploy.conf
   say "  set"
 fi
+# The database commands core-deploy needs for a migration, each added when missing. Built
+# from the services' own DATABASE_URL (values never printed); the server's own tools (in its
+# container) when there is one, so versions always match.
+db_url=""
+db_facts() {
+  [[ -n "$db_url" ]] && return 0
+  db_url="$(grep -E '^DATABASE_URL=' /opt/core/etc/secrets.env | head -1 | cut -d= -f2- | tr -d '"')"
+  db_url="${db_url/postgresql+asyncpg:/postgresql:}"
+  read -r db_user db_name < <(python3 -c 'import sys,urllib.parse as u; p=u.urlsplit(sys.argv[1]); print(p.username, p.path.lstrip("/"))' "$db_url")
+  in_container=0
+  if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx core_postgres_db; then in_container=1; fi
+}
+add_conf() {  # key, value, what it is
+  if [[ $DRY -eq 1 ]]; then
+    say "  would add $1 ($3)"
+  else
+    printf '%s=%s\n' "$1" "$2" >> /opt/core/etc/deploy.conf
+    say "  added $1 ($3)"
+  fi
+}
+# BACKUP_COMMAND: the dump core-deploy takes before a migration.
 if grep -q '^BACKUP_COMMAND=.*{out}' /opt/core/etc/deploy.conf 2>/dev/null; then
   say "  ok: BACKUP_COMMAND present"
 else
-  # The database dump core-deploy takes before a migration. Built from the
-  # services' own DATABASE_URL (values never printed); the server's own
-  # pg_dump (in its container) when there is one, so versions always match.
-  url="$(grep -E '^DATABASE_URL=' /opt/core/etc/secrets.env | head -1 | cut -d= -f2- | tr -d '"')"
-  url="${url/postgresql+asyncpg:/postgresql:}"
-  read -r db_user db_name < <(python3 -c 'import sys,urllib.parse as u; p=u.urlsplit(sys.argv[1]); print(p.username, p.path.lstrip("/"))' "$url")
-  if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx core_postgres_db; then
-    backup="docker exec core_postgres_db pg_dump -U $db_user -Fc $db_name > {out}"
-    how="pg_dump inside the core_postgres_db container"
+  db_facts
+  if [[ $in_container -eq 1 ]]; then
+    add_conf BACKUP_COMMAND "docker exec core_postgres_db pg_dump -U $db_user -Fc $db_name > {out}" \
+      "pg_dump inside the core_postgres_db container, database $db_name"
   else
-    backup="pg_dump -Fc --dbname=$url > {out}"
-    how="the host's pg_dump"
+    add_conf BACKUP_COMMAND "pg_dump -Fc --dbname=$db_url > {out}" "the host's pg_dump, database $db_name"
   fi
-  if [[ $DRY -eq 1 ]]; then
-    say "  would add BACKUP_COMMAND ($how, database $db_name)"
+fi
+# PSQL_COMMAND: psql on the live database, SQL on stdin; core-deploy counts each table's
+# rows with it, read-only, right after the dump (#1113).
+if grep -q '^PSQL_COMMAND=.' /opt/core/etc/deploy.conf 2>/dev/null; then
+  say "  ok: PSQL_COMMAND present"
+else
+  db_facts
+  if [[ $in_container -eq 1 ]]; then
+    add_conf PSQL_COMMAND "docker exec -i core_postgres_db psql -U $db_user -d $db_name" \
+      "psql inside the core_postgres_db container, database $db_name"
   else
-    printf 'BACKUP_COMMAND=%s\n' "$backup" >> /opt/core/etc/deploy.conf
-    say "  added BACKUP_COMMAND ($how, database $db_name)"
+    add_conf PSQL_COMMAND "psql --dbname=$db_url" "the host's psql, database $db_name"
+  fi
+fi
+# RESTORE_IMAGE: the database server's own image; core-deploy restores each pre-migration
+# dump into a throwaway container of it (no network, removed afterwards) (#1113).
+if grep -q '^RESTORE_IMAGE=.' /opt/core/etc/deploy.conf 2>/dev/null; then
+  say "  ok: RESTORE_IMAGE present"
+else
+  db_facts
+  if [[ $in_container -eq 1 ]]; then
+    image="$(docker inspect --format '{{.Config.Image}}' core_postgres_db)"
+    add_conf RESTORE_IMAGE "$image" "the core_postgres_db container's image"
+  else
+    say "  no RESTORE_IMAGE: no core_postgres_db container; core-deploy only lists each dump and warns"
   fi
 fi
 
