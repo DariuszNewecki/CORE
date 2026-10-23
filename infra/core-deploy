@@ -56,9 +56,8 @@ Order (ADR-132 D10 · D2):
     merge on GitHub is the approval, recorded in core-law's signed ledger. A
     refusal stops the deploy before anything switched. If the deploy later
     switches back, the law is put back the same way;
- 4. migration check with the new release (read-only); pending migrations
-    without --migrate refuse;
- 5. --migrate: stop every unit, back up (BACKUP_COMMAND), check the dump
+ 4. migration check with the new release (read-only);
+ 5. pending migrations: stop every unit, back up (BACKUP_COMMAND), check the dump
     (#1113): ``pg_restore --list`` must read it, then it is restored into a
     throwaway container of RESTORE_IMAGE (no network, removed afterwards)
     and every table's row count must equal the live one (PSQL_COMMAND,
@@ -1011,10 +1010,9 @@ class Deployer:
         pending = [str(p) for p in raw] if isinstance(raw, list) else []
         if not pending:
             return [], ""
-        if not self.options.migrate:
-            raise Refused(
-                "pending migrations (re-run with --migrate): " + ", ".join(pending)
-            )
+        # Pending migrations always apply, with the backup and its check
+        # below; --migrate is accepted but no longer required (#1255 item 6:
+        # the pipeline always passed it, so the refusal never blocked).
         backup_cmd = read_env_file(self.layout.deploy_conf).get("BACKUP_COMMAND")
         if not backup_cmd or "{out}" not in backup_cmd:
             raise Refused(
@@ -1880,7 +1878,9 @@ def main(argv: list[str] | None = None, host: Host | None = None) -> int:
         "ref", nargs="?", help="tag or full commit sha on upstream develop"
     )
     parser.add_argument(
-        "--migrate", action="store_true", help="apply pending migrations"
+        "--migrate",
+        action="store_true",
+        help="accepted, no effect: pending migrations always apply (#1255)",
     )
     parser.add_argument(
         "--rollback", action="store_true", help="return to the previous release"
