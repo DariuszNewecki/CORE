@@ -17,6 +17,9 @@ approves them. What it is for, in plain words: [What CORE does](https://dariuszn
 
 ## Install and first run
 
+You need Python 3.12 or later and git. On Debian and Ubuntu, `python3 -m venv`
+also needs the `python3-venv` package (`sudo apt install python3-venv git`).
+
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
 pip install core-runtime
@@ -67,7 +70,9 @@ git add -A && git commit -m "Adopt core/starter-python"
 core-admin code audit --offline
 ```
 
-To run the full local runtime (Postgres + Qdrant) from a clone:
+To run the full local runtime (Postgres + Qdrant) from a clone (it also needs
+Docker with Compose v2 and Poetry; every prerequisite is in
+[Run the full runtime](https://dariusznewecki.github.io/CORE/getting-started/)):
 
 ```bash
 git clone https://github.com/DariuszNewecki/CORE.git
