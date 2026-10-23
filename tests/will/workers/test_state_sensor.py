@@ -388,6 +388,37 @@ async def test_an_access_finding_resolves_when_reality_matches() -> None:
     assert _subjects(publisher) == []
 
 
+BYPASS = "governance::access_register::github::bypass::live-writers::DeployKey:None"
+
+
+async def test_a_github_check_that_could_not_run_keeps_its_findings() -> None:
+    # #1285: the 2026-10-23 drill clone, without network, resolved this.
+    for not_evaluated in (
+        {"ruleset bypass list": "GET rulesets: HTTP 503"},
+        {"github": "no CORE_GITHUB_TOKEN"},
+    ):
+        board = _Blackboard({BYPASS: {"id": "b1"}})
+        report = AccessReport(not_evaluated=not_evaluated)
+        publisher, _ = await _cycle(_MATCH, _CODE_MATCH, board, access=report)
+        assert board.resolved == [] and BYPASS in board.open
+        assert _subjects(publisher) == []
+
+
+async def test_a_github_finding_resolves_when_its_check_ran_and_found_nothing() -> None:
+    board = _Blackboard({BYPASS: {"id": "b1"}})
+    report = AccessReport(evaluated=["ruleset bypass list"])
+    await _cycle(_MATCH, _CODE_MATCH, board, access=report)
+    assert board.resolved == [BYPASS]
+
+
+async def test_an_unrun_check_keeps_only_its_own_findings() -> None:
+    sudo = "governance::access_register::sudo::core-runner::root::/x"
+    board = _Blackboard({BYPASS: {"id": "b1"}, sudo: {"id": "s1"}})
+    report = AccessReport(not_evaluated={"sudo rules": "unreadable"})
+    await _cycle(_MATCH, _CODE_MATCH, board, access=report)
+    assert board.resolved == [BYPASS] and sudo in board.open
+
+
 # -- #1112: custody ledger signatures ---------------------------------------------
 
 
