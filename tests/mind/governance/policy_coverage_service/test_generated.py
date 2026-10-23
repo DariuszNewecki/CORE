@@ -41,6 +41,7 @@ from mind.governance.policy_coverage_service import (
 
 
 @pytest.fixture
+# ID: dfa71420-d8fb-430b-aeb6-6ea17e19e2d5
 def mock_path_resolver() -> MagicMock:
     """Return a mock ``PathResolver`` with commonly-used attributes."""
     resolver = MagicMock()
@@ -51,6 +52,7 @@ def mock_path_resolver() -> MagicMock:
 
 
 @pytest.fixture
+# ID: 9bf3e74d-9f8f-4790-a03d-b475d9039841
 def service(mock_path_resolver: MagicMock) -> PolicyCoverageService:
     """Return a ``PolicyCoverageService`` backed by a mock path resolver."""
     return PolicyCoverageService(path_resolver=mock_path_resolver)
@@ -61,9 +63,11 @@ def service(mock_path_resolver: MagicMock) -> PolicyCoverageService:
 # ---------------------------------------------------------------------------
 
 
+# ID: 73daf49e-e689-4060-9752-c459eaf980d2
 class TestPolicyCoverageReport:
     """Unit tests for the ``PolicyCoverageReport`` data model."""
 
+    # ID: 7ef67773-6a5a-4046-80e6-81aac73a68d4
     def test_default_construction(self) -> None:
         """All fields must be provided (no defaults)."""
         report = PolicyCoverageReport(
@@ -83,6 +87,7 @@ class TestPolicyCoverageReport:
         assert len(report.records) == 1
         assert report.exit_code == 0
 
+    # ID: 1cc6c429-f3cd-4163-85a8-15ae58e47821
     def test_fields_accept_varied_types(self) -> None:
         """``records`` and ``summary`` should handle arbitrary dicts."""
         record: dict[str, Any] = {"id": 42, "tags": ["a", "b"]}
@@ -97,6 +102,7 @@ class TestPolicyCoverageReport:
         assert report.records[0]["id"] == 42
         assert report.summary["any_key"] == 0
 
+    # ID: 08ba4824-c081-49a8-8e3f-7db53965f64c
     def test_repr_includes_key_fields(self) -> None:
         """The repr should mention at least the report_id."""
         report = PolicyCoverageReport(
@@ -117,9 +123,11 @@ class TestPolicyCoverageReport:
 # ---------------------------------------------------------------------------
 
 
+# ID: b650fac4-d651-44d9-bcbb-b569dcd7050b
 class TestPolicyCoverageServiceInit:
     """Tests for ``PolicyCoverageService.__init__``."""
 
+    # ID: e959b986-7fcb-46ab-965a-1cf637c62a84
     def test_stores_path_resolver_attributes(
         self, mock_path_resolver: MagicMock
     ) -> None:
@@ -131,6 +139,7 @@ class TestPolicyCoverageServiceInit:
         )
         assert svc.evidence_path == expected_evidence
 
+    # ID: 37f6ecde-3fd9-49a2-9e9b-ed457984ed3a
     def test_init_invokes_discovery_and_loading(
         self, mock_path_resolver: MagicMock
     ) -> None:
@@ -152,9 +161,11 @@ class TestPolicyCoverageServiceInit:
 # ---------------------------------------------------------------------------
 
 
+# ID: 4b312e69-4422-4162-89bf-fc39e03a2856
 class TestRuleRef:
     """Tests for the ``_RuleRef`` helper class."""
 
+    # ID: 416dba07-d2f7-48a1-bed5-ac6cff77032f
     def test_simple_construction(self) -> None:
         rule = _RuleRef(
             policy_id="P1", rule_id="R1", enforcement="mandatory", has_engine=True
@@ -164,6 +175,7 @@ class TestRuleRef:
         assert rule.enforcement == "mandatory"
         assert rule.has_engine is True
 
+    # ID: e5be1173-cfc7-46d6-bbcc-3460f7a8512c
     def test_missing_engine_flag(self) -> None:
         rule = _RuleRef(
             policy_id="P2", rule_id="R2", enforcement="advisory", has_engine=False
@@ -177,15 +189,18 @@ class TestRuleRef:
 # ---------------------------------------------------------------------------
 
 
+# ID: 41a22cee-0636-4fe4-9804-942d7b956631
 class TestDiscoverRulesViaIntent:
     """Unit tests for the private ``_discover_rules_via_intent`` method."""
 
+    # ID: 5a67ff3a-356d-4b36-8a45-fca8a5e4eda0
     def test_no_intent_directories(self, mock_path_resolver: MagicMock) -> None:
         """If neither policies/ nor standards/ exist, the result is an empty list."""
         svc = PolicyCoverageService(path_resolver=mock_path_resolver)
         rules = svc._discover_rules_via_intent()
         assert rules == []
 
+    # ID: cf8e93f9-13e3-4ab7-a604-2c72bbfee735
     def test_policy_without_engine_json(
         self, tmp_path: Path, mock_path_resolver: MagicMock
     ) -> None:
@@ -212,6 +227,7 @@ class TestDiscoverRulesViaIntent:
         assert rules[0].rule_id == "R001"
         assert rules[0].has_engine is False
 
+    # ID: 1d4f9314-9110-49f3-94e4-a19265093558
     def test_policy_with_engine_json(
         self, tmp_path: Path, mock_path_resolver: MagicMock
     ) -> None:
@@ -243,6 +259,7 @@ class TestDiscoverRulesViaIntent:
         assert len(rules) == 1
         assert rules[0].has_engine is True
 
+    # ID: ff2ceab7-4554-45cb-a6ff-ccde7c895d95
     def test_collects_from_both_search_roots(
         self, tmp_path: Path, mock_path_resolver: MagicMock
     ) -> None:
@@ -285,15 +302,18 @@ class TestDiscoverRulesViaIntent:
 # ---------------------------------------------------------------------------
 
 
+# ID: 0844ceb2-8615-4098-bb1b-20cbd3773fc2
 class TestLoadAuditEvidence:
     """Unit tests for the private ``_load_audit_evidence`` method."""
 
+    # ID: 45c6f3f5-7d68-4ca6-adf8-5d6a95ad86f7
     def test_no_evidence_file(self, mock_path_resolver: MagicMock) -> None:
         """Return empty set when the evidence ledger does not exist."""
         svc = PolicyCoverageService(path_resolver=mock_path_resolver)
         evidence = svc._load_audit_evidence()
         assert evidence == set()
 
+    # ID: 51b232c1-65ad-4e83-9b42-95835f5ce34d
     def test_evidence_file_with_executed_rules(
         self, tmp_path: Path, mock_path_resolver: MagicMock
     ) -> None:
@@ -310,6 +330,7 @@ class TestLoadAuditEvidence:
         evidence = svc._load_audit_evidence()
         assert evidence == {"R1", "R2", "R3"}
 
+    # ID: 6b71ecba-b1d8-42bb-a87b-cf9ac38fc2d1
     def test_malformed_evidence_file(
         self, tmp_path: Path, mock_path_resolver: MagicMock
     ) -> None:
@@ -332,9 +353,11 @@ class TestLoadAuditEvidence:
 # ---------------------------------------------------------------------------
 
 
+# ID: c13b6a34-d4bd-4134-8e8a-da5e461e652e
 class TestRun:
     """Integration-oriented tests for the ``run`` method."""
 
+    # ID: 1ee63fba-e8b0-42f9-8c19-ab054cf519af
     def test_happy_path_enforces_rules(
         self, tmp_path: Path, mock_path_resolver: MagicMock
     ) -> None:
@@ -375,6 +398,7 @@ class TestRun:
         assert report.repo_root == str(tmp_path)
         assert report.summary["rules_enforced"] == 1
 
+    # ID: 0403eaf0-5dc4-4313-8a9d-47d2029bfc28
     def test_implementable_rule_has_engine_but_not_executed(
         self, tmp_path: Path, mock_path_resolver: MagicMock
     ) -> None:
@@ -412,6 +436,7 @@ class TestRun:
         assert report.summary["rules_implementable"] == 1
         assert report.summary["rules_enforced"] == 0
 
+    # ID: a4e1b585-b3f5-410c-8cd1-705658a75be1
     def test_declared_only_rule_has_no_engine_and_not_executed(
         self, tmp_path: Path, mock_path_resolver: MagicMock
     ) -> None:
@@ -442,6 +467,7 @@ class TestRun:
 
         assert report.summary["rules_declared_only"] == 1
 
+    # ID: 0473fd44-6992-477b-98bc-d5e75b1be7e2
     def test_exit_code_nonzero_when_uncovered_errors_exist(
         self, tmp_path: Path, mock_path_resolver: MagicMock
     ) -> None:
@@ -478,6 +504,7 @@ class TestRun:
 
         assert report.exit_code == 1
 
+    # ID: 2d676f01-5626-441b-bf2d-9f4bd171aea5
     def test_exit_code_zero_when_no_uncovered_errors(
         self, tmp_path: Path, mock_path_resolver: MagicMock
     ) -> None:
@@ -504,3 +531,140 @@ class TestRun:
         mock_path_resolver.reports_dir = tmp_path / "reports"
         mock_path_resolver.intent_root = tmp_path / ".intent"
         mock_path_resolver.repo_root = tmp_path
+
+
+from types import SimpleNamespace
+from unittest.mock import patch
+
+
+# ID: 096e8018-5c77-4744-bfeb-35ff7cc6dcd6
+def test_PolicyCoverageService_run() -> None:
+    from mind.governance.policy_coverage_service import PolicyCoverageService
+
+    path_resolver = MagicMock()
+    path_resolver.repo_root = Path("/repo")
+    path_resolver.reports_dir = Path("/repo/reports")
+
+    enforced_rule = SimpleNamespace(
+        policy_id="POL-1",
+        rule_id="RULE-1",
+        enforcement="error",
+        has_engine=True,
+    )
+    implementable_rule = SimpleNamespace(
+        policy_id="POL-2",
+        rule_id="RULE-2",
+        enforcement="warning",
+        has_engine=True,
+    )
+    declared_only_rule = SimpleNamespace(
+        policy_id="POL-3",
+        rule_id="RULE-3",
+        enforcement="info",
+        has_engine=False,
+    )
+
+    all_rules = [enforced_rule, implementable_rule, declared_only_rule]
+    executed_rules = {"RULE-1"}
+
+    with (
+        patch.object(
+            PolicyCoverageService,
+            "_load_audit_evidence",
+            return_value=executed_rules,
+        ),
+        patch.object(
+            PolicyCoverageService,
+            "_discover_rules_via_intent",
+            return_value=all_rules,
+        ),
+    ):
+        service = PolicyCoverageService(path_resolver)
+        report = service.run()
+
+    assert report.exit_code == 0
+    assert report.summary["rules_total"] == 3
+    assert report.summary["rules_enforced"] == 1
+    assert report.summary["rules_implementable"] == 1
+    assert report.summary["rules_declared_only"] == 1
+    assert report.summary["uncovered_error_rules"] == 0
+    assert len(report.records) == 3
+    coverage_by_rule = {r["rule_id"]: r["coverage"] for r in report.records}
+    assert coverage_by_rule == {
+        "RULE-1": "enforced",
+        "RULE-2": "implementable",
+        "RULE-3": "declared_only",
+    }
+    assert str(report.repo_root) == "/repo"
+
+
+# ID: 6eb5f775-0c98-48b6-8067-08ba28ad533f
+def test_PolicyCoverageService() -> None:
+    path_resolver = MagicMock()
+    path_resolver.repo_root = MagicMock()
+    path_resolver.reports_dir = MagicMock()
+    path_resolver.intent_root = MagicMock()
+
+    with (
+        patch.object(
+            PolicyCoverageService, "_load_audit_evidence", return_value={"R1"}
+        ),
+        patch.object(
+            PolicyCoverageService, "_discover_rules_via_intent", return_value=[]
+        ),
+    ):
+        service = PolicyCoverageService(path_resolver)
+
+    assert service.repo_root is path_resolver.repo_root
+    assert (
+        service.evidence_path
+        == path_resolver.reports_dir / "audit" / "latest_audit.json"
+    )
+
+    rule_enforced = MagicMock(
+        policy_id="P1", rule_id="R1", enforcement="error", has_engine=False
+    )
+    rule_implementable = MagicMock(
+        policy_id="P1", rule_id="R2", enforcement="warn", has_engine=True
+    )
+    rule_declared_only = MagicMock(
+        policy_id="P2", rule_id="R3", enforcement="warn", has_engine=False
+    )
+
+    service.all_rules = [rule_enforced, rule_implementable, rule_declared_only]
+
+    report = service.run()
+
+    assert report.summary["rules_total"] == 3
+    assert report.summary["rules_enforced"] == 1
+    assert report.summary["rules_implementable"] == 1
+    assert report.summary["rules_declared_only"] == 1
+    assert report.summary["uncovered_error_rules"] == 0
+    assert report.exit_code == 0
+    assert len(report.records) == 3
+
+
+
+
+# ID: a9921f6a-176a-4cbd-8d03-c56a69b62134
+def test_PolicyCoverageReport():
+    report = PolicyCoverageReport(
+        report_id="rpt-001",
+        generated_at_utc="2024-01-01T00:00:00Z",
+        repo_root="/repo/root",
+        summary={"total": 2, "covered": 1},
+        records=[
+            {"policy": "P1", "covered": True},
+            {"policy": "P2", "covered": False},
+        ],
+        exit_code=0,
+    )
+
+    assert report.report_id == "rpt-001"
+    assert report.generated_at_utc == "2024-01-01T00:00:00Z"
+    assert report.repo_root == "/repo/root"
+    assert report.summary == {"total": 2, "covered": 1}
+    assert len(report.records) == 2
+    assert report.records[0]["policy"] == "P1"
+    assert report.records[1]["covered"] is False
+    assert report.exit_code == 0
