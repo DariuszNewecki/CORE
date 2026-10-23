@@ -386,3 +386,18 @@ def test_ApproveRequest():
 
     req2 = ApproveRequest(approval_authority="human:alice")
     assert req2.approval_authority == "human:alice"
+
+
+from api.v1.proposals_routes import recorded_producer
+
+
+# ID: 09d4a492-f08f-457b-8644-70fe7d92e507
+def test_recorded_producer():
+    # No claimed label -> unidentified caller falls back to the account.
+    assert recorded_producer("alice", None) == "alice"
+
+    # Claimed label matches the account -> just the account.
+    assert recorded_producer("alice", "alice") == "alice"
+
+    # Claimed label differs -> account with claimed label beside it.
+    assert recorded_producer("alice", "alice-producer") == "alice as alice-producer"
