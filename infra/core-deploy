@@ -1541,6 +1541,18 @@ class Deployer:
         self.say("host setup: core-law-setup applied")
         return "applied"
 
+    def restore_host_setup(self, target: str, current: str) -> list[str]:
+        """On a rollback, run *target*'s setup scripts for the host setup
+        paths that differ between it and *current*. Returns the scripts run,
+        or the failure; never raises."""
+        try:
+            return self.apply_host_setup(
+                target, self.host_setup_changes(target, current)
+            )
+        except Refused as exc:
+            self.say(f"host setup not restored: {exc}")
+            return [f"failed: {str(exc)[:500]}"]
+
     def update_host_scripts(self, sha: str) -> list[str]:
         """Make the installed host scripts equal to the deployed commit's.
 
@@ -1861,6 +1873,16 @@ class Deployer:
             self.restart(units)
             raise Refused(f"{failure}; switched back to {current[:12]}")
         self.enable(units)
+        # Review finding F7: the host setup and host scripts the rolled-back
+        # deploy installed go back to the target's too, after the verified
+        # switch; a failure is reported and never undoes the rollback. The dev
+        # checkout is left alone: it only moves forward and may hold work.
+        host_setup = self.restore_host_setup(target, current)
+        try:
+            scripts = self.update_host_scripts(target)
+        except OSError as exc:
+            self.say(f"host scripts not restored: {exc}")
+            scripts = [f"failed: {exc}"]
         self.ledger(
             {
                 "action": "rollback",
@@ -1868,6 +1890,8 @@ class Deployer:
                 "previous": current,
                 "migrations_applied": [],
                 "units": units,
+                "host_setup": host_setup,
+                "host_scripts_updated": scripts,
                 "at": switched_at.isoformat(),
                 "by": os.environ.get("SUDO_USER", "root"),
             }

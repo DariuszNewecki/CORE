@@ -987,7 +987,8 @@ def test_rollback_refuses_across_a_migration(root: Path) -> None:
         + "\n"
     )
     host = FakeHost(root)
-    assert cd.main(["--rollback", "--root", str(root)], host=host) == 1
+    argv = ["--rollback", "--root", str(root), "--sbin", str(root / "sbin")]
+    assert cd.main(argv, host=host) == 1
     assert _current(root) == SHA
     assert "restart" not in host.systemctl_verbs()
 
@@ -1005,10 +1006,62 @@ def test_rollback_switches_to_previous_and_records(root: Path) -> None:
         + "\n"
     )
     host = FakeHost(root)
-    assert cd.main(["--rollback", "--root", str(root)], host=host) == 0
+    (root / "sbin").mkdir()
+    argv = ["--rollback", "--root", str(root), "--sbin", str(root / "sbin")]
+    assert cd.main(argv, host=host) == 0
     assert _current(root) == OLD
     entry = json.loads((root / "deploy-ledger.jsonl").read_text().splitlines()[-1])
     assert entry["action"] == "rollback" and entry["sha"] == OLD
+
+
+def _rolled_back_from_sha(root: Path) -> None:
+    _with_previous(root)
+    (root / "releases" / SHA / "venv").mkdir(parents=True)
+    (root / "current").unlink()
+    (root / "current").symlink_to(Path("releases") / SHA)
+    (root / "deploy-ledger.jsonl").write_text(
+        json.dumps(
+            {"action": "deploy", "sha": SHA, "previous": OLD, "migrations_applied": []}
+        )
+        + "\n"
+    )
+
+
+def test_rollback_puts_the_targets_host_scripts_back(root: Path) -> None:
+    # Review finding F7: a rollback switched only the release and the law.
+    _rolled_back_from_sha(root)
+    (root / "sbin").mkdir()
+    (root / "sbin" / "core-pipeline").write_bytes(b"#!/bin/sh\n# new\n")
+    host = FakeHost(root)
+    argv = ["--rollback", "--root", str(root), "--sbin", str(root / "sbin")]
+    assert cd.main(argv, host=host) == 0
+    for name in cd.HOST_SCRIPTS:
+        target = root / "sbin" / name
+        assert target.read_bytes() == f"#!/bin/sh\n# {OLD}:infra/{name}\n".encode()
+    assert "core-pipeline" in _ledger(root)["host_scripts_updated"]
+
+
+def test_rollback_reruns_the_targets_host_setup_it_differs_in(root: Path) -> None:
+    _rolled_back_from_sha(root)
+    host = FakeHost(root)
+    host.setup_diff = b"infra/core-one-path-setup\n"
+    argv = ["--rollback", "--root", str(root), "--sbin", str(root / "sbin")]
+    (root / "sbin").mkdir()
+    assert cd.main(argv, host=host) == 0
+    assert host.setup_runs == [["/bin/bash", "core-one-path-setup", "--ref", OLD]]
+    assert _ledger(root)["host_setup"] == ["core-one-path-setup"]
+
+
+def test_a_failed_host_setup_never_undoes_a_rollback(root: Path) -> None:
+    _rolled_back_from_sha(root)
+    host = FakeHost(root)
+    host.setup_diff = b"infra/core-one-path-setup\n"
+    host.setup_rc = 1
+    (root / "sbin").mkdir()
+    argv = ["--rollback", "--root", str(root), "--sbin", str(root / "sbin")]
+    assert cd.main(argv, host=host) == 0
+    assert _current(root) == OLD
+    assert _ledger(root)["host_setup"][0].startswith("failed: ")
 
 
 # ID: 0972bd76-ee9e-4079-8cb4-5a8edfafc6c9
