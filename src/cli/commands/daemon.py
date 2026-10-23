@@ -275,6 +275,7 @@ async def _run_one_shot_loop(worker: Any, stem: str, interval: int) -> None:
             logger.info("CORE daemon: '%s' staggered cold-start +%ds", stem, offset)
             await asyncio.sleep(offset)
 
+    retry = 5
     while True:
         cycle_start = time.monotonic()
         try:
@@ -285,7 +286,14 @@ async def _run_one_shot_loop(worker: Any, stem: str, interval: int) -> None:
             )
         elapsed = time.monotonic() - cycle_start
         # Cycle-cap arithmetic per ADR-103: next cycle starts at max(elapsed, interval).
-        await asyncio.sleep(max(interval - elapsed, 0))
+        wait = max(interval - elapsed, 0)
+        # #1271: a worker that never registered (the database was not up yet,
+        # e.g. after a restore or a power loss) tries again soon, backing off
+        # from 5s to 300s, instead of losing a whole interval (up to an hour).
+        if not getattr(worker, "registered", True):
+            wait = min(wait, retry)
+            retry = min(retry * 2, 300)
+        await asyncio.sleep(wait)
 
 
 @daemon_app.command("start")
