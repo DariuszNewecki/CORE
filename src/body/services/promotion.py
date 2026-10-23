@@ -91,6 +91,7 @@ class Proposal:
     urgent: bool = False
     skipped: list[str] = field(default_factory=list)  # newer, not green
     note: str | None = None  # how the live commit was found, when not certain
+    alarms: list[str] = field(default_factory=list)  # open, for the governor
 
     # ID: 25857f55-4040-4548-836b-dedb63759435
     def risks(self) -> dict[str, list[tuple[Change, str]]]:
@@ -116,6 +117,9 @@ class Proposal:
         ]
         if self.note:
             lines += ["", f"**Note:** {self.note}"]
+        if self.alarms:
+            lines += ["", "## CORE needs you first"]
+            lines += [f"- {alarm}" for alarm in self.alarms]
         lines += [
             "",
             "## Look at these first",
@@ -212,6 +216,7 @@ async def build_proposal(
     pipeline: dict[str, Any] | None = None,
     urgent: bool = False,
     note: str | None = None,
+    alarms: list[str] | None = None,
 ) -> Proposal | None:
     """The proposal for main's newest green first-parent commit since *live*;
     None when main has nothing new, or nothing new is green."""
@@ -256,6 +261,7 @@ async def build_proposal(
         urgent=urgent,
         skipped=skipped,
         note=note,
+        alarms=list(alarms or []),
     )
 
 
