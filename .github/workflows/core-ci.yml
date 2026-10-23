@@ -236,7 +236,7 @@ jobs:
 
       - name: Install the pinned released core-runtime from PyPI
         env:
-          RELEASED_ENGINE: "2.15.2"
+          RELEASED_ENGINE: "2.16.0"
         run: |
           python -m venv "$RUNNER_TEMP/released"
           "$RUNNER_TEMP/released/bin/pip" install --no-cache-dir --only-binary=:all: "core-runtime==$RELEASED_ENGINE"
