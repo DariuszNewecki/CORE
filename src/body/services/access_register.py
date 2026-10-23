@@ -18,8 +18,12 @@ the register with what the host and GitHub actually grant, read-only:
 - governed text (``.intent``, ``.specs``, ``CLAUDE.md`` in the repository and
   in ``/opt/core/law``) is owned by the Custodian or root and writable by
   nobody else through group or other bits;
-- GitHub collaborators are registered GitHub identities, and the branch
-  rulesets' bypass list holds nobody but the Governor.
+- GitHub collaborators are registered GitHub identities, the branch
+  rulesets' bypass list holds nobody but the Governor and the bypasses the
+  register grants (``github_grants.ruleset_bypass``), and the repository has
+  exactly the registered number of write deploy keys
+  (``github_grants.write_deploy_keys``): a DeployKey bypass names no single
+  key, so a second write key would bypass too.
 
 What cannot be read (sudoers as a non-root account, GitHub without a token
 that can see collaborators) is reported as **not evaluated**, never as
@@ -94,6 +98,8 @@ class Register:
     host_admins: frozenset[str]
     groups: dict[str, frozenset[str]]
     sudo_rules: frozenset[tuple[str, str, str]]
+    bypass_grants: frozenset[tuple[str, str, Any]] = frozenset()
+    write_deploy_keys: int | None = None
 
     # ID: fa21671a-6562-4111-808a-02cfeab35905
     def account_for(self, role: str) -> list[str]:
@@ -107,6 +113,7 @@ def load_register(intent_root: Path) -> Register:
     data = yaml.safe_load((intent_root / REGISTER_FILE).read_text(encoding="utf-8"))
     identities = data.get("identities") or {}
     grants = data.get("host_grants") or {}
+    github = data.get("github_grants") or {}
     return Register(
         os_accounts=dict(identities.get("os_accounts") or {}),
         github_accounts=dict(identities.get("github_accounts") or {}),
@@ -120,6 +127,11 @@ def load_register(intent_root: Path) -> Register:
         sudo_rules=frozenset(
             (r["who"], r["as"], r["command"]) for r in grants.get("sudo_rules") or []
         ),
+        bypass_grants=frozenset(
+            (str(b["ruleset"]), str(b["actor_type"]), b.get("actor_id"))
+            for b in github.get("ruleset_bypass") or []
+        ),
+        write_deploy_keys=(github.get("write_deploy_keys") or {}).get("count"),
     )
 
 
@@ -402,6 +414,8 @@ def check_bypass(
             # The repository admin role (id 5) is held by the Governor alone.
             if kind == "RepositoryRole" and governors and actor.get("actor_id") == 5:
                 continue
+            if (name, kind, actor.get("actor_id")) in register.bypass_grants:
+                continue
             findings.append(
                 AccessFinding(
                     f"github::bypass::{name}::{kind}:{actor.get('actor_id')}",
@@ -410,6 +424,28 @@ def check_bypass(
                 )
             )
     return findings, unreadable
+
+
+# ID: 2bd200d0-07c4-40f2-8c6c-95aa7648360c
+def check_deploy_keys(
+    register: Register, keys: list[dict[str, Any]]
+) -> list[AccessFinding]:
+    """The repository's write deploy keys against the registered count. A
+    DeployKey bypass names no single key, so a second write key would move
+    ``live`` too."""
+    if register.write_deploy_keys is None:
+        return []
+    writable = [k for k in keys if not k.get("read_only", True)]
+    if len(writable) == register.write_deploy_keys:
+        return []
+    titles = ", ".join(str(k.get("title") or k.get("id")) for k in writable) or "none"
+    return [
+        AccessFinding(
+            "github::write_deploy_keys",
+            f"the repository has {len(writable)} write deploy key(s) ({titles}); "
+            f"the register allows {register.write_deploy_keys}",
+        )
+    ]
 
 
 # ID: cb49619e-e5c4-4210-a563-faadc7b7ad69
@@ -488,3 +524,11 @@ async def check_github_access(register: Register, report: AccessReport) -> None:
                 report.evaluated.append("ruleset bypass list")
         except GitHubUnavailable as exc:
             report.not_evaluated["ruleset bypass list"] = str(exc)
+        try:
+            keys = await github.get_pages("keys?per_page=100")
+            report.findings += check_deploy_keys(register, keys)
+            report.evaluated.append("write deploy keys")
+        except GitHubUnavailable as exc:
+            report.not_evaluated["write deploy keys"] = (
+                f"needs a token with administration read: {exc}"
+            )

@@ -126,6 +126,21 @@ host_grants:
       command: /usr/local/sbin/core-sandbox-check
       purpose: deploy (probe the sandbox)
 
+# What GitHub grants beyond the collaborators, as the roles need it.
+# Anything not listed here is a finding (rule 5). Governor 2026-10-23 (#1285).
+github_grants:
+  ruleset_bypass:
+    - ruleset: live-writers
+      actor_type: DeployKey
+      # GitHub names no single key: every write deploy key of the
+      # repository may bypass, so write_deploy_keys below pins the count.
+      actor_id: null
+      purpose: core-pipeline (principal.deployer) moves `live` with the deploy key
+  write_deploy_keys:
+    count: 1
+    key: /etc/core/pipeline-deploy-key (core-runner)
+    purpose: the only key that may write; core-pipeline pushes `live` with it
+
 rules:
   - id: rbac.roles_only
     statement: Permissions are granted to roles only, never directly to an identity.
@@ -139,8 +154,8 @@ rules:
     statement: write.law happens only after approve.law.
   - id: rbac.register_is_complete
     statement: >
-      Any account, group, sudo rule or GitHub collaborator not in the
-      register is a blocking finding.
+      Any account, group, sudo rule, GitHub collaborator, ruleset bypass or
+      write deploy key not in the register is a blocking finding.
   - id: rbac.host_administration_outside
     statement: >
       Host administration is not a CORE role: darek and root perform no
