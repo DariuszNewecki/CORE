@@ -83,10 +83,10 @@ GREEN = {"success", "skipped", "neutral"}
 # tested nothing, and a hand-started run skipped one and stood in for
 # a red run of it (review finding F1, 2026-10-23).
 REQUIRED_GREEN = {"success"}
-# Required checks that run only on a pull request: host-change-stated reads
-# the pull request's description, so no merge commit on main ever has a run
-# of it. GitHub itself required it green before that pull request merged.
-PULL_REQUEST_ONLY = frozenset({"host-change-stated"})
+# Required checks that run only on a pull request: host-change-stated and
+# freeze-scope read the pull request's description, so no merge commit on
+# main ever has a run of them. GitHub required them green before it merged.
+PULL_REQUEST_ONLY = frozenset({"host-change-stated", "freeze-scope"})
 CORE_DEPLOY = "/usr/local/sbin/core-deploy"
 SANDBOX_CHECK = "/usr/local/sbin/core-sandbox-check"
 EX_DEPLOY_GOVERNOR = 3
