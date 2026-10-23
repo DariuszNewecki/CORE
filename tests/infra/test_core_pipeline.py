@@ -579,6 +579,49 @@ def test_main_is_read_from_the_api_when_git_cannot_answer(world) -> None:
     assert _tick(world)["main_head"] == MAIN
 
 
+def test_a_passing_deploy_refusal_is_retried_not_dropped(world) -> None:
+    # Review finding F5: GitHub not answering during the deploy.
+    host, _ = world
+    host.rc["deploy"] = cp.EX_DEPLOY_TEMPFAIL
+    status = _tick(world)
+    assert status["state"] == "retrying" and status["attempt"] == 1
+    assert host.issues == []
+    _later(host, 5)
+    assert _tick(world)["state"] == "retrying"  # not before RETRY_AFTER
+    assert len([c for c in _privileged(host) if _is_deploy(c)]) == 1
+    host.rc["deploy"] = 0
+    _later(host, 6)
+    assert _tick(world)["last"]["result"] == "live"
+    assert host.issues == []
+
+
+def test_a_refusal_that_keeps_passing_fails_after_the_limit(world) -> None:
+    host, _ = world
+    host.rc["deploy"] = cp.EX_DEPLOY_TEMPFAIL
+    for _ in range(cp.RETRY_LIMIT):
+        status = _tick(world)
+        _later(host, 11)
+    assert status["last"]["result"] == "failed"
+    assert len(host.issues) == 1
+    assert len([c for c in _privileged(host) if _is_deploy(c)]) == cp.RETRY_LIMIT
+    _later(host, 11)
+    _tick(world)  # done: not deployed again until promote/next moves
+    assert len([c for c in _privileged(host) if _is_deploy(c)]) == cp.RETRY_LIMIT
+
+
+def test_a_refusal_that_would_repeat_is_not_retried(world) -> None:
+    host, _ = world
+    host.rc["deploy"] = 1
+    assert _tick(world)["last"]["result"] == "failed"
+    _later(host, 11)
+    _tick(world)
+    assert len([c for c in _privileged(host) if _is_deploy(c)]) == 1
+
+
+def _is_deploy(cmd: list[str]) -> bool:
+    return cp.CORE_DEPLOY in cmd and "--rollback" not in cmd
+
+
 def test_a_rate_limit_waits_for_its_reset_and_says_so(world) -> None:
     """#1065, 2026-10-15: the unauthenticated limit ran out; every tick then
     failed with HTTP 403 and the deploy stalled with state 'error'."""

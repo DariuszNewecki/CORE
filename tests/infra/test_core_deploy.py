@@ -317,6 +317,8 @@ class FakeHost(cd.Host):
         if url.endswith(f"/pulls/{PROMOTION}/reviews?per_page=100"):
             self.review_reads += 1
             if self.reviews_later is not None and self.review_reads > 1:
+                if isinstance(self.reviews_later, Exception):
+                    raise self.reviews_later
                 return self.reviews_later
             return self.reviews
         if url.endswith(f"/pulls/{PROMOTION}"):
@@ -627,7 +629,6 @@ def test_every_required_check_green_deploys(root: Path) -> None:
         ([_check("Static checks", "failure")], MAIN_CHECKS[:1]),
         ([_check("Static checks")], []),  # the rules require nothing
         ([_check("Static checks")], [{"context": "host-change-stated"}]),
-        ([_check("Static checks")], OSError("rate limited")),
         (  # a red check that is not required still refuses
             [_check("Static checks"), _check("docs", "failure")],
             MAIN_CHECKS[:1],
@@ -641,7 +642,6 @@ def test_every_required_check_green_deploys(root: Path) -> None:
         "red",
         "none",
         "pr-only",
-        "unreadable",
         "other-red",
         "skipped",
         "neutral",
@@ -654,6 +654,38 @@ def test_required_checks_not_met_are_refused(
     host.check_runs, host.required = runs, required
     assert _deploy(root, host) == cd.EX_REFUSED
     assert not (root / "releases" / SHA).exists()
+
+
+# ID: 92ff1928-62a0-4ccd-8203-1778cc8808e0
+def test_unreadable_rules_refuse_for_now(root: Path) -> None:
+    # Review finding F5: GitHub not answering may pass on a later run.
+    host = FakeHost(root)
+    host.check_runs, host.required = [_check("Static checks")], OSError("rate limited")
+    assert _deploy(root, host) == cd.EX_TEMPFAIL
+    assert not (root / "releases" / SHA).exists()
+
+
+# ID: 6ac128f9-79a7-4a60-9804-bf4367975cce
+def test_an_unreadable_approval_after_the_build_refuses_for_now(root: Path) -> None:
+    host = FakeHost(root)
+    host.reviews_later = OSError("rate limited")
+    assert _deploy(root, host) == cd.EX_TEMPFAIL
+    assert not (root / "releases" / SHA).exists()  # a retry installs it again
+
+
+# ID: dea14d0e-1e0f-4776-a48b-4e9256e0e9c2
+def test_a_held_lock_refuses_for_now(root: Path) -> None:
+    import fcntl
+
+    host = FakeHost(root)
+    sbin = root / "sbin"
+    sbin.mkdir()
+    lock = cd.Layout(root, sbin).lock
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    with lock.open("a") as held:
+        fcntl.flock(held.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        argv = [SHA, "--root", str(root), "--sbin", str(sbin), "--promotion", "1"]
+        assert cd.main(argv, host=host) == cd.EX_TEMPFAIL
 
 
 # ID: 04bff2ec-7d3c-46fe-acb3-498768f7b56f

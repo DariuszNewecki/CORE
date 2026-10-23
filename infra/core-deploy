@@ -235,10 +235,17 @@ RESTORE_TIMEOUT_SEC = 3600
 
 EX_REFUSED = 1
 EX_GOVERNOR = 3
+# sysexits EX_TEMPFAIL: refused for a reason that may pass on a later run.
+EX_TEMPFAIL = 75
 
 
 class Refused(Exception):
     """Nothing live changed (or it was switched back); exit 1."""
+
+
+class Unavailable(Refused):
+    """GitHub could not answer, or another deployment holds the lock: nothing
+    changed, and a later run may pass (exit 75, review finding F5)."""
 
 
 class GovernorDecision(Exception):
@@ -774,7 +781,7 @@ class Deployer:
             pull = self.host.http_json(api)
             reviews = self.host.http_json(f"{api}/reviews?per_page=100")
         except Exception as exc:  # network, rate limit, parse
-            raise Refused(f"promotion #{number} unavailable: {exc}") from exc
+            raise Unavailable(f"promotion #{number} unavailable: {exc}") from exc
         if not isinstance(pull, dict) or not isinstance(reviews, list):
             raise Refused(f"promotion #{number}: unexpected answer from GitHub")
         head = pull.get("head") or {}
@@ -810,7 +817,7 @@ class Deployer:
             data = self.host.http_json(f"{api}/commits/{sha}/check-runs?per_page=100")
             rules = self.host.http_json(f"{api}/rules/branches/{branch}?per_page=100")
         except Exception as exc:  # network, rate limit, parse
-            raise Refused(f"CI state for {sha[:12]} unavailable: {exc}") from exc
+            raise Unavailable(f"CI state for {sha[:12]} unavailable: {exc}") from exc
         runs = latest_runs(data.get("check_runs", []) if isinstance(data, dict) else [])
         required = required_checks(rules)
         if not required:
@@ -1940,9 +1947,12 @@ def main(argv: list[str] | None = None, host: Host | None = None) -> int:
             fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             print("core-deploy: another deployment is running", file=sys.stderr)
-            return EX_REFUSED
+            return EX_TEMPFAIL
         try:
             return deployer.rollback() if args.rollback else deployer.deploy(args.ref)
+        except Unavailable as exc:
+            print(f"core-deploy: refused for now: {exc}", file=sys.stderr)
+            return EX_TEMPFAIL
         except Refused as exc:
             print(f"core-deploy: refused: {exc}", file=sys.stderr)
             return EX_REFUSED
