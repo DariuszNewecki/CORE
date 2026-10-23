@@ -263,3 +263,10 @@ async def test_without_the_status_the_branch_is_used_and_the_summary_says_so() -
 
 async def test_no_status_and_no_branch_knows_no_live_commit() -> None:
     assert await _live(_GitHub(), None) == (None, None)
+
+
+async def test_alarms_come_first_and_only_when_there_are_any() -> None:
+    body = (await _build(_GitHub(), alarms=["clone is behind main"])).body()
+    assert "## CORE needs you first\n- clone is behind main" in body
+    assert body.index("## CORE needs you first") < body.index("## Look at these first")
+    assert "CORE needs you first" not in (await _build(_GitHub())).body()

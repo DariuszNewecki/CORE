@@ -27,6 +27,7 @@ from body.services.promotion import (
 from body.services.thesis.github import GitHub
 from cli.utils import async_command
 from shared.config import settings
+from will.audit_violation.governor_alarms import open_alarms
 
 from .hub import app
 
@@ -79,6 +80,9 @@ async def propose_cmd(
         )
         raise typer.Exit(1)
     pipeline = _pipeline(status_file)
+    alarms = await open_alarms()
+    for alarm in alarms:
+        console.print(f"[red]Needs the governor:[/red] {alarm}")
     async with httpx.AsyncClient() as client:
         gh = GitHub(repo, token, client)
         try:
@@ -91,7 +95,7 @@ async def propose_cmd(
             if note:
                 console.print(f"[yellow]{note}[/yellow]")
             proposal = await build_proposal(
-                gh, live, pipeline, urgent=urgent, note=note
+                gh, live, pipeline, urgent=urgent, note=note, alarms=alarms
             )
             if proposal is None:
                 console.print(
