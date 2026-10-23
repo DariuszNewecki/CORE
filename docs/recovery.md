@@ -204,7 +204,7 @@ holds all of them; the last column says what else exists.
 | Part | Where it lives | Kind | Backup |
 |---|---|---|---|
 | Database | PostgreSQL container `core_postgres_db`, volume `core_postgres_data` (`docker-compose.yml`) | unique | nightly VM backup; also a dump `/opt/core/backups/<stamp>-pre-<sha12>.dump` before each deploy that migrates, restore-checked by core-deploy (see [The pre-migration dump](#the-pre-migration-dump)) |
-| Vector store | Qdrant (`QDRANT_URL` in `/opt/core/etc/core.env`; storage `/mnt/vector_db/core_qdrant_db` in compose, a separate disk `/dev/sdb`) | derived (re-embedding takes hours) | nightly snapshots in `/var/lib/core-qdrant-backup/` on the root disk, so they are in the VM backup; see [Vector store: snapshots](#vector-store-snapshots) |
+| Vector store | Qdrant (`QDRANT_URL` in `/opt/core/etc/core.env`; storage `/mnt/vector_db/core_qdrant_db` in compose, the VM's second disk `scsi1` = `/dev/sdb`) | derived (re-embedding takes hours) | nightly VM backup: the Proxmox job includes `scsi1` as well as `scsi0` (verified in the 2026-10-23 job log); see [Vector store](#vector-store) |
 | Law, as committed | `/opt/dev/CORE/.intent`, `/opt/dev/CORE/.specs` | rebuildable | git (GitHub) |
 | Release law | `/opt/core/law/.intent`, `/opt/core/law/.specs` | rebuildable | from git; core-law writes it on each apply |
 | Custody ledger | `/opt/core/custody/ledger.jsonl` (only lines from before the move are in git, in `.intent/custody/ledger.jsonl`) | unique | nightly VM backup |
@@ -269,10 +269,16 @@ To restore a dump into the live database itself, see step 5 of [Rebuild from par
 **Record:** no deploy has migrated since the check exists. The next deploy that migrates
 records the first result in its ledger line and `<dump>.check.json`.
 
-## Vector store: snapshots
+## Vector store
+
+The Proxmox nightly VM backup (02:30, 7 daily, 4 weekly, 3 monthly) includes both of VM 200's
+disks: `scsi0` (system) and `scsi1` (40G, `/dev/sdb`, where Qdrant keeps its data). Neither has
+`backup=0`, and the 2026-10-23 job log lists `include disk 'scsi0'` and `include disk 'scsi1'`.
+A separate snapshot job (#1241) was removed again for that reason (#1081). The restore drill
+(#1070) proves it: in the restored VM, every collection's point count must match the table.
 
 **What is in it.** Eight collections, all derived from files in the repository. Rebuilding them
-means embedding every file again (`nomic-embed-text`, thousands of calls, hours), so the snapshot
+means embedding every file again (`nomic-embed-text`, thousands of calls, hours), so the VM backup
 is the way back and the rebuild is the fallback.
 
 | Collection | Points (2026-10-23) | Source | Rebuild command (fallback) |
@@ -287,40 +293,6 @@ is the way back and the rebuild is the fallback.
 | `governance_claims` | 516 | `.intent/` and `.specs/` claims | `core-admin coherence seed bootstrap` |
 
 None of these rebuild commands has been run end to end against an empty Qdrant.
-
-**Backup.** `core-qdrant-backup.timer` runs `/usr/local/sbin/core-qdrant-backup backup` every day
-at 02:00, before the 02:30 VM backup. For every collection on `QDRANT_URL` it creates a snapshot,
-downloads it, checks the sha256 the server reports, and deletes the snapshot from the server again.
-A run lands in `/var/lib/core-qdrant-backup/<stamp>/` (`<collection>.snapshot` and `manifest.json`
-with each file's sha256 and exact point count), on the root disk, not the Qdrant disk. The last 7
-complete runs are kept (about 300 MB each in October 2026). A failed run stays as `.partial-<stamp>`,
-fails the unit, and deletes no older run. `infra/core-one-path-setup` installs the script and the
-units (source: `infra/scripts/core-qdrant-backup`).
-
-- Last result: `systemctl status core-qdrant-backup.service`, `journalctl -u core-qdrant-backup`.
-- Run once now: `sudo systemctl start core-qdrant-backup.service`.
-
-**Restore** (host admin, as root). It uploads each snapshot and compares the restored exact point
-count with the manifest; exit 1 on any difference. A collection that already exists is refused
-unless `--replace`.
-
-```
-sudo /usr/local/sbin/core-qdrant-backup restore --from /var/lib/core-qdrant-backup/<stamp> --url http://127.0.0.1:6333 --replace
-```
-
-`--collection <name>` (repeatable) restores only those. Without the installed script, run
-`python3 -I infra/scripts/core-qdrant-backup` from a checkout.
-
-**Check a backup without touching the live store**: restore it into a throwaway Qdrant of the same
-version, then remove it.
-
-```
-sudo docker run -d --rm --name qdrant-restore-check -p 127.0.0.1:6399:6333 qdrant/qdrant:v1.18.0
-sudo /usr/local/sbin/core-qdrant-backup restore --from "$(sudo sh -c 'ls -d /var/lib/core-qdrant-backup/2* | tail -1')" --url http://127.0.0.1:6399
-sudo docker stop qdrant-restore-check
-```
-
-Healthy: every row `ok` and `8/8 ok`.
 
 ## Backup by parts
 
@@ -342,7 +314,6 @@ scheduled.
    - `/etc/core/pipeline-github-token` (if present);
    - `/opt/dev/CORE/var/law-proposals/`, `/opt/dev/CORE/var/law-proposals-withdrawn/`,
      `/var/lib/core-pipeline/`;
-   - the newest run in `/var/lib/core-qdrant-backup/` (the vector store).
 3. Record the live commit (`readlink /opt/core/current`) and, for the check at the end, the
    pre-drill state:
    - `sha256sum /opt/core/custody/ledger.jsonl`;
@@ -365,7 +336,7 @@ Write each step's start and end time in the drill record. The total is the time 
 | 3 | Create the accounts no script creates: `core`, `core-claude`, `core-darek` and group `core-dev`. The governor `core-darek` must not be in `sudo`, `docker` or another root-equivalent group | host admin (darek, outside CORE) |
 | 4 | Clone CORE into `/opt/dev/CORE` and check out the recorded commit. Restore `/opt/dev/CORE/.env` and `/opt/dev/CORE/.secrets/` from the backup | host admin (darek, outside CORE) |
 | 5 | Start PostgreSQL (`docker compose up -d postgres` in `/opt/dev/CORE`). Restore the globals with `psql`, then the dump with `pg_restore --clean --if-exists -d <db-name>`, both through `docker exec -i core_postgres_db` | host admin (darek, outside CORE) |
-| 6 | Start Qdrant (`docker compose up -d qdrant`), or point `QDRANT_URL` at the existing store. Restore its collections from the newest snapshot run in the backup (`/var/lib/core-qdrant-backup/<stamp>/`), see [Vector store: snapshots](#vector-store-snapshots) | host admin (darek, outside CORE) |
+| 6 | Start Qdrant (`docker compose up -d qdrant`), or point `QDRANT_URL` at the existing store. Its data comes back with the VM's disk `scsi1`; without it, rebuild the collections, see [Vector store](#vector-store) | host admin (darek, outside CORE) |
 | 7 | Restore `/opt/core-law/home/.ssh/`, `/opt/core/law/private-names/` and `/opt/core/custody/` from the backup. Then `sudo /opt/dev/CORE/infra/core-law-setup --governor core-darek`, first without `--apply` (plan only), then with `--apply`: it creates `core-law`, seeds the release law `/opt/core/law/.intent` and `.specs` from the dev tree, and keeps the restored key and private-names config. Nothing is deployed yet, so it skips the custodian venv and its timers ([#1085](https://github.com/DariuszNewecki/CORE/issues/1085)) | host admin (darek, outside CORE) runs it; core-law then owns the law |
 | 8 | `sudo /opt/dev/CORE/infra/core-runtime-setup --ref <sha> --governor core-darek`, first without `--apply` (plan only), then with `--apply`. Then restore `/opt/core/etc/secrets.env`, `deploy.conf` and `core.env` from the backup over the files it made | host admin (darek, outside CORE) |
 | 9 | `sudo core-deploy <sha> --promotion <PR>` (core-runtime-setup installed it; `<PR>` is the promotion that made `<sha>` live): builds the release, switches `/opt/core/current`, starts the services | host admin (darek, outside CORE) runs it; the units then run as `core` |

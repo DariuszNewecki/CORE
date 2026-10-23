@@ -1303,16 +1303,6 @@ def test_a_merge_changing_the_one_path_setup_runs_it(root: Path) -> None:
     assert host.setup_runs == [["/bin/bash", "core-one-path-setup", "--ref", SHA]]
 
 
-def test_a_merge_changing_the_qdrant_backup_script_reinstalls_it(root: Path) -> None:
-    """#1081: core-one-path-setup installs core-qdrant-backup, so a change to it reruns setup."""
-    assert "infra/scripts/core-qdrant-backup" in cd.HOST_SETUP_PATHS
-    _with_previous(root)
-    host = FakeHost(root)
-    host.setup_diff = b"infra/scripts/core-qdrant-backup\n"
-    assert _deploy(root, host) == 0
-    assert host.setup_runs == [["/bin/bash", "core-one-path-setup", "--ref", SHA]]
-
-
 def test_a_failed_host_setup_refuses_before_anything_is_built(
     root: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
