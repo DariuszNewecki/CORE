@@ -8,6 +8,23 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [2.16.1] — 2026-10-23
+
+Patch release. No database migrations. Fixes from the seventh 'Prove it' run.
+
+### Fixed
+
+- **`--severity` never changes the exit code (#1315):** a PASS audit exits 0 at any `--severity`; FAIL and DEGRADED
+  exit 1. `--severity` only chooses which findings are listed, so the README's `--severity info` no longer fails a
+  passing project.
+- **`project adopt-pack --write` says to commit `.github` too (#1317)** when `project init` wrote the workflow there,
+  matching init and the README.
+
+### Documentation
+
+- **How to get pipx (#1316):** where the docs suggest `pipx install core-runtime`, they say `sudo apt install pipx`
+  on Debian/Ubuntu.
+
 ## [2.16.0] — 2026-10-23
 
 Minor release. No database migrations. The README now says what each install path needs and gives, and the
@@ -1342,7 +1359,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.16.0...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.16.1...HEAD
+[2.16.1]: https://github.com/DariuszNewecki/CORE/compare/v2.16.0...v2.16.1
 [2.16.0]: https://github.com/DariuszNewecki/CORE/compare/v2.15.2...v2.16.0
 [2.15.2]: https://github.com/DariuszNewecki/CORE/compare/v2.15.1...v2.15.2
 [2.15.1]: https://github.com/DariuszNewecki/CORE/compare/v2.15.0...v2.15.1
