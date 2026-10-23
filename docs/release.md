@@ -68,6 +68,9 @@ Once the one-time setup is complete:
 5. Tag the merge commit: `git tag -a vX.Y.Z -m "core-runtime X.Y.Z" <merge sha> && git push origin vX.Y.Z`.
 6. Create the GitHub release, so the repository page shows it as Latest:
    `gh release create vX.Y.Z --verify-tag --latest --title "vX.Y.Z — <summary>" --notes-file <the CHANGELOG section>`.
+7. Once X.Y.Z is on PyPI, raise `RELEASED_ENGINE` in `.github/workflows/core-ci.yml`
+   to X.Y.Z in a pull request. The released-engine audit judges every pull request with
+   that exact version, so a tag alone never changes the judge (review finding F10).
 
 ### Schema and upgrade-path checklist (ADR-162 D4/D5/D9)
 
