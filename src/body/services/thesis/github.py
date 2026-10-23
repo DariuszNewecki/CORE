@@ -92,6 +92,17 @@ class GitHub:
             )
         return response.json()
 
+    # ID: 0e623cb9-60d6-4e42-b4ce-e0e51ccd9ad5
+    async def delete(self, path: str) -> None:
+        """DELETE a repository path; one already gone (404, 422) is fine."""
+        if not self.token:
+            raise GitHubUnavailable("writing to GitHub needs CORE_GITHUB_TOKEN")
+        response = await self._call("DELETE", f"{API}/repos/{self.repo}/{path}")
+        if response.status_code not in (200, 204, 404, 422):
+            raise GitHubUnavailable(
+                f"DELETE {path}: HTTP {response.status_code} {response.text[:200]}"
+            )
+
     # ID: 30f0867d-6e1c-42a3-9757-5276ed98dc53
     async def graphql(self, query: str, variables: dict[str, Any]) -> dict[str, Any]:
         """Run a GraphQL query; GitHub refuses it without a token."""

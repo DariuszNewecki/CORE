@@ -4,13 +4,13 @@ pull request into ``live``, with a plain-language summary for the governor.
 
 Main is integration; only a promotion the governor approved runs live
 (core-pipeline deploys it, core-deploy checks it). This builds the one open
-promotion: it points the branch ``promote/next`` at the candidate commit and
-opens, or updates, the pull request from it into ``live``. The summary lists
-the high-risk changes first (host and infra, law, database migrations,
-login/permission/security paths), then the CI result and the last sandbox
-check, then every merged pull request. Moving the branch to a new commit
-leaves any approval of the old one behind: the governor approves exactly the
-head they read.
+promotion: it opens the pull request into ``live`` from the branch
+``promote/<12 hex>`` at the candidate commit, or updates its text. The
+summary lists the high-risk changes first (host and infra, law, database
+migrations, login/permission/security paths), then the CI result and the last
+sandbox check, then every merged pull request. An open promotion's head never
+moves; a newer candidate replaces it with a new pull request, so the governor
+approves exactly the head they read (review finding F13).
 
 Everything goes through GitHub's REST API; no checkout is needed.
 """
@@ -24,7 +24,9 @@ from typing import Any
 from body.services.thesis.github import GitHub, GitHubUnavailable
 
 
-PROMOTE_BRANCH = "promote/next"
+# Each proposal has its own branch, promote/<12 hex>: an open promotion's
+# head never moves (review finding F13).
+PROMOTE_PREFIX = "promote/"
 LIVE_BRANCH = "live"
 MAIN_BRANCH = "main"
 GREEN = {"success", "skipped", "neutral"}
@@ -269,37 +271,42 @@ async def build_proposal(
 
 # ID: d27aa239-894c-4adf-bc11-a33c7290bf70
 async def publish(gh: GitHub, proposal: Proposal) -> str:
-    """Point ``promote/next`` at the candidate and open or update its pull
-    request into ``live``. Returns the pull request's URL."""
-    ref = await gh.get_or_none(f"git/ref/heads/{PROMOTE_BRANCH}")
-    if ref is None:
+    """Open the promotion pull request for the candidate, on its own branch
+    ``promote/<12 hex>``, or update the text of the one already open for it.
+    Returns the pull request's URL.
+
+    An open promotion's head never moves (review finding F13): an approval
+    lands on the commit the governor read. A newer candidate gets a new pull
+    request; the older open ones are closed and their branches deleted, so
+    no approval can land on them. One whose head is the deployed commit is
+    left open: GitHub marks it merged once ``live`` catches up."""
+    pulls = await gh.get(f"pulls?state=open&base={LIVE_BRANCH}&per_page=100")
+    promotions = [
+        p
+        for p in pulls
+        if str((p.get("head") or {}).get("ref") or "").startswith(PROMOTE_PREFIX)
+    ]
+    content = {"title": proposal.title(), "body": proposal.body()}
+    for pull in promotions:
+        if pull["head"].get("sha") == proposal.candidate:
+            updated = await gh.send("PATCH", f"pulls/{pull['number']}", content)
+            return str(updated.get("html_url"))
+    branch = f"{PROMOTE_PREFIX}{proposal.candidate[:12]}"
+    if await gh.get_or_none(f"git/ref/heads/{branch}") is None:
         await gh.send(
             "POST",
             "git/refs",
-            {"ref": f"refs/heads/{PROMOTE_BRANCH}", "sha": proposal.candidate},
+            {"ref": f"refs/heads/{branch}", "sha": proposal.candidate},
         )
-    elif ref["object"]["sha"] != proposal.candidate:
-        # The proposal branch is CORE's own: it is moved, never merged.
-        await gh.send(
-            "PATCH",
-            f"git/refs/heads/{PROMOTE_BRANCH}",
-            {"sha": proposal.candidate, "force": True},
-        )
-    owner = gh.repo.split("/", 1)[0]
-    open_pulls = await gh.get(
-        f"pulls?state=open&base={LIVE_BRANCH}&head={owner}:{PROMOTE_BRANCH}"
+    opened = await gh.send(
+        "POST", "pulls", {**content, "head": branch, "base": LIVE_BRANCH}
     )
-    content = {"title": proposal.title(), "body": proposal.body()}
-    if open_pulls:
-        number = open_pulls[0]["number"]
-        pull = await gh.send("PATCH", f"pulls/{number}", content)
-    else:
-        pull = await gh.send(
-            "POST",
-            "pulls",
-            {**content, "head": PROMOTE_BRANCH, "base": LIVE_BRANCH},
-        )
-    return str(pull.get("html_url"))
+    for pull in promotions:
+        if pull["head"].get("sha") == proposal.live:
+            continue
+        await gh.send("PATCH", f"pulls/{pull['number']}", {"state": "closed"})
+        await gh.delete(f"git/refs/heads/{pull['head']['ref']}")
+    return str(opened.get("html_url"))
 
 
 __all__ = [

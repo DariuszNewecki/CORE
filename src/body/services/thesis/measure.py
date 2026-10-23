@@ -313,9 +313,10 @@ def promotion_verdict(
     deploy (``entry["at"]``) approved the exact deployed commit. *pull* and
     *reviews* are GitHub's REST answers.
 
-    The promotion's current head is not compared: one promotion PR is reused
-    across deploys (``promote/next`` moves on after each), so its head now
-    says nothing about what the governor approved when a deploy ran (#1147)."""
+    The promotion's current head is not compared: until review finding F13
+    one promotion PR was reused across deploys (``promote/next`` moved on
+    after each), so its head says nothing about what the governor approved
+    when a deploy ran (#1147)."""
     sha = str(entry.get("sha", ""))
     number = entry.get("promotion")
     if number is None:

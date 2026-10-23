@@ -25,7 +25,8 @@ src/cli/     Typer commands; Rich rendering only here
   start, failing loudly if it does not work.
   - core-claude-bot gh login (core-claude; scopes repo, workflow, read:org):
     pushes branches, opens PRs into main and turns on their auto-merge,
-    force-moves `promote/next` and opens or updates the promotion PR. After
+    creates `promote/<sha>` branches, opens or updates the promotion PR, and
+    closes a superseded one and deletes its branch. After
     review finding F2: also opens the PR for CORE's generated tests. The 06:00
     job hands this login's token to `promote propose` as `CORE_GITHUB_TOKEN`.
   - CORE's own token (CORE daemon): read as `CORE_GITHUB_TOKEN` from the
@@ -79,7 +80,7 @@ poetry run core-admin law check-tree  # validate .intent/ and .specs/
   fast-forwarded to `live`), never a PR into main; only an approved promotion
   runs live. Never tell the governor a PR waits for their merge or approval.
 - When main has green merges that are not live, open or update the promotion PR
-  (`promote/next` → `live`) with `core-admin promote propose`'s summary, as
+  (`promote/<sha>` → `live`) with `core-admin promote propose`'s summary, as
   core-claude-bot: at most once a day, plus urgent ones on the governor's request.
 - Never wait for CI in the foreground. After opening a PR, turn on auto-merge
   (`gh pr merge --auto --merge`), watch CI in the background, take the next task.

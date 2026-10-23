@@ -1,5 +1,5 @@
 #!/bin/bash
-# Opens or updates the daily promotion pull request (promote/next -> live).
+# Opens or updates the daily promotion pull request (promote/<sha> -> live).
 #
 # Governor 2026-10-23 (#1255, decision 2A): core-claude opens the promotion
 # every day at a fixed time, without asking; the governor's part is the
