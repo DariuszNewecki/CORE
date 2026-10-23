@@ -82,6 +82,16 @@ STALE_ESCALATED_PREFIX = "governance::stale_daemon_escalated"
 UNATTRIBUTED_PREFIX = "governance::unattributed_change"
 LAW_VENV_PREFIX = "governance::law_venv"
 ACCESS_PREFIX = "governance::access_register"
+# The check behind each access subject (#1285): a finding whose check could
+# not run this cycle is kept as it is, never resolved for lack of evidence.
+_ACCESS_CHECKS = (
+    ("github::collaborator::", ("github", "github collaborators")),
+    ("github::bypass::", ("github", "ruleset bypass list")),
+    ("github::write_deploy_keys", ("github", "write deploy keys")),
+    ("sudo::", ("sudo rules",)),
+    ("binding", ("binding",)),
+    ("governed::", ("governed text",)),
+)
 
 # The process this sensor runs in. Dedicated --only processes carry their own
 # gate (they suspend their acting worker and report it); the finding speaks
@@ -89,6 +99,15 @@ ACCESS_PREFIX = "governance::access_register"
 _PROCESS = "core-daemon"
 _FINDING_LIMIT = 500
 _UNKNOWN_PATH = "(unknown)"
+
+
+def _access_unchecked(subject: str, not_evaluated: dict[str, str]) -> bool:
+    """True when the check that decides *subject* did not run this cycle."""
+    tail = subject.removeprefix(f"{ACCESS_PREFIX}::")
+    for prefix, checks in _ACCESS_CHECKS:
+        if tail.startswith(prefix):
+            return any(check in not_evaluated for check in checks)
+    return False
 
 
 # ID: e40653a7-4cca-4943-98e8-c899a34def05
@@ -344,15 +363,20 @@ class StateSensor(ScheduledWorker):
                 resolution_mechanism="self_resolve",
             )
             posted += 1
-        resolved = 0
+        resolved = kept = 0
         for subject, row in existing.items():
-            if subject not in wanted:
-                await blackboard.resolve_entries([row["id"]])
-                resolved += 1
+            if subject in wanted:
+                continue
+            if _access_unchecked(subject, report.not_evaluated):
+                kept += 1
+                continue
+            await blackboard.resolve_entries([row["id"]])
+            resolved += 1
         return {
             "access_findings": len(wanted),
             "access_posted": posted,
             "access_resolved": resolved,
+            "access_kept_unchecked": kept,
             "access_not_evaluated": report.not_evaluated,
         }
 
