@@ -276,6 +276,7 @@ It will only apply changes if the Evaluator proves the code is more readable.
 |---|---|---|
 | `FILE_PATH` | required | Path to the Python file to refactor. |
 | `--write` | off | Actually apply the refactoring to the file. |
+| `--yes`, `-y` | off | Skip confirmation prompt for this dangerous operation. |
 
 ### `core-admin code complexity` {#code-complexity}
 
@@ -291,6 +292,7 @@ Targets high cyclomatic complexity and 'God Methods' to improve modularity.
 |---|---|---|
 | `FILE_PATH` | required | Path to the file to refactor for complexity. |
 | `--write` | off | Actually apply the refactoring to the file. |
+| `--yes`, `-y` | off | Skip confirmation prompt for this dangerous operation. |
 
 ### `core-admin code refactor-settings` {#code-refactor-settings}
 
@@ -304,6 +306,7 @@ Moves layers toward using CoreContext instead of global settings.
 | Argument / option | Default | Description |
 |---|---|---|
 | `--write` | off | Apply DI refactoring. |
+| `--yes`, `-y` | off | Skip confirmation prompt for this dangerous operation. |
 | `--layers` | `mind,will` | Comma-separated layers to process. |
 
 ### `core-admin code verify` {#code-verify}
@@ -1486,6 +1489,7 @@ Example: core-admin project init . --write
 |---|---|---|
 | `PATH` | `.` | The existing repository (default: the current directory). |
 | `--write` | off | Actually copy the machinery floor. |
+| `--yes`, `-y` | off | Skip confirmation prompt for this dangerous operation. |
 
 ### `core-admin project new` {#project-new}
 
@@ -1746,6 +1750,7 @@ symbols that currently have 'unassigned' status in the registry.
 | Argument / option | Default | Description |
 |---|---|---|
 | `--write` | off | Write suggested tags to the database. |
+| `--yes`, `-y` | off | Skip confirmation prompt for this dangerous operation. |
 | `--limit` | `0` | Limit number of symbols to process (0 = all). |
 
 ---

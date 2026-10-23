@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import inspect
+import sys
 import traceback
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -24,6 +25,7 @@ from shared.infrastructure.database.session_manager import dispose_engine
 from shared.logger import getLogger
 
 from .display import _display_action_result
+from .exit_codes import EXIT_CONFIG_ERROR
 from .prompts import confirm_action
 
 
@@ -50,6 +52,23 @@ def _build_core_context() -> Any:
     from body.services.service_registry import service_registry
 
     return create_core_context(service_registry)
+
+
+def _command_line() -> str:
+    """``core-admin`` and the words typed before the first option."""
+    words = ["core-admin"]
+    for arg in sys.argv[1:]:
+        if arg.startswith("-"):
+            break
+        words.append(arg)
+    return " ".join(words) + " --write"
+
+
+def _stdin_is_tty() -> bool:
+    try:
+        return sys.stdin.isatty()
+    except (AttributeError, ValueError):  # replaced or closed stdin
+        return False
 
 
 # ID: fb0ffe71-cd19-4f82-b36e-11bb9b424821
@@ -124,6 +143,15 @@ def core_command(
                 )
             if dangerous and confirmation and write:
                 yes = bool(cast(dict[str, Any], kwargs).get("yes", False))
+                if not yes and not _stdin_is_tty():
+                    # P1: an open stdin that is not a terminal (CI, scripts,
+                    # agents) would wait at the prompt forever: stop at once.
+                    console.print(
+                        f"{_command_line()} needs confirmation and there is no "
+                        "terminal: rerun with --yes.",
+                        soft_wrap=True,
+                    )
+                    raise typer.Exit(EXIT_CONFIG_ERROR)
                 if not yes:
                     if not confirm_action(
                         "[bold red]🚨 CONFIRM DANGEROUS OPERATION[/bold red]\n   Continue?",
