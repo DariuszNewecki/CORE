@@ -70,3 +70,9 @@ def test_the_check_is_named_freeze_scope_and_pull_request_only() -> None:
     for script in ("infra/core-pipeline", "infra/core-deploy"):
         text = (_ROOT / script).read_text()
         assert '"freeze-scope"' in text.split("PULL_REQUEST_ONLY = ")[1].split("\n")[0]
+
+
+def test_1285_is_an_exit_issue() -> None:
+    # Governor 2026-10-23: the #1070 drill's gap joins the exit list.
+    assert 1285 in fs.EXIT_ISSUES
+    assert fs.verdict("Part of #1285.", "fix/x", DURING, set())[0]

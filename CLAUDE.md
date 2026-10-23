@@ -3,7 +3,7 @@
 ## Freeze until 2026-10-29
 
 v3 done = issues #1055, #1070, #1081, #1114, #1115, #1237, #1239, #1243, #1252,
-#1255. Work only on these. No new reviews. Anything newly found is filed in
+#1255, #1285 (added 2026-10-23: found by the #1070 drill). Work only on these. No new reviews. Anything newly found is filed in
 milestone CORE 3.1 unless it breaks one of these issues or a v3 gate. New
 infrastructure (timers, crons, credentials, services) needs the governor's yes
 first. The PR check `freeze-scope` refuses a PR whose description names none of
