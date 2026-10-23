@@ -20,6 +20,26 @@ src/cli/     Typer commands; Rich rendering only here
 
 - PyPI: `core-runtime` 2.15.2 (2026-10-19).
 - Latest proof run: 6 (#1053, 2026-10-19, on 2.15.2); zero new proof issues, #1053 closed (v3 gate 1 met).
+- Credentials: a closed list (governor 2026-10-23). No new token, no permission
+  change, never asked of the governor. A job uses one of these and checks it at
+  start, failing loudly if it does not work.
+  - core-claude-bot gh login (core-claude; scopes repo, workflow, read:org):
+    pushes branches, opens PRs into main and turns on their auto-merge,
+    force-moves `promote/next` and opens or updates the promotion PR. After
+    review finding F2: also opens the PR for CORE's generated tests. The 06:00
+    job hands this login's token to `promote propose` as `CORE_GITHUB_TOKEN`.
+  - CORE's own token (CORE daemon): read as `CORE_GITHUB_TOKEN` from the
+    environment, else the unit credential `github-token`
+    (`delivery_branch.py`). Pushes CORE's branches; cannot open PRs (#1252).
+    Same variable name as above, a different credential.
+  - `/etc/core/pipeline-github-token` (core-runner): only opens the issue for a
+    failed promotion; every other pipeline read is unauthenticated.
+  - `/etc/core/pipeline-deploy-key` (core-runner): the write deploy key; moves
+    `live`. Ruleset `live-writers` lets any write deploy key do so; this is
+    the only one (governor counted, 2026-10-23), and it stays the only one.
+  - Deliberately not on the list: the governor's own GitHub account, the
+    built-in `GITHUB_TOKEN` of Actions jobs, and PyPI (Trusted Publishing, no
+    stored token).
 
 ## Commands
 
