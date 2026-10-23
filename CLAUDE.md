@@ -34,9 +34,9 @@ src/cli/     Typer commands; Rich rendering only here
     Same variable name as above, a different credential.
   - `/etc/core/pipeline-github-token` (core-runner): only opens the issue for a
     failed promotion; every other pipeline read is unauthenticated.
-  - `/etc/core/pipeline-deploy-key` (core-runner): a write deploy key; moves
-    `live`. Ruleset `live-writers` lets any write deploy key do so; there must
-    be exactly one.
+  - `/etc/core/pipeline-deploy-key` (core-runner): the write deploy key; moves
+    `live`. Ruleset `live-writers` lets any write deploy key do so; this is
+    the only one (governor counted, 2026-10-23), and it stays the only one.
   - Deliberately not on the list: the governor's own GitHub account, the
     built-in `GITHUB_TOKEN` of Actions jobs, and PyPI (Trusted Publishing, no
     stored token).
