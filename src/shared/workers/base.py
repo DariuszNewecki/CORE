@@ -126,6 +126,7 @@ class Worker(ABC):
         self._repo_root: Path | None = repo_root
         self._declaration = self._load_declaration()
         self._worker_uuid = uuid.UUID(self._declaration["identity"]["uuid"])
+        self._registered = False
         self._worker_name = self._declaration["metadata"]["title"]
         self._worker_class = self._declaration["identity"]["class"]
         self._phase = self._declaration["mandate"]["phase"]
@@ -449,6 +450,12 @@ class Worker(ABC):
     # -------------------------------------------------------------------------
 
     @property
+    # ID: 76a0c145-59c0-4e42-95f9-df93a547feb4
+    def registered(self) -> bool:
+        """True once this process has registered the worker in worker_registry."""
+        return self._registered
+
+    @property
     # ID: 3d1e1a06-082d-409a-a841-371630dbe282
     def worker_uuid(self) -> uuid.UUID:
         return self._worker_uuid
@@ -579,6 +586,7 @@ class Worker(ABC):
                     },
                 )
 
+        self._registered = True
         logger.info(
             "Worker registered: %s (uuid=%s)", self._worker_name, self._worker_uuid
         )
