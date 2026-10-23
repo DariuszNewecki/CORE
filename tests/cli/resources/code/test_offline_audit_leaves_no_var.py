@@ -50,7 +50,7 @@ def test_offline_audit_creates_no_var_directory(tmp_path: Path) -> None:
     (repo / "app").mkdir(parents=True)
     (repo / "app" / "a.py").write_text("x = 1\n")
     _git(repo, "init", "-q")
-    assert _core_admin(repo, "project", "init", ".", "--write").returncode == 0
+    assert _core_admin(repo, "project", "init", ".", "--write", "--yes").returncode == 0
     assert (
         _core_admin(
             repo, "project", "adopt-pack", "core/starter-python", "--write"

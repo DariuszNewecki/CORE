@@ -36,6 +36,12 @@ async def complexity_cmd(
     write: bool = typer.Option(
         False, "--write", help="Actually apply the refactoring to the file."
     ),
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Skip confirmation prompt for this dangerous operation.",
+    ),
 ) -> None:
     """
     Identify and refactor complexity outliers using the V2.3 Adaptive Orchestrator.

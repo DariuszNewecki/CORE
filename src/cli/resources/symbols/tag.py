@@ -22,6 +22,12 @@ async def tag_symbols_command(
     write: bool = typer.Option(
         False, "--write", help="Write suggested tags to the database."
     ),
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Skip confirmation prompt for this dangerous operation.",
+    ),
     limit: int = typer.Option(
         0, "--limit", help="Limit number of symbols to process (0 = all)."
     ),
