@@ -1591,6 +1591,56 @@ def test_the_dev_checkout_is_not_moved_back_or_over_local_work(
     assert _git(dev, "rev-parse", "HEAD") == b
 
 
+def test_leftover_files_identical_to_the_target_do_not_block_the_move(
+    root: Path, tmp_path: Path
+) -> None:
+    # #1246: an untracked copy of a file B adds, byte for byte, blocked
+    # every move from 2026-10-18 ("untracked working tree files would be
+    # overwritten").
+    dev, _a, b = _dev_checkout(tmp_path)
+    (dev / ".intent" / "rule.yaml").write_text("v: 2\n")  # core-law applied it
+    (dev / "src" / "b.py").write_text("b = 1\n")  # untracked, identical to B
+    assert _follower(root, dev).follow_dev_checkout(b).startswith("moved")
+    assert _git(dev, "rev-parse", "HEAD") == b
+    assert _git(dev, "status", "--porcelain") == ""
+
+
+def _three_commits(tmp_path: Path) -> tuple[Path, str, str, str]:
+    """A dev checkout at A; B and C each change src/a.py and .intent/rule.yaml."""
+    dev, a, b = _dev_checkout(tmp_path)
+    _git(dev, "reset", "-q", "--hard", b)
+    (dev / "src" / "a.py").write_text("a = 3\n")
+    (dev / ".intent" / "rule.yaml").write_text("v: 3\n")
+    _git(dev, "commit", "-q", "-am", "C")
+    c = _git(dev, "rev-parse", "HEAD")
+    _git(dev, "reset", "-q", "--hard", a)
+    return dev, a, b, c
+
+
+def test_a_leftover_at_an_older_main_version_is_superseded_not_local_work(
+    root: Path, tmp_path: Path
+) -> None:
+    dev, _a, _b, c = _three_commits(tmp_path)
+    (dev / ".intent" / "rule.yaml").write_text("v: 3\n")  # core-law applied C
+    (dev / "src" / "a.py").write_text("a = 2\n")  # B's version: in history
+    assert _follower(root, dev).follow_dev_checkout(c).startswith("moved")
+    assert _git(dev, "rev-parse", "HEAD") == c
+    assert (dev / "src" / "a.py").read_text() == "a = 3\n"
+    assert _git(dev, "status", "--porcelain") == ""
+
+
+def test_governed_text_at_an_older_main_version_still_waits_for_core_law(
+    root: Path, tmp_path: Path
+) -> None:
+    dev, a, _b, c = _three_commits(tmp_path)
+    (dev / ".intent" / "rule.yaml").write_text("v: 2\n")  # B's law, not C's
+    assert _follower(root, dev).follow_dev_checkout(c) == (
+        "not moved: governed text differs"
+    )
+    assert _git(dev, "rev-parse", "HEAD") == a
+    assert (dev / ".intent" / "rule.yaml").read_text() == "v: 2\n"
+
+
 def test_without_a_dev_checkout_nothing_is_done(root: Path) -> None:
     assert _deployer(root, root / "absent").follow_dev_checkout(SHA) is None
 

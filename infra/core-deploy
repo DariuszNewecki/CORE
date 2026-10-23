@@ -583,6 +583,11 @@ def _parse_time(value: str | None) -> datetime.datetime | None:
 # ---------------------------------------------------------------------------
 
 
+def _is_governed(path: str) -> bool:
+    """Governed text, which reaches the dev checkout only through core-law."""
+    return path.startswith((".intent/", ".specs/", ".claude/")) or path == "CLAUDE.md"
+
+
 @dataclass
 class Deployer:
     host: Host
@@ -1579,6 +1584,38 @@ class Deployer:
             self.say(f"dev checkout not moved: {exc}")
             return "not moved: git failed"
 
+    def _dev_blob(self, path: str, rev: str | None = None) -> str | None:
+        """The blob id of *path* in *rev*, or in the working tree when *rev*
+        is None; None when it is not there."""
+        if rev is None:
+            if not (self.options.dev_repo / path).is_file():
+                return None
+            out = self._dev_git("hash-object", "--", path, check=False)
+        else:
+            out = self._dev_git(
+                "rev-parse", "--verify", "-q", f"{rev}:{path}", check=False
+            )
+        return out.stdout.decode().strip() or None if out.returncode == 0 else None
+
+    def _dev_blobs_between(self, head: str, sha: str, path: str) -> set[str]:
+        """Every blob *path* had in the commits head..sha."""
+        out = self._dev_git(
+            "log",
+            "--format=",
+            "--raw",
+            "--no-abbrev",
+            "--no-renames",
+            f"{head}..{sha}",
+            "--",
+            path,
+            check=False,
+        )
+        return {
+            line.split()[3]
+            for line in out.stdout.decode().splitlines()
+            if line.startswith(":") and len(line.split()) >= 5
+        }
+
     def _follow_dev_checkout(self, sha: str) -> str | None:
         head = self._dev_git("rev-parse", "HEAD").stdout.decode().strip()
         if head == sha:
@@ -1596,20 +1633,36 @@ class Deployer:
             return [p for p in out.stdout.decode().split("\0") if p]
 
         changed = names(head, sha)
-        # The working tree against the commit: what git would still have to write.
-        differs = set(names(sha, "--", *changed)) if changed else set()
-        settled = [p for p in changed if p not in differs]
-        governed = [
-            p
-            for p in sorted(differs)
-            if p.startswith((".intent/", ".specs/", ".claude/")) or p == "CLAUDE.md"
-        ]
+        # Compare bytes, not `git diff <sha>`: that diff calls an untracked
+        # file deleted even when it is identical to the target, so leftovers
+        # already merged upstream blocked every move from 2026-10-18 (#1246).
+        differs: set[str] = set()
+        superseded: list[str] = []
+        settled: list[str] = []
+        for path in changed:
+            here = self._dev_blob(path)
+            if here == self._dev_blob(path, sha):
+                settled.append(path)
+            elif (
+                not _is_governed(path)  # governed text moves only through core-law
+                and here is not None
+                and here in self._dev_blobs_between(head, sha, path)
+            ):
+                superseded.append(path)  # an older main version: in history
+            else:
+                differs.add(path)
+        governed = [p for p in sorted(differs) if _is_governed(p)]
         if governed:
             self.say(
                 "dev checkout not moved: governed text differs from "
                 f"{sha[:12]}: {', '.join(governed[:5])}"
             )
             return "not moved: governed text differs"
+        for path in superseded:
+            if self._dev_blob(path, head) is not None:
+                self._dev_git("checkout", "--quiet", head, "--", path)
+            else:
+                (self.options.dev_repo / path).unlink()
         if settled:
             self._dev_git("add", "-A", "-f", "--", *settled)
         merged = self._dev_git("merge", "--ff-only", "--quiet", sha, check=False)

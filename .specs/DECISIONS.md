@@ -1602,7 +1602,13 @@ claude-sonnet-4-6 (USD 3.81).
 **Implementing pull requests, in order (planned):**
 1. Spend: the API route and one `core-admin` command over it; the MCP status reads it.
 2. The daily money cap in `.intent/` and its check in the test generator (law proposal + PR).
-3. The ledger table, its sensor, and the generator reading from it.
+3. ~~The ledger table, its sensor, and the generator reading from it.~~ Dropped 2026-10-23 (see Amended).
 4. The scope rule in `.intent/` replacing `include_files` (law proposal + PR).
 
-Enforced by: not enforced (planned: the cap check in the test generator, item 2).
+Enforced by: not enforced (planned: the cap check in the test generator, item 2).  
+Amended: 2026-10-23, governor — item 3 is dropped. Read from a main checkout, the existing
+sensors already report per symbol: a module whose test file leaves a public symbol untested is
+flagged (`test_coverage_paths.py:327-329`, `test_runner_sensor.py:241`, #1210), and
+`tests symbols` showed 423 of 434 symbols passing, 2 untested, 9 capped. The 122 "untested"
+that argued for the table came from a dev checkout 360 commits behind main (#1246), so the
+table would fix nothing. Items 1 and 2 are done (#1229; #1230, #1231); item 4 stays planned.
