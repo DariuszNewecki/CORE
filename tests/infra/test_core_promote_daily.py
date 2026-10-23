@@ -22,7 +22,7 @@ case "$1 $2" in
   "auth token") echo bot-token ;;
   "api repos/DariuszNewecki/CORE") echo "${FAKE_PUSH:-true}" ;;
   "pr list") echo "${FAKE_OPEN:-0}" ;;
-  "pr create") echo https://github.com/DariuszNewecki/CORE/pull/9 ;;
+  "pr create") [ -n "${FAKE_CREATE_FAIL:-}" ] && exit 1; echo https://github.com/DariuszNewecki/CORE/pull/9 ;;
   "pr merge") ;;
   *) echo "unexpected gh $*" >&2; exit 2 ;;
 esac
@@ -171,3 +171,11 @@ def test_no_test_branch_or_nothing_ahead_opens_nothing(host: dict) -> None:
     _git(repo, "branch", "core/test-gen")  # at main: nothing ahead
     assert _run(host).returncode == 0
     assert not [c for c in _gh_calls(host) if c.startswith("pr create")]
+
+
+def test_a_failed_test_delivery_never_stops_the_promotion(host: dict) -> None:
+    _test_gen(host)
+    result = _run(host, FAKE_CREATE_FAIL="1")
+    assert result.returncode == 1
+    assert "delivering core/test-gen failed" in result.stderr
+    assert "args=--readonly promote propose" in host["record"].read_text()
