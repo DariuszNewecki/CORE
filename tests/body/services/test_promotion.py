@@ -1,5 +1,5 @@
 """The daily promotion proposal (ADR-171): main's newest green merge since
-live, high-risk changes first, one rolling branch promote/next into live."""
+live, high-risk changes first, one branch per proposal, promote/<sha>, into live."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ import httpx
 import pytest
 
 from body.services.promotion import (
-    PROMOTE_BRANCH,
     build_proposal,
     live_commit,
     publish,
@@ -46,7 +45,7 @@ class _GitHub:
             12: ["src/api/dependencies.py", ".intent/rules/a.json"],
             13: ["infra/scripts/migrations/20261019_x.sql", "README.md"],
         }
-        self.branch: str | None = None
+        self.branches: dict[str, str] = {}  # promote/... -> sha
         self.live_ref: str | None = None
         self.open_pulls: list[dict] = []
         self.calls: list[tuple[str, str, dict | None]] = []
@@ -78,10 +77,13 @@ class _GitHub:
             if self.live_ref is None:
                 return httpx.Response(404)
             return httpx.Response(200, json={"object": {"sha": self.live_ref}})
-        if path == f"git/ref/heads/{PROMOTE_BRANCH}":
-            if self.branch is None:
+        if path.startswith("git/ref/heads/promote/"):
+            sha = self.branches.get(path.removeprefix("git/ref/heads/"))
+            if sha is None:
                 return httpx.Response(404)
-            return httpx.Response(200, json={"object": {"sha": self.branch}})
+            return httpx.Response(200, json={"object": {"sha": sha}})
+        if request.method == "DELETE":
+            return httpx.Response(204)
         if path.startswith("pulls?state=open"):
             return httpx.Response(200, json=self.open_pulls)
         if request.method in ("POST", "PATCH"):
@@ -91,7 +93,7 @@ class _GitHub:
         return httpx.Response(500, json={})
 
     def writes(self) -> list[tuple[str, str, dict | None]]:
-        return [c for c in self.calls if c[0] in ("POST", "PATCH")]
+        return [c for c in self.calls if c[0] in ("POST", "PATCH", "DELETE")]
 
 
 async def _build(fake: _GitHub, **kwargs):
@@ -195,48 +197,71 @@ async def test_urgent_is_named_in_the_title() -> None:
     assert (await _build(_GitHub(), urgent=True)).title().startswith("Urgent promotion")
 
 
-async def test_publish_creates_the_branch_and_opens_the_pull_request_into_live() -> (
-    None
-):
+BRANCH = f"promote/{M3[:12]}"
+
+
+def _open(number: int, ref: str, sha: str) -> dict:
+    return {"number": number, "head": {"ref": ref, "sha": sha}}
+
+
+async def test_publish_opens_a_pull_request_from_the_candidates_own_branch() -> None:
     fake = _GitHub()
     proposal = await _build(fake)
     fake.calls.clear()
     assert await _publish(fake, proposal) == "https://github.com/o/r/pull/99"
     (ref, pull) = fake.writes()
-    assert ref == (
-        "POST",
-        "git/refs",
-        {"ref": f"refs/heads/{PROMOTE_BRANCH}", "sha": M3},
-    )
+    assert ref == ("POST", "git/refs", {"ref": f"refs/heads/{BRANCH}", "sha": M3})
     assert pull[:2] == ("POST", "pulls")
-    assert pull[2]["head"] == PROMOTE_BRANCH and pull[2]["base"] == "live"
+    assert pull[2]["head"] == BRANCH and pull[2]["base"] == "live"
 
 
-async def test_publish_moves_the_branch_and_updates_the_open_pull_request() -> None:
+async def test_an_open_promotions_head_never_moves() -> None:
+    # Review finding F13: a newer candidate gets a new pull request; the
+    # older one is closed and its branch deleted, never force-moved.
     fake = _GitHub()
-    fake.branch = M1
-    fake.open_pulls = [{"number": 98}]
+    fake.open_pulls = [_open(98, "promote/next", M1)]
+    fake.branches = {"promote/next": M1}
     proposal = await _build(fake)
     fake.calls.clear()
     await _publish(fake, proposal)
-    (ref, pull) = fake.writes()
-    assert ref == (
-        "PATCH",
-        f"git/refs/heads/{PROMOTE_BRANCH}",
-        {"sha": M3, "force": True},
-    )
-    assert pull[:2] == ("PATCH", "pulls/98")
-    assert set(pull[2]) == {"title", "body"}
+    assert [c[:2] for c in fake.writes()] == [
+        ("POST", "git/refs"),
+        ("POST", "pulls"),
+        ("PATCH", "pulls/98"),
+        ("DELETE", "git/refs/heads/promote/next"),
+    ]
+    assert fake.writes()[2][2] == {"state": "closed"}
+    assert not any(c[2] and c[2].get("force") for c in fake.writes())
 
 
-async def test_publish_with_the_branch_already_there_only_updates_the_text() -> None:
+async def test_publish_for_the_same_candidate_only_updates_the_text() -> None:
     fake = _GitHub()
-    fake.branch = M3
-    fake.open_pulls = [{"number": 98}]
+    fake.open_pulls = [_open(98, BRANCH, M3)]
+    fake.branches = {BRANCH: M3}
     proposal = await _build(fake)
     fake.calls.clear()
     await _publish(fake, proposal)
     assert [c[:2] for c in fake.writes()] == [("PATCH", "pulls/98")]
+    assert set(fake.writes()[0][2]) == {"title", "body"}
+
+
+async def test_an_open_promotion_of_the_deployed_commit_is_left_open() -> None:
+    # Deployed, but live not moved yet: GitHub marks it merged once it is.
+    fake = _GitHub()
+    fake.open_pulls = [_open(97, f"promote/{LIVE[:12]}", LIVE)]
+    proposal = await _build(fake)
+    fake.calls.clear()
+    await _publish(fake, proposal)
+    assert [c[:2] for c in fake.writes()] == [("POST", "git/refs"), ("POST", "pulls")]
+
+
+async def test_pull_requests_into_live_not_from_promote_are_untouched() -> None:
+    fake = _GitHub()
+    fake.open_pulls = [_open(96, "hotfix", M1)]
+    proposal = await _build(fake)
+    fake.calls.clear()
+    await _publish(fake, proposal)
+    assert ("PATCH", "pulls/96") not in [c[:2] for c in fake.writes()]
 
 
 async def _live(fake: _GitHub, pipeline):

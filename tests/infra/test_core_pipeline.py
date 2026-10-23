@@ -605,7 +605,7 @@ def test_a_refusal_that_keeps_passing_fails_after_the_limit(world) -> None:
     assert len(host.issues) == 1
     assert len([c for c in _privileged(host) if _is_deploy(c)]) == cp.RETRY_LIMIT
     _later(host, 11)
-    _tick(world)  # done: not deployed again until promote/next moves
+    _tick(world)  # done: not deployed again until a new promotion
     assert len([c for c in _privileged(host) if _is_deploy(c)]) == cp.RETRY_LIMIT
 
 
