@@ -760,6 +760,9 @@ def main(
         except Exception as exc:  # network, GitHub, a bad state file
             runner.write_status(state="error", error=str(exc)[:500])
             print(f"core-pipeline: {exc}", file=sys.stderr)
+            # Review finding F4: a failed tick is a failed run, so systemd
+            # and core-alert-check see it; the status file names the error.
+            return 1
     return 0
 
 
