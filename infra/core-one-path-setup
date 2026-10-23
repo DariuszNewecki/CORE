@@ -36,6 +36,9 @@
 #     services' environment and its own GitHub token as a systemd credential; skipped
 #     while /etc/core/promote-github-token is missing or empty (the runner's token may only
 #     open issues, governor 2026-10-19);
+#  8c. core-qdrant-backup.service + .timer (daily 02:00, before the 02:30 VM backup):
+#     /usr/local/sbin/core-qdrant-backup (from infra/scripts/ at <sha>) snapshots every Qdrant
+#     collection into /var/lib/core-qdrant-backup, keeping the last 7 runs (#1081);
 #  9. probes: what core-runner may run with sudo, and that it cannot read /opt/core/etc.
 set -euo pipefail
 
@@ -100,6 +103,14 @@ for name in core-deploy core-pipeline core-sandbox-check; do
   write_file "/usr/local/sbin/$name" root root 0755 < "$body"
   rm -f "$body"
 done
+
+# The Qdrant snapshot backup (#1081) lives under infra/scripts/.
+url="https://raw.githubusercontent.com/$REPO/$REF/infra/scripts/core-qdrant-backup"
+body="$(mktemp)"
+curl -fsSL "$url" -o "$body"
+say "  core-qdrant-backup sha256 $(sha256sum "$body" | cut -d' ' -f1)"
+write_file /usr/local/sbin/core-qdrant-backup root root 0755 < "$body"
+rm -f "$body"
 
 say "2. account core-runner"
 if id core-runner >/dev/null 2>&1; then
@@ -284,6 +295,43 @@ WantedBy=timers.target
 EOF
 do_ systemctl daemon-reload
 do_ systemctl enable --now core-promote-propose.timer
+
+say "8c. core-qdrant-backup timer"
+write_file /etc/systemd/system/core-qdrant-backup.service root root 0644 <<'EOF'
+# Qdrant snapshot backup (#1081). Installed by infra/core-one-path-setup.
+# Restore: docs/recovery.md, "Vector store: snapshots".
+[Unit]
+Description=CORE Qdrant snapshot backup: every collection, last 7 runs kept
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+DynamicUser=yes
+StateDirectory=core-qdrant-backup
+StateDirectoryMode=0750
+UMask=0027
+# QDRANT_URL (and QDRANT_API_KEY if set) as the services see them.
+EnvironmentFile=-/opt/core/etc/core.env
+ExecStart=/usr/local/sbin/core-qdrant-backup backup --dir /var/lib/core-qdrant-backup --keep 7
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+SyslogIdentifier=core-qdrant-backup
+EOF
+write_file /etc/systemd/system/core-qdrant-backup.timer root root 0644 <<'EOF'
+[Unit]
+Description=CORE Qdrant snapshot backup, daily before the VM backup
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+do_ systemctl daemon-reload
+do_ systemctl enable --now core-qdrant-backup.timer
 
 say "9. probes"
 if [[ $DRY -eq 1 ]]; then

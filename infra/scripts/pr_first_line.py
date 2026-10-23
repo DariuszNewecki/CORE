@@ -28,6 +28,7 @@ HOST_PATHS = (
     "infra/core-deploy",
     "infra/core-pipeline",
     "infra/core-sandbox-check",
+    "infra/scripts/core-qdrant-backup",
 )
 
 

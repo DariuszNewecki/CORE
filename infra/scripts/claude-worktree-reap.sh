@@ -12,6 +12,10 @@
 # Never uses --force; touches nothing outside var/tmp/wt-*. Run from the
 # SessionEnd hook in .claude/settings.local.json, or by hand.
 #
+# Claude Code kills SessionEnd hooks after ~1.5s, and removing several
+# worktrees takes longer, so under the hook (CLAUDE_PROJECT_DIR set) the
+# script re-runs itself detached and logs to var/tmp/claude-worktree-reap.log.
+#
 # A branch whose tip lies on origin/main's first-parent line has no commits of
 # its own (it was just cut from main), so it counts as unmerged: that is a
 # worktree another session may be about to use. PRs land with merge commits,
@@ -22,6 +26,12 @@ set -euo pipefail
 repo="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 cd "$repo"
 tmp_root="$repo/var/tmp"
+
+if [[ -n "${CLAUDE_PROJECT_DIR:-}" && -z "${REAP_DETACHED:-}" ]]; then
+    REAP_DETACHED=1 setsid nohup bash "${BASH_SOURCE[0]}" \
+        >>"$tmp_root/claude-worktree-reap.log" 2>&1 </dev/null &
+    exit 0
+fi
 
 git fetch -q origin main 2>/dev/null || echo "WARN fetch failed; using local origin/main"
 main_ref=$(git rev-parse --verify -q origin/main) || { echo "ERROR no origin/main"; exit 1; }
