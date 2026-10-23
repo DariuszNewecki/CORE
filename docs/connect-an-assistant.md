@@ -42,7 +42,11 @@ core-admin code verify
 ## What you need
 
 - `core-runtime` installed (`pip install core-runtime`), so `core-admin` is on
-  your `PATH`.
+  your `PATH` in the shell you start the assistant from: the assistant runs
+  `core-admin` itself. A virtual environment puts it there only while it is
+  active, so activate it before you start `claude`, or install with
+  `pipx install core-runtime` (then `pipx ensurepath`), which works in every
+  shell. Everyone who uses the committed `.mcp.json` needs the same.
 - A project with a `.intent/` directory. To start one, see
   [Start a governed project](start-a-project.md) or
   [Add a rule pack](adopt-a-pack.md).
@@ -92,7 +96,9 @@ This list leaves out `validate_change` and `submit_change`, so a non-interactive
 
 Any MCP client can start the server over stdio. Configure:
 
-- **command:** `core-admin`
+- **command:** `core-admin`, or its absolute path (for example
+  `/path/to/.venv/bin/core-admin`) when the client is not started from a shell
+  where `core-admin` is on `PATH`
 - **arguments:** `mcp run --repo /path/to/your/project`
 
 `--repo` names the project to serve. Without it, the server serves the project
