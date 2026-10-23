@@ -632,9 +632,7 @@ async def test_convergence_leaves_telemetry_out_and_says_how_much(monkeypatch) -
             sql = str(statement)
             calls.append((sql, params or {}))
             if "FILTER" in sql:
-                return _Result([(1917, 1459)])
-            if "GROUP BY status" in sql:
-                return _Result([("resolved", 1943)])
+                return _Result([(1917, 1500, 12, 1459)])
             return _Result([])
 
     @asynccontextmanager
@@ -646,17 +644,26 @@ async def test_convergence_leaves_telemetry_out_and_says_how_much(monkeypatch) -
 
     assert counts == {
         "created": 1917,
-        "resolved": 1943,
-        "abandoned": 0,
+        "resolved": 1500,
+        "abandoned": 12,
         "telemetry_excluded": 1459,
     }
-    assert value == round(1943 / 1917, 3)
-    created_sql, created_params = calls[1]
-    closed_sql, closed_params = calls[2]
-    assert (
-        "NOT subject LIKE ANY" in created_sql and "NOT subject LIKE ANY" in closed_sql
-    )
-    assert created_params["t"] == ["loop\\_hold.sample::%"] == closed_params["t"]
+    assert value == round(1500 / 1917, 3)
+    sql, params = calls[1]
+    assert sql.count("NOT subject LIKE ANY") == 3
+    assert params["t"] == ["loop\\_hold.sample::%"]
+
+
+def test_convergence_counts_resolved_by_when_it_was_resolved() -> None:
+    # #1114: by updated_at, a finding resolved before the window but touched
+    # inside it counted as resolved (resolved 1943 > created 1917, 2026-10-09).
+    import inspect
+
+    from body.services.thesis.measure import convergence_counts
+
+    source = inspect.getsource(convergence_counts)
+    assert "status = 'resolved' AND resolved_at >= :s" in source
+    assert "status = 'resolved' AND updated_at" not in source
 
 
 # -- the promotion cutover (ADR-171) ---------------------------------------------
