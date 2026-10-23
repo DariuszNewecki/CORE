@@ -14,7 +14,9 @@ the governor so GitHub emails them:
 - ``promotion-failed-<sha12>``: the last promotion did not go live;
 - ``test-gen-undelivered``: core/test-gen has been ahead of main for more
   than TEST_GEN_AFTER with no open pull request from it (#1252: the 06:00
-  job opens that pull request; this says when it did not).
+  job opens that pull request; this says when it did not);
+- ``test-gen-check-failed``: that check itself could not run (any GitHub
+  failure but a 404 from compare, which means there is no core/test-gen).
 
 An issue already open for a problem is left as it is (no new issue, no new
 comment); when the problem is gone it gets a "cleared" comment and is
@@ -93,31 +95,54 @@ def test_gen_problem(
     }
 
 
-def _test_gen(now: dt.datetime) -> dict[str, str]:
+def _test_gen(now: dt.datetime, gh=None) -> dict[str, str]:
+    """test_gen_problem from GitHub. Only a 404 from compare means there is
+    no core/test-gen branch (nothing waits); any other failure is the
+    problem ``test-gen-check-failed``, so a broken check never reads as
+    "nothing waits"."""
+    gh = gh or _gh
     try:
-        compare = json.loads(_gh("api", f"repos/{REPO}/compare/main...core/test-gen"))
-    except subprocess.CalledProcessError:
-        return {}  # no core/test-gen branch: nothing waits
-    commits = compare.get("commits") or []
-    oldest = commits[0]["commit"]["committer"]["date"] if commits else None
-    open_prs = int(
-        _gh(
-            "pr",
-            "list",
-            "--repo",
-            REPO,
-            "--head",
-            "core/test-gen",
-            "--state",
-            "open",
-            "--json",
-            "number",
-            "--jq",
-            "length",
-        ).strip()
-        or 0
-    )
-    return test_gen_problem(int(compare.get("ahead_by") or 0), oldest, open_prs, now)
+        compare = json.loads(gh("api", f"repos/{REPO}/compare/main...core/test-gen"))
+    except subprocess.CalledProcessError as exc:
+        if "HTTP 404" in str(exc.stderr or ""):
+            return {}
+        return _check_failed("compare", exc)
+    except ValueError as exc:
+        return _check_failed("compare", exc)
+    try:
+        commits = compare.get("commits") or []
+        oldest = commits[0]["commit"]["committer"]["date"] if commits else None
+        ahead = int(compare.get("ahead_by") or 0)
+        open_prs = int(
+            gh(
+                "pr",
+                "list",
+                "--repo",
+                REPO,
+                "--head",
+                "core/test-gen",
+                "--state",
+                "open",
+                "--json",
+                "number",
+                "--jq",
+                "length",
+            ).strip()
+            or 0
+        )
+    except (subprocess.CalledProcessError, ValueError, KeyError, TypeError) as exc:
+        return _check_failed("pr list", exc)
+    return test_gen_problem(ahead, oldest, open_prs, now)
+
+
+def _check_failed(step: str, exc: Exception) -> dict[str, str]:
+    detail = getattr(exc, "stderr", None) or str(exc)
+    return {
+        "test-gen-check-failed": (
+            f"The core/test-gen delivery check could not run ({step}): "
+            f"{str(detail).strip()[:300]} (#1252)."
+        )
+    }
 
 
 def _gh(*args: str) -> str:
