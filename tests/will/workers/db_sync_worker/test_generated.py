@@ -34,3 +34,48 @@ async def test_DbSyncWorker_run() -> None:
     )
     worker.post_observation.assert_not_awaited()
     worker.post_heartbeat.assert_awaited_once()
+
+
+# ID: 25767f0a-bac2-40bb-82c0-0f84c06df76f
+async def test_DbSyncWorker() -> None:
+    """A failed or raising sync.db posts an abandoned sync.db.failed, then a heartbeat."""
+    core_context = MagicMock()
+    worker = DbSyncWorker(core_context=core_context)
+    assert worker.declaration_name == "db_sync_worker"
+    assert worker._core_context is core_context
+    worker.post_heartbeat = AsyncMock()
+    worker.post_report = AsyncMock()
+    worker.post_observation = AsyncMock()
+
+    failed = MagicMock()
+    failed.ok = False
+    failed.data = {"error": "db unreachable"}
+
+    with patch("body.atomic.executor.ActionExecutor") as mock_executor_class:
+        mock_executor_class.return_value.execute = AsyncMock(return_value=failed)
+        await worker.run()
+
+    mock_executor_class.assert_called_once_with(core_context)
+    worker.post_report.assert_not_awaited()
+    worker.post_observation.assert_awaited_once_with(
+        subject="sync.db.failed",
+        payload={"error": "db unreachable"},
+        status="abandoned",
+    )
+    worker.post_heartbeat.assert_awaited_once()
+
+    worker.post_observation.reset_mock()
+    worker.post_heartbeat.reset_mock()
+    with patch("body.atomic.executor.ActionExecutor") as mock_executor_class:
+        mock_executor_class.return_value.execute = AsyncMock(
+            side_effect=RuntimeError("boom")
+        )
+        await worker.run()
+
+    worker.post_report.assert_not_awaited()
+    worker.post_observation.assert_awaited_once_with(
+        subject="sync.db.failed",
+        payload={"error": "boom"},
+        status="abandoned",
+    )
+    worker.post_heartbeat.assert_awaited_once()

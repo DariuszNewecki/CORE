@@ -61,3 +61,84 @@ async def test_IntentInspector():
         == "intent_inspector.run.complete"
     )
     assert worker.post_report.await_args.kwargs["payload"]["documents_scanned"] == 1
+
+
+# ID: 7b26087c-6240-40c5-a0ac-9f876bbcc006
+async def test_IntentInspector_run(tmp_path):
+    """Structural findings already open are skipped; a missing .intent/ stops the run."""
+    worker = IntentInspector(MagicMock())
+    worker.post_heartbeat = AsyncMock()
+    worker.post_report = AsyncMock()
+    worker.post_artifact_finding = AsyncMock()
+    worker._resolve_intent_root = MagicMock(return_value=tmp_path)
+    good_meta = {
+        "id": "x",
+        "title": "X",
+        "version": "1",
+        "authority": "policy",
+        "status": "active",
+    }
+    worker._load_all_documents = MagicMock(
+        return_value=[
+            {"path": "a.yaml", "data": {"kind": "k"}, "raw": "", "skip_llm": True},
+            {"path": "b.yaml", "data": {"kind": "k"}, "raw": "", "skip_llm": True},
+            {
+                "path": "ok.yaml",
+                "data": {"$schema": "s", "kind": "k", "metadata": good_meta},
+                "raw": "",
+                "skip_llm": True,
+            },
+        ]
+    )
+    worker._load_valid_worker_statuses = MagicMock(return_value={"active"})
+    worker._fetch_existing_subjects = AsyncMock(
+        return_value={"intent_yaml::intent.inspection.structural::a.yaml"}
+    )
+    worker._pass_coherence = AsyncMock(return_value=2)
+    worker._pass_alignment = AsyncMock(return_value=1)
+
+    await worker.run()
+
+    worker._fetch_existing_subjects.assert_awaited_once_with(
+        "intent.inspection.structural"
+    )
+    worker.post_artifact_finding.assert_awaited_once_with(
+        artifact_type="intent_yaml",
+        sub_namespace="intent.inspection.structural",
+        identity_key_value="b.yaml",
+        payload={
+            "pass": "structural",
+            "path": "b.yaml",
+            "issues": ["missing $schema reference"],
+            "severity": "warning",
+        },
+    )
+    worker._pass_alignment.assert_awaited_once_with(
+        worker._load_all_documents.return_value, tmp_path
+    )
+    worker.post_report.assert_awaited_once_with(
+        subject="intent_inspector.run.complete",
+        payload={
+            "documents_scanned": 3,
+            "structural_findings": 1,
+            "coherence_findings": 2,
+            "alignment_findings": 1,
+            "message": (
+                "Inspection complete. 1 structural, 2 coherence, 1 alignment findings."
+            ),
+        },
+    )
+
+    # .intent/ missing: error report, no passes run.
+    missing = tmp_path / "absent"
+    worker._resolve_intent_root = MagicMock(return_value=missing)
+    worker._load_all_documents.reset_mock()
+    worker.post_report.reset_mock()
+
+    await worker.run()
+
+    worker._load_all_documents.assert_not_called()
+    worker.post_report.assert_awaited_once_with(
+        subject="intent_inspector.run.complete",
+        payload={"error": f".intent/ not found at {missing}"},
+    )

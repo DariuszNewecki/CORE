@@ -94,3 +94,73 @@ async def test_CapabilityTaggerWorker():
                 "processed": 2,
             },
         )
+
+
+# ID: 6ed24ab2-f1fa-4211-bd23-492e39592a17
+async def test_CapabilityTaggerWorker_run():
+    """run() stops early without an LLM or untagged symbols, and drops bad keys."""
+    # No cognitive service: report the reason, never touch the DB.
+    with patch("body.services.service_registry.service_registry") as mock_registry:
+        mock_registry.get_symbol_service = AsyncMock()
+        worker = CapabilityTaggerWorker(cognitive_service=None)
+        worker.post_heartbeat = AsyncMock()
+        worker.post_report = AsyncMock()
+
+        await worker.run()
+
+        worker.post_heartbeat.assert_awaited_once()
+        mock_registry.get_symbol_service.assert_not_awaited()
+        worker.post_report.assert_awaited_once_with(
+            subject="capability_tagger.run.complete",
+            payload={"tagged": 0, "reason": "cognitive_service_unavailable"},
+        )
+
+    with (
+        patch("body.services.service_registry.service_registry") as mock_registry,
+        patch("shared.infrastructure.knowledge.knowledge_service.KnowledgeService"),
+        patch("will.agents.tagger_agent.CapabilityTaggerAgent") as mock_agent_class,
+        patch("will.workers.capability_tagger._CFG") as mock_cfg,
+    ):
+        mock_cfg.batch_size = 3
+        mock_symbol_service = AsyncMock()
+        mock_registry.get_symbol_service = AsyncMock(return_value=mock_symbol_service)
+        mock_agent = AsyncMock()
+        mock_agent_class.return_value = mock_agent
+
+        worker = CapabilityTaggerWorker(cognitive_service=MagicMock())
+        worker.post_heartbeat = AsyncMock()
+        worker.post_report = AsyncMock()
+        worker._repo_root = "/fake/repo/root"
+
+        # Nothing untagged: report "all tagged", agent never invoked.
+        mock_symbol_service.fetch_untagged_symbols = AsyncMock(return_value=[])
+        await worker.run()
+        mock_agent.suggest_and_apply_tags.assert_not_awaited()
+        worker.post_report.assert_awaited_once_with(
+            subject="capability_tagger.run.complete",
+            payload={
+                "tagged": 0,
+                "message": "All public symbols have capability keys.",
+            },
+        )
+
+        # Suggestions without a symbol id or a dotted key are not applied.
+        worker.post_report.reset_mock()
+        mock_symbol_service.fetch_untagged_symbols = AsyncMock(
+            return_value=[{"id": "u1"}, {"id": "u2"}, {"id": "u3"}]
+        )
+        mock_agent.suggest_and_apply_tags = AsyncMock(
+            return_value={
+                "a": {"key": "u1", "suggestion": " io.read ", "name": "A"},
+                "b": {"key": "u2", "suggestion": "nodot", "name": "B"},
+                "c": {"key": None, "suggestion": "x.y", "name": "C"},
+            }
+        )
+        await worker.run()
+        mock_symbol_service.apply_symbol_keys.assert_awaited_once_with(
+            [{"id": "u1", "key": "io.read"}]
+        )
+        worker.post_report.assert_awaited_once_with(
+            subject="capability_tagger.run.complete",
+            payload={"tagged": 1, "processed": 3},
+        )
