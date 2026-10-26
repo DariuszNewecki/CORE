@@ -235,7 +235,8 @@ async def workers_blackboard_purge_cmd(
 
 
 @workers_app.command("resolve")
-@core_command(dangerous=True)
+# A client of the API: the governor account has no Qdrant or DB settings.
+@core_command(dangerous=True, requires_brain_services=False)
 # ID: 0dcd5509-ff34-42aa-b866-de1d76c242ae
 async def workers_blackboard_resolve_cmd(
     ctx: typer.Context,
