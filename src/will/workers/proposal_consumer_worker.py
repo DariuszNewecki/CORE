@@ -26,14 +26,14 @@ The post-execution side-effects (forwarding action findings_to_post,
 emitting `python::test.coverage::*` findings for changed src/*.py files,
 posting scope-collision yields) live in proposal_consumer_effects.py. The §7a revival contract (revive deferred
 findings + post revival report when a proposal terminates
-non-successfully) lives in proposal_consumer_revival.py. The dispatch
-shell below stays focused on polling, executor invocation, and run
+non-successfully) lives in proposal_consumer_revival.py. The upstream sync
+and test delivery run before each cycle live in proposal_consumer_upkeep.py.
+The dispatch shell below stays focused on polling, executor invocation, and run
 accounting.
 """
 
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, datetime
 from typing import Any
 
@@ -52,14 +52,10 @@ from will.autonomy.proposal_consumer_revival import (
     report_revival,
     revive_and_report,
 )
+from will.autonomy.proposal_consumer_upkeep import deliver_tests, sync_upstream
 
 
 logger = getLogger(__name__)
-
-# ADR-132 D10 · D2: one open finding while CORE's clone cannot follow upstream.
-_SYNC_SUBJECT = "repo_sync::clone"
-# One open finding while generated tests wait for a GitHub token to travel.
-_DELIVERY_SUBJECT = "test_delivery::waiting"
 
 # Conservative — each proposal may touch multiple files
 _CFG = load_operational_config().workers.proposal_consumer
@@ -366,111 +362,14 @@ class ProposalConsumerWorker(Worker):
     # -------------------------------------------------------------------------
 
     async def _sync_upstream(self) -> None:
-        """ADR-132 D10 · D2: fast-forward CORE's clone before executing.
-
-        Inert while no upstream is configured. A sync that cannot proceed
-        (diverged, failed, an interrupted sync it refuses to guess about)
-        is one open finding for the governor, resolved once a later sync
-        succeeds; CORE keeps working on its current HEAD meanwhile.
-        """
-        from body.infrastructure.repo_sync import (
-            SyncOutcome,
-            SyncRecoveryRefused,
-            repo_sync_for,
-        )
-        from body.services.service_registry import service_registry
-
-        outcome: SyncOutcome | None
-        state: str
-        reason: str | None
-        try:
-            outcome = await asyncio.to_thread(repo_sync_for(self._ctx).sync_if_free)
-            state, reason = outcome.state, outcome.reason
-        except SyncRecoveryRefused as exc:
-            outcome, state, reason = None, "recovery_refused", str(exc)
-
-        if state in ("disabled", "busy"):
-            return
-        blackboard = await service_registry.get_blackboard_service()
-        open_rows = await blackboard.fetch_open_findings(
-            prefix=f"{_SYNC_SUBJECT}%", limit=10
-        )
-        if state in ("diverged", "failed", "recovery_refused"):
-            if not open_rows:
-                await self.post_finding(
-                    subject=_SYNC_SUBJECT,
-                    payload={
-                        "state": state,
-                        "reason": reason,
-                        "from": outcome.from_sha if outcome else None,
-                        "upstream": outcome.to_sha if outcome else None,
-                        "message": (
-                            "CORE's clone could not follow upstream; it keeps "
-                            "working on its current HEAD until this is resolved."
-                        ),
-                    },
-                    resolution_mechanism="human",
-                )
-            return
-        if open_rows:
-            await blackboard.resolve_entries([row["id"] for row in open_rows])
-        if outcome is not None and (
-            state == "fast_forwarded" or outcome.recovered is not None
-        ):
-            await self.post_report(
-                subject="proposal_consumer_worker.repo_sync",
-                payload={
-                    "state": state,
-                    "from": outcome.from_sha,
-                    "to": outcome.to_sha,
-                    "recovered": outcome.recovered,
-                },
-            )
+        """ADR-132 D10 · D2: fast-forward CORE's clone before executing
+        (will.autonomy.proposal_consumer_upkeep.sync_upstream)."""
+        await sync_upstream(self, self._ctx)
 
     async def _deliver_tests(self) -> None:
-        """CORE's generated tests reach GitHub as one pull request into main
-        (body.infrastructure.delivery_branch). While they cannot (no token),
-        one open finding says how many wait; it resolves once they travel.
-        Never raises: delivery must not stop proposal execution.
-        """
-        from dataclasses import asdict
-
-        from body.infrastructure.delivery_branch import DELIVERY_BRANCH, run_delivery
-        from body.services.service_registry import service_registry
-
-        try:
-            outcome = await run_delivery(self._ctx)
-            if outcome.state in ("none", "busy", "current") and not outcome.dropped:
-                return
-            blackboard = await service_registry.get_blackboard_service()
-            open_rows = await blackboard.fetch_open_findings(
-                prefix=f"{_DELIVERY_SUBJECT}%", limit=10
-            )
-            if outcome.state == "waiting":
-                if not open_rows:
-                    await self.post_finding(
-                        subject=_DELIVERY_SUBJECT,
-                        payload={
-                            **asdict(outcome),
-                            "branch": DELIVERY_BRANCH,
-                            "message": (
-                                f"{outcome.pending_commits} generated test "
-                                f"commit(s) wait on CORE's branch {DELIVERY_BRANCH}; "
-                                f"delivering them as a pull request {outcome.reason}."
-                            ),
-                        },
-                        resolution_mechanism="human",
-                    )
-                return
-            if outcome.state in ("delivered", "nothing") and open_rows:
-                await blackboard.resolve_entries([row["id"] for row in open_rows])
-            if outcome.state in ("delivered", "failed") or outcome.dropped:
-                await self.post_report(
-                    subject="proposal_consumer_worker.test_delivery",
-                    payload=asdict(outcome),
-                )
-        except Exception as exc:
-            logger.warning("ProposalConsumerWorker: test delivery failed: %s", exc)
+        """Deliver CORE's generated tests as a pull request; never raises
+        (will.autonomy.proposal_consumer_upkeep.deliver_tests)."""
+        await deliver_tests(self, self._ctx)
 
     async def _load_approved_proposals(self) -> list[dict[str, Any]]:
         """
