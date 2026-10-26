@@ -1,0 +1,565 @@
+{
+  "days": [
+    {
+      "ai_share": 0.652,
+      "breaches": [
+        {
+          "measure": "unverified_writes",
+          "message": "2 write(s) reached main since 2026-10-12 without green CI and the governor's approval of the pull request's last commit (or merge)."
+        },
+        {
+          "measure": "waste_per_change",
+          "message": "Waste rose to 2.7 trips per merged change, from 2.0 a month earlier."
+        }
+      ],
+      "convergence": 0.915,
+      "day": "2026-10-19",
+      "detail": {
+        "authorship": {
+          "ai": 559,
+          "bot": 7,
+          "human_or_unmarked": 292
+        },
+        "convergence": {
+          "abandoned": 21036,
+          "created": 246181,
+          "resolved": 225261,
+          "telemetry_excluded": 1513
+        },
+        "unverified": {
+          "ci_pending": [],
+          "corrected": 0,
+          "deploys_judged": 2,
+          "list": [
+            "855040a6e329 deploy: promotion #1147's head is 579628397101",
+            "2c91974dc4f9 deploy: promotion #1147's head is 579628397101"
+          ],
+          "new": 2,
+          "promotion_cutover": "2026-10-18T13:06:12.064022+00:00",
+          "writes": 122
+        },
+        "waste": {
+          "trips": {
+            "CI red": 6,
+            "CI rerun after branch update": 30,
+            "PR closed unmerged": 1,
+            "approval dismissed": 4,
+            "branch updated after approval": 22,
+            "command run by the governor": 85,
+            "commit after approval": 22,
+            "commit refused by a hook": 69,
+            "deploy refused": 7,
+            "deploy run by hand": 8,
+            "force-push": 2,
+            "permission block": 66,
+            "question to the governor": 63,
+            "stop-hook rewrite": 72
+          },
+          "writes": 171
+        }
+      },
+      "line": "thesis 2026-10-19: unverified writes 2 ? AI authorship 65% ? waste 2.7 per change ? convergence 92%",
+      "unavailable": [],
+      "unverified_breaches": [
+        {
+          "first_seen": "2026-10-19",
+          "reason": "deploy: promotion #1147's head is 579628397101",
+          "sha": "855040a6e329f1e30fa68757ef9c5b842e6760b5"
+        },
+        {
+          "first_seen": "2026-10-19",
+          "reason": "deploy: promotion #1147's head is 579628397101",
+          "sha": "2c91974dc4f9d6763800da176b2882a6badfec19"
+        }
+      ],
+      "unverified_corrections": [],
+      "unverified_writes": 2,
+      "waste_per_change": 2.7
+    },
+    {
+      "ai_share": 0.651,
+      "breaches": [
+        {
+          "measure": "unverified_writes",
+          "message": "4 write(s) reached main since 2026-10-12 without green CI and the governor's approval of the pull request's last commit (or merge)."
+        },
+        {
+          "measure": "waste_per_change",
+          "message": "Waste rose to 2.7 trips per merged change, from 2.0 a month earlier."
+        }
+      ],
+      "convergence": 0.919,
+      "day": "2026-10-20",
+      "detail": {
+        "authorship": {
+          "ai": 558,
+          "bot": 7,
+          "human_or_unmarked": 292
+        },
+        "convergence": {
+          "abandoned": 19596,
+          "created": 240581,
+          "resolved": 221100,
+          "telemetry_excluded": 1520
+        },
+        "unverified": {
+          "ci_pending": [],
+          "corrected": 0,
+          "deploys_judged": 6,
+          "list": [
+            "2c91974dc4f9 deploy: promotion #1147's head is 579628397101",
+            "855040a6e329 deploy: promotion #1147's head is 579628397101",
+            "579628397101 deploy: promotion #1147's head is 4ba189878de6",
+            "65fa63c8e06f deploy: promotion #1147's head is 4ba189878de6"
+          ],
+          "new": 2,
+          "promotion_cutover": "2026-10-18T13:06:12.064022+00:00",
+          "writes": 122
+        },
+        "waste": {
+          "trips": {
+            "CI red": 7,
+            "CI rerun after branch update": 42,
+            "PR closed unmerged": 2,
+            "approval dismissed": 3,
+            "branch updated after approval": 28,
+            "command run by the governor": 87,
+            "commit after approval": 29,
+            "commit refused by a hook": 70,
+            "deploy refused": 7,
+            "deploy run by hand": 8,
+            "force-push": 3,
+            "permission block": 68,
+            "question to the governor": 54,
+            "stop-hook rewrite": 79
+          },
+          "writes": 181
+        }
+      },
+      "line": "thesis 2026-10-20: unverified writes 4 ? AI authorship 65% ? waste 2.7 per change ? convergence 92%",
+      "unavailable": [],
+      "unverified_breaches": [
+        {
+          "first_seen": "2026-10-19",
+          "reason": "deploy: promotion #1147's head is 579628397101",
+          "sha": "2c91974dc4f9d6763800da176b2882a6badfec19"
+        },
+        {
+          "first_seen": "2026-10-19",
+          "reason": "deploy: promotion #1147's head is 579628397101",
+          "sha": "855040a6e329f1e30fa68757ef9c5b842e6760b5"
+        },
+        {
+          "first_seen": "2026-10-20",
+          "reason": "deploy: promotion #1147's head is 4ba189878de6",
+          "sha": "5796283971017f0b60ab9f813388fb605dceba1d"
+        },
+        {
+          "first_seen": "2026-10-20",
+          "reason": "deploy: promotion #1147's head is 4ba189878de6",
+          "sha": "65fa63c8e06fba910609042b1665fbcff9eeb1b1"
+        }
+      ],
+      "unverified_corrections": [],
+      "unverified_writes": 4,
+      "waste_per_change": 2.7
+    },
+    {
+      "ai_share": 0.69,
+      "breaches": [
+        {
+          "measure": "unverified_writes",
+          "message": "4 write(s) reached main since 2026-10-12 without green CI and the governor's approval of the pull request's last commit (or merge)."
+        },
+        {
+          "measure": "waste_per_change",
+          "message": "Waste rose to 2.7 trips per merged change, from 2.0 a month earlier."
+        }
+      ],
+      "convergence": 0.925,
+      "day": "2026-10-21",
+      "detail": {
+        "authorship": {
+          "ai": 666,
+          "bot": 7,
+          "human_or_unmarked": 292
+        },
+        "convergence": {
+          "abandoned": 18176,
+          "created": 235158,
+          "resolved": 217467,
+          "telemetry_excluded": 1586
+        },
+        "unverified": {
+          "ci_pending": [],
+          "corrected": 0,
+          "deploys_judged": 9,
+          "list": [
+            "2c91974dc4f9 deploy: promotion #1147's head is 579628397101",
+            "855040a6e329 deploy: promotion #1147's head is 579628397101",
+            "579628397101 deploy: promotion #1147's head is 4ba189878de6",
+            "65fa63c8e06f deploy: promotion #1147's head is 4ba189878de6"
+          ],
+          "new": 0,
+          "promotion_cutover": "2026-10-18T13:06:12.064022+00:00",
+          "writes": 122
+        },
+        "waste": {
+          "trips": {
+            "CI red": 10,
+            "CI rerun after branch update": 51,
+            "PR closed unmerged": 2,
+            "branch updated after approval": 28,
+            "command run by the governor": 84,
+            "commit after approval": 29,
+            "commit refused by a hook": 69,
+            "deploy refused": 7,
+            "deploy run by hand": 8,
+            "force-push": 2,
+            "permission block": 73,
+            "question to the governor": 49,
+            "stop-hook rewrite": 83
+          },
+          "writes": 182
+        }
+      },
+      "line": "thesis 2026-10-21: unverified writes 4 ? AI authorship 69% ? waste 2.7 per change ? convergence 92%",
+      "unavailable": [],
+      "unverified_breaches": [
+        {
+          "first_seen": "2026-10-19",
+          "reason": "deploy: promotion #1147's head is 579628397101",
+          "sha": "2c91974dc4f9d6763800da176b2882a6badfec19"
+        },
+        {
+          "first_seen": "2026-10-19",
+          "reason": "deploy: promotion #1147's head is 579628397101",
+          "sha": "855040a6e329f1e30fa68757ef9c5b842e6760b5"
+        },
+        {
+          "first_seen": "2026-10-20",
+          "reason": "deploy: promotion #1147's head is 4ba189878de6",
+          "sha": "5796283971017f0b60ab9f813388fb605dceba1d"
+        },
+        {
+          "first_seen": "2026-10-20",
+          "reason": "deploy: promotion #1147's head is 4ba189878de6",
+          "sha": "65fa63c8e06fba910609042b1665fbcff9eeb1b1"
+        }
+      ],
+      "unverified_corrections": [],
+      "unverified_writes": 4,
+      "waste_per_change": 2.7
+    },
+    {
+      "ai_share": 0.69,
+      "breaches": [
+        {
+          "measure": "unverified_writes",
+          "message": "4 write(s) reached main since 2026-10-12 without green CI and the governor's approval of the pull request's last commit (or merge)."
+        },
+        {
+          "measure": "waste_per_change",
+          "message": "Waste rose to 2.7 trips per merged change, from 2.0 a month earlier."
+        }
+      ],
+      "convergence": 0.937,
+      "day": "2026-10-22",
+      "detail": {
+        "authorship": {
+          "ai": 664,
+          "bot": 7,
+          "human_or_unmarked": 292
+        },
+        "convergence": {
+          "abandoned": 16736,
+          "created": 229245,
+          "resolved": 214713,
+          "telemetry_excluded": 1602
+        },
+        "unverified": {
+          "ci_pending": [],
+          "corrected": 0,
+          "deploys_judged": 9,
+          "list": [
+            "2c91974dc4f9 deploy: promotion #1147's head is 579628397101",
+            "855040a6e329 deploy: promotion #1147's head is 579628397101",
+            "579628397101 deploy: promotion #1147's head is 4ba189878de6",
+            "65fa63c8e06f deploy: promotion #1147's head is 4ba189878de6"
+          ],
+          "new": 0,
+          "promotion_cutover": "2026-10-18T13:06:12.064022+00:00",
+          "writes": 122
+        },
+        "waste": {
+          "trips": {
+            "CI red": 10,
+            "CI rerun after branch update": 51,
+            "PR closed unmerged": 2,
+            "branch updated after approval": 28,
+            "command run by the governor": 84,
+            "commit after approval": 29,
+            "commit refused by a hook": 68,
+            "deploy refused": 7,
+            "deploy run by hand": 8,
+            "force-push": 2,
+            "permission block": 73,
+            "question to the governor": 42,
+            "stop-hook rewrite": 83
+          },
+          "writes": 181
+        }
+      },
+      "line": "thesis 2026-10-22: unverified writes 4 ? AI authorship 69% ? waste 2.7 per change ? convergence 94%",
+      "unavailable": [],
+      "unverified_breaches": [
+        {
+          "first_seen": "2026-10-19",
+          "reason": "deploy: promotion #1147's head is 579628397101",
+          "sha": "2c91974dc4f9d6763800da176b2882a6badfec19"
+        },
+        {
+          "first_seen": "2026-10-19",
+          "reason": "deploy: promotion #1147's head is 579628397101",
+          "sha": "855040a6e329f1e30fa68757ef9c5b842e6760b5"
+        },
+        {
+          "first_seen": "2026-10-20",
+          "reason": "deploy: promotion #1147's head is 4ba189878de6",
+          "sha": "5796283971017f0b60ab9f813388fb605dceba1d"
+        },
+        {
+          "first_seen": "2026-10-20",
+          "reason": "deploy: promotion #1147's head is 4ba189878de6",
+          "sha": "65fa63c8e06fba910609042b1665fbcff9eeb1b1"
+        }
+      ],
+      "unverified_corrections": [],
+      "unverified_writes": 4,
+      "waste_per_change": 2.7
+    },
+    {
+      "ai_share": 0.694,
+      "breaches": [
+        {
+          "measure": "unverified_writes",
+          "message": "4 write(s) reached main since 2026-10-12 without green CI and the governor's approval of the pull request's last commit (or merge)."
+        },
+        {
+          "measure": "waste_per_change",
+          "message": "Waste rose to 2.6 trips per merged change, from 2.0 a month earlier."
+        }
+      ],
+      "convergence": 0.949,
+      "day": "2026-10-23",
+      "detail": {
+        "authorship": {
+          "ai": 678,
+          "bot": 7,
+          "human_or_unmarked": 292
+        },
+        "convergence": {
+          "abandoned": 15296,
+          "created": 223477,
+          "resolved": 212118,
+          "telemetry_excluded": 1616
+        },
+        "unverified": {
+          "ci_pending": [],
+          "corrected": 0,
+          "deploys_judged": 9,
+          "list": [
+            "2c91974dc4f9 deploy: promotion #1147's head is 579628397101",
+            "855040a6e329 deploy: promotion #1147's head is 579628397101",
+            "579628397101 deploy: promotion #1147's head is 4ba189878de6",
+            "65fa63c8e06f deploy: promotion #1147's head is 4ba189878de6"
+          ],
+          "new": 0,
+          "promotion_cutover": "2026-10-18T13:06:12.064022+00:00",
+          "writes": 122
+        },
+        "waste": {
+          "trips": {
+            "CI red": 17,
+            "CI rerun after branch update": 57,
+            "PR closed unmerged": 2,
+            "branch updated after approval": 28,
+            "command run by the governor": 91,
+            "commit after approval": 29,
+            "commit refused by a hook": 67,
+            "deploy refused": 7,
+            "deploy run by hand": 8,
+            "force-push": 3,
+            "permission block": 72,
+            "question to the governor": 42,
+            "stop-hook rewrite": 84
+          },
+          "writes": 192
+        }
+      },
+      "line": "thesis 2026-10-23: unverified writes 4 ? AI authorship 69% ? waste 2.6 per change ? convergence 95%",
+      "unavailable": [],
+      "unverified_breaches": [
+        {
+          "first_seen": "2026-10-19",
+          "reason": "deploy: promotion #1147's head is 579628397101",
+          "sha": "2c91974dc4f9d6763800da176b2882a6badfec19"
+        },
+        {
+          "first_seen": "2026-10-19",
+          "reason": "deploy: promotion #1147's head is 579628397101",
+          "sha": "855040a6e329f1e30fa68757ef9c5b842e6760b5"
+        },
+        {
+          "first_seen": "2026-10-20",
+          "reason": "deploy: promotion #1147's head is 4ba189878de6",
+          "sha": "5796283971017f0b60ab9f813388fb605dceba1d"
+        },
+        {
+          "first_seen": "2026-10-20",
+          "reason": "deploy: promotion #1147's head is 4ba189878de6",
+          "sha": "65fa63c8e06fba910609042b1665fbcff9eeb1b1"
+        }
+      ],
+      "unverified_corrections": [],
+      "unverified_writes": 4,
+      "waste_per_change": 2.6
+    },
+    {
+      "ai_share": 0.739,
+      "breaches": [],
+      "convergence": 0.962,
+      "day": "2026-10-24",
+      "detail": {
+        "authorship": {
+          "ai": 846,
+          "bot": 7,
+          "human_or_unmarked": 292
+        },
+        "convergence": {
+          "abandoned": 13856,
+          "created": 217697,
+          "resolved": 209503,
+          "telemetry_excluded": 1618
+        },
+        "waste": {
+          "trips": {
+            "deploy refused": 7,
+            "deploy run by hand": 8
+          },
+          "writes": null
+        }
+      },
+      "line": "thesis 2026-10-24: unverified writes unavailable ? AI authorship 74% ? waste unavailable per change ? convergence 96%",
+      "unavailable": [
+        "github writes: GraphQL: HTTP 504 None",
+        "github pull requests: GraphQL: HTTP 504 None"
+      ],
+      "unverified_breaches": [
+        {
+          "first_seen": "2026-10-19",
+          "reason": "deploy: promotion #1147's head is 579628397101",
+          "sha": "2c91974dc4f9d6763800da176b2882a6badfec19"
+        },
+        {
+          "first_seen": "2026-10-19",
+          "reason": "deploy: promotion #1147's head is 579628397101",
+          "sha": "855040a6e329f1e30fa68757ef9c5b842e6760b5"
+        },
+        {
+          "first_seen": "2026-10-20",
+          "reason": "deploy: promotion #1147's head is 4ba189878de6",
+          "sha": "5796283971017f0b60ab9f813388fb605dceba1d"
+        },
+        {
+          "first_seen": "2026-10-20",
+          "reason": "deploy: promotion #1147's head is 4ba189878de6",
+          "sha": "65fa63c8e06fba910609042b1665fbcff9eeb1b1"
+        }
+      ],
+      "unverified_corrections": [],
+      "unverified_writes": null,
+      "waste_per_change": null
+    },
+    {
+      "ai_share": 0.739,
+      "breaches": [],
+      "convergence": 0.976,
+      "day": "2026-10-25",
+      "detail": {
+        "authorship": {
+          "ai": 846,
+          "bot": 7,
+          "human_or_unmarked": 292
+        },
+        "convergence": {
+          "abandoned": 12416,
+          "created": 211740,
+          "resolved": 206720,
+          "telemetry_excluded": 1616
+        },
+        "unverified": {
+          "ci_pending": [],
+          "corrected": 4,
+          "deploys_judged": 15,
+          "list": [],
+          "new": 0,
+          "promotion_cutover": "2026-10-18T13:06:12.064022+00:00",
+          "writes": 122
+        },
+        "waste": {
+          "trips": {
+            "CI red": 11,
+            "CI rerun after branch update": 16,
+            "PR closed unmerged": 4,
+            "command run by the governor": 78,
+            "commit refused by a hook": 60,
+            "deploy refused": 7,
+            "deploy run by hand": 8,
+            "force-push": 2,
+            "permission block": 60,
+            "question to the governor": 19,
+            "stop-hook rewrite": 99
+          },
+          "writes": 236
+        }
+      },
+      "line": "thesis 2026-10-25: unverified writes 0 ? AI authorship 74% ? waste 1.5 per change ? convergence 98%",
+      "unavailable": [],
+      "unverified_breaches": [],
+      "unverified_corrections": [
+        {
+          "corrected_on": "2026-10-25",
+          "first_seen": "2026-10-19",
+          "sha": "2c91974dc4f9d6763800da176b2882a6badfec19",
+          "stored_reason": "deploy: promotion #1147's head is 579628397101",
+          "why_false": "now judged verified: the governor's last review before the deploy approved this exact commit; the promotion's later head says nothing about that deploy (a reused promotion PR)"
+        },
+        {
+          "corrected_on": "2026-10-25",
+          "first_seen": "2026-10-19",
+          "sha": "855040a6e329f1e30fa68757ef9c5b842e6760b5",
+          "stored_reason": "deploy: promotion #1147's head is 579628397101",
+          "why_false": "now judged verified: the governor's last review before the deploy approved this exact commit; the promotion's later head says nothing about that deploy (a reused promotion PR)"
+        },
+        {
+          "corrected_on": "2026-10-25",
+          "first_seen": "2026-10-20",
+          "sha": "5796283971017f0b60ab9f813388fb605dceba1d",
+          "stored_reason": "deploy: promotion #1147's head is 4ba189878de6",
+          "why_false": "now judged verified: the governor's last review before the deploy approved this exact commit; the promotion's later head says nothing about that deploy (a reused promotion PR)"
+        },
+        {
+          "corrected_on": "2026-10-25",
+          "first_seen": "2026-10-20",
+          "sha": "65fa63c8e06fba910609042b1665fbcff9eeb1b1",
+          "stored_reason": "deploy: promotion #1147's head is 4ba189878de6",
+          "why_false": "now judged verified: the governor's last review before the deploy approved this exact commit; the promotion's later head says nothing about that deploy (a reused promotion PR)"
+        }
+      ],
+      "unverified_writes": 0,
+      "waste_per_change": 1.5
+    }
+  ],
+  "week": "2026-W43"
+}
