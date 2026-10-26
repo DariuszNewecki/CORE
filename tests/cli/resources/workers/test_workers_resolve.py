@@ -59,3 +59,25 @@ async def test_a_refusal_exits_non_zero() -> None:
     with pytest.raises(typer.Exit) as exc:
         await _run(client)
     assert exc.value.exit_code == 1
+
+
+def test_runs_without_brain_services() -> None:
+    """The governor account (core-darek) has no QDRANT_URL; resolve only
+    talks to the API, so the decorator must not warm Qdrant (2026-10-26:
+    every resolve failed with "QDRANT_URL is not configured")."""
+    ctx = MagicMock(spec=typer.Context)
+    ctx.obj = MagicMock(qdrant_service=None)
+    ctx.obj.registry.get_qdrant_service = AsyncMock(
+        side_effect=ValueError("QDRANT_URL is not configured")
+    )
+    client = MagicMock()
+    client.findings.resolve = AsyncMock(
+        return_value={"resolved_by": "core-darek", "resolution_authority": "x"}
+    )
+    with (
+        patch("api.cli.client.CoreApiClient", return_value=client),
+        patch.object(blackboard, "console", Console(record=True)),
+    ):
+        _cmd(ctx, entry_id="e-1", reason="stale")
+    client.findings.resolve.assert_awaited_once_with("e-1", "stale")
+    ctx.obj.registry.get_qdrant_service.assert_not_called()
