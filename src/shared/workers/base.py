@@ -27,7 +27,6 @@ from pathlib import Path
 from typing import Any
 
 from shared.infrastructure.code_identity import code_drift
-from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.intent.intent_repository import (
     IntentRepository,
     get_intent_repository,
@@ -36,6 +35,11 @@ from shared.infrastructure.intent.law_roots import intent_root_for
 from shared.logger import getLogger
 from shared.workers.blackboard_publisher import BlackboardPublisher
 from shared.workers.declaration_validator import validate_worker_declaration
+from shared.workers.registry_sql import (
+    release_claims_held_by,
+    touch_registry_heartbeat,
+    upsert_worker_registration,
+)
 
 
 logger = getLogger(__name__)
@@ -271,20 +275,7 @@ class Worker(ABC):
         timestamp the reaper reads, not a blackboard heartbeat row — the lease
         proves liveness without emitting a per-interval heartbeat finding.
         """
-        from sqlalchemy import text
-
-        async with get_session() as session:
-            async with session.begin():
-                await session.execute(
-                    text(
-                        """
-                        update core.worker_registry
-                           set last_heartbeat = now()
-                         where worker_uuid = :worker_uuid
-                        """
-                    ),
-                    {"worker_uuid": self._worker_uuid},
-                )
+        await touch_registry_heartbeat(self._worker_uuid)
 
     async def _release_held_claims(self) -> int:
         """Release any blackboard entries this worker still holds at exit.
@@ -299,25 +290,7 @@ class Worker(ABC):
         for this — graceful pre-release is a property of the lifecycle
         contract, not a property of the blackboard service surface.
         """
-        from sqlalchemy import text
-
-        async with get_session() as session:
-            async with session.begin():
-                result = await session.execute(
-                    text(
-                        """
-                        update core.blackboard_entries
-                           set status = 'open',
-                               claimed_by = null,
-                               updated_at = now()
-                         where claimed_by = :worker_uuid
-                           and status = 'claimed'
-                        """
-                    ),
-                    {"worker_uuid": self._worker_uuid},
-                )
-                released = getattr(result, "rowcount", 0)
-
+        released = await release_claims_held_by(self._worker_uuid)
         if released:
             logger.info(
                 "Worker %s released %d held claim(s) at shutdown (ADR-069 D8)",
@@ -556,35 +529,13 @@ class Worker(ABC):
         .intent/workers/ declarations. Unregistered workers cannot post
         to the blackboard with constitutional authority.
         """
-        from sqlalchemy import text
-
-        async with get_session() as session:
-            async with session.begin():
-                await session.execute(
-                    text(
-                        """
-                        insert into core.worker_registry
-                            (worker_uuid, worker_name, worker_class, phase,
-                             declaration_name, last_heartbeat)
-                        values
-                            (:worker_uuid, :worker_name, :worker_class, :phase,
-                             :declaration_name, now())
-                        on conflict (worker_uuid) do update set
-                            worker_name = excluded.worker_name,
-                            worker_class = excluded.worker_class,
-                            phase = excluded.phase,
-                            declaration_name = excluded.declaration_name,
-                            last_heartbeat = now()
-"""
-                    ),
-                    {
-                        "worker_uuid": self._worker_uuid,
-                        "worker_name": self._worker_name,
-                        "worker_class": self._worker_class,
-                        "phase": self._phase,
-                        "declaration_name": self.declaration_name,
-                    },
-                )
+        await upsert_worker_registration(
+            worker_uuid=self._worker_uuid,
+            worker_name=self._worker_name,
+            worker_class=self._worker_class,
+            phase=self._phase,
+            declaration_name=self.declaration_name,
+        )
 
         self._registered = True
         logger.info(
