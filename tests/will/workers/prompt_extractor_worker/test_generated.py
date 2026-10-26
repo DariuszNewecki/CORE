@@ -127,3 +127,112 @@ async def test_PromptExtractorWorker(worker, mock_core_context):
             "message": "Run complete. 1 extracted, 0 failed.",
         },
     )
+
+
+# ID: f23d9875-d454-45c5-ba97-670776b3a450
+async def test_PromptExtractorWorker_run(worker, mock_core_context, tmp_path):
+    """Mixed batch: unreadable file and LLM failure are abandoned; a
+    low-confidence extraction is posted as needs_human with non-ASCII text
+    sanitized; a confident one is posted open. Report counts 2 / 2."""
+    from will.workers.prompt_extractor_worker import _CFG
+
+    (tmp_path / "src").mkdir()
+    for name in ("llm_fails.py", "low.py", "high.py"):
+        (tmp_path / "src" / name).write_text(
+            "a = 1\nmake_request_async('prompt')\nb = 2\n", encoding="utf-8"
+        )
+    mock_core_context.git_service.repo_path = tmp_path
+
+    findings = [
+        {"id": "f-missing", "payload": {"file_path": "src/gone.py", "line_number": 1}},
+        {"id": "f-llm", "payload": {"file_path": "src/llm_fails.py", "line_number": 2}},
+        {"id": "f-low", "payload": {"file_path": "src/low.py", "line_number": 2}},
+        {"id": "f-high", "payload": {"file_path": "src/high.py", "line_number": 2}},
+    ]
+    bb_svc = AsyncMock()
+    bb_svc.claim_open_findings.return_value = findings
+    mock_core_context.registry.get_blackboard_service.return_value = bb_svc
+
+    responses = {
+        "src/low.py": '{"prompt_text": "h\\u00e9llo", "suggested_name": "n\\u00e4me",'
+        ' "input_vars": ["v\\u00f6"], "confidence": 0.3}',
+        "src/high.py": '{"prompt_text": "hello", "suggested_name": "greet",'
+        ' "input_vars": ["name"], "confidence": 0.9}',
+    }
+
+    async def _invoke(*, context, client, user_id):
+        if context["file_path"] == "src/llm_fails.py":
+            raise RuntimeError("LLM down")
+        assert "make_request_async" in context["source_code"]
+        return responses[context["file_path"]]
+
+    model = MagicMock()
+    model.manifest.role = "extractor-role"
+    model.invoke = AsyncMock(side_effect=_invoke)
+    prompt_module = MagicMock()
+    prompt_module.PromptModel.load.return_value = model
+
+    with patch.dict("sys.modules", {"shared.ai.prompt_model": prompt_module}):
+        await worker.run()
+
+    worker.post_heartbeat.assert_awaited_once()
+    bb_svc.claim_open_findings.assert_awaited_once_with(
+        "python::ai.prompt.model_required::%", _CFG.claim_limit
+    )
+    prompt_module.PromptModel.load.assert_called_once_with("prompt_extractor")
+    mock_core_context.cognitive_service.aget_client_for_role.assert_awaited_once_with(
+        "extractor-role"
+    )
+
+    statuses = [c.args for c in bb_svc.update_entry_status.await_args_list]
+    assert statuses == [
+        ("f-missing", "abandoned"),
+        ("f-llm", "abandoned"),
+        ("f-low", "resolved"),
+        ("f-high", "resolved"),
+    ]
+
+    posted = [c.kwargs for c in worker.post_artifact_finding.await_args_list]
+    assert [p["identity_key_value"] for p in posted] == [
+        "src/low.py::2",
+        "src/high.py::2",
+    ]
+    low, high = posted[0]["payload"], posted[1]["payload"]
+    assert low["prompt_text"] == "h?llo"
+    assert low["suggested_name"] == "n?me"
+    assert low["input_vars"] == ["v?"]
+    assert low["needs_human"] is True
+    assert low["status"] == "needs_human"
+    assert low["source_finding_id"] == "f-low"
+    assert high["needs_human"] is False
+    assert high["status"] == "open"
+    assert high["confidence"] == 0.9
+
+    worker.post_report.assert_awaited_once_with(
+        subject="prompt_extractor_worker.run.complete",
+        payload={
+            "processed": 2,
+            "failed": 2,
+            "message": "Run complete. 2 extracted, 2 failed.",
+        },
+    )
+
+
+# ID: b22792a9-a963-4f3a-8d5a-200d47e563ee
+async def test_PromptExtractorWorker_run_no_findings(worker, mock_core_context):
+    """With nothing to claim, run() reports zero and never loads the model."""
+    bb_svc = AsyncMock()
+    bb_svc.claim_open_findings.return_value = []
+    mock_core_context.registry.get_blackboard_service.return_value = bb_svc
+    prompt_module = MagicMock()
+
+    with patch.dict("sys.modules", {"shared.ai.prompt_model": prompt_module}):
+        await worker.run()
+
+    prompt_module.PromptModel.load.assert_not_called()
+    worker.post_artifact_finding.assert_not_awaited()
+    bb_svc.update_entry_status.assert_not_awaited()
+    worker.post_report.assert_awaited_once_with(
+        subject="prompt_extractor_worker.run.complete",
+        payload={"processed": 0, "message": "No unprocessed findings to extract."},
+    )

@@ -58,3 +58,59 @@ async def test_ObserverWorker() -> None:
         subject=_REPORT_SUBJECT,
         payload=sample_state,
     )
+
+
+# ID: f5ebc774-b5c0-4cd2-987b-123a4bbbcd77
+async def test_ObserverWorker_run() -> None:
+    """run() is one cycle in a fixed order: heartbeat, collect, log, report.
+
+    The health-log row and the blackboard report carry the same state the
+    service collected, and the health log is written before the report.
+    """
+    worker = ObserverWorker()
+    calls: list[str] = []
+
+    state = {
+        "open_findings": 7,
+        "stale_entries": 2,
+        "silent_workers": 1,
+        "orphaned_symbols": 0,
+    }
+
+    async def _heartbeat() -> None:
+        calls.append("heartbeat")
+
+    async def _collect(threshold: int) -> dict[str, int]:
+        calls.append(f"collect:{threshold}")
+        return state
+
+    async def _write(row: dict[str, int]) -> None:
+        calls.append("write_health_log")
+
+    async def _report(**kwargs: object) -> None:
+        calls.append("post_report")
+
+    worker.post_heartbeat = AsyncMock(side_effect=_heartbeat)
+    worker.post_report = AsyncMock(side_effect=_report)
+
+    hl_svc = AsyncMock()
+    hl_svc.collect_system_state = AsyncMock(side_effect=_collect)
+    hl_svc.write_health_log = AsyncMock(side_effect=_write)
+
+    with patch("body.services.service_registry.service_registry") as registry:
+        registry.get_health_log_service = AsyncMock(return_value=hl_svc)
+        result = await worker.run()
+
+    from will.workers.observer_worker import _CFG
+
+    assert result is None
+    assert calls == [
+        "heartbeat",
+        f"collect:{_CFG.stale_threshold_seconds}",
+        "write_health_log",
+        "post_report",
+    ]
+    hl_svc.write_health_log.assert_awaited_once_with(state)
+    worker.post_report.assert_awaited_once_with(
+        subject="observer.situation_report", payload=state
+    )

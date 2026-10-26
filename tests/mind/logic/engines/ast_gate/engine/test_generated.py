@@ -73,3 +73,42 @@ def test_ASTGateEngine(tmp_path: Path) -> None:
     assert result.ok is True
     assert result.engine_id == "ast_gate"
     assert result.violations == []
+
+
+# ID: 624b6f6e-3f76-4229-977a-4f7eb8a0b4b1
+def test_ASTGateEngine_fs_taxonomy() -> None:
+    """fs_taxonomy is lazy and cached: construction does not load it, the
+    first access loads it once, later accesses return the same object."""
+    taxonomy = MagicMock(name="taxonomy")
+
+    with patch(
+        "mind.logic.engines.ast_gate.engine.load_filesystem_operations",
+        return_value=taxonomy,
+    ) as loader:
+        engine = ASTGateEngine(MagicMock())
+        loader.assert_not_called()
+
+        first = engine.fs_taxonomy
+        second = engine.fs_taxonomy
+
+    assert first is taxonomy
+    assert second is taxonomy
+    loader.assert_called_once_with()
+
+
+# ID: 97d78ebd-6332-4a4b-9844-c8dac36d39f5
+def test_ASTGateEngine_fs_taxonomy_load_error_is_not_cached() -> None:
+    """A loader error surfaces to the caller (fail-closed) and is not cached:
+    the next access retries the load."""
+    taxonomy = MagicMock(name="taxonomy")
+
+    with patch(
+        "mind.logic.engines.ast_gate.engine.load_filesystem_operations",
+        side_effect=[RuntimeError("bad taxonomy"), taxonomy],
+    ) as loader:
+        engine = ASTGateEngine(MagicMock())
+        with pytest.raises(RuntimeError, match="bad taxonomy"):
+            engine.fs_taxonomy
+        assert engine.fs_taxonomy is taxonomy
+
+    assert loader.call_count == 2
