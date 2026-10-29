@@ -1,13 +1,12 @@
 # CLAUDE.md — CORE
 
-## Freeze until 2026-10-29
+## v3 done; CORE 3.1 in progress (since 2026-10-29)
 
-v3 done = issues #1055, #1070, #1081, #1114, #1115, #1237, #1239, #1243, #1252,
-#1255, #1285 (added 2026-10-23: found by the #1070 drill). Work only on these. No new reviews. Anything newly found is filed in
-milestone CORE 3.1 unless it breaks one of these issues or a v3 gate. New
-infrastructure (timers, crons, credentials, services) needs the governor's yes
-first. The PR check `freeze-scope` refuses a PR whose description names none of
-these issues and no CORE 3.1 issue.
+The freeze ended 2026-10-29: every v3 gate issue is closed (milestone
+CORE 3.0: 48 closed, 0 open). Work is filed in milestone CORE 3.1. No new features
+before the v3 release. New infrastructure (timers, crons, credentials,
+services) needs the governor's yes first. The PR check `freeze-scope` still
+refuses a PR whose description names no v3 or CORE 3.1 issue.
 
 CORE is a Python runtime that audits a codebase against rules in `.intent/`, records
 violations in PostgreSQL, proposes fixes, and logs the chain from finding to commit.
