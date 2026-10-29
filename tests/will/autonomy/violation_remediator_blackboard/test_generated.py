@@ -58,7 +58,6 @@ async def test_mark_delegated():
     service.mark_indeterminate.assert_awaited_once()
 
 
-
 import pytest
 
 from will.autonomy.violation_remediator_blackboard import release_unmappable
@@ -83,4 +82,24 @@ async def test_release_unmappable():
     assert result == 2
     mock_release_entries.assert_awaited_once_with(
         service, ["entry-1", "entry-2"], claimed_by="worker-a"
+    )
+
+
+import asyncio
+
+from will.autonomy.violation_remediator_blackboard import release_entries
+
+
+# ID: a30f246e-a714-4d1a-adf6-294afa4b79da
+def test_release_entries():
+    entry_ids = ["e1", "e2"]
+    claimed_by = MagicMock()
+    service = MagicMock()
+    service.release_claimed_entries = AsyncMock(return_value=2)
+
+    result = asyncio.run(release_entries(service, entry_ids, claimed_by=claimed_by))
+
+    assert result == 2
+    service.release_claimed_entries.assert_awaited_once_with(
+        entry_ids, claimed_by=claimed_by
     )
