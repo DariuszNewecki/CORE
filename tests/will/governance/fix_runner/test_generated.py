@@ -45,3 +45,57 @@ async def test_run_and_persist_quality():
     assert second_call.kwargs.get("finished") is True
     assert second_call.kwargs.get("error") is None
     assert second_call.kwargs.get("result") == result_payload
+
+
+
+import pytest
+
+from will.governance.fix_runner import run_quality_policy_coverage
+
+
+@pytest.mark.asyncio
+# ID: 61c719b1-beea-4b4a-a31e-f9a19a209e7a
+async def test_run_quality_policy_coverage():
+    fake_report = MagicMock()
+    fake_report.report_id = "rpt-123"
+    fake_report.generated_at_utc = "2024-01-01T00:00:00Z"
+    fake_report.repo_root = "/repo"
+    fake_report.summary = {"total": 3, "covered": 3}
+    fake_report.records = [{"policy": "p1", "covered": True}]
+    fake_report.exit_code = 0
+
+    context = MagicMock()
+    context.git_service.repo_path = "/repo"
+
+    mock_service_cls = MagicMock()
+    mock_service_instance = MagicMock()
+    mock_service_instance.run.return_value = fake_report
+    mock_service_cls.return_value = mock_service_instance
+
+    mock_path_resolver_cls = MagicMock()
+    mock_path_resolver_cls.from_repo.return_value = MagicMock()
+
+    with (
+        patch(
+            "mind.governance.policy_coverage_service.PolicyCoverageService",
+            mock_service_cls,
+        ),
+        patch("shared.path_resolver.PathResolver", mock_path_resolver_cls),
+        patch(
+            "will.governance.fix_runner.intent_root_for", return_value="/repo/intents"
+        ),
+    ):
+        result = await run_quality_policy_coverage(context)
+
+    assert result == {
+        "report_id": "rpt-123",
+        "generated_at_utc": "2024-01-01T00:00:00Z",
+        "repo_root": "/repo",
+        "summary": {"total": 3, "covered": 3},
+        "records": [{"policy": "p1", "covered": True}],
+        "exit_code": 0,
+    }
+    mock_path_resolver_cls.from_repo.assert_called_once_with(
+        repo_root="/repo", intent_root="/repo/intents"
+    )
+    mock_service_instance.run.assert_called_once_with()
