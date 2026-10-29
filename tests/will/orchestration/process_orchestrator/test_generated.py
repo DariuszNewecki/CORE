@@ -20,3 +20,22 @@ def test_evaluate_workflow_result():
 
     assert success is True
     assert reason == "Success"
+
+
+from unittest.mock import patch
+
+from will.orchestration.process_orchestrator import ProcessOrchestrator
+
+
+# ID: 63a201f4-f129-4f67-9d6d-18a7125e3417
+def test_ProcessOrchestrator_reset():
+    orchestrator = ProcessOrchestrator()
+    orchestrator.session_state = {"key": "value"}
+    orchestrator.execution_history = [MagicMock()]
+
+    with patch("will.orchestration.process_orchestrator.logger") as mock_logger:
+        orchestrator.reset()
+
+    assert orchestrator.session_state == {}
+    assert orchestrator.execution_history == []
+    mock_logger.debug.assert_called_once_with("ProcessOrchestrator state reset")
