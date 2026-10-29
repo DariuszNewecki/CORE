@@ -74,3 +74,18 @@ async def test_CoreApiClient_sync_vectors():
 
     assert result == expected
     client.sync.sync_vectors.assert_awaited_once_with("param1", key="value")
+
+
+
+
+
+# ID: 0a74de7b-98f5-4437-8adf-cae1373f3aa4
+async def test_CoreApiClient_sync_knowledge_graph():
+    client = CoreApiClient(base_url="http://localhost:9999")
+    client.sync = MagicMock()
+    client.sync.sync_knowledge_graph = AsyncMock(return_value={"ok": True})
+
+    result = await client.sync_knowledge_graph("a", key="b")
+
+    client.sync.sync_knowledge_graph.assert_awaited_once_with("a", key="b")
+    assert result == {"ok": True}
