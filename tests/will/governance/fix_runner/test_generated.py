@@ -130,8 +130,6 @@ async def test_run_quality_imports() -> None:
     }
 
 
-
-
 # ID: a9be0595-1bdf-4286-89c5-9adb3a3ec984
 def test_bootstrap_ir():
     from will.governance.fix_runner import bootstrap_ir
@@ -159,3 +157,58 @@ def test_bootstrap_ir():
     called_rel, called_content = context.file_handler.write_runtime_text.call_args[0]
     assert called_rel == result
     assert "incident_triage_log" in called_content
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: f3994a74-3559-4a87-87dc-20773774b35c
+async def test_run_and_persist_modularity() -> None:
+    from will.governance.fix_runner import run_and_persist_modularity
+
+    run_id = uuid4()
+    context = MagicMock()
+    session = AsyncMock()
+
+    results = [
+        {"file": "a.py", "original_score": 3.1, "success": True, "message": "ok"},
+        {"file": "b.py", "original_score": 2.4, "success": True, "message": "ok"},
+    ]
+
+    mock_service = MagicMock()
+    mock_service.remediate_batch = AsyncMock(return_value=results)
+
+    with (
+        patch(
+            "will.self_healing.modularity_remediation_service.ModularityRemediationService",
+            return_value=mock_service,
+        ) as mock_cls,
+        patch(
+            "will.governance.fix_runner._update_fix_run_status",
+            new=AsyncMock(),
+        ) as mock_update,
+    ):
+        await run_and_persist_modularity(
+            context,
+            session,
+            run_id=run_id,
+            write=True,
+            params={"min_score": 2.0},
+        )
+
+    mock_cls.assert_called_once_with(context)
+    mock_service.remediate_batch.assert_awaited_once_with(write=True, min_score=2.0)
+
+    statuses = [c.args[2] for c in mock_update.await_args_list]
+    assert statuses == ["executing", "completed"]
+
+    final_call = mock_update.await_args_list[-1]
+    assert final_call.kwargs["finished"] is True
+    payload = final_call.kwargs["result"]
+    assert payload["kind"] == "modularity"
+    assert payload["ok"] is True
+    assert payload["count"] == 2
+    assert payload["successes"] == 2
+    assert payload["failures"] == 0
+    assert payload["files"] == results
