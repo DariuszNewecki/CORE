@@ -217,9 +217,12 @@ core project scout /path/to/myproject
 
 This is the one command in this guide that needs no running services —
 it reads `.intent/` and your source tree directly. Pass `--target` (only
-valid with `--offline`) since this guide never `cd`s into the project:
+valid with `--offline`) since this guide never `cd`s into the project.
+The audit judges the law committed at `HEAD`, so commit `.intent/` first;
+uncommitted law reads DEGRADED, never PASS:
 
 ```bash
+git -C /path/to/myproject add .intent && git -C /path/to/myproject commit -m "Add CORE law"
 core-admin code audit --offline --target /path/to/myproject
 ```
 
@@ -269,8 +272,8 @@ Expected output includes:
 ╰─────────────────╯
 ```
 
-Two BLOCK findings because the regex matches both `except:` and the
-`pass` on the following line. Both match the `no_bare_except` rule.
+Two BLOCK findings on the same `except:` line: two patterns of the
+`no_bare_except` rule match it (`except:\s*pass` and `except:\s*$`).
 
 ---
 
@@ -316,7 +319,7 @@ myproject/
 │   │       └── scout.yaml             ← your ratified rules → engine mapping
 │   ├── rules/
 │   │   └── scout_inducted.json        ← your ratified rule declarations
-│   └── taxonomies/                    ← operational capabilities, capability tiers
+│   └── taxonomies/                    ← operational capabilities, cognitive roles, filesystem operations
 └── bad.py (or your real source files)
 ```
 
@@ -332,8 +335,8 @@ install. See [cold-reviewer.md](cold-reviewer.md) for setup (two files, five
 minutes).
 
 **Promote rules to blocking** — any `reporting` rule can be changed to
-`blocking` by editing `scout_inducted.json` and the enforcement level in
-`scout.yaml`. Re-run the audit to confirm the escalation works before committing.
+`blocking` by editing its `enforcement` in `scout_inducted.json` (`scout.yaml`
+holds only the engine, params and scope). Re-run the audit to confirm the escalation works before committing.
 
 **Add custom rules** — write a rule document in
 `.intent/rules/your_rules.json` following the same schema as
@@ -341,8 +344,9 @@ minutes).
 and the next audit will pick it up automatically.
 
 **Run Scout again** — as your codebase grows, re-run `core project scout
-/path/to/myproject --write` to surface new patterns. Already-ratified rules are not overwritten;
-Scout writes to `scout_inducted.json` (additive unless you edit it).
+/path/to/myproject --write` to surface new patterns. Scout refuses to run while
+`scout_inducted.json` exists; a re-run needs a reset, which deletes that file and the
+rules you ratified, so copy any you want to keep first.
 
 **Full runtime** — if you want the autonomous daemon (continuous audit →
 remediation → commit loop), see [getting-started.md](getting-started.md) for
