@@ -87,38 +87,6 @@ class ConstitutionalFileValidationResult(ConstitutionalValidationResult):
     file_path: str = ""
     schema_path: str = ""
 
-    @classmethod
-    # ID: aea7bca0-d2ac-4105-a011-8abc59815674
-    def from_schema_validation(
-        cls,
-        file_path: str,
-        schema_path: str,
-        is_valid: bool,
-        error_message: str | None = None,
-    ) -> ConstitutionalFileValidationResult:
-        """Create result from schema validation."""
-        violations = []
-        if not is_valid and error_message:
-            # We use a simple dict here to avoid importing ViolationReport,
-            # ensuring the shared layer remains pure.
-            violations.append(
-                {
-                    "rule_name": "schema_validation",
-                    "path": file_path,
-                    "message": error_message,
-                    "severity": "error",
-                    "source_policy": schema_path,
-                }
-            )
-
-        return cls(
-            is_valid=is_valid,
-            violations=violations,
-            source="schema_validator",
-            file_path=file_path,
-            schema_path=schema_path,
-        )
-
 
 @dataclass
 # ID: e5b34796-abf5-4aa1-afc6-6d3323bc5966
@@ -140,18 +108,6 @@ class ConstitutionalBatchValidationResult:
     def total_files(self) -> int:
         """Total number of files validated."""
         return len(self.results)
-
-    @property
-    # ID: b6af6fc8-096b-4528-a223-0f71ebaf3e1f
-    def valid_count(self) -> int:
-        """Number of valid files."""
-        return sum(1 for r in self.results if r.is_valid)
-
-    @property
-    # ID: 220ee2a3-8371-4f7f-828e-ff9e405638d9
-    def invalid_count(self) -> int:
-        """Number of invalid files."""
-        return sum(1 for r in self.results if not r.is_valid)
 
     @property
     # ID: 6db1bbed-2956-4d73-9457-07f18f342a9b

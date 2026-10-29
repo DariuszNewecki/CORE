@@ -1,8 +1,8 @@
 # src/body/self_healing/header_service.py
 
 """
-HeaderService — enforces the constitutional file header law.
-Refactored to use the canonical ActionExecutor Gateway for all mutations.
+fix.headers — enforces the constitutional file header law.
+All mutations go through the canonical ActionExecutor Gateway.
 """
 
 from __future__ import annotations
@@ -23,124 +23,6 @@ if TYPE_CHECKING:
     from shared.context import CoreContext
 
 logger = getLogger(__name__)
-
-
-# ID: e1e63d42-0626-40d7-84bc-5d3469a00bc5
-class HeaderService:
-    """Detects and fixes missing or incorrect file path headers in src/**/*.py files."""
-
-    def __init__(self, repo_root: Path) -> None:
-        self.repo_root = repo_root
-
-    def _get_expected_header(self, file_path: Path) -> str:
-        rel_path = file_path.relative_to(self.repo_root).as_posix()
-        return f"# {rel_path}"
-
-    def _get_current_header(self, file_path: Path) -> str | None:
-        try:
-            lines = file_path.read_text(encoding="utf-8").splitlines()
-        except Exception:
-            return None
-
-        for line in lines:
-            stripped = line.strip()
-            if not stripped:
-                continue
-            # Check if it's a path comment (starts with # followed by a path)
-            if stripped.startswith("#") and "/" in stripped:
-                return stripped
-            # First non-blank, non-comment line means no header found
-            if not stripped.startswith("#"):
-                return None
-        return None
-
-    # ID: 8d49b70c-95b6-4aea-b392-6b3c30fac7aa
-    def analyze(self, paths: list[str]) -> list[dict[str, Any]]:
-        """Identifies header violations in the provided paths."""
-        issues = []
-        for p in paths:
-            path = Path(p)
-            # Ensure we only target source files within the repo
-            if path.suffix != ".py" or not str(path.resolve()).startswith(
-                str(self.repo_root.resolve() / "src")
-            ):
-                continue
-
-            expected = self._get_expected_header(path)
-            current = self._get_current_header(path)
-
-            if current != expected:
-                issues.append(
-                    {
-                        "file": str(path),
-                        "issue": (
-                            "missing_header" if current is None else "incorrect_header"
-                        ),
-                        "current_header": current,
-                        "expected_header": expected,
-                    }
-                )
-        return issues
-
-    # ID: fbb21920-5457-4aa2-9ae7-23da72fff8fd
-    async def fix(
-        self, context: CoreContext, paths: list[str], write: bool = False
-    ) -> None:
-        """Fixes headers for specific paths via the Action Gateway."""
-        issues = self.analyze(paths)
-        for issue in issues:
-            await self._apply_fix(
-                context, Path(issue["file"]), issue["expected_header"], write
-            )
-
-    async def _apply_fix(
-        self, context: CoreContext, file_path: Path, expected_header: str, write: bool
-    ) -> None:
-        """Prepares the new source and dispatches to ActionExecutor."""
-        rel_path = str(file_path.relative_to(self.repo_root))
-        executor = ActionExecutor(context)
-
-        try:
-            content = file_path.read_text(encoding="utf-8")
-        except Exception as e:
-            logger.error("Could not read %s for header fix: %s", rel_path, e)
-            return
-
-        lines = content.splitlines(keepends=True)
-        new_lines = []
-        skip_next_blank = False
-
-        for line in lines:
-            stripped = line.strip()
-            # Skip existing header line
-            if stripped.startswith("# src/"):
-                skip_next_blank = True
-                continue
-            # Skip blank line immediately after removed header
-            if skip_next_blank and not stripped:
-                skip_next_blank = False
-                continue
-            skip_next_blank = False
-            new_lines.append(line)
-
-        # Reconstruct with the correct header
-        final_lines = [expected_header + "\n"]
-        if new_lines and new_lines[0].strip():
-            final_lines.append("\n")
-        final_lines.extend(new_lines)
-
-        final_code = "".join(final_lines)
-
-        # CONSTITUTIONAL GATEWAY: Mutation is audited and guarded
-        result = await executor.execute(
-            action_id="file.edit", write=write, file_path=rel_path, code=final_code
-        )
-
-        if result.ok:
-            status = "Fixed" if write else "Proposed (Dry Run)"
-            logger.info("   -> [%s] Header in %s", status, rel_path)
-        else:
-            logger.error("   -> [BLOCKED] %s: %s", rel_path, result.data.get("error"))
 
 
 # ID: 4828affd-f7da-4995-9493-7037211b4144
