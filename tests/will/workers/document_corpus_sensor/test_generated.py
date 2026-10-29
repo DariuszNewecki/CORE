@@ -61,3 +61,21 @@ async def test_DocumentCorpusSensor_run() -> None:
 
     if verdict.status in dcs_mod._GAP_STATUSES:
         sensor.post_artifact_finding.assert_awaited_once()
+
+
+import asyncio
+
+from will.workers.document_corpus_sensor import DocumentCorpusSensor
+
+
+# ID: 0a5ca4b3-5e6c-4ae4-96ff-692c24b56b37
+def test_DocumentCorpusSensor():
+    worker = DocumentCorpusSensor()
+    worker._corpus_root_str = ""
+    worker._catalog_root_str = ""
+    worker._catalog_names = []
+
+    with patch.object(worker, "post_heartbeat", new=AsyncMock()) as mock_hb:
+        asyncio.run(worker.run())
+
+    mock_hb.assert_awaited_once()
