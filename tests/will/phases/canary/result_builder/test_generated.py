@@ -47,3 +47,35 @@ def test_CanaryResultBuilder_build_advisory_failure_result():
 
     mock_logger.warning.assert_called_once()
     mock_logger.info.assert_called_once()
+
+
+
+from will.phases.canary.result_builder import CanaryResultBuilder
+
+
+# ID: 8d2ce28c-7bc4-4e51-9ff0-5a04bab9ede0
+def test_CanaryResultBuilder_build_success_result():
+    test_result = {
+        "passed": 10,
+        "failed": 0,
+        "exit_code": 0,
+    }
+    test_paths = ["tests/test_a.py", "tests/test_b.py"]
+    duration = 3.5
+
+    builder = CanaryResultBuilder()
+
+    result = builder.build_success_result(test_result, test_paths, duration)
+
+    assert result.name == "canary_validation"
+    assert result.ok is True
+    assert result.duration_sec == duration
+    assert result.data["syntax_valid"] is True
+    assert result.data["logic_preserved"] is True
+    assert result.data["canary_passes"] is True
+    assert result.data["existing_tests_pass"] is True
+    assert result.data["tests_passed"] == 10
+    assert result.data["tests_failed"] == 0
+    assert result.data["exit_code"] == 0
+    assert result.data["test_files"] == test_paths
+    assert result.data["advisory"] is False
