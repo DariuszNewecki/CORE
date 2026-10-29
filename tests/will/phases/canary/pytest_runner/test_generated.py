@@ -36,3 +36,36 @@ def test_PytestRunner_run_tests() -> None:
     assert out["failed"] == 0
     assert out["exit_code"] == 0
     assert "all good" in out["output"]
+
+
+import asyncio
+
+
+# ID: ea55e48d-e1bd-4f50-ae3e-f703d5b5a774
+def test_PytestRunner():
+    path_resolver = MagicMock()
+    path_resolver.repo_root = "/repo"
+
+    result = MagicMock()
+    result.status = "passed"
+    result.completeness = "full"
+    result.counts = {"passed": 3, "failed": 0}
+    result.ok = True
+    result.exit_code = 0
+    result.stdout = "all good"
+    result.stderr = ""
+    result.failed_ids = []
+
+    runner = PytestRunner(path_resolver, execution_timeout=42)
+
+    with patch(
+        "will.phases.canary.pytest_runner.run_in_sandbox",
+        new=AsyncMock(return_value=result),
+    ) as mock_run:
+        out = asyncio.run(runner.run_tests(["tests/test_a.py"]))
+
+    mock_run.assert_awaited_once_with("/repo", ["tests/test_a.py"], timeout_sec=42)
+    assert out["passed"] == 3
+    assert out["failed"] == 0
+    assert out["exit_code"] == 0
+    assert out["output"] == "all good"
