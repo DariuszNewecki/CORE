@@ -20,7 +20,7 @@
     },
     {
       "id": "architecture.intent.references_resolve",
-      "statement": "Concrete references that .intent/ declares MUST resolve: flow steps of kind action to an @atomic_action id in src/; test_coverage.yaml include_files to existing files; enforcement-mapping params.entry_points to existing files or directories; worker implementation.module/class to a module under src/ that defines or re-exports that class; namespace_manifest classification paths under .intent/ to existing files; auto_remediation.yaml entries with status ACTIVE or DELEGATE to an @register_action id under src/body/atomic/ (action) or an active flow_id (flow) -- PENDING entries name actions not yet built and are exempt.",
+      "statement": "Concrete references that .intent/ declares MUST resolve: flow steps of kind action to an @atomic_action id in src/; test_coverage.yaml include_paths, exclude_paths and include_files to existing files or directories; enforcement-mapping params.entry_points to existing files or directories; worker implementation.module/class to a module under src/ that defines or re-exports that class; namespace_manifest classification paths under .intent/ to existing files; auto_remediation.yaml entries with status ACTIVE or DELEGATE to an @register_action id under src/body/atomic/ (action) or an active flow_id (flow) -- PENDING entries name actions not yet built and are exempt.",
       "enforcement": "blocking",
       "authority": "constitution",
       "phase": "audit",

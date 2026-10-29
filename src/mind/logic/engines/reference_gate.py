@@ -14,7 +14,8 @@ Field-aware by design — only fields whose meaning is "this must exist now":
 
 - flow steps with ``kind: action`` → an ``@atomic_action(action_id=...)``
   decoration in ``src/``;
-- ``enforcement/config/test_coverage.yaml`` ``include_files`` → files;
+- ``enforcement/config/test_coverage.yaml`` ``include_paths``,
+  ``exclude_paths`` and ``include_files`` → files or directories;
 - any enforcement mapping's ``params.entry_points`` → files or directories;
 - worker declarations' ``implementation.module`` / ``implementation.class``
   → a module under ``src/`` defining that class;
@@ -179,8 +180,9 @@ def _test_coverage_files(
         return []
     doc = intent.load_document(path)
     return [
-        (path, "include_files", f, "does not exist")
-        for f in doc.get("include_files") or []
+        (path, key, f, "does not exist")
+        for key in ("include_paths", "exclude_paths", "include_files")
+        for f in doc.get(key) or []
         if isinstance(f, str) and not law_path(repo_root, f).exists()
     ]
 
