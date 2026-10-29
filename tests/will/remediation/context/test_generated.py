@@ -190,3 +190,50 @@ class TestContextMixin:
 
         assert "=== Call graph context ===" in result
         assert "=== Semantic examples (correct implementations) ===" in result
+
+
+import asyncio
+from unittest.mock import patch
+
+
+# ID: 04cb65a1-a7d3-47f1-8c8a-2415cb80fc95
+def test_ContextMixin():
+    async def _run() -> None:
+        with patch("will.remediation.context._CFG") as cfg:
+            cfg.semantic_examples_limit = 3
+
+            hit1 = MagicMock()
+            hit1.payload = {"source": "def good_impl():\n    pass"}
+            hit2 = MagicMock()
+            hit2.payload = {"source": "def another_good_impl():\n    return 1"}
+
+            ctx_service = MagicMock()
+            ctx_service.get_context_for_file = AsyncMock(
+                return_value="callers: foo -> bar"
+            )
+
+            vector_store = MagicMock()
+            vector_store.search = AsyncMock(return_value=[hit1, hit2])
+
+            host = MagicMock()
+            host._ctx = MagicMock()
+            host._ctx.context_service = ctx_service
+            host._ctx.vector_store = vector_store
+
+            method = ContextMixin._build_context
+            result = await method(host, "src/pkg/module.py", "unused import")
+
+        assert "=== Call graph context ===" in result
+        assert "callers: foo -> bar" in result
+        assert "=== Semantic examples (correct implementations) ===" in result
+        assert "def good_impl():" in result
+        assert "def another_good_impl():" in result
+
+        ctx_service.get_context_for_file.assert_awaited_once_with("src/pkg/module.py")
+        vector_store.search.assert_awaited_once_with(
+            collection="core-code",
+            query="unused import",
+            limit=3,
+        )
+
+    asyncio.run(_run())
