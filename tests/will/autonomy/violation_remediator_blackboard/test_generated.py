@@ -103,3 +103,22 @@ def test_release_entries():
     service.release_claimed_entries.assert_awaited_once_with(
         entry_ids, claimed_by=claimed_by
     )
+
+
+
+import pytest
+
+from will.autonomy.violation_remediator_blackboard import resolve_entries
+
+
+# ID: 0807cfe1-695a-4948-9c38-e77bcf7a997d
+async def test_resolve_entries() -> None:
+    service = AsyncMock()
+    service.resolve_entries_for_proposal = AsyncMock(return_value=2)
+
+    result = await resolve_entries(service, ["e1", "e2"], "prop-1")
+
+    assert result == 2
+    service.resolve_entries_for_proposal.assert_awaited_once_with(
+        ["e1", "e2"], "prop-1"
+    )
