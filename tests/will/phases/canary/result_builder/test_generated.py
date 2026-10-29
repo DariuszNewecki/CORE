@@ -80,9 +80,6 @@ def test_CanaryResultBuilder_build_success_result():
     assert result.data["advisory"] is False
 
 
-
-
-
 # ID: f9eab38d-12b8-4a21-a0e0-61d527c4d416
 def test_CanaryResultBuilder_build_no_tests_result() -> None:
     builder = CanaryResultBuilder()
@@ -101,3 +98,20 @@ def test_CanaryResultBuilder_build_no_tests_result() -> None:
         "note": "No existing tests - behavioral preservation cannot be verified",
     }
     mock_logger.info.assert_called_once()
+
+
+
+
+# ID: 0bed3de9-1646-440a-8f72-30bf59a5c4c7
+def test_build_skipped_result():
+    result = CanaryResultBuilder.build_skipped_result("no changes detected", 1.5)
+
+    assert result.name == "canary_validation"
+    assert result.ok is True
+    assert result.duration_sec == 1.5
+    assert result.data["skipped"] is True
+    assert result.data["reason"] == "no changes detected"
+    assert result.data["syntax_valid"] is True
+    assert result.data["logic_preserved"] is True
+    assert result.data["canary_passes"] is True
+    assert result.data["existing_tests_pass"] is True
