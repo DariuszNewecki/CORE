@@ -36,9 +36,6 @@ async def test_SyncClient_get_sync_run():
     assert result == {"id": "run-123", "status": "ok"}
 
 
-
-
-
 # ID: aef6465a-ce7c-44ba-b121-19d1b23c6096
 async def test_SyncClient_sync_dev_sync() -> None:
     facade = MagicMock()
@@ -53,3 +50,35 @@ async def test_SyncClient_sync_dev_sync() -> None:
         "/v1/sync/dev-sync",
         json={"write": True, "target": "dev", "requested_by": "tester"},
     )
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: c71007a7-5c91-4bc2-bace-57dc450133d1
+async def test_SyncClient_sync_code_vectors():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "ok", "count": 3})
+
+    client = SyncClient(facade)
+
+    result = await client.sync_code_vectors(
+        write=True,
+        target="pkg",
+        requested_by="tester",
+        force=True,
+    )
+
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/sync/code-vectors",
+        json={
+            "write": True,
+            "target": "pkg",
+            "requested_by": "tester",
+            "force": True,
+        },
+    )
+    assert result == {"status": "ok", "count": 3}
