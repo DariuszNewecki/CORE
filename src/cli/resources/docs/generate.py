@@ -79,7 +79,9 @@ def _change_summary(old: str | None, new: str) -> str:
     summary="Regenerate the CLI reference pages and the OpenAPI contract.",
     dangerous=True,
 )
-@core_command(dangerous=True, requires_context=False)
+# Renders the CLI trees and the OpenAPI document only; no Qdrant, LLM or
+# auditor context, so it runs in any checkout without services (#1167).
+@core_command(dangerous=True, requires_context=False, requires_brain_services=False)
 # ID: 0cd24900-c622-40cd-8fde-6653c6c1e52a
 async def generate_docs_command(
     ctx: typer.Context,

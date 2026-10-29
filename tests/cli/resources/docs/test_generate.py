@@ -103,3 +103,29 @@ def test_change_summary() -> None:
     assert gen._change_summary(None, "a\n") == "new"
     assert gen._change_summary("a\n", "a\n") == "unchanged"
     assert gen._change_summary("a\nb\n", "a\nc\nd\n") == "changed (+2 / -1 lines)"
+
+
+def test_runs_without_brain_services(tmp_path: Path) -> None:
+    """docs generate never touches Qdrant, so the decorator must not warm it
+    (#1167: it failed with "QDRANT_URL is not configured" in a plain checkout)."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    ctx = MagicMock(spec=typer.Context)
+    ctx.obj = MagicMock(qdrant_service=None)
+    ctx.obj.registry.get_qdrant_service = AsyncMock(
+        side_effect=ValueError("QDRANT_URL is not configured")
+    )
+    ctx.find_root = _ctx().find_root
+    with (
+        patch.object(gen, "core_source_root", return_value=tmp_path),
+        patch.object(
+            gen,
+            "_load_core_cli",
+            return_value=(click_command_for(_tree("consumer")), "9.9.9"),
+        ),
+        patch.object(
+            gen, "render_openapi_document", return_value='{"openapi": "3.1.0"}\n'
+        ),
+    ):
+        gen.generate_docs_command(ctx=ctx, write=False)
+    ctx.obj.registry.get_qdrant_service.assert_not_called()
