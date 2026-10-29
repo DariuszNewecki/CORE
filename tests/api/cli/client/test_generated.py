@@ -102,3 +102,25 @@ async def test_core_api_client_census_diff():
 
     assert result == expected
     client.census.census_diff.assert_awaited_once_with()
+
+
+import asyncio
+
+
+# ID: 6795d260-f9a1-435b-8b9f-0584e7363721
+def test_CoreApiClient_census_list_baselines():
+    import api.cli.client as client_module
+
+    with patch.object(
+        client_module, "parse_base_url", return_value=("http://localhost:8000", None)
+    ):
+        client = client_module.CoreApiClient(base_url="http://localhost:8000")
+
+        expected = {"baselines": [{"id": "b1", "name": "baseline-one"}]}
+        client.census = MagicMock()
+        client.census.census_list_baselines = AsyncMock(return_value=expected)
+
+        result = asyncio.run(client.census_list_baselines(limit=10, offset=0))
+
+        assert result == expected
+        client.census.census_list_baselines.assert_awaited_once_with(limit=10, offset=0)
