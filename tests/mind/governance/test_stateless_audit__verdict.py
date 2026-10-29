@@ -6,9 +6,8 @@ verdict, entirely independent of ConstitutionalAuditor._determine_verdict
 and its DEGRADED semantics / ignored_finding_types carve-out. That gap
 mattered specifically here: this function always builds AuditorContext
 with no session_provider, so db_session is *always* None in this path —
-meaning ENFORCEMENT_UNAVAILABLE findings for
-runtime.worker_max_interval_within_observed (and pre-existing
-ENFORCEMENT_FAILURE crash findings) are a routine outcome of exactly this
+meaning ENFORCEMENT_UNAVAILABLE findings from checks that need a session
+(and pre-existing ENFORCEMENT_FAILURE crash findings) are a routine outcome of exactly this
 CLI command, not a theoretical one. Empirically confirmed via
 `core-admin code audit --offline` before this fix: the real audit run
 showed "Final Verdict: FAIL" for a db_session-unavailable finding.
@@ -118,9 +117,7 @@ async def _run(findings: list[dict], tmp_path: Path):
 async def test_blocking_unavailable_finding_yields_degraded(tmp_path: Path) -> None:
     """Governor ruling 3: a blocking ENFORCEMENT_UNAVAILABLE finding makes
     this path's verdict DEGRADED -- never PASS, never FAIL."""
-    result = await _run(
-        [_unavailable_finding("runtime.worker_max_interval_within_observed")], tmp_path
-    )
+    result = await _run([_unavailable_finding("some.unavailable_rule")], tmp_path)
     assert result["verdict"] == "DEGRADED"
     assert result["passed"] is False
 
@@ -156,7 +153,7 @@ async def test_one_unavailable_rule_and_one_real_violation_is_fail(
     unavailable blocking rule is FAIL: the tree is known non-compliant."""
     result = await _run(
         [
-            _unavailable_finding("runtime.worker_max_interval_within_observed"),
+            _unavailable_finding("some.unavailable_rule"),
             _genuine_violation("some.rule"),
         ],
         tmp_path,

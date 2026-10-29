@@ -16,12 +16,11 @@ The two engine categories CORE's audit conflates:
     at a tempdir whose files have crate overlays answers the question
     correctly for the proposed change.
 
-  Runtime engines — cli_gate, knowledge_gate, runtime_gate, llm_gate
+  Runtime engines — cli_gate, knowledge_gate, llm_gate
     Ask "does the running SYSTEM have the right shape?" Substrate is
-    the imported Typer registry, the DB-backed knowledge graph, the
-    live blackboard, or the LLM provider. Each of these reflects the
-    state of the deployed system, not the file-level proposition the
-    Limb is sensing. Running them against a shadow tempdir either
+    the imported Typer registry, the DB-backed knowledge graph, or
+    the LLM provider. Each of these reflects the state of the deployed
+    system, not the file-level proposition the Limb is sensing. Running them against a shadow tempdir either
     silently returns the wrong answer (cli_gate walks the live registry
     built from real-disk imports, not the shadow's would-be commands)
     or has no shadow projection at all (DB graph reflects committed
@@ -61,13 +60,12 @@ logger = getLogger(__name__)
 # Runtime-introspection engines — see module docstring for the category
 # distinction. These engines ask post-commit questions; running them
 # against a shadow workspace either lies (cli_gate) or has no shadow
-# projection (knowledge_gate, llm_gate, runtime_gate).
+# projection (knowledge_gate, llm_gate).
 _SHADOW_INCOMPATIBLE_ENGINES: frozenset[str] = frozenset(
     {
         "cli_gate",
         "knowledge_gate",
         "llm_gate",
-        "runtime_gate",
     }
 )
 
@@ -84,10 +82,6 @@ _SHADOW_SKIP_REASONS: dict[str, str] = {
     "llm_gate": (
         "calls an LLM provider whose context is the deployed codebase; "
         "no shadow projection at the substrate"
-    ),
-    "runtime_gate": (
-        "reads blackboard telemetry from the live daemon; orthogonal to a "
-        "pre-commit shadow workspace"
     ),
 }
 

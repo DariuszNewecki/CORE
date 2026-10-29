@@ -17,9 +17,9 @@ from shared.utils.audit_grouping import group_findings
 
 def _unavailable() -> AuditFinding:
     return AuditFinding(
-        "runtime.worker_max_interval_within_observed",
+        "purity.no_orphan_files",
         AuditSeverity.BLOCK,
-        "insufficient evidence to compare configured vs. observed max_interval",
+        "insufficient evidence: knowledge graph unavailable",
         file_path="System",
         context={"finding_type": "ENFORCEMENT_UNAVAILABLE"},
     )
@@ -60,7 +60,7 @@ def test_is_not_evaluated_recognises_both_types() -> None:
 def test_tables_label_not_evaluated_rows(captured: io.StringIO, printer) -> None:
     printer([_unavailable(), _violation()])
     lines = captured.getvalue().splitlines()
-    unavailable = next(line for line in lines if "runtime.worker_max" in line)
+    unavailable = next(line for line in lines if "purity.no_orphan_files" in line)
     violation = next(line for line in lines if "starter.no_bare_except" in line)
     assert "NOT EVALUATED" in unavailable and "unavailable" in unavailable
     assert "BLOCK" not in unavailable and "needs human" not in unavailable

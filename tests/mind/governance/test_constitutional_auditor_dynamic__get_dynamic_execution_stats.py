@@ -237,12 +237,12 @@ async def test_run_dynamic_rules_tracks_unavailable_separately_from_crashed() ->
     never conflated."""
 
     class _UnavailableEngine:
-        engine_id = "runtime_gate"
+        engine_id = "knowledge_gate"
 
         async def verify_context(self, *_a: object, **_k: object) -> list[Any]:
             return [
                 AuditFinding(
-                    check_id="runtime.worker_max_interval_within_observed",
+                    check_id="some.unavailable.rule",
                     severity=AuditSeverity.BLOCK,
                     message="db_session unavailable",
                     file_path="none",
@@ -260,9 +260,9 @@ async def test_run_dynamic_rules_tracks_unavailable_separately_from_crashed() ->
             raise RuntimeError("boom")
 
     unavailable_rule = ExecutableRule(
-        rule_id="runtime.worker_max_interval_within_observed",
-        engine="runtime_gate",
-        params={"check_type": "worker_max_interval_within_observed"},
+        rule_id="some.unavailable.rule",
+        engine="knowledge_gate",
+        params={"check_type": "whatever"},
         enforcement="blocking",
         is_context_level=True,
     )
@@ -275,7 +275,7 @@ async def test_run_dynamic_rules_tracks_unavailable_separately_from_crashed() ->
     )
 
     engines = {
-        "runtime_gate": _UnavailableEngine(),
+        "knowledge_gate": _UnavailableEngine(),
         "ast_gate": _CrashingEngine(),
     }
 
@@ -300,7 +300,7 @@ async def test_run_dynamic_rules_tracks_unavailable_separately_from_crashed() ->
             unavailable_rule_ids=unavailable_rule_ids,
         )
 
-    assert unavailable_rule_ids == {"runtime.worker_max_interval_within_observed"}
+    assert unavailable_rule_ids == {"some.unavailable.rule"}
     assert crashed_rule_ids == {"some.crashing.rule"}
     # Genuinely disjoint -- neither set contains the other's rule.
     assert unavailable_rule_ids.isdisjoint(crashed_rule_ids)

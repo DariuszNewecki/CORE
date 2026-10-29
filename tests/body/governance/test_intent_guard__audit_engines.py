@@ -81,7 +81,6 @@ CONTEXT_LEVEL_ENGINES = [
     "cli_gate",
     "workflow_gate",
     "contracts_gate",
-    "runtime_gate",
 ]
 
 # The literal passive_gate engine name — the alias *target*, declared

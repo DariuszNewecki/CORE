@@ -73,7 +73,6 @@ def test_get_all_supported_engines():
     supported_ids = [
         "ast_gate",
         "glob_gate",
-        "action_gate",
         "regex_gate",
         "workflow_gate",
         "knowledge_gate",

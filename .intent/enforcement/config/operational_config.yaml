@@ -92,14 +92,6 @@ daemon:
   systemctl_timeout_sec: 30.0
   stale_code_escalation_minutes: 30
 
-worker_classification:
-  loop_hold_escalation_sec: 5.0
-  loop_hold_deescalation_sec: 1.0
-  loop_hold_escalation_hours: 24
-  loop_hold_deescalation_hours: 168
-  min_samples_for_escalation: 3
-  min_active_heartbeats_for_deescalation: 10
-
 proposals:
   list_limit: 100
   pending_limit: 50
