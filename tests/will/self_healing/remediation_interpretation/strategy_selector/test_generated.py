@@ -25,9 +25,6 @@ def test_StrategySelector_choose_recommended():
     assert result is top_strategy
 
 
-
-
-
 # ID: bcb37792-795c-4152-9135-36c1721b729c
 def test_StrategySelector_select():
     template_a = MagicMock()
@@ -83,3 +80,77 @@ def test_StrategySelector_select():
     assert result[1].summary == "summary_a"
     assert result[1].risk_level == "low"
     assert result[1].preserves_contract is True
+
+
+from unittest.mock import patch
+
+
+# ID: e061de84-0951-4e50-a34b-985c1023d92e
+def test_StrategySelector():
+    strategy_selector_module = (
+        "will.self_healing.remediation_interpretation.strategy_selector"
+    )
+
+    FileRole = MagicMock()
+    ResponsibilityCluster = MagicMock()
+    StrategyTemplate = MagicMock()
+    RemediationStrategy = MagicMock(side_effect=lambda **kwargs: kwargs)
+
+    template = MagicMock()
+    template.strategy_id = "extract_helper_functions"
+    template.summary = "Extract helper functions"
+    template.rationale = "Reduces complexity"
+    template.risk_level = "low"
+    template.preserves_contract = True
+    template.preferred_for_roles = ("service",)
+    template.discouraged_for_roles = ()
+    template.preferred_for_rules = ()
+    template.discouraged_for_rules = ()
+
+    catalog = MagicMock()
+    catalog.list_templates.return_value = [template]
+
+    file_role = MagicMock()
+    file_role.role_id = "service"
+    file_role.layer = "body"
+
+    file_context = {
+        "file_metrics": {"line_count": 100},
+        "violation_summary": {},
+        "role_constraints": [],
+    }
+    responsibility_clusters = []
+
+    with (
+        patch.object(
+            StrategySelector,
+            "_score_template",
+            return_value=(7, ["some evidence"]),
+        ) as mock_score,
+        patch.object(
+            StrategySelector,
+            "_dedupe_preserve_order",
+            side_effect=lambda items: items,
+        ),
+        patch(
+            f"{strategy_selector_module}.RemediationStrategy",
+            RemediationStrategy,
+        ),
+    ):
+        selector = StrategySelector(strategy_catalog=catalog)
+        result = selector.select(file_role, file_context, responsibility_clusters)
+
+    assert isinstance(result, list)
+    assert len(result) == 1
+    mock_score.assert_called_once_with(
+        template=template,
+        file_role=file_role,
+        file_context=file_context,
+        responsibility_clusters=responsibility_clusters,
+    )
+    produced = result[0]
+    assert produced["strategy_id"] == "extract_helper_functions"
+    assert produced["score"] == 7
+    assert produced["evidence"] == ["some evidence"]
+    assert produced["risk_level"] == "low"
+    assert produced["preserves_contract"] is True
