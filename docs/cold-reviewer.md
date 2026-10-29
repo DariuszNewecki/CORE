@@ -43,16 +43,20 @@ No daemon runs. No database is provisioned. The action is the stateless audit pa
 
 ## Minimum setup
 
-Your repository needs a `.intent/` directory at the root. If you don't have one, `pip install core-runtime` and run `core-admin project init . --write --yes` in the repository: it delivers `.intent/` and this workflow.
+Your repository needs a `.intent/` directory at the root. If you don't have one, `pip install core-runtime` and run `core-admin project init . --write --yes` and then `core-admin project adopt-pack core/starter-python --write` in the repository. Init delivers `.intent/` with no rules (the audit answers ERROR until a pack is adopted) and the workflow.
 
 `core-admin project init . --write --yes` (and `project new`) writes this workflow for you, pinned to the installed release. To add it by hand, put it at `.github/workflows/core-audit.yml`:
 
 ```yaml
-name: CORE constitutional audit
+name: CORE audit
 
 on:
   pull_request:
+  push:
     branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   audit:

@@ -209,9 +209,8 @@ Enforced by: src/shared/infrastructure/context/builder.py
 vocabulary. It is paper-authority, human-authored, and the only place definitions, "not"
 disambiguations, and authoritative-source pointers are added or revised. …  
 Enforced by: governance.fs_operations.no_direct_yaml_import,
-  governance.vocabulary.authoritative_source_must_be_paper,
-  governance.vocabulary.canonical_format_must_validate, governance.vocabulary.no_direct_json_import,
-  governance.vocabulary.projection_must_match_canonical
+  governance.vocabulary.no_direct_json_import. The three vocabulary-paper rules were deleted
+  2026-10-13 with the governor's veto list (59f26ea9).
 
 ## ADR-024 — Local LLM cognitive role assignments — governed evaluation over assumption
 
@@ -735,8 +734,9 @@ Runtime invariant; D4 — Daemon split shape (systemd unit topology); D5 — Dae
 D6 — core-admin daemon up/down/restart/status wrappers; D7 — Drift detector audit rule …  
 Amended: Note 2026-06-09 — D2(2)'s embedder exclusion covers only the network-await embed call;
 where they disagree, D2(1)'s 5 s gate governs.  
-Enforced by: src/cli/commands/daemon.py, src/mind/governance/filtered_audit.py,
-  src/mind/logic/engines/runtime_gate.py (+4 more src/ files)
+Enforced by: src/cli/commands/daemon.py, src/mind/governance/filtered_audit.py (+4 more src/
+  files). The D7 drift rule and its engine, runtime_gate, are gone: rule deleted 2026-10-13
+  (59f26ea9), engine removed by #1348.
 
 ## ADR-082 — Writer-as-sensor retention policy
 
@@ -745,8 +745,8 @@ D1 — Writer-as-sensor blackboard entries MUST declare retention; D2 — Mechan
 telemetry hard-DELETE; D3 — Mechanism 2: DELEGATE OPEN finding status transition; D4 — Sweep host:
 BlackboardShopManager; D5 — Row cap rail: sweep_batch_max; D6 — Empty allowlist is fail-closed …  
 Enforced by: src/body/services/blackboard_service/blackboard_service.py,
-  src/mind/logic/engines/runtime_gate.py, src/shared/infrastructure/intent/operational_config.py (+1
-  more src/ files)
+  src/shared/infrastructure/intent/operational_config.py (+1 more src/ files). runtime_gate.py
+  was removed by #1348.
 
 ## ADR-083 — Stamping Tier 1/2 commercial add-ons as F-44–F-47
 
@@ -926,8 +926,9 @@ Enforced by: data.contracts.asymmetric_contract_findings, data.contracts.layer_s
 D1 — schedule.max_interval is the cycle cap (constitutional); D2 — The 1.1 multiplier and glide_off
 are both jitter tolerance, not headroom; D3 — No mechanism change; D4 — Tactical drift response
 stays tactical; D5 — What this ADR explicitly does NOT decide.  
-Enforced by: src/cli/commands/daemon.py, src/mind/logic/engines/runtime_gate.py,
-  src/shared/workers/schedule.py
+Enforced by: src/cli/commands/daemon.py, src/shared/workers/schedule.py. The drift rule
+  (runtime.worker_max_interval_within_observed) was deleted 2026-10-13 (59f26ea9) and its
+  engine, runtime_gate, removed by #1348.
 
 ## ADR-104 — Orphaned-claim reaper (claim lifecycle is process-scoped, not loop-scoped)
 
@@ -1270,8 +1271,8 @@ Enforced by: architecture.acceptance.test_gen_must_include_sandbox_gate
 D1 — Split the engine-touching boundary by graph dependency; D2 — Engine graph-dependency declared
 on the engine class; D3 — Subprocess isolation model; D4 — Subprocess IPC; D5 — Subprocess runner in
 tool_runner.py sanctuary; D6 — Verdict shape changes; D7 — What this does NOT decide.  
-Enforced by: src/body/atomic/assisted_actions.py, src/body/atomic/tool_runner.py,
-  src/cli/resources/constitution/verify_bind.py (+3 more src/ files)
+Enforced by: src/body/atomic/assisted_actions.py, src/body/atomic/tool_runner.py (+3 more src/
+  files). `constitution verify-bind` was removed 2026-10-13 (59f26ea9).
 
 ## ADR-142 — Passive Gate Enforced-By Symbol Attestation
 

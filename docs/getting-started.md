@@ -16,7 +16,7 @@ If you only want to audit code against rules, you need none of it: see
 | Docker      | Docker Engine with **Compose v2**, daemon **running** and reachable by your user |
 | Poetry      | installed and on `PATH` |
 | PostgreSQL  | ≥ 14 — provided by Docker on the default path |
-| Qdrant      | latest — provided by Docker on the default path |
+| Qdrant      | 1.18 — provided by Docker on the default path |
 
 **No LLM is needed** to install CORE, run the offline audit, or run the consequence-chain
 demo. An LLM (local model server or external API, your choice) is needed only for
@@ -81,9 +81,8 @@ If that succeeds you can skip to [Key Commands](#key-commands) — CORE is runni
 The rest of this section is the same path, done by hand.
 
 **What a healthy fresh install looks like.** The installer's offline audit ends with
-`verdict DEGRADED`, not PASS: a few blocking rules need the running knowledge graph
-or database and cannot be evaluated offline. The installer says so and continues;
-that is expected. Without an LLM configured you will also see one line saying no LLM
+`verdict PASS`. Two reporting rules that need the knowledge graph are skipped offline;
+they block nothing. Without an LLM configured you will also see one line saying no LLM
 is configured and that LLM-checked rules use a stub. That is the documented no-key
 path, not a fault: an LLM is needed only for autonomous code generation. To see
 CORE's internal start-up detail on any command, set `LOG_LEVEL=DEBUG`.
@@ -179,17 +178,10 @@ This runs the full constitutional rule library across all enforcement engines an
 
 A clean audit (zero blocking violations) is the precondition for autonomous operation.
 
-**What a fresh install shows.** Both audits report **DEGRADED** and exit with code **1**.
-This is expected, and not a failure. DEGRADED means CORE could not evaluate every
-blocking rule, so it refuses to call the result a PASS:
-
-- The offline audit reports 0 blocking findings and names the blocking rules it
-  skipped because they need running services.
-- The full audit lists `runtime.worker_max_interval_within_observed` as
-  `NOT EVALUATED` / `unavailable`, with "insufficient evidence". That rule compares each worker's heartbeat
-  timing over at least 24 hours of history, which a new install does not have yet.
-  It is an *unavailable* check, not a violation. It resolves once the daemon has
-  run long enough (`make daemon-start`).
+**What a fresh install shows.** The offline audit reports PASS (exit 0). If an audit
+reports **DEGRADED** (exit 1), it names the blocking rules it could not evaluate:
+compliance is unknown for those rules, which is not a violation. CORE refuses to
+call such a result a PASS.
 
 Exit codes: `0` PASS · `1` FAIL or DEGRADED · `2` configuration error · `64` internal
 error (treat it as the gate not having run). A FAIL always names at least one blocking
@@ -279,7 +271,8 @@ install that allows only `core-*` units. `daemon-reload` is skipped in that mode
 wrapper or file permissions don't allow them.)
 
 With the daemon running, routine maintenance is **automatic**: `DbSyncWorker`
-keeps the knowledge graph and vectors in sync on a ~5-minute cadence, and the
+keeps the symbol tables in PostgreSQL in sync, the embedder workers keep the vectors
+in sync, and the
 remediation loop proposes fixes for structural violations. You rarely need to
 run `dev sync --write` by hand — that command is the synchronous *do-it-now*
 version of what the daemon does continuously (useful when the tree isn't clean
@@ -300,8 +293,8 @@ an LLM provider in `.env` (see the LLM section), then run the remediation
 pipeline for a rule:
 
 ```bash
-poetry run core-admin workers remediate <rule>            # sensor → LLM proposes fix → canary → blackboard (review)
-poetry run core-admin workers remediate <rule> --write    # ... and apply + commit the fix
+poetry run core-admin workers remediate <rule>    # sensor → LLM proposes fix → canary → a PENDING proposal
+# Nothing is applied to src/ or committed until the governor approves the proposal.
 ```
 
 This is governed generation under the same constitutional loop.
