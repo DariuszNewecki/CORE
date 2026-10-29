@@ -105,7 +105,6 @@ def test_release_entries():
     )
 
 
-
 import pytest
 
 from will.autonomy.violation_remediator_blackboard import resolve_entries
@@ -122,3 +121,47 @@ async def test_resolve_entries() -> None:
     service.resolve_entries_for_proposal.assert_awaited_once_with(
         ["e1", "e2"], "prop-1"
     )
+
+
+
+
+# ID: f45bdecf-d185-4d0d-9fe3-605255cdfd72
+async def test_load_open_findings():
+    from will.autonomy.violation_remediator_blackboard import load_open_findings
+
+    mappable_finding = {
+        "id": "abc",
+        "payload": {"check_id": "rule-1", "file_path": "src/app.py"},
+    }
+    unmappable_finding = {
+        "id": "def",
+        "payload": {"check_id": "rule-unknown", "file_path": "src/other.py"},
+    }
+
+    service = MagicMock()
+    service.claim_findings_by_patterns = AsyncMock(
+        return_value=[mappable_finding, unmappable_finding]
+    )
+    service.release_claimed_entries = AsyncMock(return_value=1)
+    service.mark_indeterminate = AsyncMock()
+
+    claimed_by = "worker-1"
+    remediation_map = {"rule-1": MagicMock()}
+
+    with patch(
+        "will.audit_violation.filter.is_autonomously_remediable_target",
+        return_value=True,
+    ):
+        result = await load_open_findings(
+            service,
+            patterns=["%"],
+            claimed_by=claimed_by,
+            remediation_map=remediation_map,
+        )
+
+    assert result == [mappable_finding]
+    service.claim_findings_by_patterns.assert_awaited_once_with(
+        patterns=["%"], limit=200, claimed_by=claimed_by
+    )
+    service.release_claimed_entries.assert_awaited_once()
+    service.mark_indeterminate.assert_not_awaited()
