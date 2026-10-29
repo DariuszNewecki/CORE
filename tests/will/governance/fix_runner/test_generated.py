@@ -47,7 +47,6 @@ async def test_run_and_persist_quality():
     assert second_call.kwargs.get("result") == result_payload
 
 
-
 import pytest
 
 from will.governance.fix_runner import run_quality_policy_coverage
@@ -99,3 +98,34 @@ async def test_run_quality_policy_coverage():
         repo_root="/repo", intent_root="/repo/intents"
     )
     mock_service_instance.run.assert_called_once_with()
+
+
+
+import pytest
+
+from will.governance.fix_runner import run_quality_imports
+
+
+@pytest.mark.asyncio
+# ID: 3a7cda98-a31a-4eec-8036-c8b193564921
+async def test_run_quality_imports() -> None:
+    context = MagicMock()
+
+    fake_result = MagicMock()
+    fake_result.ok = True
+    fake_result.data = {"violations": [{"message": "unused import"}]}
+
+    fake_executor = MagicMock()
+    fake_executor.execute = AsyncMock(return_value=fake_result)
+
+    with patch(
+        "will.governance.fix_runner.ActionExecutor", return_value=fake_executor
+    ) as mock_executor_cls:
+        result = await run_quality_imports(context)
+
+    mock_executor_cls.assert_called_once_with(context)
+    fake_executor.execute.assert_awaited_once_with("check.imports")
+    assert result == {
+        "status": "ok",
+        "violations": [{"message": "unused import"}],
+    }
