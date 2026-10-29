@@ -39,3 +39,39 @@ def test_ProcessOrchestrator_reset():
     assert orchestrator.session_state == {}
     assert orchestrator.execution_history == []
     mock_logger.debug.assert_called_once_with("ProcessOrchestrator state reset")
+
+
+
+
+
+# ID: d071d0c9-a3bc-4e6b-974f-539584b98933
+def test_ProcessOrchestrator_get_workflow_summary():
+    orchestrator = ProcessOrchestrator()
+
+    phase_a = MagicMock()
+    phase_a.value = "analysis"
+    phase_b = MagicMock()
+    phase_b.value = "implementation"
+
+    r1 = MagicMock()
+    r1.ok = True
+    r1.duration_sec = 1.5
+    r1.confidence = 0.9
+    r1.phase = phase_a
+
+    r2 = MagicMock()
+    r2.ok = False
+    r2.duration_sec = 0.5
+    r2.confidence = 0.5
+    r2.phase = phase_b
+
+    orchestrator.execution_history = [r1, r2]
+
+    summary = orchestrator.get_workflow_summary()
+
+    assert summary["total_steps"] == 2
+    assert summary["successful_steps"] == 1
+    assert summary["failed_steps"] == 1
+    assert summary["total_duration"] == 2.0
+    assert summary["avg_confidence"] == 0.7
+    assert set(summary["phases_used"]) == {"analysis", "implementation"}
