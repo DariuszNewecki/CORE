@@ -295,15 +295,6 @@ class PathResolver:
         return self.reports_dir / "audit_findings.processed.json"
 
     @property
-    # ID: 00b90847-450b-4855-98fe-9e6093972cd3
-    def remediation_evidence_dir(self) -> Path:
-        """
-        Canonical directory for remediation evidence artifacts.
-        Replaces: repo_root / "reports" / "remediation" in RemediationEvidenceWriter.
-        """
-        return self.reports_dir / "remediation"
-
-    @property
     # ID: 52627c1b-ad0f-40e3-9603-3a5097be98e4
     def workers_dir(self) -> Path:
         """

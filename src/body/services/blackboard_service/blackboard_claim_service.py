@@ -70,78 +70,6 @@ class BlackboardClaimService:
             )
         return findings
 
-    # ID: f3a8d1c2-7e45-4b09-a3f6-9d2c0e5b1a87
-    async def claim_violation_findings(
-        self, prefix: str, limit: int, claimed_by: uuid.UUID | None = None
-    ) -> list[dict[str, Any]]:
-        """
-        Atomically claim up to *limit* open findings whose subject matches
-        *prefix*, ordered by severity (critical first) then creation time.
-        Uses FOR UPDATE SKIP LOCKED to prevent double-claiming across
-        concurrent worker instances.
-
-        Returns list of dicts with keys: id, subject, payload.
-
-        Covers:
-          - ViolationRemediator._claim_open_findings
-        """
-        from body.services.service_registry import ServiceRegistry
-
-        async with ServiceRegistry.session() as session:
-            async with session.begin():
-                result = await session.execute(
-                    text(
-                        """
-                        UPDATE core.blackboard_entries
-                        SET status = 'claimed',
-                            claimed_by = :claimed_by,
-                            claimed_at = now(),
-                            updated_at = now()
-                        WHERE id IN (
-                            SELECT id FROM core.blackboard_entries
-                            WHERE entry_type = 'finding'
-                              AND subject LIKE :prefix
-                              AND status = 'open'
-                            ORDER BY
-                                CASE (payload->>'severity')
-                                    WHEN 'critical' THEN 1
-                                    WHEN 'error'    THEN 2
-                                    WHEN 'warning'  THEN 3
-                                    WHEN 'info'     THEN 4
-                                    ELSE 5
-                                END ASC,
-                                created_at ASC
-                            LIMIT :limit
-                            FOR UPDATE SKIP LOCKED
-                        )
-                        RETURNING id, subject, payload
-                        """
-                    ),
-                    {
-                        "prefix": prefix,
-                        "limit": limit,
-                        "claimed_by": str(claimed_by) if claimed_by else None,
-                    },
-                )
-                rows = result.fetchall()
-
-        findings = []
-        for row in rows:
-            raw_payload = row[2]
-            payload = (
-                raw_payload
-                if isinstance(raw_payload, dict)
-                else json.loads(raw_payload)
-            )
-            findings.append(
-                {
-                    "id": str(row[0]),
-                    "subject": row[1],
-                    "payload": payload,
-                }
-            )
-        return findings
-
     # ID: a992bd84-4ff3-4b37-bbb1-6ce94b13d9d3
     async def claim_findings_by_patterns(
         self,
@@ -150,15 +78,12 @@ class BlackboardClaimService:
         claimed_by: uuid.UUID | None = None,
     ) -> list[dict[str, Any]]:
         """
-        Multi-pattern counterpart to ``claim_violation_findings`` — claims
-        open findings whose subject matches any of *patterns* under
+        Claims open findings whose subject matches any of *patterns* under
         SQL ``LIKE ANY``, ordered by severity then creation time.
 
         Introduced by ADR-091 D5 Phase 3. The audit-violation consumer surface
         derives its filter from ``audit_violation_like_patterns()`` rather
-        than a single static prefix; ``claim_violation_findings(prefix)`` is
-        retained for callers that still genuinely use a single prefix
-        (e.g. ``test_remediator`` until Phase 5 migrates it).
+        than a single static prefix.
 
         An empty *patterns* list returns an empty result without executing
         SQL — mirrors ``fetch_open_findings_by_patterns``.

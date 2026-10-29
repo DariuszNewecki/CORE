@@ -345,23 +345,3 @@ class ProposalStateManager:
             )
         await self._session.commit()
         logger.info("Rejected proposal: %s - %s", proposal_id, reason)
-
-    # -------------------------
-    # Context Manager for Session Lifecycle
-    # -------------------------
-
-    @classmethod
-    # ID: eafbc456-17aa-4b5c-b0e8-ee8a697d0925
-    async def with_session(cls, proposal_id: str) -> ProposalStateManager:
-        """
-        Create state manager with shared session.
-
-        For use within existing repository context:
-            async with ProposalRepository.open() as repo:
-                manager = await ProposalStateManager.with_session(...)
-        """
-        # This is intentionally simple - callers should use the service_registry
-        # pattern or wrap in their own context manager
-        raise NotImplementedError(
-            "Use ProposalStateManager(session) within an existing session context"
-        )
