@@ -27,7 +27,6 @@ async def test_ProposalsClient_get_proposal_chain():
     }
 
 
-
 import pytest
 
 
@@ -47,3 +46,23 @@ async def test_ProposalsClient_execute_proposal() -> None:
         "/v1/proposals/prop-123/execute",
         json={"write": True},
     )
+
+
+import asyncio
+
+
+# ID: c33638ae-ff31-4b18-9ec9-1da12baa38a7
+def test_ProposalsClient_reject_proposal():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "rejected"})
+
+    client = ProposalsClient(facade)
+
+    result = asyncio.run(client.reject_proposal("prop-123", "not aligned with goals"))
+
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/proposals/prop-123/reject",
+        json={"reason": "not aligned with goals"},
+    )
+    assert result == {"status": "rejected"}
