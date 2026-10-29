@@ -100,7 +100,6 @@ async def test_run_quality_policy_coverage():
     mock_service_instance.run.assert_called_once_with()
 
 
-
 import pytest
 
 from will.governance.fix_runner import run_quality_imports
@@ -129,3 +128,34 @@ async def test_run_quality_imports() -> None:
         "status": "ok",
         "violations": [{"message": "unused import"}],
     }
+
+
+
+
+# ID: a9be0595-1bdf-4286-89c5-9adb3a3ec984
+def test_bootstrap_ir():
+    from will.governance.fix_runner import bootstrap_ir
+
+    context = MagicMock()
+    context.file_handler.repo_path = "/repo"
+
+    # PathResolver(root).mind_dir is used to build the rel path; patch it so we
+    # don't depend on its internal layout.
+    with __import__("unittest").mock.patch(
+        "will.governance.fix_runner.PathResolver"
+    ) as MockResolver:
+        MockResolver.return_value.mind_dir = MagicMock()
+        MockResolver.return_value.mind_dir.__truediv__ = lambda self, other: other
+
+        from pathlib import Path
+
+        MockResolver.return_value.mind_dir = Path("/repo/var/mind")
+
+        result = bootstrap_ir(context, "triage")
+
+    assert isinstance(result, str)
+    assert result.endswith("var/mind/ir/triage_log.yaml")
+    context.file_handler.write_runtime_text.assert_called_once()
+    called_rel, called_content = context.file_handler.write_runtime_text.call_args[0]
+    assert called_rel == result
+    assert "incident_triage_log" in called_content
