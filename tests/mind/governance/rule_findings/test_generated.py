@@ -30,7 +30,6 @@ def test_content_not_evaluated_finding():
     assert "3 file(s)" in finding.message
 
 
-
 from mind.governance.rule_findings import transient_llm_failure_finding
 
 
@@ -63,3 +62,32 @@ def test_transient_llm_failure_finding():
     assert "RULE-001" in finding.message
     assert "3 file(s)" in finding.message
     assert "2 unique error(s)" in finding.message
+
+
+from mind.governance.rule_findings import enforcement_failure_finding
+
+
+# ID: b5140429-b79f-4f5a-b93d-7fd062484cb3
+def test_enforcement_failure_finding():
+    rule = MagicMock()
+    rule.rule_id = "RULE_001"
+    rule.engine = "pytest"
+    rule.policy_id = "POLICY_42"
+
+    error = RuntimeError("boom")
+
+    finding = enforcement_failure_finding(
+        rule, "/abs/path/file.py", "src/file.py", error
+    )
+
+    assert finding.check_id == "RULE_001.enforcement_failure"
+    assert finding.severity.name == "BLOCK"
+    assert "ENFORCEMENT_FAILURE" in finding.message
+    assert "/abs/path/file.py" in finding.message
+    assert "boom" in finding.message
+    assert finding.file_path == "src/file.py"
+    assert finding.context["finding_type"] == "ENFORCEMENT_FAILURE"
+    assert finding.context["engine"] == "pytest"
+    assert finding.context["policy_id"] == "POLICY_42"
+    assert finding.context["exception_type"] == "RuntimeError"
+    assert finding.context["exception_message"] == "boom"
