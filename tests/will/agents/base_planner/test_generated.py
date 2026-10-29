@@ -44,3 +44,23 @@ def test_parse_and_validate_plan():
     mock_exec_task.assert_called_once_with(
         action="file.write", step="write file", params={"file_path": "src/a.py"}
     )
+
+
+from will.agents.base_planner import plan_steps
+
+
+# ID: da7b2194-dc0d-445a-990a-ae02c11c1494
+def test_plan_steps():
+    steps = ["step one", "step two", "step three"]
+
+    # Bare list is accepted as-is
+    assert plan_steps(steps) is steps
+
+    # Object form with "plan" key returns the inner step list
+    assert plan_steps({"plan": steps}) is steps
+
+    # Non-plan shapes yield None
+    assert plan_steps({"not_plan": steps}) is None
+    assert plan_steps({"plan": "not-a-list"}) is None
+    assert plan_steps("unexpected") is None
+    assert plan_steps(None) is None
