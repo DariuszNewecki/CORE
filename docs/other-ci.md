@@ -37,9 +37,10 @@ request's Code Quality tab. It installs the pinned `core-runtime` release at job
 | `CORE_SEVERITY` | `block` | Lowest severity reported: `block`, `high`, `medium`, `low`, `info` |
 | `CORE_IMAGE` | `python:3.12-slim` | Image to run in; use one with `core-runtime` preinstalled to skip the install |
 
-Exit code 1 means blocking findings (a developer fixes the code); 2 means the
-constitution could not be read or the audit could not govern (an operator fixes the
-setup).
+Exit code 1 means FAIL, blocking findings (a developer fixes the code), or DEGRADED,
+a blocking rule could not be evaluated or the law is not committed (commit `.intent/`
+or fix the setup); 2 means the constitution could not be read or the audit could not
+govern (an operator fixes the setup); 64 is an internal error.
 
 !!! warning "Not yet verified on GitLab"
     The audit command the template runs is the same one the GitHub Action and the

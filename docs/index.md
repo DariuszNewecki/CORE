@@ -19,7 +19,7 @@ CORE is a governance runtime. When an AI agent proposes a change, CORE:
 3. Records decisions and the finding → proposal → approval → execution chain (recording is best-effort: a database failure does not stop execution)
 4. Remediates automatically where rules permit; anything outside the narrow safe-auto-approval envelope waits for a human
 
-The aim: AI-assisted development that is auditable and governed. It is **not yet proven safe to leave unattended** — CORE's own [production-readiness verdict](https://github.com/DariuszNewecki/CORE/blob/main/.specs/attestations/production-readiness.yaml) is NOT ATTESTED, and unattended reliability (gate G4) is not demonstrated.
+The aim: AI-assisted development that is auditable and governed. It is **not yet proven safe to leave unattended** — CORE is not attested production-ready, and unattended reliability (gate G4) is not demonstrated.
 
 The goal is that the governor's job shrinks to two things: check the dashboard (`core-admin runtime dashboard`), and write constitutional intent. That is the design target, not today's measured state.
 
@@ -57,15 +57,14 @@ small client for a running CORE: proposals, the remediation lane, onboarding. Se
 
 ## Know this first
 
-- **Not production-attested.** CORE's own
-  [production-readiness verdict](https://github.com/DariuszNewecki/CORE/blob/main/.specs/attestations/production-readiness.yaml)
-  is NOT ATTESTED. Do not leave it unattended on code that matters.
+- **Not production-attested.** Do not leave CORE unattended on code that matters.
 - **Detects, does not prevent, by default.** On a single account (solo mode) CORE sees every
   change to your law and code, but cannot stop you or your assistant from making one. Separate
   OS accounts per role (solo-separated) let it prevent them; CORE's own server runs that way.
   CORE does not yet check that the machine matches the declared mode.
-- **No API authentication.** The API binds to `127.0.0.1` and trusts every caller.
-  Keep it there.
+- **No identity over TCP.** The API binds to `127.0.0.1`; a TCP caller is not identified, so
+  governor and producer acts are refused there (403). Those are accepted only on CORE's Unix
+  socket, from the OS account bound to that role. Keep the TCP port on `127.0.0.1`.
 - **An LLM is optional.** Auditing, rule packs, CI gating and the deterministic fixes
   need none. Code generation, rule induction and judged GRC verdicts do; CORE names no
   vendor and works with a local model server or an external API.

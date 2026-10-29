@@ -58,12 +58,12 @@ Once the one-time setup is complete:
    committed OpenAPI contract's `info.version`, and the CHANGELOG comparison
    links. It lists any pin it cannot rewrite safely
    (the README "Current Release" line, which also describes the release);
-   edit those by hand. CI runs `--check` and fails on any drift.
+   edit those by hand. Run `python scripts/release_pins.py --check` before tagging; no CI job runs it.
 3. Commit the bump (`release: X.Y.Z -- <one-line summary>`).
 4. Once the bump is merged, start the full CI run on the merge commit before tagging.
    A run tests the head of the branch it starts on, so start it on a branch at the merge
    commit: `git push origin <merge sha>:refs/heads/release-check/X.Y.Z && gh workflow run core-ci.yml --ref release-check/X.Y.Z`. The PyPI publish refuses a
-   tag without a green push run *and* a green full (workflow_dispatch) run on that SHA;
+   tag unless the latest CORE CI run on that SHA is green and a full (workflow_dispatch) run on it succeeded;
    the Docker images are built by the same run, after the PyPI publish.
 5. Tag the merge commit: `git tag -a vX.Y.Z -m "core-runtime X.Y.Z" <merge sha> && git push origin vX.Y.Z`.
 6. Create the GitHub release, so the repository page shows it as Latest:
@@ -93,9 +93,8 @@ Before tagging a release that changes the database schema:
 - **CHANGELOG** lists the release's schema migrations and whether writers must be quiesced.
 
 Before tagging, start the **full** CI run on the commit you will tag:
-`gh workflow run "CORE CI" --ref develop` (with `develop` at that commit). Push and PR runs
-skip the release-upgrade tests (pytest marker `upgrade`); the full run, like the nightly
-one, includes them.
+step 4 above (a `release-check/X.Y.Z` branch at that commit). Push and PR runs skip the
+release-upgrade tests (pytest marker `upgrade`); only the full run includes them.
 
 The `publish-pypi.yml` workflow fires on the tag push. It first refuses
 unless the latest CORE CI run for the exact tagged SHA concluded success
@@ -117,7 +116,7 @@ a re-tagged release.
 ## Notes
 
 - The workflow does **not** run pytest itself; it requires that CORE CI
-  (`core-ci.yml`, which runs on pushes to `develop`, on PRs, nightly and on
+  (`core-ci.yml`, which runs on pushes to `main`, on PRs and on
   `workflow_dispatch`) passed on the tagged SHA, including a full run. Tag a commit whose CI is green: a failed, cancelled,
   in-progress or missing run refuses the release. Re-run CI, then re-run
   the publish workflow.

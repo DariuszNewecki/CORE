@@ -30,7 +30,7 @@ schema and suggests baseline `v2.9.1`:
 ```bash
 poetry run core-admin database migrate --adopt-baseline v2.9.1          # dry run: verifies the baseline's probes, records nothing
 poetry run core-admin database migrate --adopt-baseline v2.9.1 --write  # records the ledger through v2.9.1
-poetry run core-admin database migrate --write                          # applies the 14 pending migrations, one transaction each
+poetry run core-admin database migrate --write                          # applies every pending migration, one transaction each
 poetry run core-admin database status                                   # must exit 0: current
 ```
 
@@ -38,7 +38,7 @@ poetry run core-admin database status                                   # must e
 
 ```bash
 poetry run core-admin database migrate --adopt-baseline v2.10.1 --write
-poetry run core-admin database migrate --write      # 1 applied, 4 reconciled: structure the schema already carries is recorded, not re-run
+poetry run core-admin database migrate --write      # applies the rest; structure the schema already carries is reconciled: recorded, not re-run
 poetry run core-admin database status               # must exit 0
 ```
 
