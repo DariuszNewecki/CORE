@@ -256,6 +256,27 @@ def test_file_ancestor_init_paths(test_file: str) -> list[str]:
     return paths
 
 
+# ID: 5b0e2f7a-3c91-4d8e-a6f4-9e1d7c2b8a03
+def in_test_scope(source_file: str, config: dict[str, Any]) -> bool:
+    """
+    True when the repo-relative ``source_file`` is in the law's test scope.
+
+    ``include_paths`` (ADR-172 item 4, #1325) is the rule: path prefixes, a
+    directory ending in ``/`` or one file, minus ``exclude_paths``. A config
+    without it falls back to the retired ``include_files`` list, so an
+    installed .intent/ that still lists files keeps working. Neither key
+    means every file under source_root.
+    """
+    prefixes = config.get("include_paths")
+    if prefixes:
+        excluded = config.get("exclude_paths") or []
+        return any(source_file.startswith(p) for p in prefixes) and not any(
+            source_file.startswith(p) for p in excluded
+        )
+    include_files = config.get("include_files") or []
+    return not include_files or source_file in include_files
+
+
 # ID: 8f9a4e1c-6d7b-4a23-be35-c4d5e6f7a819
 def uncovered_source_files(
     repo_root: Path,
@@ -277,7 +298,7 @@ def uncovered_source_files(
     .intent/enforcement/config/test_coverage.yaml:
       - source_root, test_root, test_file_suffix
       - excluded_filenames (skip-list)
-      - include_files (scope limiter; if non-empty, only these are scanned)
+      - include_paths / exclude_paths (the scope rule, see in_test_scope)
       - exempt_modules_without_public_symbols (governor ruling 2026-10-03):
         when true, a module with no public testable symbols — by the ADR-133
         D2 predicate the gap evaluator uses — is not reported, since the
@@ -290,7 +311,6 @@ def uncovered_source_files(
     excluded: frozenset[str] = frozenset(
         config.get("excluded_filenames", _FALLBACK_EXCLUDED_FILENAMES)
     )
-    include_files: frozenset[str] = frozenset(config.get("include_files") or [])
     exempt_symbol_less = bool(config.get("exempt_modules_without_public_symbols"))
 
     src_root = repo_root / source_root_rel
@@ -314,7 +334,7 @@ def uncovered_source_files(
         rel = py_file.relative_to(repo_root)
         source_file = str(rel)
 
-        if include_files and source_file not in include_files:
+        if not in_test_scope(source_file, config):
             continue
 
         try:

@@ -325,6 +325,7 @@ async def tests_symbols(
         load_operational_config,
     )
     from shared.infrastructure.intent.test_coverage_paths import (
+        in_test_scope,
         load_test_coverage_config,
     )
     from shared.utils.public_symbols import has_public_testable_symbols
@@ -336,13 +337,19 @@ async def tests_symbols(
     repo_root = BootstrapRegistry.get_repo_path()
     config = load_test_coverage_config()
     cap_n = load_operational_config().blackboard.remediation_cap_n
-    source_files = [
+    source_root = repo_root / config.get("source_root", "src")
+    excluded = set(config.get("excluded_filenames") or [])
+    source_files = sorted(
         f
-        for f in config.get("include_files") or []
-        if (repo_root / f).exists()
+        for f in (
+            str(p.relative_to(repo_root))
+            for p in source_root.rglob("*.py")
+            if p.name not in excluded
+        )
+        if in_test_scope(f, config)
         and (file is None or f == file)
         and has_public_testable_symbols(repo_root / f)
-    ]
+    )
 
     async with get_session() as session:
         attempt_rows: Sequence[Any] = (
