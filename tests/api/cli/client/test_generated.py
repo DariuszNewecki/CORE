@@ -51,3 +51,26 @@ def test_parse_base_url():
         "http://localhost",
         "/run/core/api/api.sock",
     )
+
+
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: e2b3a937-939c-4a6e-aea8-89c8ed15656a
+async def test_CoreApiClient_sync_vectors():
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost", None)
+    ):
+        client = CoreApiClient(base_url="http://localhost:8000")
+
+    expected = {"status": "ok", "synced": 3}
+    client.sync = MagicMock()
+    client.sync.sync_vectors = AsyncMock(return_value=expected)
+
+    result = await client.sync_vectors("param1", key="value")
+
+    assert result == expected
+    client.sync.sync_vectors.assert_awaited_once_with("param1", key="value")
