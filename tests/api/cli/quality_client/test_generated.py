@@ -22,3 +22,23 @@ async def test_QualityClient_quality_tests():
         json={"path": "tests/unit"},
     )
     assert result == {"status": "ok", "tests": []}
+
+
+import asyncio
+
+
+# ID: dce2dfe1-2791-4c24-8f37-6c9236a1feb2
+def test_QualityClient_quality_lint():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "ok", "issues": []})
+
+    client = QualityClient(facade)
+
+    result = asyncio.run(client.quality_lint(fix=True))
+
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/quality/lint",
+        json={"fix": True},
+    )
+    assert result == {"status": "ok", "issues": []}
