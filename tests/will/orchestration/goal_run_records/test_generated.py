@@ -136,3 +136,51 @@ async def test_post_reconnaissance_records():
     assert second_args[1]["run_id"] == "run-1"
     assert second_args[1]["topic"] == "migrations"
     assert second_args[1]["reason"] == "no_sql_files"
+
+
+import dataclasses
+from typing import Any
+
+from pydantic import BaseModel
+
+from will.orchestration.goal_run_records import blackboard_safe
+
+
+class _Task(BaseModel):
+    name: str
+    count: int
+
+
+@dataclasses.dataclass
+class _Step:
+    label: str
+    weight: float
+
+
+class _Op(BaseModel):
+    id: int
+
+
+# ID: 6987c772-57c4-4d88-bcc9-eb1d3cbea484
+def test_blackboard_safe() -> None:
+    value: Any = {
+        "execution_plan": [_Task(name="build", count=2), _Task(name="ship", count=1)],
+        "steps": (_Step(label="scan", weight=0.5),),
+        "plain": 42,
+        "nested": {"plan": [_Op(id=7)]},
+    }
+
+    result = blackboard_safe(value)
+
+    assert result == {
+        "execution_plan": [
+            {"name": "build", "count": 2},
+            {"name": "ship", "count": 1},
+        ],
+        "steps": [{"label": "scan", "weight": 0.5}],
+        "plain": 42,
+        "nested": {"plan": [{"id": 7}]},
+    }
+    # Containers are normalised to lists and all models/dataclasses are gone.
+    assert isinstance(result["steps"], list)
+    assert not any(isinstance(v, BaseModel) for v in result["execution_plan"])
