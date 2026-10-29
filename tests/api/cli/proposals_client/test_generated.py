@@ -25,3 +25,25 @@ async def test_ProposalsClient_get_proposal_chain():
         "proposal": {"id": "p1"},
         "consequence": {"id": "c1"},
     }
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: f700b343-acb6-4cee-8a14-9e2016991f06
+async def test_ProposalsClient_execute_proposal() -> None:
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "executed"})
+
+    client = ProposalsClient(facade)
+
+    result = await client.execute_proposal("prop-123", write=True)
+
+    assert result == {"status": "executed"}
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/proposals/prop-123/execute",
+        json={"write": True},
+    )
