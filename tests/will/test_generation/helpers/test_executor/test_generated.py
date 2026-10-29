@@ -91,3 +91,99 @@ def test_TestExecutor_execute():
     executor.model.invoke.assert_awaited_once()
     executor.sandbox.run.assert_awaited_once()
     executor.persistence.persist_quarantined.assert_called_once()
+
+
+
+
+# ID: 769772c8-d6ab-43f6-af5c-b9cd0505997f
+def test_TestExecutor():
+    import asyncio
+
+    from will.test_generation.helpers.test_executor import TestExecutor
+
+    context = MagicMock()
+    artifacts = MagicMock()
+    normalizer = MagicMock()
+    validator = MagicMock()
+    sandbox = MagicMock()
+    persistence = MagicMock()
+    prompt_engine = MagicMock()
+
+    normalizer.normalize.return_value = MagicMock(
+        code="def test_x():\n    assert True\n", method="strip"
+    )
+    validator.validate.return_value = MagicMock(ok=True, error="")
+    sandbox.run = AsyncMock(
+        return_value=MagicMock(passed=True, error="", passed_tests=["test_x"])
+    )
+    persistence.persist_quarantined.return_value = MagicMock(
+        ok=True, path="/quarantine/test_x.py", error=""
+    )
+    prompt_engine.build.return_value = "PROMPT"
+
+    executor = TestExecutor(
+        context=context,
+        artifacts=artifacts,
+        session_dir="/tmp/session",
+        normalizer=normalizer,
+        validator=validator,
+        sandbox=sandbox,
+        persistence=persistence,
+        prompt_engine=prompt_engine,
+    )
+
+    # Replace extractor/model to avoid real I/O.
+    executor.extractor = MagicMock()
+    executor.extractor.extract_target_code.return_value = "def x():\n    return 1\n"
+    executor.extractor.extract_dependencies.return_value = []
+    executor.extractor.extract_similar_symbols.return_value = []
+
+    exec_model = MagicMock()
+    exec_model.manifest = MagicMock(role="coder")
+    exec_model.invoke = AsyncMock(return_value="raw response")
+    executor.model = exec_model
+
+    context_service = MagicMock()
+    context_service.build_for_task = AsyncMock(return_value=MagicMock())
+
+    cognitive_svc = MagicMock()
+    cognitive_svc.aget_client_for_role = AsyncMock(return_value=MagicMock())
+    context.registry.get_cognitive_service = AsyncMock(return_value=cognitive_svc)
+
+    file_path = "/repo/src/module.py"
+    symbol = {"name": "x"}
+    strategy = MagicMock()
+    file_type = "python"
+    complexity = "low"
+
+    fake_facts = {"introspection_error": None}
+    with patch(
+        "will.test_generation.helpers.test_executor.build_introspection_facts",
+        return_value=fake_facts,
+    ):
+        result = asyncio.run(
+            executor.execute(
+                file_path=file_path,
+                symbol=symbol,
+                strategy=strategy,
+                context_service=context_service,
+                write=True,
+                file_type=file_type,
+                complexity=complexity,
+                has_db_harness=False,
+            )
+        )
+
+    assert result["symbol"] == "x"
+    assert result["skipped"] is False
+    assert result["validation_failure"] is False
+    assert result["validated"] is True
+    assert result["sandbox_ran"] is True
+    assert result["sandbox_passed"] is True
+    assert result["persisted"] is True
+    assert result["error"] == ""
+    artifacts.write_prompt.assert_called_once()
+    normalizer.normalize.assert_called_once_with("raw response")
+    validator.validate.assert_called_once()
+    sandbox.run.assert_awaited_once()
+    persistence.persist_quarantined.assert_called_once()
