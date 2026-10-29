@@ -44,7 +44,6 @@ def test_QualityClient_quality_lint():
     assert result == {"status": "ok", "issues": []}
 
 
-
 import pytest
 
 
@@ -70,3 +69,20 @@ async def test_QualityClient_quality_policy_coverage():
     facade._request.assert_awaited_once_with(
         "POST", "/v1/quality/policy-coverage", json={}
     )
+
+
+
+import pytest
+
+
+# ID: 6f6f8643-ba76-4e5f-823f-61b34bd83b6b
+async def test_QualityClient_quality_imports():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True, "imports": []})
+
+    client = QualityClient(facade)
+
+    result = await client.quality_imports()
+
+    assert result == {"ok": True, "imports": []}
+    facade._request.assert_awaited_once_with("POST", "/v1/quality/imports")
