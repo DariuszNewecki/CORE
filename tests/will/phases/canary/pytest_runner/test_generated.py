@@ -69,3 +69,13 @@ def test_PytestRunner():
     assert out["failed"] == 0
     assert out["exit_code"] == 0
     assert out["output"] == "all good"
+
+
+from will.phases.canary.pytest_runner import TestsNotRun
+
+
+# ID: 663d0b79-52cc-4571-8eee-b217f57caa7e
+def test_TestsNotRun():
+    error = TestsNotRun("sandbox did not run the tests")
+    assert isinstance(error, RuntimeError)
+    assert str(error) == "sandbox did not run the tests"
