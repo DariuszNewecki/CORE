@@ -67,3 +67,38 @@ def test_VectorsClient_status() -> None:
 
     assert result == expected
     facade._request.assert_awaited_once_with("GET", "/v1/vectors/status")
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 35bb570c-dae3-4137-a167-8efe41a9eadf
+async def test_VectorsClient():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True})
+
+    client = VectorsClient(facade)
+
+    status_result = await client.status()
+    assert status_result == {"ok": True}
+    facade._request.assert_awaited_once_with("GET", "/v1/vectors/status")
+
+    facade._request.reset_mock()
+    query_result = await client.query("test query")
+    assert query_result == {"ok": True}
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/vectors/query",
+        json={"query": "test query", "collection": "policies", "limit": 5},
+    )
+
+    facade._request.reset_mock()
+    rebuild_result = await client.rebuild("policies", write=True)
+    assert rebuild_result == {"ok": True}
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/vectors/rebuild",
+        json={"collection": "policies", "write": True},
+    )
