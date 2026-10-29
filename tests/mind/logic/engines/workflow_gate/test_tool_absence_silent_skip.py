@@ -27,8 +27,8 @@ for the verdict-level consequence.
 backs ``code.imports.must_resolve``/``code.imports.no_stale_namespace``)
 gets the same fix. It used to silent-skip on a missing tool exactly like
 ``RuffFormatCheck``/``LinterComplianceCheck`` still do below (#847/#856
-scoped their correction to ``QualityGateCheck`` and, in a sibling file,
-``runtime_gate``'s ``worker_max_interval`` check only) — but #855 found
+scoped their correction to ``QualityGateCheck`` and one since-removed
+worker-interval check only) — but #855 found
 this check's declared tools/params were never read at all, and fixing
 that meant fixing tool-absence handling in the same pass rather than
 shipping a newly-functional check that still silently passes when its

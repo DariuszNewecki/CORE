@@ -126,7 +126,7 @@ async def smell_test_command(
 
     # Both runs use the static-engine cohort (run_shadow_audit) so the
     # diff is computed over identical rule sets. Runtime-introspection
-    # engines (cli_gate / knowledge_gate / runtime_gate / llm_gate) are
+    # engines (cli_gate / knowledge_gate / llm_gate) are
     # partitioned out on principle: they ask post-commit questions and
     # cannot honestly sense a pre-commit shadow workspace. See module
     # docstring on mind.governance.shadow_audit for the category split.

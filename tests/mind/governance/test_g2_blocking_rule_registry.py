@@ -54,7 +54,6 @@ _CONVENTIONAL_ENGINES = {
     "workflow_gate",
     "knowledge_gate",
     "contracts_gate",
-    "runtime_gate",
     "reference_gate",
 }
 

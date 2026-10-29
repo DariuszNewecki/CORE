@@ -94,34 +94,6 @@ _SKIP_REASONS: dict[str, str] = {
 }
 
 
-# Individual rule_ids that structurally require db_session even though
-# their owning engine also dispatches DB-independent check_types, so the
-# coarser per-engine skip above doesn't apply to the whole engine. #856
-# made runtime.worker_max_interval_within_observed fail closed with a
-# BLOCK ENFORCEMENT_UNAVAILABLE finding whenever db_session is absent --
-# which it always is in this stateless path (AuditorContext is built with
-# session_provider=None a few lines below). Left unpartitioned, this rule
-# would manufacture that finding on every stateless run, permanently
-# capping CI's severity-based exit-code gate (audit.py::_run_offline_audit)
-# at a false "compliance unknown" block instead of an honest skip. This is
-# additive to the DEGRADED verdict handling further down (driven by
-# .intent/enforcement/config/audit_verdict.yaml's ignored_finding_types),
-# which stays exactly as-is for online audits where db_session can
-# genuinely disappear mid-run for reasons other than "stateless mode never
-# has one."
-_STATELESS_SKIP_RULE_IDS: frozenset[str] = frozenset(
-    {"runtime.worker_max_interval_within_observed"}
-)
-
-
-_SKIP_REASONS_BY_RULE_ID: dict[str, str] = {
-    "runtime.worker_max_interval_within_observed": (
-        "requires db_session (blackboard heartbeat aggregation); not "
-        "available in stateless mode (CI / pre-commit / no-DB)"
-    ),
-}
-
-
 # #961: the reason given for a context-level rule skipped under --files.
 _CONTEXT_LEVEL_SKIP_REASON = (
     "context-level (whole-repository) rule; cannot be scoped to --files, "
@@ -216,15 +188,6 @@ async def run_stateless_audit(
                     _SKIP_REASONS[rule.engine],
                 )
             )
-        elif rule.rule_id in _STATELESS_SKIP_RULE_IDS:
-            skipped_rules.append(
-                _skipped_entry(
-                    rule.rule_id,
-                    rule.engine,
-                    rule.enforcement,
-                    _SKIP_REASONS_BY_RULE_ID[rule.rule_id],
-                )
-            )
         else:
             runnable_ids.append(rule.rule_id)
 
@@ -236,11 +199,9 @@ async def run_stateless_audit(
 
     logger.info(
         "stateless_audit: %d rules runnable; %d rules skipped "
-        "(knowledge_gate + llm_gate engines, plus %d rule(s) requiring "
-        "db_session individually)",
+        "(knowledge_gate + llm_gate engines)",
         len(runnable_ids),
         len(skipped_rules),
-        len(_STATELESS_SKIP_RULE_IDS),
     )
 
     # ADR-108 D4 / governance.no_governance_bypass: fail closed on governance
@@ -339,9 +300,9 @@ async def run_stateless_audit(
     # semantics and ignored_finding_types carve-out. That gap is
     # significant here specifically: db_session is *always* absent in the
     # stateless/offline path (this function builds AuditorContext with no
-    # session_provider), so ENFORCEMENT_UNAVAILABLE findings for
-    # runtime.worker_max_interval_within_observed — and pre-existing
-    # ENFORCEMENT_FAILURE crash findings — are a real, common outcome of
+    # session_provider), so ENFORCEMENT_UNAVAILABLE findings from checks
+    # that need a session — and pre-existing ENFORCEMENT_FAILURE crash
+    # findings — are a real, common outcome of
     # exactly this CLI path (core-admin code audit --offline), not a
     # theoretical one. Reuses the same governed
     # .intent/enforcement/config/audit_verdict.yaml ignored_finding_types

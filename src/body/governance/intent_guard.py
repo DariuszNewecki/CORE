@@ -47,7 +47,7 @@ CORE_ROLE = "facade"  # ADR-095 D3
 #    declares itself context-level (``is_context_level_for``) and its per-file
 #    ``verify()`` explicitly rejects per-file dispatch as a mapping error:
 #       ast_gate, glob_gate, knowledge_gate, llm_gate, regex_gate,
-#       taxonomy_gate, cli_gate, workflow_gate, contracts_gate, runtime_gate
+#       taxonomy_gate, cli_gate, workflow_gate, contracts_gate
 #
 # 2. Passive-marker engines (no write-time check exists; enforcement happens
 #    elsewhere — at runtime, at parse time, at decoration, or by code review,
@@ -103,7 +103,6 @@ _CONTEXT_LEVEL_ENGINES = frozenset(
         "cli_gate",
         "workflow_gate",
         "contracts_gate",
-        "runtime_gate",
     }
 )
 

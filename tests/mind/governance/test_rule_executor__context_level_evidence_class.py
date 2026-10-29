@@ -22,8 +22,7 @@ reached either.
 Covers the fix both generically (fake engine) and end-to-end through the
 real KnowledgeGateEngine.capability_taxonomy_whitelist check_type (#820
 Group A) and, for the unavailable-evidence carve-out, the real
-RuntimeGateEngine.worker_max_interval_within_observed and
-WorkflowGateEngine.quality.type_safety check_types (#847/#856), per the
+WorkflowGateEngine.quality.type_safety check_type (#847/#856), per the
 explicit request to verify through execute_rule() and not only by calling
 the private checker.
 """
@@ -36,12 +35,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mind.governance.audit_context import AuditorContext
 from mind.governance.executable_rule import ExecutableRule
 from mind.governance.rule_executor import execute_rule
 from mind.logic.engines.base import BaseEngine
 from mind.logic.engines.knowledge_gate import KnowledgeGateEngine
-from mind.logic.engines.runtime_gate import RuntimeGateEngine
 from mind.logic.engines.workflow_gate.engine import WorkflowGateEngine
 from shared.models import AuditFinding, AuditSeverity, EvidenceClass
 from shared.path_resolver import PathResolver
@@ -282,49 +279,6 @@ async def test_real_workflow_gate_engine_missing_mypy_is_unavailable_not_proven(
         "constitutional violation"
     )
     assert f.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
-
-
-async def test_real_runtime_gate_engine_missing_db_session_is_unavailable_not_proven(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    """#856 end-to-end: the real runtime.worker_max_interval_within_observed
-    dispatch path (RuntimeGateEngine) with db_session absent, driven
-    through the real execute_rule(), not a fake engine."""
-    workers_dir = tmp_path / ".intent" / "workers"
-    workers_dir.mkdir(parents=True)
-    (workers_dir / "alpha.yaml").write_text(
-        "metadata:\n  status: active\n"
-        "identity:\n  uuid: 11111111-2222-3333-4444-555555555555\n"
-        "mandate:\n  schedule:\n    max_interval: 600\n",
-        encoding="utf-8",
-    )
-
-    engine = RuntimeGateEngine()
-    _patch_engine(monkeypatch, engine)
-
-    rule = ExecutableRule(
-        rule_id="runtime.worker_max_interval_within_observed",
-        engine="runtime_gate",
-        params={"check_type": "worker_max_interval_within_observed"},
-        enforcement="blocking",
-        is_context_level=True,
-    )
-
-    ctx = AuditorContext(repo_path=tmp_path)
-    assert getattr(ctx, "db_session", None) is None
-
-    results = await execute_rule(rule, ctx)
-
-    assert len(results) == 1
-    f = results[0]
-    assert f.check_id == "runtime.worker_max_interval_within_observed"
-    assert f.severity == AuditSeverity.BLOCK
-    assert f.evidence_class == EvidenceClass.ATTESTED, (
-        "a missing db_session must read as unknown, never as a proven "
-        "constitutional violation"
-    )
-    assert f.context["finding_type"] == "ENFORCEMENT_UNAVAILABLE"
-    assert f.context["reason"] == "db_session_unavailable"
 
 
 async def test_real_advisory_rule_missing_tool_is_visible_but_info_severity(

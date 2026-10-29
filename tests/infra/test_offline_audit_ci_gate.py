@@ -85,10 +85,10 @@ SKIPPED_BLOCKING = [
         "reason": "requires knowledge graph; not available in stateless mode",
     },
     {
-        "rule_id": "runtime.worker_max_interval_within_observed",
-        "engine": "runtime_gate",
+        "rule_id": "purity.no_orphan_files",
+        "engine": "knowledge_gate",
         "enforcement": "blocking",
-        "reason": "requires db_session; not available in stateless mode",
+        "reason": "requires knowledge graph; not available in stateless mode",
     },
 ]
 
