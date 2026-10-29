@@ -123,7 +123,6 @@ def test_ProposalMapper_from_db_model():
     assert result is expected_proposal
 
 
-
 from will.autonomy.proposal_mapper import ProposalMapper
 
 
@@ -210,3 +209,100 @@ def test_ProposalMapper_to_db_model():
     assert kwargs["approval_required"] is False
     assert result is db_class.return_value
     assert mock_sanitize.call_count >= 1
+
+
+from types import SimpleNamespace
+
+
+# ID: 17e69271-eded-4afa-b902-5af6d23c9860
+def test_ProposalMapper():
+    from will.autonomy.proposal_mapper import ProposalMapper
+
+    now = datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC)
+
+    action = SimpleNamespace(
+        action_id="act-1",
+        flow_id="flow-1",
+        parameters={"k": "v"},
+        order=0,
+    )
+    scope = SimpleNamespace(
+        files=["a.py"], modules=["m"], symbols=["s"], policies=["p"]
+    )
+    risk = SimpleNamespace(
+        overall_risk="low",
+        action_risks={"act-1": "low"},
+        risk_factors=["f"],
+        mitigation="mit",
+    )
+
+    proposal = MagicMock()
+    proposal.proposal_id = "prop-1"
+    proposal.goal = "some goal"
+    proposal.status = SimpleNamespace(value="pending")
+    proposal.actions = [action]
+    proposal.scope = scope
+    proposal.risk = risk
+    proposal.created_at = now
+    proposal.created_by = "alice"
+    proposal.validation_checks = [{"msg": "ok"}]
+    proposal.validation_results = [{"result": "ok"}]
+    proposal.execution_started_at = None
+    proposal.execution_completed_at = None
+    proposal.execution_results = [{"r": 1}]
+    proposal.constraints_for_storage = MagicMock(return_value=["c1"])
+    proposal.approval_required = True
+    proposal.approved_by = "bob"
+    proposal.approved_at = now
+    proposal.approval_authority = "auto"
+    proposal.failure_reason = None
+
+    db_class = MagicMock()
+    db_instance = MagicMock()
+    db_class.return_value = db_instance
+
+    with patch(
+        "will.autonomy.proposal_mapper._sanitize_payload",
+        side_effect=lambda x: x,
+    ):
+        result = ProposalMapper.to_db_model(proposal, db_class)
+
+    assert result is db_instance
+    db_class.assert_called_once()
+    kwargs = db_class.call_args.kwargs
+
+    assert kwargs["proposal_id"] == "prop-1"
+    assert kwargs["goal"] == "some goal"
+    assert kwargs["status"] == "pending"
+    assert kwargs["actions"] == [
+        {
+            "action_id": "act-1",
+            "flow_id": "flow-1",
+            "parameters": {"k": "v"},
+            "order": 0,
+        }
+    ]
+    assert kwargs["scope"] == {
+        "files": ["a.py"],
+        "modules": ["m"],
+        "symbols": ["s"],
+        "policies": ["p"],
+    }
+    assert kwargs["risk"] == {
+        "overall_risk": "low",
+        "action_risks": {"act-1": "low"},
+        "risk_factors": ["f"],
+        "mitigation": "mit",
+    }
+    assert kwargs["created_at"] == now
+    assert kwargs["created_by"] == "alice"
+    assert kwargs["validation_checks"] == [{"msg": "ok"}]
+    assert kwargs["validation_results"] == [{"result": "ok"}]
+    assert kwargs["execution_results"] == [{"r": 1}]
+    assert kwargs["constitutional_constraints"] == ["c1"]
+    assert kwargs["approval_required"] is True
+    assert kwargs["approved_by"] == "bob"
+    assert kwargs["approved_at"] == now
+    assert kwargs["approval_authority"] == "auto"
+    assert kwargs["failure_reason"] is None
+    proposal.constraints_for_storage.assert_called_once_with()
