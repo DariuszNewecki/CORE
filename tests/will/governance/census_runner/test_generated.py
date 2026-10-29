@@ -37,3 +37,45 @@ def test_get_diff():
         "diff": {"added": 1},
     }
     engine.compute_diff.assert_called_once_with(baseline=previous, current=latest)
+
+
+
+from will.governance.census_runner import list_baselines
+
+
+# ID: 0bd07e1f-5b03-4e4f-b236-04889ba85693
+def test_list_baselines() -> None:
+    repo_path = MagicMock(name="repo_path")
+    context = MagicMock(name="context")
+    context.git_service.repo_path = repo_path
+
+    baseline_a = MagicMock(name="baseline_a")
+    baseline_a.model_dump.return_value = {"name": "b1"}
+    baseline_b = MagicMock(name="baseline_b")
+    baseline_b.model_dump.return_value = {"name": "b2"}
+
+    with (
+        patch("will.governance.census_runner.FileService") as mock_file_service_cls,
+        patch("will.governance.census_runner.BaselineManager") as mock_manager_cls,
+        patch(
+            "will.governance.census_runner._baseline_registry_path"
+        ) as mock_registry_path,
+    ):
+        mock_registry_path.return_value = "registry_path"
+        mock_manager = mock_manager_cls.return_value
+        mock_manager.list_baselines.return_value = [baseline_a, baseline_b]
+
+        result = list_baselines(context)
+
+    assert result == {
+        "count": 2,
+        "baselines": [{"name": "b1"}, {"name": "b2"}],
+    }
+    mock_file_service_cls.assert_called_once_with(repo_path)
+    mock_registry_path.assert_called_once_with(repo_path)
+    mock_manager_cls.assert_called_once_with(
+        "registry_path", mock_file_service_cls.return_value, repo_path
+    )
+    mock_manager.list_baselines.assert_called_once_with()
+    baseline_a.model_dump.assert_called_once_with(mode="json")
+    baseline_b.model_dump.assert_called_once_with(mode="json")
