@@ -23,6 +23,11 @@
         engine: passive_gate
         params:
           attestation_class: "C"
+          enforcement_note: >
+            DeadShimSensor (will.workers.dead_shim_sensor,
+            .intent/workers/dead_shim_sensor.yaml) posts a
+            modernization.dead_shim finding for every self-declared
+            deprecated symbol the knowledge graph shows unused.
         scope:
           applies_to:
             - "src/**/*.py"

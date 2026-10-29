@@ -669,6 +669,8 @@ classifications:
     governance_namespace: framework
   - path: .intent/enforcement/mappings/governance/authorship_integrity.yaml
     governance_namespace: framework
+  - path: .intent/enforcement/mappings/governance/rbac.yaml
+    governance_namespace: framework
   - path: .intent/enforcement/mappings/governance/operational_config.yaml
     governance_namespace: framework
   - path: .intent/enforcement/mappings/governance/rule_references.yaml

@@ -3,6 +3,11 @@ mappings:
     engine: passive_gate
     params:
       attestation_class: "C"
+      enforcement_note: >
+        CommitAuthorshipAuditWorker (will.workers.commit_authorship_audit_worker)
+        compares each autonomous proposal's commit diff with the files the
+        proposal declared and posts a finding for each proposal whose diff
+        holds an undeclared file.
     scope:
       applies_to:
         - "src/**/*.py"
