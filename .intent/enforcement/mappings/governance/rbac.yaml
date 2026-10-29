@@ -1,0 +1,74 @@
+# What enforces each rule of the access register
+# (.intent/taxonomies/principal_roles.yaml, ADR-068 amendment 2026-10-15).
+# Before #1346 these six rules had no mapping, so `law show` named no
+# mechanism for any of them. Classes per ADR-142: A names the guarding
+# symbol (attested by governance.passive_gate.enforced_by_must_resolve),
+# C is a running sensor, D is declared but not yet checked by anything.
+mappings:
+  rbac.register_is_complete:
+    engine: passive_gate
+    params:
+      attestation_class: "C"
+      enforcement_note: >
+        StateSensor (will.workers.state_sensor, _sync_access) compares the
+        register with the host and GitHub every cycle and posts one
+        blocking finding per difference; `core-admin law access` runs the
+        same comparison (body.services.access_register) on demand.
+    scope:
+      applies_to: []
+
+  rbac.law_written_after_approval:
+    engine: passive_gate
+    params:
+      attestation_class: "A"
+      enforced_by: "body.governance.law_custody.writer.require_custodian"
+      enforcement_note: >
+        The only writer of governed text refuses unless it runs as core-law
+        under sudo from another account, whose name (SUDO_USER) is the
+        approver recorded in the signed ledger line (ADR-170 D2, D4). The
+        operating system is the lock: only core-law can write .intent/.
+    scope:
+      applies_to: []
+
+  rbac.roles_only:
+    engine: passive_gate
+    params:
+      attestation_class: "D"
+      enforcement_note: >
+        Not checked. The register's shape (identities map to roles, roles
+        hold permissions) states it, but no code rejects a register that
+        grants a permission to an identity.
+    scope:
+      applies_to: []
+
+  rbac.propose_not_approve:
+    engine: passive_gate
+    params:
+      attestation_class: "D"
+      enforcement_note: >
+        Not checked. No code rejects a register in which one role, or one
+        identity through its role, holds both propose.change and
+        approve.change.
+    scope:
+      applies_to: []
+
+  rbac.secrets_operator_only:
+    engine: passive_gate
+    params:
+      attestation_class: "D"
+      enforcement_note: >
+        Not checked in the register. No code rejects a register that gives
+        read.secrets to a role other than principal.operator.
+    scope:
+      applies_to: []
+
+  rbac.host_administration_outside:
+    engine: passive_gate
+    params:
+      attestation_class: "D"
+      enforcement_note: >
+        Not checked. The access register skips host administrators' sudo
+        rules on purpose (body.services.access_register.check_sudo_rules),
+        and nothing refuses a governance act by darek or root.
+    scope:
+      applies_to: []
