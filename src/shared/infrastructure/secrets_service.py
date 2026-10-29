@@ -52,17 +52,6 @@ class SecretsService:
         except Exception as e:
             raise ValueError(f"Invalid master key format: {e}")
 
-    @staticmethod
-    # ID: 87f34161-643a-4d73-9709-c017f28b5887
-    def generate_master_key() -> str:
-        """
-        Generate a new Fernet master key.
-
-        Returns:
-            Base64-encoded key string (save to CORE_MASTER_KEY in .env)
-        """
-        return Fernet.generate_key().decode()
-
     # ID: 1e3c0bc6-e427-4e79-b874-2894af0e92c0
     def encrypt(self, plaintext: str) -> str:
         """Encrypt a secret value."""
@@ -290,43 +279,6 @@ class SecretsService:
                 await audit_db.commit()
         except Exception as e:
             logger.error("Failed to audit secret access for '%s': %s", key, e)
-
-    @staticmethod
-    # ID: a5c634df-816c-4843-a94a-1e2ffc92b998
-    async def migrate_from_env(
-        db: AsyncSession, env_vars: dict[str, str], master_key: str
-    ) -> dict[str, str]:
-        """
-        Migrate secrets from environment variables to encrypted database.
-
-        Args:
-            db: Database session
-            env_vars: Dict of env var names to values (e.g., {"ANTHROPIC_API_KEY": "sk-..."})
-            master_key: Master encryption key
-
-        Returns:
-            Dict of migrated keys to their new database keys
-        """
-        service = SecretsService(master_key)
-        migrated = {}
-        env_to_db_key = {
-            "ANTHROPIC_CLAUDE_SONNET_API_KEY": "anthropic.api_key",
-            "DEEPSEEK_CHAT_API_KEY": "deepseek_chat.api_key",
-            "DEEPSEEK_CODER_API_KEY": "deepseek_coder.api_key",
-            "OLLAMA_LOCAL_API_KEY": "ollama.api_key",
-            "LOCAL_EMBEDDING_API_KEY": "embedding.api_key",
-        }
-        for env_name, db_key in env_to_db_key.items():
-            if env_vars.get(env_name):
-                await service.set_secret(
-                    db,
-                    db_key,
-                    env_vars[env_name],
-                    description=f"Migrated from {env_name}",
-                )
-                migrated[env_name] = db_key
-                logger.info("Migrated {env_name} → %s", db_key)
-        return migrated
 
 
 # ID: a2beeaad-c05f-404b-8215-0e999d48a4d3

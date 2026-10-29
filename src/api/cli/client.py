@@ -134,24 +134,12 @@ class CoreApiClient:
             response.raise_for_status()
             return response.json()
 
-    # ID: 1205e380-4b68-4a53-b56d-0eec74896962
-    async def _poll_run(self, run_id: str, timeout_seconds: float = 300.0) -> dict:
-        """Poll GET /v1/fix/runs/{run_id} until status is completed or failed.
-
-        Returns the terminal run payload. Raises TimeoutError if the run
-        does not reach a terminal state within `timeout_seconds`. Used by
-        CLIs over async /fix and /quality endpoints (ADR-055 D2/D3).
-        """
-        return await self._poll_at_path(
-            f"/v1/fix/runs/{run_id}", timeout_seconds=timeout_seconds
-        )
-
     # ID: c19f4d5e-2b7a-4f8e-bd03-6a8c5d1f9e02
     async def _poll_at_path(self, path: str, timeout_seconds: float = 300.0) -> dict:
         """Poll an arbitrary `GET {path}` until status terminal.
 
-        Generalisation of `_poll_run` for Phase 3 resources whose poll
-        paths differ from /v1/fix/runs/ (e.g. /v1/coverage/runs/,
+        Used by Phase 3 resources whose poll paths are not
+        /v1/fix/runs/ (e.g. /v1/coverage/runs/,
         /v1/refactor/runs/, /v1/audit/remediations/).
         """
         async with asyncio.timeout(timeout_seconds):

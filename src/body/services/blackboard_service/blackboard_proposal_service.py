@@ -82,53 +82,6 @@ class BlackboardProposalService:
                     deferred_count += result.rowcount
         return deferred_count
 
-    # ID: 96677af7-969f-4c5b-8271-87bf885b1d33
-    async def defer_delegated_finding_to_proposal(
-        self, entry_id: str, proposal_id: str
-    ) -> int:
-        """
-        Defer a DELEGATED finding to an assisted-lane proposal (ADR-109 D4).
-
-        The assisted-lane analogue of ``defer_entries_to_proposal``. A
-        delegated finding lives at ``status='indeterminate'`` with
-        ``resolution_mechanism='human'`` — the governor-inbox predicate — NOT
-        at 'open'/'claimed'. The autonomous defer predicate would therefore
-        silently match zero rows on it. This method owns the
-        delegated→deferred transition for the lane so the assisted and
-        autonomous paths stay distinct surfaces (the autonomous
-        ``defer_entries_to_proposal`` predicate is left untouched).
-
-        Writes ``proposal_id`` into the finding payload (CORE-Finding §7 row 4)
-        and moves the finding out of the governor inbox into
-        'deferred_to_proposal' (tracked, not parked). On proposal reject the
-        lane revives it back to ``indeterminate+human`` (ADR-109 D4, ADR-010
-        §7a) rather than the autonomous ``awaiting_reaudit`` path.
-
-        Returns the count of rows actually updated (0 or 1).
-        """
-        from body.services.service_registry import ServiceRegistry
-
-        async with ServiceRegistry.session() as session:
-            async with session.begin():
-                result = await session.execute(
-                    text(
-                        """
-                        UPDATE core.blackboard_entries
-                        SET status = 'deferred_to_proposal',
-                            resolved_at = now(),
-                            updated_at = now(),
-                            payload = payload || jsonb_build_object(
-                                'proposal_id', cast(:proposal_id as text)
-                            )
-                        WHERE id = cast(:entry_id as uuid)
-                          AND status = 'indeterminate'
-                          AND resolution_mechanism = 'human'
-                        """
-                    ),
-                    {"entry_id": entry_id, "proposal_id": proposal_id},
-                )
-                return result.rowcount
-
     # ID: 6b658019-7399-466b-bfc9-642f144cc03a
     async def claim_delegated_finding(self, entry_id: str, agent: str) -> int:
         """Mark a delegated finding as being worked by an external agent (ADR-109 §2).
@@ -192,8 +145,8 @@ class BlackboardProposalService:
         ``resolved_at`` so the row matches a freshly-delegated finding (the
         governor-inbox predicate is status='indeterminate' AND
         resolution_mechanism='human'). ``payload.proposal_id`` is left as-is; the
-        next ``defer_delegated_finding_to_proposal`` overwrites it (last-writer
-        -wins) if the finding is proposed again.
+        next deferral to a proposal overwrites it (last-writer-wins) if the
+        finding is proposed again.
 
         "Clear any claim" means both claim surfaces: the worker
         ``claimed_by``/``claimed_at`` columns (unused on this lane, cleared for

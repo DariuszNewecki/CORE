@@ -111,34 +111,6 @@ class ContextSerializer:
         logger.debug("Computed cache key: %s...", cache_key[:8])
         return cache_key
 
-    @staticmethod
-    # ID: 11dac58e-a863-4210-96f9-cbbb4bc0745b
-    def estimate_packet_tokens(packet: dict[str, Any]) -> int:
-        total = 0
-
-        for item in packet.get("evidence", []):
-            try:
-                total += int(item.get("tokens_est", 0))
-            except Exception:
-                total += 0
-
-        for section_name in ("constitution", "policy", "constraints", "runtime"):
-            section = packet.get(section_name, {})
-            if section:
-                try:
-                    total += ContextSerializer.estimate_tokens(
-                        json.dumps(section, sort_keys=True, default=str)
-                    )
-                except Exception:
-                    total += 0
-
-        phase = packet.get("phase")
-        if phase:
-            total += ContextSerializer.estimate_tokens(str(phase))
-
-        total += _CFG.token_estimate_overhead
-        return total
-
 
 def _to_repo_relative_path(path_str: str) -> str:
     p = Path(path_str)

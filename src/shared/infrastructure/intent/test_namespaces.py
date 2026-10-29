@@ -11,10 +11,10 @@ discriminators (`test.run_required::*`, `test.missing::*`, `test.failure::*`)
 are gone.
 
 Consumer pipelines that need to filter "is this finding a test-remediation
-target?" call `is_test_remediation_subject(subject)` (Python path) or fold
-`test_remediation_like_patterns()` into a SQL `LIKE ANY(:patterns)` binding.
+target?" fold `test_remediation_like_patterns()` into a SQL
+`LIKE ANY(:patterns)` binding.
 
-Both derive from the set of `mandate.scope.rule_namespace` values declared by
+The patterns derive from the set of `mandate.scope.rule_namespace` values declared by
 worker declarations whose `implementation.class == "TestRunnerSensor"`.
 The producer-side declaration IS the authoritative consumer-side filter:
 TestRunnerSensor's output (the `python::test.runner.missing|failure::*`
@@ -95,35 +95,6 @@ def _test_remediation_namespaces() -> set[str]:
         if isinstance(rule_namespace, str) and rule_namespace:
             namespaces.add(rule_namespace)
     return namespaces
-
-
-# ID: ed90b8ee-f472-4dbd-be3f-1b7385e62f20
-def is_test_remediation_subject(subject: str) -> bool:
-    """Return True if `subject` is a test-remediation finding under ADR-091 D2.
-
-    A subject qualifies when it begins with the canonical `python::` artifact
-    prefix AND its sub_namespace (segment between the first two `::`
-    separators) equals or extends a `rule_namespace` declared by a test sensor.
-
-    Example matches (after Phase 5 row rewrite):
-        python::test.runner.missing::src/foo.py     → True  (TestRunnerSensor)
-        python::test.runner.failure::tests/x.py::t  → True  (TestRunnerSensor)
-
-    Example non-matches (other python::* producers):
-        python::test.coverage::src/foo.py              → False (TestCoverageSensor — consumed by TestRunnerSensor, not by TestRemediator)
-        python::purity.docstrings.required::src/foo.py → False (AuditViolationSensor)
-        python::coherence.incoherence::abc123          → False (CoherenceSensorWorker — detection only)
-        python::coherence.repo_artifacts.drift::x      → False (repo_crawler)
-    """
-    if not subject.startswith(_CANONICAL_PREFIX):
-        return False
-
-    rest = subject[len(_CANONICAL_PREFIX) :]
-    sub_namespace = rest.split("::", 1)[0]
-    namespaces = _test_remediation_namespaces()
-    if sub_namespace in namespaces:
-        return True
-    return any(sub_namespace.startswith(f"{ns}.") for ns in namespaces)
 
 
 # ID: 11824c00-fc7c-4a76-961a-67dac7e132fb
