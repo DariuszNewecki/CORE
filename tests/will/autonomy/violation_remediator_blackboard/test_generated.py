@@ -35,3 +35,24 @@ async def test_delegate_capped_findings() -> None:
     assert call_args.args[1] == 5
     assert call_args.args[2]["attempt_count"] == 5
     assert call_args.args[2]["detail"] == "tests failed"
+
+
+import pytest
+
+from will.autonomy.violation_remediator_blackboard import mark_delegated
+
+
+@pytest.mark.asyncio
+# ID: 4ae7d5b2-ffd3-4289-984a-21629cb74104
+async def test_mark_delegated():
+    service = AsyncMock()
+    service.mark_indeterminate = AsyncMock(return_value=2)
+    findings = [
+        {"entry_id": "e1", "decision": "DELEGATE"},
+        {"entry_id": "e2", "decision": "DELEGATE"},
+    ]
+
+    result = await mark_delegated(service, findings)
+
+    assert result == 2
+    service.mark_indeterminate.assert_awaited_once()
