@@ -20,7 +20,6 @@ def test_SyncClient_poll_sync_run():
     )
 
 
-
 import pytest
 
 
@@ -35,3 +34,22 @@ async def test_SyncClient_get_sync_run():
 
     facade._request.assert_awaited_once_with("GET", "/v1/sync/runs/run-123")
     assert result == {"id": "run-123", "status": "ok"}
+
+
+
+
+
+# ID: aef6465a-ce7c-44ba-b121-19d1b23c6096
+async def test_SyncClient_sync_dev_sync() -> None:
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True, "applied": 3})
+    client = SyncClient(facade)
+
+    result = await client.sync_dev_sync(write=True, target="dev", requested_by="tester")
+
+    assert result == {"ok": True, "applied": 3}
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/sync/dev-sync",
+        json={"write": True, "target": "dev", "requested_by": "tester"},
+    )
