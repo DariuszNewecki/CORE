@@ -93,7 +93,6 @@ def test_enforcement_failure_finding():
     assert finding.context["exception_message"] == "boom"
 
 
-
 from mind.governance.rule_findings import llm_stub_finding
 
 
@@ -112,3 +111,20 @@ def test_llm_stub_finding():
     assert finding.context["reason"] == "no_llm_client"
     assert "rule-abc" in finding.message
     assert "llm_gate" in finding.message
+
+
+
+from mind.governance.rule_findings import engine_missing_finding
+
+
+# ID: c93c1b59-ae34-41b7-9a71-b26fafa836f4
+def test_engine_missing_finding():
+    rule = MagicMock()
+    rule.rule_id = "RULE-42"
+    error = ValueError("engine 'phantom' not found in registry")
+
+    finding = engine_missing_finding(rule, error)
+
+    assert finding.check_id == "RULE-42.engine_missing"
+    assert finding.message == "engine 'phantom' not found in registry"
+    assert finding.file_path == "none"
