@@ -100,8 +100,6 @@ def test_CanaryResultBuilder_build_no_tests_result() -> None:
     mock_logger.info.assert_called_once()
 
 
-
-
 # ID: 0bed3de9-1646-440a-8f72-30bf59a5c4c7
 def test_build_skipped_result():
     result = CanaryResultBuilder.build_skipped_result("no changes detected", 1.5)
@@ -115,3 +113,30 @@ def test_build_skipped_result():
     assert result.data["logic_preserved"] is True
     assert result.data["canary_passes"] is True
     assert result.data["existing_tests_pass"] is True
+
+
+
+
+
+# ID: d2320bd3-4516-4e3b-9513-6602eb4676c0
+def test_CanaryResultBuilder():
+    test_result = {
+        "passed": 5,
+        "failed": 0,
+        "exit_code": 0,
+        "output": "all good",
+    }
+    with patch("will.phases.canary.result_builder.logger"):
+        result = CanaryResultBuilder.build_success_result(
+            test_result, ["tests/test_a.py"], 1.25
+        )
+
+    assert result.name == "canary_validation"
+    assert result.ok is True
+    assert result.duration_sec == 1.25
+    assert result.data["canary_passes"] is True
+    assert result.data["existing_tests_pass"] is True
+    assert result.data["tests_passed"] == 5
+    assert result.data["tests_failed"] == 0
+    assert result.data["test_files"] == ["tests/test_a.py"]
+    assert result.data["advisory"] is False
