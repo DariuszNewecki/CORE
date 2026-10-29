@@ -39,3 +39,15 @@ def test_CoreApiClient():
     assert client.symbols is not None
     assert client.vectors is not None
     assert client.project is not None
+
+
+from api.cli.client import parse_base_url
+
+
+# ID: faa64332-60ef-48ab-bf6a-661edaf72f53
+def test_parse_base_url():
+    assert parse_base_url("http://core:8080") == ("http://core:8080", None)
+    assert parse_base_url("unix:///run/core/api/api.sock") == (
+        "http://localhost",
+        "/run/core/api/api.sock",
+    )
