@@ -17,9 +17,6 @@ async def test_TracedAgentMixin_save_decision_trace() -> None:
     mock_tracer.save_trace.assert_awaited_once_with()
 
 
-
-
-
 # ID: d79bb05c-0792-4fd5-ad58-d92f4e0a0ae2
 def test_TracedAgentMixin_get_decision_trace():
     instance = MagicMock(spec=TracedAgentMixin)
@@ -30,3 +27,25 @@ def test_TracedAgentMixin_get_decision_trace():
 
     instance.tracer.explain_chain.assert_called_once_with()
     assert result == "step 1 -> step 2"
+
+
+import asyncio
+
+
+# ID: 5713db61-34b0-44d4-9104-b0b43c646909
+def test_TracedAgentMixin():
+    tracer = MagicMock()
+    tracer.explain_chain = MagicMock(return_value="decision trace output")
+    tracer.save_trace = AsyncMock(return_value=None)
+
+    class _Agent(TracedAgentMixin):
+        def __init__(self):
+            self.tracer = tracer
+
+    agent = _Agent()
+
+    assert agent.get_decision_trace() == "decision trace output"
+    tracer.explain_chain.assert_called_once_with()
+
+    asyncio.run(agent.save_decision_trace())
+    tracer.save_trace.assert_awaited_once_with()
