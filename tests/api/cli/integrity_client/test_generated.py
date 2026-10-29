@@ -21,7 +21,6 @@ async def test_IntegrityClient_verify():
     assert result == {"ok": True, "label": "default"}
 
 
-
 import pytest
 
 
@@ -40,3 +39,33 @@ async def test_IntegrityClient_baseline() -> None:
         json={"label": "my-label"},
     )
     assert result == {"status": "ok", "fingerprint": "abc123"}
+
+
+import asyncio
+
+
+# ID: 95cfc114-2f6d-441a-a975-b468c4ebb394
+def test_IntegrityClient():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True})
+
+    client = IntegrityClient(facade)
+    assert client._facade is facade
+
+    baseline_result = asyncio.run(client.baseline("mylabel"))
+    assert baseline_result == {"ok": True}
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/integrity/baseline",
+        json={"label": "mylabel"},
+    )
+
+    facade._request.reset_mock()
+
+    verify_result = asyncio.run(client.verify())
+    assert verify_result == {"ok": True}
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/integrity/verify",
+        json={"label": "default"},
+    )
