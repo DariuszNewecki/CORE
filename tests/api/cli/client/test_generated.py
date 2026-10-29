@@ -76,9 +76,6 @@ async def test_CoreApiClient_sync_vectors():
     client.sync.sync_vectors.assert_awaited_once_with("param1", key="value")
 
 
-
-
-
 # ID: 0a74de7b-98f5-4437-8adf-cae1373f3aa4
 async def test_CoreApiClient_sync_knowledge_graph():
     client = CoreApiClient(base_url="http://localhost:9999")
@@ -89,3 +86,19 @@ async def test_CoreApiClient_sync_knowledge_graph():
 
     client.sync.sync_knowledge_graph.assert_awaited_once_with("a", key="b")
     assert result == {"ok": True}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 0e450216-f0d5-410c-85a6-6752937c82d1
+async def test_core_api_client_census_diff():
+    client = CoreApiClient(base_url="http://localhost:8000")
+    expected = {"added": [], "removed": [], "changed": []}
+    client.census.census_diff = AsyncMock(return_value=expected)
+
+    result = await client.census_diff()
+
+    assert result == expected
+    client.census.census_diff.assert_awaited_once_with()
