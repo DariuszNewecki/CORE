@@ -42,3 +42,31 @@ def test_QualityClient_quality_lint():
         json={"fix": True},
     )
     assert result == {"status": "ok", "issues": []}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 889569d9-2a6d-4f72-9797-08ca78922829
+async def test_QualityClient_quality_policy_coverage():
+    facade = MagicMock()
+    expected = {
+        "report_id": "abc123",
+        "generated_at_utc": "2024-01-01T00:00:00Z",
+        "repo_root": "/repo",
+        "summary": {"covered": 5, "total": 5},
+        "records": [],
+        "exit_code": 0,
+    }
+    facade._request = AsyncMock(return_value=expected)
+
+    client = QualityClient(facade)
+
+    result = await client.quality_policy_coverage()
+
+    assert result == expected
+    facade._request.assert_awaited_once_with(
+        "POST", "/v1/quality/policy-coverage", json={}
+    )
