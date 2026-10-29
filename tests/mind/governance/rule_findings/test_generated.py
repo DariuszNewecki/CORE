@@ -91,3 +91,24 @@ def test_enforcement_failure_finding():
     assert finding.context["policy_id"] == "POLICY_42"
     assert finding.context["exception_type"] == "RuntimeError"
     assert finding.context["exception_message"] == "boom"
+
+
+
+from mind.governance.rule_findings import llm_stub_finding
+
+
+# ID: 770f2769-0d58-4667-9173-701aa761f634
+def test_llm_stub_finding():
+    rule = MagicMock()
+    rule.rule_id = "rule-abc"
+    rule.engine = "llm_gate"
+
+    finding = llm_stub_finding(rule)
+
+    assert finding.check_id == "rule-abc"
+    assert finding.file_path == "none"
+    assert finding.context["engine_id"] == "llm_gate"
+    assert finding.context["stub"] is True
+    assert finding.context["reason"] == "no_llm_client"
+    assert "rule-abc" in finding.message
+    assert "llm_gate" in finding.message
