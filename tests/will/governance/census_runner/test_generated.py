@@ -39,7 +39,6 @@ def test_get_diff():
     engine.compute_diff.assert_called_once_with(baseline=previous, current=latest)
 
 
-
 from will.governance.census_runner import list_baselines
 
 
@@ -79,3 +78,48 @@ def test_list_baselines() -> None:
     mock_manager.list_baselines.assert_called_once_with()
     baseline_a.model_dump.assert_called_once_with(mode="json")
     baseline_b.model_dump.assert_called_once_with(mode="json")
+
+
+
+
+# ID: 26b296e4-d01b-4d52-a8a4-6f29d46f5907
+def test_create_baseline():
+    from will.governance.census_runner import create_baseline
+
+    context = MagicMock()
+    fake_repo_root = MagicMock()
+    context.git_service.repo_path = fake_repo_root
+    context.git_service.get_current_commit = MagicMock(return_value="a" * 40)
+
+    fake_baseline = MagicMock()
+    fake_baseline.model_dump = MagicMock(return_value={"name": "my-baseline"})
+
+    mock_manager = MagicMock()
+    mock_manager.set_baseline = MagicMock(return_value=fake_baseline)
+
+    mock_history = MagicMock()
+    mock_snapshot = MagicMock()
+    mock_snapshot.name = "snapshot-001.json"
+    mock_history.get_latest_snapshot = MagicMock(return_value=mock_snapshot)
+    mock_history.list_snapshots = MagicMock(return_value=[mock_snapshot])
+
+    with (
+        patch("will.governance.census_runner.FileService", MagicMock()),
+        patch(
+            "will.governance.census_runner.BaselineManager",
+            MagicMock(return_value=mock_manager),
+        ),
+        patch(
+            "will.governance.census_runner.CensusHistory",
+            MagicMock(return_value=mock_history),
+        ),
+        patch("will.governance.census_runner._baseline_registry_path", MagicMock()),
+        patch("will.governance.census_runner._history_dir", MagicMock()),
+    ):
+        result = create_baseline(context, name="my-baseline")
+
+    assert result == {"name": "my-baseline"}
+    mock_manager.set_baseline.assert_called_once()
+    call_kwargs = mock_manager.set_baseline.call_args.kwargs
+    assert call_kwargs["name"] == "my-baseline"
+    assert call_kwargs["snapshot_file"] == "snapshot-001.json"
