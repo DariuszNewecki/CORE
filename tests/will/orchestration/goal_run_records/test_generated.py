@@ -86,3 +86,53 @@ async def test_post_decision_records():
     assert second_payload["run_id"] == "run-42"
     assert second_payload["index"] == 2
     assert second_payload["action"] == "do_c"
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: c1575155-83ea-42f0-822f-6fa82feb4a9b
+async def test_post_reconnaissance_records():
+    from will.orchestration.goal_run_records import post_reconnaissance_records
+
+    poster = MagicMock()
+    poster.post_unavailable = AsyncMock()
+    poster.post_report = AsyncMock()
+
+    plan_data = {
+        "reconnaissance": {
+            "available": True,
+            "digest": "digest-abc",
+            "raw": {"files": ["a.py"]},
+            "view": {"path": "/repo", "excludes": []},
+            "unavailable": [
+                {"topic": "migrations", "reason": "no_sql_files"},
+                "not-a-dict",
+            ],
+        }
+    }
+
+    with patch(
+        "will.orchestration.goal_run_records.blackboard_safe",
+        side_effect=lambda x: x,
+    ):
+        await post_reconnaissance_records(poster, "run-1", plan_data)
+
+    poster.post_unavailable.assert_not_awaited()
+
+    report_calls = poster.post_report.await_args_list
+    assert len(report_calls) == 2
+
+    first_args = report_calls[0].args
+    assert first_args[0] == "goal_run.run-1.recon"
+    assert first_args[1]["run_id"] == "run-1"
+    assert first_args[1]["digest"] == "digest-abc"
+    assert first_args[1]["observed"] == {"files": ["a.py"]}
+    assert first_args[1]["view"] == {"path": "/repo", "excludes": []}
+
+    second_args = report_calls[1].args
+    assert second_args[0].startswith("goal_run.run-1.unavailable.")
+    assert second_args[1]["run_id"] == "run-1"
+    assert second_args[1]["topic"] == "migrations"
+    assert second_args[1]["reason"] == "no_sql_files"
