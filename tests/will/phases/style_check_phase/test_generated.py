@@ -33,3 +33,61 @@ async def test_StyleCheckPhase_execute():
     assert result.name == "style_check"
     assert result.data["violations"] == 0
     assert result.data["files_checked"] == 1
+
+
+
+
+# ID: 7c2bc0f0-d71c-4144-bace-ce1382e78458
+def test_StyleCheckPhase():
+    from will.phases.style_check_phase import StyleCheckPhase
+
+    mock_core_context = MagicMock()
+    mock_core_context.auditor_context = MagicMock()
+
+    mock_workflow_context = MagicMock()
+    mock_workflow_context.results = {
+        "code_generation": {
+            "detailed_plan_dict": {
+                "steps": [
+                    {
+                        "params": {
+                            "file_path": "src/example.py",
+                            "code": "def foo():\n    return 1\n",
+                        }
+                    }
+                ]
+            }
+        }
+    }
+
+    phase = StyleCheckPhase(mock_core_context)
+
+    fake_val_result = {
+        "status": "clean",
+        "violations": [],
+    }
+
+    with (
+        patch(
+            "will.phases.style_check_phase.validate_code_async",
+            new=AsyncMock(return_value=fake_val_result),
+        ) as mock_validate,
+        patch(
+            "will.phases.style_check_phase.DecisionTracer",
+            autospec=True,
+        ) as mock_tracer_cls,
+    ):
+        mock_tracer = MagicMock()
+        phase.tracer = mock_tracer
+
+        import asyncio
+
+        result = asyncio.run(phase.execute(mock_workflow_context))
+
+    assert result is not None
+    assert result.name == "style_check"
+    assert result.ok is True
+    assert result.data["violations"] == 0
+    assert result.data["files_checked"] == 1
+    mock_validate.assert_awaited_once()
+    mock_tracer.record.assert_called_once()
