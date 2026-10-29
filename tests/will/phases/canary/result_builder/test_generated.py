@@ -49,7 +49,6 @@ def test_CanaryResultBuilder_build_advisory_failure_result():
     mock_logger.info.assert_called_once()
 
 
-
 from will.phases.canary.result_builder import CanaryResultBuilder
 
 
@@ -79,3 +78,26 @@ def test_CanaryResultBuilder_build_success_result():
     assert result.data["exit_code"] == 0
     assert result.data["test_files"] == test_paths
     assert result.data["advisory"] is False
+
+
+
+
+
+# ID: f9eab38d-12b8-4a21-a0e0-61d527c4d416
+def test_CanaryResultBuilder_build_no_tests_result() -> None:
+    builder = CanaryResultBuilder()
+    with patch("will.phases.canary.result_builder.logger") as mock_logger:
+        result = builder.build_no_tests_result(duration=1.5)
+
+    assert result.name == "canary_validation"
+    assert result.ok is True
+    assert result.duration_sec == 1.5
+    assert result.data == {
+        "syntax_valid": True,
+        "logic_preserved": True,
+        "canary_passes": True,
+        "existing_tests_pass": True,
+        "tests_found": 0,
+        "note": "No existing tests - behavioral preservation cannot be verified",
+    }
+    mock_logger.info.assert_called_once()
