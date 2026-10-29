@@ -181,7 +181,7 @@
                         "max_interval": {
                             "type": "integer",
                             "minimum": 10,
-                            "description": "Cycle cap — maximum seconds between consecutive cycle starts (and equivalently between heartbeats, since each cycle begins with a heartbeat). Per ADR-103: the runtime enforces this via `sleep(max(max_interval - elapsed, 0))`, so next cycle starts at `max(elapsed, max_interval)`. The operator declares the cadence; the runtime adapts sleep to honor it. When observed cycle exceeds this cap (× 1.1 jitter tolerance), `runtime.worker_max_interval_within_observed` fires — meaning real work has grown past the cap, not that the rule is too tight."
+                            "description": "Cycle cap — maximum seconds between consecutive cycle starts (and equivalently between heartbeats, since each cycle begins with a heartbeat). Per ADR-103: the runtime enforces this via `sleep(max(max_interval - elapsed, 0))`, so next cycle starts at `max(elapsed, max_interval)`. The operator declares the cadence; the runtime adapts sleep to honor it. An observed cycle longer than this cap means real work has grown past the cap; the next cycle then starts immediately."
                         },
                         "glide_off": {
                             "type": "integer",

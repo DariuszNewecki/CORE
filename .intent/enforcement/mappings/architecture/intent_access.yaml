@@ -11,7 +11,7 @@ mappings:
         - "src/mind/logic/engines/artifact_gate.py"   # F-41 registry walker
         - "src/body/services/representation_coherence_service.py"  # coherence service body counterpart
         - "src/cli/logic/byor.py"                        # External repo delivery -- reads starter-intent template and work/staged/ external dirs, not CORE's governance namespace; writes via ActionExecutor
-        - "src/mind/logic/engines/contracts_gate.py"     # Mind engine auditing .intent/enforcement/contracts/ coherence -- same exemption as artifact_gate.py and runtime_gate.py
+        - "src/mind/logic/engines/contracts_gate.py"     # Mind engine auditing .intent/enforcement/contracts/ coherence -- same exemption as artifact_gate.py
 
   architecture.intent.references_resolve:
     engine: reference_gate

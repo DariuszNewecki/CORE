@@ -38,10 +38,10 @@ SKIPPED_BLOCKING = [
         "reason": "requires knowledge graph; not available in stateless mode",
     },
     {
-        "rule_id": "runtime.worker_max_interval_within_observed",
-        "engine": "runtime_gate",
+        "rule_id": "purity.no_orphan_files",
+        "engine": "knowledge_gate",
         "enforcement": "blocking",
-        "reason": "requires db_session; not available in stateless mode",
+        "reason": "requires knowledge graph; not available in stateless mode",
     },
 ]
 
@@ -147,10 +147,7 @@ def test_degraded_is_preserved_as_degraded_not_fail(tmp_path: Path) -> None:
     for entry in SKIPPED_BLOCKING:
         assert entry["rule_id"] in out
     # rendered annotations come from the runtime's own formatter
-    assert (
-        "::warning title=Blocking rule NOT evaluated: runtime.worker_max_interval_within_observed"
-        in out
-    )
+    assert "::warning title=Blocking rule NOT evaluated: purity.no_orphan_files" in out
     assert "verdict=DEGRADED" in out
 
 
@@ -230,7 +227,7 @@ def test_text_format_renders_verdict_and_skipped_blocking(tmp_path: Path) -> Non
     )
     assert code == 1
     assert "DEGRADED" in out
-    assert "runtime.worker_max_interval_within_observed" in out
+    assert "purity.no_orphan_files" in out
 
 
 def test_audit_runs_with_the_workspace_trusted_by_git(tmp_path: Path) -> None:

@@ -12,8 +12,8 @@ Each test:
   5. Asserts at least one violation is returned.
 
 Engines covered: ast_gate (x2), glob_gate (x2), regex_gate (x1).
-runtime_gate and llm_gate are covered by their own per-engine suites and
-require live runtime data / LLM availability respectively.
+llm_gate is covered by its own per-engine suite and requires LLM
+availability.
 """
 
 from __future__ import annotations

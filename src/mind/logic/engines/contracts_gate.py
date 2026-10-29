@@ -515,8 +515,7 @@ async def _check_rule_binding_iceberg(
     check fires even with one rule, when that rule keeps firing on the
     same small file set across cycles.
 
-    Skip-silently when db_session is not injected (consistent with the
-    runtime_gate pattern). The canonical ADR-102 case (Finding.json
+    Skip-silently when db_session is not injected. The canonical ADR-102 case (Finding.json
     firing 16 findings on 2 files) fires under default thresholds.
     """
     findings: list[AuditFinding] = []

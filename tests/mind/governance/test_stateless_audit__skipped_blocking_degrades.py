@@ -4,8 +4,8 @@ Before this fix, run_stateless_audit's verdict branch (#847/#856) only
 consulted *findings*. `skipped_rules` was populated and never read again,
 so `core-admin code audit --offline --severity=block` rendered an
 unqualified PASS while three blocking rules (two knowledge_gate
-capability-taxonomy rules + runtime.worker_max_interval_within_observed)
-were never evaluated. Reproduced on CORE at 429c0f40 before the fix.
+capability-taxonomy rules + one db_session rule since removed) were
+never evaluated. Reproduced on CORE at 429c0f40 before the fix.
 
 Governor ruling (2026-09-18):
 
@@ -61,10 +61,7 @@ async def _run(
 ) -> dict:
     """Run with every runnable rule reported as cleanly executed."""
     runnable = {
-        r.rule_id
-        for r in rules
-        if r.engine not in {"knowledge_gate", "llm_gate"}
-        and r.rule_id != "runtime.worker_max_interval_within_observed"
+        r.rule_id for r in rules if r.engine not in {"knowledge_gate", "llm_gate"}
     }
     intent_repo = MagicMock()
     with (
@@ -146,18 +143,14 @@ async def test_mixed_advisory_and_blocking_skips_is_degraded(tmp_path: Path) -> 
         _rule("a.ast", "ast_gate", "blocking"),
         _rule("modularity.unix_philosophy", "llm_gate", "advisory"),
         _rule("purity.no_orphan_files", "knowledge_gate", "reporting"),
-        _rule(
-            "runtime.worker_max_interval_within_observed", "runtime_gate", "blocking"
-        ),
+        _rule("x.prose", "llm_gate", "blocking"),
     ]
     result = await _run(rules, tmp_path)
     assert result["verdict"] == "DEGRADED"
     assert result["passed"] is False
     assert result["stats"]["skipped_rules_count"] == 3
     assert result["stats"]["skipped_blocking_rules_count"] == 1
-    assert result["stats"]["skipped_blocking_rule_ids"] == [
-        "runtime.worker_max_interval_within_observed"
-    ]
+    assert result["stats"]["skipped_blocking_rule_ids"] == ["x.prose"]
 
 
 async def test_genuine_blocking_violation_with_no_skips_remains_fail(
@@ -203,9 +196,7 @@ async def test_skipped_entries_expose_id_enforcement_and_reason(
             "knowledge_gate",
             "blocking",
         ),
-        _rule(
-            "runtime.worker_max_interval_within_observed", "runtime_gate", "blocking"
-        ),
+        _rule("x.prose", "llm_gate", "blocking"),
         _rule("modernization.legacy_scars", "llm_gate", "advisory"),
     ]
     result = await _run(rules, tmp_path)
@@ -221,13 +212,8 @@ async def test_skipped_entries_expose_id_enforcement_and_reason(
         "knowledge graph"
         in by_id["capability.taxonomy.roles_require_canonical_capabilities"]["reason"]
     )
-    assert (
-        by_id["runtime.worker_max_interval_within_observed"]["enforcement"]
-        == "blocking"
-    )
-    assert (
-        "db_session" in by_id["runtime.worker_max_interval_within_observed"]["reason"]
-    )
+    assert by_id["x.prose"]["enforcement"] == "blocking"
+    assert "LLM" in by_id["x.prose"]["reason"]
     assert by_id["modernization.legacy_scars"]["enforcement"] == "advisory"
 
 
@@ -259,9 +245,10 @@ async def test_project_policy_cannot_switch_off_skipped_blocking(
 
 
 async def test_reproduced_offline_case_no_longer_passes(tmp_path: Path) -> None:
-    """The exact #907 shape: every runnable rule clean, the three blocking
-    rules CORE's own law maps to knowledge_gate/runtime_gate-with-db skipped,
-    eight reporting/advisory rules skipped alongside them."""
+    """The #907 shape: every runnable rule clean, the blocking rules CORE's
+    own law maps to knowledge_gate skipped, eight reporting/advisory rules
+    skipped alongside them. (The original also skipped a third, db_session
+    blocking rule that has since been removed from the law.)"""
     rules = [
         _rule("a.ast", "ast_gate", "blocking"),
         _rule(
@@ -273,9 +260,6 @@ async def test_reproduced_offline_case_no_longer_passes(tmp_path: Path) -> None:
             "capability.taxonomy.roles_require_canonical_capabilities",
             "knowledge_gate",
             "blocking",
-        ),
-        _rule(
-            "runtime.worker_max_interval_within_observed", "runtime_gate", "blocking"
         ),
         _rule("architecture.mind.no_execution_semantics", "llm_gate", "reporting"),
         _rule("data.integrity.vector_sync", "knowledge_gate", "reporting"),
@@ -290,10 +274,9 @@ async def test_reproduced_offline_case_no_longer_passes(tmp_path: Path) -> None:
     assert result["verdict"] != "PASS"
     assert result["verdict"] == "DEGRADED"
     assert result["passed"] is False
-    assert result["stats"]["skipped_rules_count"] == 11
-    assert result["stats"]["skipped_blocking_rules_count"] == 3
+    assert result["stats"]["skipped_rules_count"] == 10
+    assert result["stats"]["skipped_blocking_rules_count"] == 2
     assert result["stats"]["skipped_blocking_rule_ids"] == [
         "capability.taxonomy.resources_provide_canonical_capabilities",
         "capability.taxonomy.roles_require_canonical_capabilities",
-        "runtime.worker_max_interval_within_observed",
     ]

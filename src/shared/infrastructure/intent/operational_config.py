@@ -242,31 +242,6 @@ class DaemonConfig:
 
 
 @dataclass(frozen=True)
-# ID: 82dbe9c1-067e-4f18-9cbc-8d3bcbed6767
-class WorkerClassificationConfig:
-    """ADR-081 D7 / ADR-082 — gates for the runtime.worker_process_classification rule.
-
-    The rule consumes loop_hold.sample blackboard entries (Step 3a-telemetry)
-    and fires advisory findings when observed loop-hold contradicts the
-    declared requires_dedicated_process state on a worker.
-
-    ADR-082 replaces the rolling-N cycle_window with time-bucketed windows:
-    escalation looks at the worst hold in the last loop_hold_escalation_hours
-    (24h default); de-escalation requires loop_hold_deescalation_hours (168h)
-    of sustained cleanliness plus heartbeat activity proof. Correct for
-    event-driven sparse sampling — loop_hold.sample rows post only when
-    slow_callback_duration is tripped.
-    """
-
-    loop_hold_escalation_sec: float = 5.0
-    loop_hold_deescalation_sec: float = 1.0
-    loop_hold_escalation_hours: int = 24
-    loop_hold_deescalation_hours: int = 168
-    min_samples_for_escalation: int = 3
-    min_active_heartbeats_for_deescalation: int = 10
-
-
-@dataclass(frozen=True)
 # ID: 546c1ad9-c7b5-43a7-af49-d2083f7fe865
 class ProposalsConfig:
     list_limit: int = 100
@@ -814,9 +789,6 @@ class OperationalConfig:
     blackboard: BlackboardConfig = field(default_factory=BlackboardConfig)
     health_log: HealthLogConfig = field(default_factory=HealthLogConfig)
     daemon: DaemonConfig = field(default_factory=DaemonConfig)
-    worker_classification: WorkerClassificationConfig = field(
-        default_factory=WorkerClassificationConfig
-    )
     proposals: ProposalsConfig = field(default_factory=ProposalsConfig)
     consequence_log: ConsequenceLogConfig = field(default_factory=ConsequenceLogConfig)
     log_maintenance: LogMaintenanceConfig = field(default_factory=LogMaintenanceConfig)

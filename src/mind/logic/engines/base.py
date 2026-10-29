@@ -195,7 +195,7 @@ class BaseEngine(ABC):
            context-level for all check_types (knowledge_gate, workflow_gate,
            attestation_gate). No override needed.
         2. ``_context_check_types`` — engine is context-level for a fixed named
-           set (cli_gate, contracts_gate, runtime_gate). No override needed.
+           set (cli_gate, contracts_gate). No override needed.
         3. Neither — engine overrides this method for mixed or complex dispatch
            (artifact_gate). Returns False by default.
 

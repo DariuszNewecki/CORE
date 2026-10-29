@@ -13,7 +13,7 @@ discovery must not import, instantiate, schedule or report it as an error,
 and no heartbeat is expected between invocations.
 
 Every consumer that needs this distinction (daemon discovery, the
-``workers run`` loader, the shared liveness state, runtime_gate) routes
+``workers run`` loader, the shared liveness state) routes
 through :func:`resolve_launch`. No consumer may special-case a worker by
 filename or class name.
 
