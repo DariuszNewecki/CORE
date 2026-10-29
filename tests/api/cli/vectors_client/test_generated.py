@@ -25,7 +25,6 @@ async def test_VectorsClient_rebuild() -> None:
     assert result == {"status": "ok"}
 
 
-
 import pytest
 
 
@@ -51,3 +50,20 @@ async def test_VectorsClient_query():
         },
     )
     assert result == {"results": [{"id": "abc", "score": 0.9}]}
+
+
+import asyncio
+
+
+# ID: a8e96f57-9f1e-45bd-b2ac-01fdb5a22a6a
+def test_VectorsClient_status() -> None:
+    facade = MagicMock()
+    expected = {"collections": [{"name": "code", "status": "green"}]}
+    facade._request = AsyncMock(return_value=expected)
+
+    client = VectorsClient(facade)
+
+    result = asyncio.run(client.status())
+
+    assert result == expected
+    facade._request.assert_awaited_once_with("GET", "/v1/vectors/status")
