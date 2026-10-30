@@ -52,3 +52,35 @@ async def test_LaneService_propose_validated_diff():
     assert proposal_id == "prop-123"
     assert production_set == ["a.py", "b.py"]
     bb_service.fetch_delegated_finding.assert_awaited_once_with("finding-1")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 3c78ebc0-9f8c-41a6-8222-4f1bf5d72382
+async def test_LaneService_claim_delegated_finding():
+    # Import symbol via its module path (class method)
+    from will.autonomy.lane_service import LaneService
+
+    instance = object.__new__(LaneService)
+
+    mock_bb_service = AsyncMock()
+    mock_bb_service.claim_delegated_finding = AsyncMock(return_value=1)
+
+    mock_registry = AsyncMock()
+    mock_registry.get_blackboard_service = AsyncMock(return_value=mock_bb_service)
+
+    # Local import inside the method -> patch at defining module
+    with patch(
+        "body.services.service_registry.service_registry.get_blackboard_service",
+        new=mock_registry.get_blackboard_service,
+    ):
+        result = await LaneService.claim_delegated_finding(
+            instance, "finding-abc", "agent-x"
+        )
+
+    assert result is True
+    mock_bb_service.claim_delegated_finding.assert_awaited_once_with(
+        "finding-abc", "agent-x"
+    )
