@@ -30,3 +30,32 @@ async def test_ProposalRepository_create():
     mock_to_db_model.assert_called_once()
     session.add.assert_called_once_with(mock_db_model)
     session.flush.assert_awaited_once()
+
+
+
+
+# ID: f03a75da-03e2-426d-b436-173288862893
+async def test_ProposalRepository_get() -> None:
+    from will.autonomy.proposal_repository import ProposalRepository
+
+    expected_proposal = MagicMock(name="expected_proposal")
+    db_record = MagicMock(name="db_record")
+
+    mock_result = MagicMock(name="result")
+    mock_result.scalar_one_or_none.return_value = db_record
+
+    mock_session = MagicMock(name="session")
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    repo = ProposalRepository(mock_session)
+
+    with patch(
+        "will.autonomy.proposal_repository.ProposalMapper.from_db_model",
+        return_value=expected_proposal,
+    ) as mock_from_db_model:
+        proposal = await repo.get("prop-123")
+
+    mock_session.execute.assert_awaited_once()
+    mock_result.scalar_one_or_none.assert_called_once()
+    mock_from_db_model.assert_called_once_with(db_record)
+    assert proposal is expected_proposal
