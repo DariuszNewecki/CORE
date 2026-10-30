@@ -83,3 +83,67 @@ async def test_mark_proposal_failed():
         await mark_proposal_failed("prop-123", "boom")
 
     mock_state_manager.mark_failed.assert_awaited_once_with("prop-123", "boom")
+
+
+import pytest
+
+from will.autonomy.proposal_consumer_revival import report_revival
+
+
+@pytest.mark.asyncio
+# ID: c3ac8e56-a7dd-4f0c-aeee-e0d042ee7d13
+async def test_report_revival():
+    worker = MagicMock()
+    worker.post_observation = AsyncMock()
+    worker.post_report = AsyncMock()
+
+    revival = {
+        "proposal_id": "prop-123",
+        "failure_reason": "some_failure",
+        "revived_count": 2,
+        "revived_subjects": ["subj-a", "subj-b"],
+        "delegated_count": 1,
+        "delegated_finding_ids": ["fid-1"],
+        "delegated_subjects": ["subj-delegated"],
+        "cap_reason": "failure_cap_delegated",
+    }
+
+    operational_config = MagicMock()
+    operational_config.blackboard.remediation_cap_n = 3
+
+    with patch(
+        "shared.infrastructure.intent.operational_config.load_operational_config",
+        return_value=operational_config,
+    ):
+        await report_revival(
+            worker,
+            "prop-123",
+            revival,
+            report_subject_family="proposal.failure.revival",
+        )
+
+    worker.post_observation.assert_awaited_once_with(
+        subject="blackboard.remediation_cap_reached::subj-delegated",
+        payload={
+            "entry_id": "fid-1",
+            "finding_subject": "subj-delegated",
+            "finding_status": "indeterminate",
+            "proposal_id": "prop-123",
+            "failure_reason": "some_failure",
+            "reason": "failure_cap_delegated",
+            "remediation_cap_n": 3,
+        },
+        status="abandoned",
+    )
+
+    worker.post_report.assert_awaited_once_with(
+        subject="proposal.failure.revival::prop-123",
+        payload={
+            "proposal_id": "prop-123",
+            "failure_reason": "some_failure",
+            "revived_count": 2,
+            "revived_subjects": ["subj-a", "subj-b"],
+            "delegated_count": 1,
+            "delegated_subjects": ["subj-delegated"],
+        },
+    )
