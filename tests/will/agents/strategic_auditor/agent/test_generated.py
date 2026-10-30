@@ -136,3 +136,59 @@ async def test_StrategicAuditor_run():
     assert campaign.parent_task_id == "42"
     mock_log_summary.assert_called_once_with(campaign)
     mock_tracer.record.assert_called_once()
+
+
+import asyncio
+
+
+# ID: cbd3e8ae-36f3-4fe9-aeec-240ea7e3853f
+def test_StrategicAuditor():
+    context = MagicMock()
+    cognitive_service = MagicMock()
+
+    campaign = MagicMock()
+    campaign.campaign_id = "campaign-123"
+    campaign.total_findings = 5
+    campaign.autonomous_task_count = 2
+    campaign.escalation_count = 1
+    campaign.system_summary = "System looks stable"
+    campaign.clusters = []
+    campaign.escalations = []
+
+    session = AsyncMock()
+
+    fake_system_context = MagicMock()
+    fake_gatherer = MagicMock()
+    fake_gatherer.gather = AsyncMock(return_value=fake_system_context)
+
+    fake_tracer = MagicMock()
+
+    with (
+        patch(
+            "will.agents.strategic_auditor.agent.DecisionTracer",
+            return_value=fake_tracer,
+        ) as tracer_cls,
+        patch(
+            "will.agents.strategic_auditor.agent.SystemContextGatherer",
+            return_value=fake_gatherer,
+        ) as gatherer_cls,
+        patch(
+            "will.agents.strategic_auditor.agent.synthesize_campaign",
+            new=AsyncMock(return_value=campaign),
+        ) as synth_mock,
+    ):
+        agent = StrategicAuditor(context, cognitive_service)
+
+        assert agent._ctx is context
+        assert agent._cognitive is cognitive_service
+        assert agent.tracer is fake_tracer
+
+        returned = asyncio.run(
+            agent.run(session, write=False, execute_autonomous=False)
+        )
+
+    assert returned is campaign
+    tracer_cls.assert_called_once_with(context.path_resolver)
+    gatherer_cls.assert_called_once_with(context, cognitive_service)
+    fake_gatherer.gather.assert_awaited_once_with(session)
+    synth_mock.assert_awaited_once_with(cognitive_service, fake_system_context)
