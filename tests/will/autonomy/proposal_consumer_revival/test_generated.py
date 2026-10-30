@@ -147,3 +147,36 @@ async def test_report_revival():
             "delegated_subjects": ["subj-delegated"],
         },
     )
+
+
+import pytest
+
+from will.autonomy.proposal_consumer_revival import revive_and_report
+
+
+@pytest.mark.asyncio
+# ID: 2f46d9f2-93d6-4e49-91f2-bc7b7d3ad5ce
+async def test_revive_and_report():
+    worker = MagicMock()
+
+    revival = {"finding-1": {"subject": "finding-1"}}
+
+    with (
+        patch(
+            "will.autonomy.proposal_consumer_revival._proposal_revival_lineage",
+            new=AsyncMock(return_value="autonomous"),
+        ) as mock_lineage,
+        patch(
+            "will.autonomy.proposal_consumer_revival._revive_autonomous",
+            new=AsyncMock(return_value=revival),
+        ) as mock_revive,
+        patch(
+            "will.autonomy.proposal_consumer_revival.report_revival",
+            new=AsyncMock(),
+        ) as mock_report,
+    ):
+        await revive_and_report(worker, "proposal-1", "failed")
+
+    mock_lineage.assert_awaited_once_with("proposal-1")
+    mock_revive.assert_awaited_once_with("proposal-1", "failed")
+    mock_report.assert_awaited_once_with(worker, "proposal-1", revival)
