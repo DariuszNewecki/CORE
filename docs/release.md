@@ -110,6 +110,13 @@ CORE follows semantic versioning per ADR-086 D7; the semver policy was
 finalized in #541 (F-48.5). CORE is past 1.0, so
 minor bumps add backward-compatible surface and patches are fixes only.
 
+**Major versions.** A major version is a stability promise, not just a
+count of breaking changes. 3.0.0 means every issue in the GitHub milestone
+[CORE 3.0 — production ready](https://github.com/DariuszNewecki/CORE/milestone/18)
+was closed. The PyPI classifier stays `4 - Beta` until an independent
+person, not an AI agent, has installed CORE from the README and used it;
+that event is the trigger to move to `5 - Production/Stable`.
+
 Versions are immutable. Mistakes ship as a new patch version, never as
 a re-tagged release.
 
