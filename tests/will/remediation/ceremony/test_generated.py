@@ -56,6 +56,7 @@ def _patch_submit_and_persist_fix(ok: bool, run_id: str = "run-123", error: str 
 # --- _collect_rule_ids (ADR-154 D1 provenance) ---
 
 
+# ID: 0eecf188-a062-428d-80c9-3190e9bbd384
 def test_collect_rule_ids_dedupes_and_sorts() -> None:
     ceremony = _make_ceremony()
     findings = [
@@ -66,6 +67,7 @@ def test_collect_rule_ids_dedupes_and_sorts() -> None:
     assert ceremony._collect_rule_ids(findings) == ["rule.a", "rule.b"]
 
 
+# ID: 0225a29c-4be5-4ba8-bb0f-3c4fa78ec804
 def test_collect_rule_ids_none_on_missing_rule() -> None:
     """A finding with no resolvable rule must fail the collection entirely —
     never silently substitute 'unknown' into a set assisted.validate_diff
@@ -79,6 +81,7 @@ def test_collect_rule_ids_none_on_missing_rule() -> None:
 
 
 @pytest.mark.asyncio
+# ID: cf65d3ab-89da-411b-837e-da1126effc3e
 async def test_execute_file_blocks_on_failed_validation() -> None:
     """Canary passes, assisted.validate_diff fails -> candidate/PENDING
     construction must never run. A failed gate cannot be silently
@@ -110,6 +113,7 @@ async def test_execute_file_blocks_on_failed_validation() -> None:
 
 
 @pytest.mark.asyncio
+# ID: 998f72b4-96f1-43c6-bc61-4aeb3a291144
 async def test_execute_file_empty_patch_fails_without_calling_validate_diff() -> None:
     """No-op candidate (empty/unavailable diff) is its own precondition
     failure — it must never reach assisted.validate_diff at all, and must
@@ -136,6 +140,7 @@ async def test_execute_file_empty_patch_fails_without_calling_validate_diff() ->
 
 
 @pytest.mark.asyncio
+# ID: d3e99050-d9cd-40df-ac62-9179239bf9c1
 async def test_execute_file_missing_rule_id_fails_without_generating_patch() -> None:
     """A finding with no resolvable rule id must stop the ceremony before
     patch generation or validation are ever attempted."""
@@ -163,6 +168,7 @@ async def test_execute_file_missing_rule_id_fails_without_generating_patch() -> 
 
 
 @pytest.mark.asyncio
+# ID: eebcbed9-272a-4b84-bcf7-47d50a7de1ae
 async def test_execute_file_validate_diff_called_with_baseline_sha_and_rule_ids() -> (
     None
 ):
@@ -267,6 +273,7 @@ def _enter_passing_mocks(
 
 
 @pytest.mark.asyncio
+# ID: 16a4560c-0a5d-4bbf-9a7b-f943ec34c71a
 async def test_execute_file_worker_backed_creates_draft() -> None:
     """A canonical worker-backed ceremony (real worker_uuid) with passing
     validation creates a PENDING via the atomic submission path and returns
@@ -313,6 +320,7 @@ async def test_execute_file_worker_backed_creates_draft() -> None:
 
 
 @pytest.mark.asyncio
+# ID: 8341f89a-c1f6-4b50-9684-251162c8976e
 async def test_execute_file_candidate_construction_failure_aborts() -> None:
     from shared.models.validated_remediation_candidate import (
         CandidateConstructionError,
@@ -340,6 +348,7 @@ async def test_execute_file_candidate_construction_failure_aborts() -> None:
 
 
 @pytest.mark.asyncio
+# ID: 08884b49-4fa2-4c1c-b502-bedb704aba91
 async def test_execute_file_ceremony_submission_failure_does_not_touch_findings() -> (
     None
 ):
@@ -379,6 +388,7 @@ async def test_execute_file_ceremony_submission_failure_does_not_touch_findings(
 
 
 @pytest.mark.asyncio
+# ID: 94eb2d61-eda8-463a-8193-c3ce3d4658e2
 async def test_execute_file_file_mode_is_candidate_export_only() -> None:
     """File-mode (no real worker identity) -> candidate produced, no
     proposal, no apply, no commit."""
@@ -412,6 +422,7 @@ async def test_execute_file_file_mode_is_candidate_export_only() -> None:
 
 
 @pytest.mark.asyncio
+# ID: b81d6676-7219-4f62-bad5-fa543314c147
 async def test_export_candidate_only_candidate_construction_failure() -> None:
     from shared.models.validated_remediation_candidate import (
         CandidateConstructionError,
@@ -437,3 +448,52 @@ async def test_export_candidate_only_candidate_construction_failure() -> None:
     ceremony._ctx.git_service.commit_paths.assert_not_called()
     post_failed_call = ceremony._blackboard.post_failed.await_args
     assert "Candidate construction failed" in post_failed_call.args[3]
+
+
+# ID: e6083694-5f6d-438f-b26c-6bf90f6f091f
+async def test_process_file():
+    core_context = MagicMock()
+    blackboard = MagicMock()
+
+    ceremony = RemediationCeremony(
+        core_context=core_context,
+        target_rule="some-rule",
+        blackboard=blackboard,
+    )
+
+    ceremony._process_file = AsyncMock(return_value=True)
+
+    findings = [{"id": "f1"}, {"id": "f2"}]
+    result = await ceremony.process_file("src/example.py", findings)
+
+    ceremony._process_file.assert_awaited_once_with("src/example.py", findings)
+    assert result is True
+
+
+
+
+# ID: caf36971-f3b3-4e63-bfa7-e82f465c6da0
+def test_RemediationCeremony() -> None:
+    from will.remediation.ceremony import RemediationCeremony
+
+    core_context = MagicMock()
+    target_rule = "some.rule"
+    blackboard = MagicMock()
+
+    with patch(
+        "will.remediation.ceremony.RemediationInterpretationService",
+        MagicMock(),
+    ) as mock_interpretation_service_cls:
+        ceremony = RemediationCeremony(
+            core_context=core_context,
+            target_rule=target_rule,
+            blackboard=blackboard,
+        )
+
+    mock_interpretation_service_cls.assert_called_once_with()
+    assert ceremony._ctx is core_context
+    assert ceremony._target_rule == target_rule
+    assert ceremony._blackboard is blackboard
+    assert (
+        ceremony._interpretation_service is mock_interpretation_service_cls.return_value
+    )
