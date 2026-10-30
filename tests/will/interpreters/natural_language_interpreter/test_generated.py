@@ -47,3 +47,25 @@ def test_NaturalLanguageInterpreter_execute():
     interpreter._create_result.assert_called_once()
     assert result is expected_result
     assert expected_result.duration_sec >= 0.0
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: d5d61ecb-c477-4ea7-96a1-44e4efeb58c8
+async def test_NaturalLanguageInterpreter():
+    interpreter = NaturalLanguageInterpreter()
+    result = await interpreter.execute("fix src/models/user.py")
+
+    assert result is not None
+
+    task_type = interpreter._classify_intent("fix src/models/user.py")
+    assert task_type is not None
+    assert getattr(task_type, "value", str(task_type)).lower() == "fix"
+
+    targets = interpreter._extract_targets("fix src/models/user.py")
+    assert "src/models/user.py" in targets
+
+    constraint = interpreter._extract_constraints("dry run fix src/models/user.py")
+    assert constraint.get("write") is False
