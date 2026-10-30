@@ -51,3 +51,35 @@ async def test_release_executing_proposals() -> None:
         str(row2[0]),
         "worker terminated during execution (finally-block release)",
     )
+
+
+import pytest
+
+from will.autonomy.proposal_consumer_revival import mark_proposal_failed
+
+
+@pytest.mark.asyncio
+# ID: 66cdb831-33a5-44d0-964a-2f3f0014934b
+async def test_mark_proposal_failed():
+    mock_session = MagicMock()
+
+    mock_session_cm = MagicMock()
+    mock_session_cm.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session_cm.__aexit__ = AsyncMock(return_value=None)
+
+    mock_registry = MagicMock()
+    mock_registry.session.return_value = mock_session_cm
+
+    mock_state_manager = MagicMock()
+    mock_state_manager.mark_failed = AsyncMock(return_value=None)
+
+    with (
+        patch("body.services.service_registry.service_registry", mock_registry),
+        patch(
+            "will.autonomy.proposal_state_manager.ProposalStateManager",
+            return_value=mock_state_manager,
+        ),
+    ):
+        await mark_proposal_failed("prop-123", "boom")
+
+    mock_state_manager.mark_failed.assert_awaited_once_with("prop-123", "boom")
