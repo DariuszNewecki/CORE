@@ -90,3 +90,35 @@ async def test_write_evidence():
     second_call = file_handler.write_json.call_args_list[1]
     assert second_call.args[0] == "reports/remediation/latest_remediation.json"
     assert second_call.args[1] == payload
+
+
+from unittest.mock import AsyncMock
+
+
+# ID: 36c58ede-1f33-4450-baa5-4c00a51fbef1
+async def test_RemediationEvidenceWriter_validate_improvement():
+    file_handler = MagicMock()
+    auditor = MagicMock()
+    auditor.audit = AsyncMock(return_value=[MagicMock(), MagicMock()])
+    repo_root = Path("/tmp/repo")
+
+    writer = RemediationEvidenceWriter(
+        file_handler=file_handler,
+        auditor_context=auditor,
+        repo_root=repo_root,
+    )
+
+    with patch(
+        "will.self_healing.remediation_evidence_writer.PathResolver"
+    ) as mock_resolver:
+        reports_dir = Path("/tmp/repo/reports")
+        mock_resolver.from_repo.return_value.reports_dir = reports_dir
+
+        passed, findings_after_count, audit_path = await writer.validate_improvement(
+            findings_before_count=5
+        )
+
+    assert passed is True
+    assert findings_after_count == 2
+    assert audit_path == reports_dir / "audit_findings.json"
+    auditor.audit.assert_awaited_once()
