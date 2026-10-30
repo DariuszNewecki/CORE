@@ -109,3 +109,55 @@ async def test_ProcessOrchestrator_run_adaptive():
     assert call_kwargs["session_state"] is orchestrator.session_state
     assert orchestrator.execution_history == [initial_result]
     assert orchestrator.session_state == {"meta": 1}
+
+
+
+
+
+# ID: 0fe7a8f3-d75a-46c4-a3fb-fcdf401627dd
+async def test_ProcessOrchestrator_run_sequence():
+    orch = ProcessOrchestrator()
+
+    component_a = MagicMock()
+    component_a.component_id = "comp_a"
+    component_a.execute = AsyncMock(
+        return_value=MagicMock(
+            ok=True,
+            confidence=0.9,
+            data={"a_out": 1},
+            metadata={"meta_a": "x"},
+        )
+    )
+
+    component_b = MagicMock()
+    component_b.component_id = "comp_b"
+    component_b.execute = AsyncMock(
+        return_value=MagicMock(
+            ok=True,
+            confidence=0.8,
+            data={"b_out": 2},
+            metadata={"meta_b": "y"},
+        )
+    )
+
+    results = await orch.run_sequence(
+        [
+            (component_a, {"in_a": "foo"}),
+            (component_b, {"in_b": "bar"}),
+        ]
+    )
+
+    assert len(results) == 2
+    component_a.execute.assert_awaited_once()
+    component_b.execute.assert_awaited_once()
+
+    first_call_kwargs = component_a.execute.await_args.kwargs
+    assert first_call_kwargs["in_a"] == "foo"
+    assert first_call_kwargs["session_state"] is orch.session_state
+
+    second_call_kwargs = component_b.execute.await_args.kwargs
+    assert second_call_kwargs["in_b"] == "bar"
+    assert second_call_kwargs["a_out"] == 1
+
+    assert len(orch.execution_history) == 2
+    assert orch.session_state == {"meta_a": "x", "meta_b": "y"}
