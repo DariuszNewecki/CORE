@@ -450,9 +450,6 @@ async def test_export_candidate_only_candidate_construction_failure() -> None:
     assert "Candidate construction failed" in post_failed_call.args[3]
 
 
-
-
-
 # ID: e6083694-5f6d-438f-b26c-6bf90f6f091f
 async def test_process_file():
     core_context = MagicMock()
@@ -471,3 +468,32 @@ async def test_process_file():
 
     ceremony._process_file.assert_awaited_once_with("src/example.py", findings)
     assert result is True
+
+
+
+
+# ID: caf36971-f3b3-4e63-bfa7-e82f465c6da0
+def test_RemediationCeremony() -> None:
+    from will.remediation.ceremony import RemediationCeremony
+
+    core_context = MagicMock()
+    target_rule = "some.rule"
+    blackboard = MagicMock()
+
+    with patch(
+        "will.remediation.ceremony.RemediationInterpretationService",
+        MagicMock(),
+    ) as mock_interpretation_service_cls:
+        ceremony = RemediationCeremony(
+            core_context=core_context,
+            target_rule=target_rule,
+            blackboard=blackboard,
+        )
+
+    mock_interpretation_service_cls.assert_called_once_with()
+    assert ceremony._ctx is core_context
+    assert ceremony._target_rule == target_rule
+    assert ceremony._blackboard is blackboard
+    assert (
+        ceremony._interpretation_service is mock_interpretation_service_cls.return_value
+    )
