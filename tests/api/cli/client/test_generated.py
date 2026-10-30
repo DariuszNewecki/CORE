@@ -124,3 +124,24 @@ def test_CoreApiClient_census_list_baselines():
 
         assert result == expected
         client.census.census_list_baselines.assert_awaited_once_with(limit=10, offset=0)
+
+
+
+
+# ID: beb02748-78e8-4273-9fdf-ae9673d5bc4b
+async def test_CoreApiClient_quality_imports():
+    from api.cli.client import CoreApiClient
+
+    expected = {"imports": ["a", "b"]}
+
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost", None)
+    ):
+        client = CoreApiClient(base_url="http://localhost")
+
+    client.quality.quality_imports = AsyncMock(return_value=expected)
+
+    result = await client.quality_imports("a", b=2)
+
+    assert result == expected
+    client.quality.quality_imports.assert_awaited_once_with("a", b=2)
