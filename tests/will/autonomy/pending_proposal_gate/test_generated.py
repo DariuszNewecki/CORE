@@ -60,7 +60,6 @@ async def test_screen_pending_proposals():
     mock_executor.execute.assert_awaited_once_with(proposal_id, claimed_by, write=False)
 
 
-
 from will.autonomy.pending_proposal_gate import ScreenOutcome
 
 
@@ -77,4 +76,23 @@ def test_ScreenOutcome_as_payload():
         "pre_approval_passed": 3,
         "pre_approval_failed": 1,
         "expired": 2,
+    }
+
+
+
+
+# ID: f093cb9e-1933-415e-9be9-29bee1612b67
+def test_ScreenOutcome():
+    outcome = ScreenOutcome(
+        passed=["id-1", "id-2"],
+        failed=["id-3"],
+        expired=["id-4"],
+    )
+
+    payload = outcome.as_payload()
+
+    assert payload == {
+        "pre_approval_passed": ["id-1", "id-2"],
+        "pre_approval_failed": ["id-3"],
+        "expired": ["id-4"],
     }
