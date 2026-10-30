@@ -35,3 +35,23 @@ def test_DaemonClient_daemon_start():
 
     assert result == {"status": "started"}
     facade._request.assert_awaited_once_with("POST", "/v1/daemon/start", json={})
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 609fe4b0-d30b-4454-a879-b985e81c20dd
+async def test_DaemonClient_daemon_status():
+    expected = {"alive": True, "workers": [{"name": "w1", "healthy": True}]}
+
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value=expected)
+
+    client = DaemonClient(facade)
+
+    result = await client.daemon_status()
+
+    assert result == expected
+    facade._request.assert_awaited_once_with("GET", "/v1/daemon/status")
