@@ -58,3 +58,23 @@ async def test_screen_pending_proposals():
     assert outcome.failed == []
     assert outcome.expired == []
     mock_executor.execute.assert_awaited_once_with(proposal_id, claimed_by, write=False)
+
+
+
+from will.autonomy.pending_proposal_gate import ScreenOutcome
+
+
+# ID: 8d66e798-0e45-4209-83c2-f78e4a20b0f6
+def test_ScreenOutcome_as_payload():
+    outcome = MagicMock(spec=ScreenOutcome)
+    outcome.passed = 3
+    outcome.failed = 1
+    outcome.expired = 2
+
+    payload = ScreenOutcome.as_payload(outcome)
+
+    assert payload == {
+        "pre_approval_passed": 3,
+        "pre_approval_failed": 1,
+        "expired": 2,
+    }
