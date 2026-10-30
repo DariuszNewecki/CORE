@@ -42,9 +42,6 @@ async def test_DecisionTracer_save_trace():
         tracer._save_to_database.assert_awaited_once_with(expected_path)
 
 
-
-
-
 # ID: 6deecf46-3f9c-4e7a-9928-c052c496edba
 def test_DecisionTracer_explain_chain():
     with (
@@ -100,3 +97,69 @@ def test_DecisionTracer_explain_chain():
         assert "Alternatives: Alt A, Alt B" in result
         assert "Confidence: 85%" in result
         assert '"key": "value"' in result
+
+
+
+
+# ID: 95844d24-07d0-4b91-900d-0917ddf0a814
+def test_DecisionTracer_record():
+    from will.orchestration.decision_tracer import DecisionTracer
+
+    fake_root = MagicMock()
+    fake_root.resolve.return_value = fake_root
+    fake_root.__truediv__ = lambda self, other: fake_root
+    fake_root.relative_to.return_value = fake_root
+
+    path_resolver = MagicMock()
+    path_resolver.repo_root = fake_root
+    reports_dir = MagicMock()
+    reports_dir.__truediv__ = lambda self, other: fake_root
+    path_resolver.reports_dir = reports_dir
+
+    file_service = MagicMock()
+
+    with (
+        patch(
+            "will.orchestration.decision_tracer.PathResolver"
+        ) as mock_path_resolver_cls,
+        patch(
+            "will.orchestration.decision_tracer.FileService"
+        ) as mock_file_service_cls,
+        patch(
+            "will.orchestration.decision_tracer.configured_repo_root",
+            return_value=fake_root,
+        ),
+        patch("will.orchestration.decision_tracer.Path") as mock_path,
+    ):
+        resolved_path = MagicMock()
+        mock_path.return_value.resolve.return_value = resolved_path
+        mock_path_resolver_cls.return_value.reports_dir = reports_dir
+
+        tracer = DecisionTracer(
+            path_resolver=path_resolver,
+            session_id="sess-1",
+            file_service=file_service,
+            agent_name="agent-x",
+            goal="do the thing",
+        )
+        tracer.ensure_dir_mock = file_service.ensure_dir
+
+        tracer.record(
+            agent="agent-x",
+            decision_type="select_action",
+            rationale="it is the best option",
+            chosen_action="do_it",
+            alternatives=["do_other"],
+            context={"k": "v"},
+            confidence=0.9,
+        )
+
+    assert len(tracer.decisions) == 1
+    decision = tracer.decisions[0]
+    assert decision.agent == "agent-x"
+    assert decision.decision_type == "select_action"
+    assert decision.rationale == "it is the best option"
+    assert decision.chosen_action == "do_it"
+    assert decision.alternatives_considered == ["do_other"]
+    assert decision.context == {"k": "v"}
+    assert decision.confidence == 0.9
