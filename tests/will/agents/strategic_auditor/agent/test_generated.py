@@ -75,3 +75,64 @@ def test_StrategicAuditor_format_machine():
             "confidence": 0.5,
         }
     ]
+
+
+from unittest.mock import AsyncMock
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 44f00524-0a79-4888-8fba-5a0d439063ed
+async def test_StrategicAuditor_run():
+    context = MagicMock()
+    cognitive_service = MagicMock()
+
+    with patch("will.agents.strategic_auditor.agent.DecisionTracer") as mock_tracer_cls:
+        mock_tracer = MagicMock()
+        mock_tracer_cls.return_value = mock_tracer
+        auditor = StrategicAuditor(context, cognitive_service)
+
+    session = MagicMock()
+
+    system_context = MagicMock()
+    campaign = MagicMock()
+    campaign.clusters = [MagicMock(), MagicMock()]
+    campaign.escalations = [MagicMock()]
+    campaign.total_findings = 7
+    campaign.autonomous_task_count = 2
+    campaign.escalation_count = 1
+    campaign.campaign_id = "campaign-123"
+
+    mock_gather = AsyncMock(return_value=system_context)
+    mock_synthesize = AsyncMock(return_value=campaign)
+    mock_persist = AsyncMock(return_value=42)
+    mock_log_summary = MagicMock()
+
+    mock_gatherer_instance = MagicMock()
+    mock_gatherer_instance.gather = mock_gather
+
+    with (
+        patch(
+            "will.agents.strategic_auditor.agent.SystemContextGatherer",
+            return_value=mock_gatherer_instance,
+        ),
+        patch(
+            "will.agents.strategic_auditor.agent.synthesize_campaign",
+            mock_synthesize,
+        ),
+        patch(
+            "will.agents.strategic_auditor.agent.persist_campaign",
+            mock_persist,
+        ),
+        patch.object(auditor, "_log_summary", mock_log_summary),
+    ):
+        result = await auditor.run(session, write=True, execute_autonomous=False)
+
+    assert result is campaign
+    mock_gather.assert_awaited_once_with(session)
+    mock_synthesize.assert_awaited_once_with(cognitive_service, system_context)
+    mock_persist.assert_awaited_once_with(session, campaign)
+    assert campaign.parent_task_id == "42"
+    mock_log_summary.assert_called_once_with(campaign)
+    mock_tracer.record.assert_called_once()
