@@ -41,9 +41,6 @@ def test_ProcessOrchestrator_reset():
     mock_logger.debug.assert_called_once_with("ProcessOrchestrator state reset")
 
 
-
-
-
 # ID: d071d0c9-a3bc-4e6b-974f-539584b98933
 def test_ProcessOrchestrator_get_workflow_summary():
     orchestrator = ProcessOrchestrator()
@@ -75,3 +72,40 @@ def test_ProcessOrchestrator_get_workflow_summary():
     assert summary["total_duration"] == 2.0
     assert summary["avg_confidence"] == 0.7
     assert set(summary["phases_used"]) == {"analysis", "implementation"}
+
+
+from unittest.mock import AsyncMock
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 2c1279dc-36ff-4595-97b5-ce89300bda2c
+async def test_ProcessOrchestrator_run_adaptive():
+    orchestrator = ProcessOrchestrator()
+
+    initial_result = MagicMock()
+    initial_result.ok = True
+    initial_result.confidence = 0.9
+    initial_result.next_suggested = None
+    initial_result.data = {"key": "value"}
+    initial_result.metadata = {"meta": 1}
+
+    initial_component = MagicMock()
+    initial_component.component_id = "initial"
+    initial_component.execute = AsyncMock(return_value=initial_result)
+
+    result = await orchestrator.run_adaptive(
+        initial_component=initial_component,
+        initial_inputs={"input": 1},
+        max_steps=3,
+        confidence_threshold=0.5,
+    )
+
+    assert result is initial_result
+    initial_component.execute.assert_awaited_once()
+    call_kwargs = initial_component.execute.await_args.kwargs
+    assert call_kwargs["input"] == 1
+    assert call_kwargs["session_state"] is orchestrator.session_state
+    assert orchestrator.execution_history == [initial_result]
+    assert orchestrator.session_state == {"meta": 1}
