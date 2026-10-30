@@ -98,8 +98,6 @@ async def test_ProposalService_mark_failed() -> None:
     mock_state_manager.mark_failed.assert_awaited_once_with("proposal-123", "boom")
 
 
-
-
 # ID: 479a0ae8-c399-42e4-ab3a-6efa117ef381
 async def test_ProposalService_mark_completed():
     session = MagicMock()
@@ -118,3 +116,48 @@ async def test_ProposalService_mark_completed():
         await service.mark_completed("proposal-123")
 
         mock_state_manager.mark_completed.assert_awaited_once_with("proposal-123")
+
+
+from types import SimpleNamespace
+
+
+# ID: 73aa3ded-e729-476e-adcc-a9630ff60640
+async def test_ProposalService_list_pending_approval_paginated():
+    session = MagicMock()
+
+    ready_proposal = SimpleNamespace(
+        id=1,
+        validation_results={"pre_approval_run": True},
+    )
+    not_ready_proposal = SimpleNamespace(
+        id=2,
+        validation_results={"pre_approval_run": False},
+    )
+    no_results_proposal = SimpleNamespace(id=3, validation_results=None)
+
+    service = ProposalService(session)
+
+    with (
+        patch("will.autonomy.proposal_service.ProposalRepository") as mock_repo_cls,
+        patch("will.autonomy.proposal_service.ProposalStateManager"),
+    ):
+        mock_repo = MagicMock()
+        mock_repo.list_by_status_paginated = AsyncMock(
+            return_value=(
+                [ready_proposal, not_ready_proposal, no_results_proposal],
+                True,
+                "cursor-123",
+            )
+        )
+        mock_repo_cls.return_value = mock_repo
+
+        service = ProposalService(session)
+
+        proposals, has_more, cursor = await service.list_pending_approval_paginated(
+            limit=10, after_cursor="cursor-000"
+        )
+
+    assert proposals == [ready_proposal]
+    assert has_more is True
+    assert cursor == "cursor-123"
+    mock_repo.list_by_status_paginated.assert_awaited_once()
