@@ -18,3 +18,20 @@ async def test_DaemonClient_daemon_stop():
 
     assert result == {"status": "ok"}
     facade._request.assert_awaited_once_with("POST", "/v1/daemon/stop", json={})
+
+
+import asyncio
+from unittest.mock import MagicMock
+
+
+# ID: 91e2d660-c3b8-4251-912b-67430c743314
+def test_DaemonClient_daemon_start():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "started"})
+
+    client = DaemonClient(facade)
+
+    result = asyncio.run(client.daemon_start())
+
+    assert result == {"status": "started"}
+    facade._request.assert_awaited_once_with("POST", "/v1/daemon/start", json={})
