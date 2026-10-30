@@ -126,8 +126,6 @@ def test_CoreApiClient_census_list_baselines():
         client.census.census_list_baselines.assert_awaited_once_with(limit=10, offset=0)
 
 
-
-
 # ID: beb02748-78e8-4273-9fdf-ae9673d5bc4b
 async def test_CoreApiClient_quality_imports():
     from api.cli.client import CoreApiClient
@@ -145,3 +143,22 @@ async def test_CoreApiClient_quality_imports():
 
     assert result == expected
     client.quality.quality_imports.assert_awaited_once_with("a", b=2)
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 40fb11fc-3160-45af-a6ac-7fd444575f3f
+async def test_CoreApiClient_get_fix_run():
+    client = CoreApiClient(base_url="http://testserver")
+
+    expected = {"run_id": "abc123", "status": "completed"}
+    mock_fix = MagicMock()
+    mock_fix.get_fix_run = AsyncMock(return_value=expected)
+    client.fix = mock_fix
+
+    result = await client.get_fix_run(run_id="abc123")
+
+    assert result == expected
+    mock_fix.get_fix_run.assert_awaited_once_with(run_id="abc123")
