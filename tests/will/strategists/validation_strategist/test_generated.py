@@ -46,3 +46,39 @@ def test_ValidationStrategist_execute():
     assert result.data["enforcement_level"] == "advisory"
     assert result.data["risk_tier"] == "STANDARD"
     assert result.next_suggested == "constitutionalevaluator"
+
+
+from unittest.mock import patch
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: f191a36f-69a7-40ae-8a6f-2a60ebcc1190
+async def test_ValidationStrategist():
+    from will.strategists.validation_strategist import ValidationStrategist
+
+    with patch(
+        "will.strategists.validation_strategist.DecisionTracer"
+    ) as mock_tracer_cls:
+        mock_tracer = MagicMock()
+        mock_tracer.record = MagicMock()
+        mock_tracer_cls.return_value = mock_tracer
+
+        strategist = ValidationStrategist()
+
+        result = await strategist.execute(
+            operation_type="refactor",
+            file_path="src/will/strategists/validation_strategist.py",
+            risk_tier="ELEVATED",
+            write_mode=True,
+        )
+
+    assert result.ok is True
+    assert result.data["validation_strategy"] == "comprehensive"
+    assert result.data["risk_tier"] == "ELEVATED"
+    assert "syntax_validation" in result.data["required_checks"]
+    assert "constitutional_compliance" in result.data["required_checks"]
+    assert 0.0 <= result.data["quality_threshold"] <= 1.0
+    assert result.data["enforcement_level"] == "blocking"
+    mock_tracer.record.assert_called_once()
