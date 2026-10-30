@@ -17,7 +17,9 @@ out:
   clone never change;
 * when main moves, the branch merges it (``follow``); a path both sides
   changed takes main's version — CORE's stale change to it is dropped and
-  logged, and the symbol becomes a gap again;
+  logged, and the symbol becomes a gap again; a waiting generated test
+  whose source module main deleted is dropped the same way (it could only
+  fail to import);
 * with a GitHub token the branch is pushed and ONE pull request into main
   carries everything waiting (``deliver``); without one the commits wait on
   the local branch and the caller reports how many.
@@ -38,6 +40,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from shared.infrastructure.git_service import autonomous_identity
+from shared.infrastructure.intent.test_coverage_paths import (
+    load_test_coverage_config,
+)
 from shared.logger import getLogger
 
 
@@ -102,7 +107,7 @@ class DeliveryBranch:
         if tip is None:
             return {"state": "none", "dropped": []}
         if self._git.is_ancestor(target, tip):
-            return {"state": "current", "dropped": []}
+            return {"state": "current", "dropped": self._drop_orphans(target)}
         if self._git.is_ancestor(tip, target):
             self._git.update_ref(DELIVERY_REF, target, tip)
             return {"state": "caught_up", "dropped": []}
@@ -125,7 +130,51 @@ class DeliveryBranch:
             tree, [tip, target], message, identity=autonomous_identity()
         )
         self._git.update_ref(DELIVERY_REF, sha, tip)
-        return {"state": "merged", "dropped": conflicts}
+        return {"state": "merged", "dropped": conflicts + self._drop_orphans(target)}
+
+    def _drop_orphans(self, target: str) -> list[str]:
+        """Give ``target``'s version back to every waiting path under a
+        generated test's directory whose source module ``target`` lacks
+        (#1355: a test for a deleted module stops pytest collection)."""
+        tip = self.tip()
+        if tip is None:
+            return []
+        config = load_test_coverage_config()
+        test_prefix = f"{config.get('test_root', 'tests')}/"
+        suffix = config.get("test_file_suffix", "/test_generated.py")
+        source_root = config.get("source_root", "src")
+        pending = self._git.diff_names(target, tip)
+        tests = [p for p in pending if p.startswith(test_prefix) and p.endswith(suffix)]
+        if not tests:
+            return []
+        sources = self._git.ls_tree_blobs(target, source_root)
+        orphan_dirs = [
+            p[: -len(suffix)] + "/"
+            for p in tests
+            if f"{source_root}/{p[len(test_prefix) : -len(suffix)]}.py" not in sources
+        ]
+        dropped = sorted(
+            p for p in pending if any(p.startswith(d) for d in orphan_dirs)
+        )
+        if not dropped:
+            return []
+        upstream = {p: self._git.ls_tree_blobs(target, p).get(p) for p in dropped}
+        tree = self._git.tree_with(tip, upstream)
+        message = (
+            f"Drop generated tests whose source {target[:12]} removed\n\n"
+            + "\n".join(f"- {p}" for p in dropped)
+        )
+        sha = self._git.commit_tree(
+            tree, [tip], message, identity=autonomous_identity()
+        )
+        self._git.update_ref(DELIVERY_REF, sha, tip)
+        logger.warning(
+            "DeliveryBranch: dropped %d waiting path(s) whose source module "
+            "is gone: %s",
+            len(dropped),
+            dropped,
+        )
+        return dropped
 
     # ID: 7c2d5a9f-1e6b-4d38-8f4a-3b0e9c7d2a56
     def base(self) -> str:

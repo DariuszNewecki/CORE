@@ -172,6 +172,52 @@ def test_follow_drops_a_stale_change_upstream_also_made(
     assert branch.pending() == (0, [])
 
 
+# ID: b3c5ae70-f45c-451b-974a-5fbfee2d1b7f
+@pytest.mark.parametrize("main_moves", [True, False])
+def test_follow_drops_a_generated_test_whose_module_main_deleted(
+    pair: tuple[Path, Path], main_moves: bool
+) -> None:
+    """#1355: main deleted src/a.py while its generated test waited; the
+    test could only fail to import, so follow gives main's tree back."""
+    up, clone = pair
+    git = GitService(clone)
+    branch = DeliveryBranch(git)
+    base = branch.base()
+    generated = {
+        "tests/a/__init__.py": "",
+        "tests/a/test_generated.py": "from a import a\n",
+        "tests/b/test_generated.py": "from b import b\n",
+    }
+    sandbox = git.create_worktree(base)
+    try:
+        for rel, body in generated.items():
+            (Path(sandbox.repo_path) / rel).parent.mkdir(parents=True, exist_ok=True)
+            (Path(sandbox.repo_path) / rel).write_text(body)
+        branch.commit_from(sandbox, base, None, "test: a, b", author=PRODUCER)
+    finally:
+        sandbox.cleanup()
+
+    _git(up, "rm", "-q", "src/a.py")
+    _commit(up, {"src/b.py": "def b():\n    return 2\n"}, "remove a, add b")
+    assert _sync(clone, up).sync().state == "fast_forwarded"
+    if not main_moves:
+        # The branch merged main before this fix: its tip already holds HEAD.
+        merged = _git(clone, "merge-tree", "--write-tree", DELIVERY_REF, "HEAD")
+        sha = _git(
+            clone, "commit-tree", merged, "-p", DELIVERY_REF, "-p", "HEAD", "-m", "m"
+        )
+        _git(clone, "update-ref", DELIVERY_REF, sha)
+
+    followed = branch.follow()
+
+    assert followed == {
+        "state": "merged" if main_moves else "current",
+        "dropped": ["tests/a/__init__.py", "tests/a/test_generated.py"],
+    }
+    assert branch.pending()[1] == ["tests/b/test_generated.py"]
+    assert branch.follow() == {"state": "current", "dropped": []}
+
+
 # ID: 2d6a9f13-8e4b-4c71-b3a0-5f9e1c7d4b28
 def test_pending_source_is_the_waiting_test_file(pair: tuple[Path, Path]) -> None:
     _, clone = pair
