@@ -178,3 +178,21 @@ async def test_CoreApiClient_fix_ir():
 
     client.fix.fix_ir.assert_awaited_once_with(target="symbol_x")
     assert result == {"status": "ok", "fixed": True}
+
+
+
+
+
+# ID: 0fa49ecd-d2b3-40b8-9e0a-8e52a8f9e22f
+async def test_CoreApiClient_fix_modularity():
+    client = CoreApiClient(base_url="http://localhost:8000")
+    expected = {"status": "ok", "result": "modularity_fixed"}
+
+    mock_fix = MagicMock()
+    mock_fix.fix_modularity = AsyncMock(return_value=expected)
+    client.fix = mock_fix
+
+    result = await client.fix_modularity("arg1", key="value")
+
+    assert result == expected
+    mock_fix.fix_modularity.assert_awaited_once_with("arg1", key="value")
