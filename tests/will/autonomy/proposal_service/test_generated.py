@@ -44,9 +44,6 @@ async def test_ProposalService_reject():
         assert result == 3
 
 
-
-
-
 # ID: cdcc3718-c9ae-4fba-9eb5-83d83a7e4bc4
 async def test_ProposalService_approve():
     mock_session = MagicMock()
@@ -77,3 +74,28 @@ async def test_ProposalService_approve():
         approved_by_original="bob",
     )
     mock_session.commit.assert_awaited_once()
+
+
+
+
+
+# ID: c8f5dea5-dc7e-4ee1-a32a-601971153aee
+async def test_ProposalService_mark_failed() -> None:
+    mock_session = MagicMock()
+    mock_state_manager = MagicMock()
+    mock_state_manager.mark_failed = AsyncMock(return_value=None)
+
+    with (
+        patch(
+            "will.autonomy.proposal_service.ProposalStateManager",
+            return_value=mock_state_manager,
+        ),
+        patch(
+            "will.autonomy.proposal_service.ProposalRepository",
+        ),
+    ):
+        service = ProposalService(mock_session)
+
+        await service.mark_failed("proposal-123", "boom")
+
+    mock_state_manager.mark_failed.assert_awaited_once_with("proposal-123", "boom")
