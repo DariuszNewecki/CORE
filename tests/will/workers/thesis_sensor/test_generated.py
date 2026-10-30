@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -25,19 +24,21 @@ async def test_ThesisSensor_run():
     today_iso = fixed_now.date().isoformat()
     existing_records = [{"day": today_iso, "value": "present"}]
 
-    mock_runtime = MagicMock()
-    mock_runtime.daily_records = AsyncMock(return_value=list(existing_records))
+    daily_records = AsyncMock(return_value=list(existing_records))
 
     sensor._measure = AsyncMock()
     sensor._push_evidence = AsyncMock()
 
     with (
-        patch.dict(sys.modules, {"body.services.thesis.runtime": mock_runtime}),
+        # Patch the function, not sys.modules: once another test has imported
+        # the real module, `from body.services.thesis import runtime` reads
+        # the package attribute and a sys.modules entry is never consulted.
+        patch("body.services.thesis.runtime.daily_records", daily_records),
         patch("will.workers.thesis_sensor.datetime", mock_datetime),
     ):
         await sensor.run()
 
     sensor.post_heartbeat.assert_awaited_once()
-    mock_runtime.daily_records.assert_awaited_once()
+    daily_records.assert_awaited_once()
     sensor._measure.assert_not_awaited()
     sensor._push_evidence.assert_not_awaited()
