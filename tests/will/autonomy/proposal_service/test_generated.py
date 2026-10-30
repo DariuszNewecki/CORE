@@ -42,3 +42,38 @@ async def test_ProposalService_reject():
             {"proposal_origin": "autonomous"},
         )
         assert result == 3
+
+
+
+
+
+# ID: cdcc3718-c9ae-4fba-9eb5-83d83a7e4bc4
+async def test_ProposalService_approve():
+    mock_session = MagicMock()
+    mock_session.commit = AsyncMock()
+
+    with (
+        patch("will.autonomy.proposal_service.ProposalRepository", MagicMock()),
+        patch(
+            "will.autonomy.proposal_service.ProposalStateManager", MagicMock()
+        ) as mock_state_manager_cls,
+    ):
+        mock_state_manager = mock_state_manager_cls.return_value
+        mock_state_manager.approve = AsyncMock()
+
+        service = ProposalService(mock_session)
+
+        await service.approve(
+            proposal_id="prop-123",
+            approved_by="alice",
+            approval_authority="human",
+            approved_by_original="bob",
+        )
+
+    mock_state_manager.approve.assert_awaited_once_with(
+        "prop-123",
+        "alice",
+        "human",
+        approved_by_original="bob",
+    )
+    mock_session.commit.assert_awaited_once()
