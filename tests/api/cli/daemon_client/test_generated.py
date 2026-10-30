@@ -37,7 +37,6 @@ def test_DaemonClient_daemon_start():
     facade._request.assert_awaited_once_with("POST", "/v1/daemon/start", json={})
 
 
-
 import pytest
 
 
@@ -55,3 +54,30 @@ async def test_DaemonClient_daemon_status():
 
     assert result == expected
     facade._request.assert_awaited_once_with("GET", "/v1/daemon/status")
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: e6c72f09-5d19-435d-a353-fbe52671e1ed
+async def test_DaemonClient():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "ok"})
+
+    client = DaemonClient(facade)
+
+    result = await client.daemon_status()
+    assert result == {"status": "ok"}
+    facade._request.assert_awaited_once_with("GET", "/v1/daemon/status")
+
+    result = await client.daemon_start()
+    assert result == {"status": "ok"}
+    facade._request.assert_awaited_with("POST", "/v1/daemon/start", json={})
+
+    result = await client.daemon_stop()
+    assert result == {"status": "ok"}
+    facade._request.assert_awaited_with("POST", "/v1/daemon/stop", json={})
+
+    assert facade._request.await_count == 3
