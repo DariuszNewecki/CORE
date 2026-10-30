@@ -26,7 +26,7 @@ src/cli/     Typer commands; Rich rendering only here
 
 ## Facts (update when they change)
 
-- PyPI: `core-runtime` 2.16.1 (2026-10-23).
+- PyPI: `core-runtime` 3.0.0 (2026-10-30).
 - Latest proof run: 8 (#1053, 2026-10-23, on 2.16.1); zero new proof issues, #1315–#1317 confirmed fixed. Next run: 9.
 - Credentials: a closed list (governor 2026-10-23). No new token, no permission
   change, never asked of the governor. A job uses one of these and checks it at

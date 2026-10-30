@@ -8,6 +8,39 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [3.0.0] — 2026-10-30
+
+Major release: CORE 3.0, production ready. Every CORE 3.0 gate is closed (48 issues). No database migrations.
+Major because two audit engines are removed (below).
+
+### Removed
+
+- **`action_gate` and `runtime_gate` engines (#1346, #1348):** no rule used them. A rule in your `.intent/` that names
+  either engine now gets a blocking engine-missing finding; point it at a remaining engine or delete it. The
+  `worker_classification` section of `operational_config.yaml`, read only by `runtime_gate`, is gone from the starter;
+  a copy left in your `.intent/` is ignored.
+- **Unused code (#1353):** 13 groups that nothing in CORE called, among them `CorrectionEngine` and `HeaderService`.
+
+### Changed
+
+- **Test-coverage scope is a rule, not a file list (#1325, #1340):** `test_coverage.yaml` names `include_paths`
+  (`src/mind/`, `src/will/`, `src/api/`) and `exclude_paths`. A config that still uses `include_files` keeps working.
+- **Access-register rules name what enforces them (#1346, #1347):** `law show` names the mechanism for each `rbac.*`
+  rule, or says that no code checks it.
+
+### Fixed
+
+- **`workers resolve` and `docs generate` run without Qdrant settings (#1055, #1167; #1334, #1342).**
+
+### Security
+
+- **Dependencies:** dnspython 2.9.0 (#1341), filelock 4.2.4 and setuptools 84.2.1 (#1331), each for a published CVE.
+
+### Documentation
+
+- **Docs and decision records match the code (#1351):** claims in `docs/`, `action.yml` and `.specs/DECISIONS.md`
+  checked against the code and corrected.
+
 ## [2.16.1] — 2026-10-23
 
 Patch release. No database migrations. Fixes from the seventh 'Prove it' run.
@@ -1359,7 +1392,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v2.16.1...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/DariuszNewecki/CORE/compare/v2.16.1...v3.0.0
 [2.16.1]: https://github.com/DariuszNewecki/CORE/compare/v2.16.0...v2.16.1
 [2.16.0]: https://github.com/DariuszNewecki/CORE/compare/v2.15.2...v2.16.0
 [2.15.2]: https://github.com/DariuszNewecki/CORE/compare/v2.15.1...v2.15.2
