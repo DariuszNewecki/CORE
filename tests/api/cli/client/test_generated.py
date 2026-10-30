@@ -162,3 +162,19 @@ async def test_CoreApiClient_get_fix_run():
 
     assert result == expected
     mock_fix.get_fix_run.assert_awaited_once_with(run_id="abc123")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: ab7fbacb-e030-4004-a0b4-87a0ac41d856
+async def test_CoreApiClient_fix_ir():
+    client = CoreApiClient(base_url="http://localhost:8000")
+    client.fix = MagicMock()
+    client.fix.fix_ir = AsyncMock(return_value={"status": "ok", "fixed": True})
+
+    result = await client.fix_ir(target="symbol_x")
+
+    client.fix.fix_ir.assert_awaited_once_with(target="symbol_x")
+    assert result == {"status": "ok", "fixed": True}
