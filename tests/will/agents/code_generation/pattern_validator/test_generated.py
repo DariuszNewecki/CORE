@@ -16,3 +16,29 @@ def test_PatternValidator_get_pattern_requirements():
     assert "Pattern Requirements: pure_function" in result
     assert "deterministic" in result
     assert intent_guard is validator.intent_guard
+
+
+from unittest.mock import patch
+
+
+# ID: 7d7d50c1-3eaf-469c-ae9f-c69dbd2772c8
+def test_PatternValidator_infer_pattern_id():
+    intent_guard = MagicMock()
+    validator = PatternValidator(intent_guard=intent_guard)
+
+    task = MagicMock()
+    task.step = "expand the parsing logic for the tokenizer"
+    task.params = MagicMock()
+    task.params.pattern_id = None
+    task.params.file_path = "src/will/core/parsing/tokenizer.py"
+
+    with patch.object(
+        PatternValidator, "_classify_function_type", return_value="pure_function"
+    ) as mock_classify:
+        result = validator.infer_pattern_id(task)
+
+    mock_classify.assert_called_once_with(
+        "src/will/core/parsing/tokenizer.py",
+        "expand the parsing logic for the tokenizer",
+    )
+    assert result == "pure_function"
