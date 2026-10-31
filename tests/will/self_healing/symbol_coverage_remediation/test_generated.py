@@ -61,3 +61,98 @@ def test_remediate_batch_by_symbol():
         "tests_written": 2,
     }
     mock_summary.assert_called_once_with(result["results"])
+
+
+from types import SimpleNamespace
+
+import pytest
+
+from will.self_healing.symbol_coverage_remediation import remediate_file_by_symbol
+
+
+@pytest.mark.asyncio
+# ID: fc7b3f7e-8a2d-47ec-9142-e8acc7ecf59c
+async def test_remediate_file_by_symbol(tmp_path: Path) -> None:
+    source_file = "src/pkg/mod.py"
+    source_path = tmp_path / "src" / "pkg" / "mod.py"
+    source_path.parent.mkdir(parents=True, exist_ok=True)
+    source_path.write_text("def foo():\n    return 1\n")
+
+    context = MagicMock()
+    context.git_service.repo_path = tmp_path
+    context.git_service.get_current_commit = MagicMock(return_value="abc123")
+
+    gap_result = SimpleNamespace(
+        ok=True,
+        data={
+            "gaps": [
+                {"name": "foo", "kind": "function", "signature": "def foo():"},
+            ],
+            "test_file": "tests/test_mod.py",
+        },
+    )
+    mock_evaluator = MagicMock()
+    mock_evaluator.execute = AsyncMock(return_value=gap_result)
+
+    flow_result = SimpleNamespace(ok=True)
+
+    mock_executor = MagicMock()
+    mock_executor.execute = AsyncMock(return_value=flow_result)
+
+    scoped_git = MagicMock()
+    scoped_git.cleanup = MagicMock()
+
+    scoped_context = MagicMock()
+
+    mock_sandbox = MagicMock()
+    mock_sandbox.build_flow_execution_context = MagicMock(
+        return_value=(scoped_context, scoped_git)
+    )
+    mock_sandbox.checkpoint_paths = MagicMock(return_value=[])
+    mock_sandbox.restore_paths = MagicMock()
+    mock_sandbox.propagate_changes = MagicMock(return_value={"tests/test_mod.py"})
+
+    with (
+        patch(
+            "will.self_healing.symbol_coverage_remediation.resolve_contained_source_path",
+            return_value=source_path,
+        ),
+        patch(
+            "will.self_healing.symbol_coverage_remediation.TestGapEvaluator",
+            return_value=mock_evaluator,
+        ),
+        patch(
+            "will.self_healing.symbol_coverage_remediation.SandboxLifecycle",
+            return_value=mock_sandbox,
+        ),
+        patch(
+            "will.self_healing.symbol_coverage_remediation.TestGenCognitiveDelegate",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "will.self_healing.symbol_coverage_remediation.FlowExecutor",
+            return_value=mock_executor,
+        ),
+        patch(
+            "will.self_healing.symbol_coverage_remediation.declared_production",
+            return_value={"tests/test_mod.py"},
+        ),
+        patch(
+            "will.self_healing.symbol_coverage_remediation.test_file_ancestor_init_paths",
+            return_value=[],
+        ),
+    ):
+        result = await remediate_file_by_symbol(context, source_file, write=True)
+
+    assert result["status"] == "completed"
+    assert result["source_file"] == source_file
+    assert result["test_file"] == "tests/test_mod.py"
+    assert result["summary"] == {
+        "gaps": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "skipped": 0,
+    }
+    assert "tests/test_mod.py" in result["files_produced"]
+    mock_executor.execute.assert_awaited_once()
+    scoped_git.cleanup.assert_called_once()
