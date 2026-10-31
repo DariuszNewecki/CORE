@@ -84,3 +84,28 @@ async def test_LaneService_claim_delegated_finding():
     mock_bb_service.claim_delegated_finding.assert_awaited_once_with(
         "finding-abc", "agent-x"
     )
+
+
+
+
+
+# ID: 477b4fe6-76f2-41f2-85f8-bb77169f027d
+async def test_list_delegated_findings():
+    findings = [
+        {"id": "f1", "status": "indeterminate"},
+        {"id": "f2", "status": "human"},
+    ]
+
+    bb_service = MagicMock()
+    bb_service.fetch_delegated_findings = AsyncMock(return_value=findings)
+
+    registry = MagicMock()
+    registry.get_blackboard_service = AsyncMock(return_value=bb_service)
+
+    service = LaneService()
+    with patch("will.autonomy.lane_service.service_registry", registry):
+        result = await service.list_delegated_findings(limit=50)
+
+    assert result == findings
+    registry.get_blackboard_service.assert_awaited_once_with()
+    bb_service.fetch_delegated_findings.assert_awaited_once_with(limit=50)
