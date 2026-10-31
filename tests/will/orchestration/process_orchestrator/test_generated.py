@@ -111,9 +111,6 @@ async def test_ProcessOrchestrator_run_adaptive():
     assert orchestrator.session_state == {"meta": 1}
 
 
-
-
-
 # ID: 0fe7a8f3-d75a-46c4-a3fb-fcdf401627dd
 async def test_ProcessOrchestrator_run_sequence():
     orch = ProcessOrchestrator()
@@ -161,3 +158,78 @@ async def test_ProcessOrchestrator_run_sequence():
 
     assert len(orch.execution_history) == 2
     assert orch.session_state == {"meta_a": "x", "meta_b": "y"}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 3f144516-445e-4b38-87c0-d9f32d72eeee
+async def test_ProcessOrchestrator():
+    orch = ProcessOrchestrator()
+
+    # ID: fae00ab6-afb4-4464-a19a-d745435a0365
+    def make_component(cid: str, result: MagicMock) -> MagicMock:
+        comp = MagicMock()
+        comp.component_id = cid
+        comp.execute = AsyncMock(return_value=result)
+        return comp
+
+    result_ok = MagicMock()
+    result_ok.ok = True
+    result_ok.confidence = 0.9
+    result_ok.duration_sec = 1.5
+    result_ok.phase = MagicMock()
+    result_ok.phase.value = "analysis"
+    result_ok.data = {"symbols": ["a", "b"]}
+    result_ok.metadata = {"phase_key": "analysis"}
+    result_ok.next_suggested = None
+
+    comp1 = make_component("fileanalyzer", result_ok)
+
+    result2 = MagicMock()
+    result2.ok = True
+    result2.confidence = 0.8
+    result2.duration_sec = 0.5
+    result2.phase = result_ok.phase
+    result2.data = {"tests": ["t1"]}
+    result2.metadata = {"phase_key2": "test"}
+    result2.next_suggested = None
+
+    comp2 = make_component("teststrategist", result2)
+
+    results = await orch.run_sequence(
+        [
+            (comp1, {"file_path": "src/models.py"}),
+            (comp2, {}),
+        ]
+    )
+
+    assert results == [result_ok, result2]
+    assert len(orch.execution_history) == 2
+    comp1.execute.assert_awaited_once()
+    comp2.execute.assert_awaited_once()
+    # second component should receive accumulated data from first
+    _, kwargs2 = comp2.execute.await_args
+    assert kwargs2["symbols"] == ["a", "b"]
+    assert kwargs2["session_state"] is orch.session_state
+
+    summary = orch.get_workflow_summary()
+    assert summary["total_steps"] == 2
+    assert summary["successful_steps"] == 2
+    assert summary["failed_steps"] == 0
+    assert summary["avg_confidence"] == pytest.approx(0.85)
+
+    await orch.run_adaptive(
+        initial_component=comp1,
+        initial_inputs={"file_path": "src/models.py"},
+        max_steps=3,
+        confidence_threshold=0.5,
+    )
+    assert len(orch.execution_history) == 3
+
+    orch.reset()
+    assert orch.session_state == {}
+    assert orch.execution_history == []
+    assert orch.get_workflow_summary()["total_steps"] == 0
