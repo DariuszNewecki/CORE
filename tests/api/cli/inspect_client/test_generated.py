@@ -98,7 +98,6 @@ async def test_InspectClient_analysis_common_knowledge():
     assert result == {"items": [{"id": "ck-1"}]}
 
 
-
 import pytest
 
 
@@ -118,3 +117,22 @@ async def test_InspectClient_analysis_duplicates():
         timeout=300.0,
     )
     assert result == {"duplicates": []}
+
+
+
+
+
+# ID: 84ea26cd-d1a2-438a-88bd-9b143ea91f49
+async def test_InspectClient_analysis_clusters():
+    facade = MagicMock()
+    expected = {"clusters": [{"id": "c1", "label": "semantic"}]}
+    facade._request = AsyncMock(return_value=expected)
+
+    client = InspectClient(facade)
+
+    result = await client.analysis_clusters(limit=10)
+
+    assert result == expected
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/analysis/clusters", params={"limit": 10}
+    )
