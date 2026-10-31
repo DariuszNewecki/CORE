@@ -84,3 +84,144 @@ async def test_LaneService_claim_delegated_finding():
     mock_bb_service.claim_delegated_finding.assert_awaited_once_with(
         "finding-abc", "agent-x"
     )
+
+
+# ID: 477b4fe6-76f2-41f2-85f8-bb77169f027d
+async def test_list_delegated_findings():
+    findings = [
+        {"id": "f1", "status": "indeterminate"},
+        {"id": "f2", "status": "human"},
+    ]
+
+    bb_service = MagicMock()
+    bb_service.fetch_delegated_findings = AsyncMock(return_value=findings)
+
+    registry = MagicMock()
+    registry.get_blackboard_service = AsyncMock(return_value=bb_service)
+
+    service = LaneService()
+    with patch("will.autonomy.lane_service.service_registry", registry):
+        result = await service.list_delegated_findings(limit=50)
+
+    assert result == findings
+    registry.get_blackboard_service.assert_awaited_once_with()
+    bb_service.fetch_delegated_findings.assert_awaited_once_with(limit=50)
+
+
+# ID: c07e5421-cb6c-4cb6-80d8-eb201bf90b0e
+def test_LaneService():
+    from will.autonomy.lane_service import LaneService
+
+    service = LaneService()
+
+    finding = {"id": "f-1", "payload": {"rule": "rule-1"}}
+    findings = [finding]
+
+    mock_bb = AsyncMock()
+    mock_bb.fetch_delegated_findings = AsyncMock(return_value=findings)
+    mock_bb.fetch_delegated_finding = AsyncMock(return_value=finding)
+
+    mock_registry = MagicMock()
+    mock_registry.get_blackboard_service = AsyncMock(return_value=mock_bb)
+
+    ref = MagicMock()
+    ref.content = {"rationale": "because reasons"}
+
+    mock_intent_repo = MagicMock()
+    mock_intent_repo.get_rule = MagicMock(return_value=ref)
+
+    with (
+        patch("will.autonomy.lane_service.service_registry", mock_registry),
+        patch(
+            "will.autonomy.lane_service.get_intent_repository",
+            return_value=mock_intent_repo,
+        ),
+        patch(
+            "will.autonomy.lane_service.load_remediation_guidance",
+            return_value={"hint": "do the thing"},
+        ),
+    ):
+        import asyncio
+
+        result = asyncio.run(service.list_delegated_findings(limit=10))
+
+    assert result == findings
+    mock_bb.fetch_delegated_findings.assert_awaited_once_with(limit=10)
+    mock_registry.get_blackboard_service.assert_awaited_once()
+
+
+from will.autonomy.lane_service import LaneProposeError
+
+
+# ID: be75e045-d7fb-48c9-b2af-5f68a97d125c
+def test_LaneProposeError():
+    message = "finding is not a live lane item"
+    error = LaneProposeError(message)
+
+    assert isinstance(error, Exception)
+    assert str(error) == message
+    assert error.args == (message,)
+
+    raised = False
+    try:
+        raise LaneProposeError(message)
+    except LaneProposeError as exc:
+        raised = True
+        assert str(exc) == message
+    assert raised
+
+
+# ID: 0bc8f62c-5c2f-4374-b3a1-c167c8a86bd7
+def test_LaneService_get_delegated_finding():
+    from will.autonomy.lane_service import LaneService
+
+    service = LaneService()
+    expected = {"id": "f-123", "status": "delegated"}
+
+    mock_bb = MagicMock()
+    mock_bb.fetch_delegated_finding = AsyncMock(return_value=expected)
+
+    with patch(
+        "body.services.service_registry.service_registry.get_blackboard_service",
+        AsyncMock(return_value=mock_bb),
+    ):
+        import asyncio
+
+        result = asyncio.run(service.get_delegated_finding("f-123"))
+
+    assert result == expected
+
+
+# ID: c8d79014-46b2-46ef-a61f-a891ad9d502f
+async def test_LaneService_get_finding_bundle():
+    service = LaneService.__new__(LaneService)
+    finding = {"id": "f-1", "data": "x"}
+    bundled = {"finding": finding, "bundle": {"context": []}}
+    service.get_delegated_finding = AsyncMock(return_value=finding)
+    service._with_bundle = MagicMock(return_value=bundled)
+
+    result = await LaneService.get_finding_bundle(service, "f-1")
+
+    assert result == bundled
+    service.get_delegated_finding.assert_awaited_once_with("f-1")
+    service._with_bundle.assert_called_once_with(finding)
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 6b521e11-9931-4478-9e10-8abb0d19ac5c
+async def test_LaneService_next_delegated_finding():
+    finding = {"id": "finding-1", "rule_id": "rule-1", "status": "delegated"}
+    enriched = {**finding, "bundle": {"rationale": "because", "remediation": "fix it"}}
+
+    service = object.__new__(LaneService)
+    service.list_delegated_findings = AsyncMock(return_value=[finding])
+    service._with_bundle = MagicMock(return_value=enriched)
+
+    result = await LaneService.next_delegated_finding(service)
+
+    service.list_delegated_findings.assert_awaited_once_with(limit=1)
+    service._with_bundle.assert_called_once_with(finding)
+    assert result == enriched

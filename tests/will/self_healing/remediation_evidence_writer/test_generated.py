@@ -162,3 +162,35 @@ async def test_RemediationEvidenceWriter(tmp_path: Path) -> None:
         assert findings_after_count == 2
         assert audit_path == reports_dir / "audit_findings.json"
         auditor.audit.assert_awaited_once()
+
+
+
+
+
+# ID: badb4860-e818-479c-8323-a8ad38c21645
+def test_RemediationEvidenceWriter_count_by_severity():
+    writer = RemediationEvidenceWriter(
+        file_handler=MagicMock(),
+        auditor_context=MagicMock(),
+        repo_root=Path("/tmp/repo"),
+    )
+
+    # ID: 88696ab8-8930-415c-8af0-2f3f1fa92025
+    def make_finding(severity: str) -> MagicMock:
+        finding = MagicMock()
+        finding.severity = severity
+        return finding
+
+    findings = [
+        make_finding("error"),
+        make_finding("error"),
+        make_finding("warning"),
+        make_finding("info"),
+        make_finding("info"),
+        make_finding("info"),
+        make_finding("unknown"),
+    ]
+
+    result = writer.count_by_severity(findings)
+
+    assert result == {"error": 2, "warning": 1, "info": 3}

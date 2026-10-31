@@ -118,9 +118,6 @@ def test_RemediationInterpretationService_build_reasoning_brief():
     )
 
 
-
-
-
 # ID: 443833d9-5984-40a4-aeb1-31a5c4548bdb
 def test_RemediationInterpretationService():
     file_path = "src/example.py"
@@ -210,3 +207,18 @@ def test_RemediationInterpretationService():
     )
     assert brief_dict == {"file_path": file_path}
     brief.to_dict.assert_called_once_with()
+
+
+from will.self_healing.remediation_interpretation.service import (
+    RemediationInterpretationError,
+)
+
+
+# ID: 6a5a702f-b245-4aa0-a01e-e617307a28fc
+def test_RemediationInterpretationError():
+    message = "interpretation pipeline produced no valid brief"
+    error = RemediationInterpretationError(message)
+
+    assert isinstance(error, Exception)
+    assert str(error) == message
+    assert error.args == (message,)

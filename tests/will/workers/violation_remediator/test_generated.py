@@ -11,6 +11,7 @@ from body.services.proposal_submission_service import MappedSubmissionResult
 
 
 @dataclass
+# ID: 5fc13e5c-fde5-4e23-ac9f-f39be231765c
 class MockProposalAction:
     action_id: str | None = None
     flow_id: str | None = None
@@ -18,11 +19,13 @@ class MockProposalAction:
     order: int = 0
 
     @property
+    # ID: 694c8e5d-15c0-4ee4-91f5-ff6a76e41626
     def ref_id(self) -> str:
         return self.action_id or self.flow_id or ""
 
 
 @dataclass
+# ID: f01ee567-8a2c-4625-bcb2-84d532ce75d8
 class MockProposal:
     proposal_id: str = ""
     goal: str = ""
@@ -34,17 +37,21 @@ class MockProposal:
     risk: Any = None
     created_at: datetime = None
 
+    # ID: 0659097c-e585-41c0-b655-0f0cebe76437
     def compute_risk(self) -> None:
         pass
 
+    # ID: f82e796d-b565-4be8-a253-e6ce318184bd
     def validate(self) -> tuple[bool, list[str]]:
         return True, []
 
 
+# ID: a64407b0-3849-4888-b0e6-14e2a5f3ede5
 class TestViolationRemediatorWorker:
     """Tests for ViolationRemediatorWorker class."""
 
     @pytest.fixture
+    # ID: 17c9ba4f-3921-4d5a-a359-4437fccfdc3a
     def mock_core_context(self):
         """Create a mock core context for testing."""
         context = MagicMock()
@@ -52,6 +59,7 @@ class TestViolationRemediatorWorker:
         return context
 
     @pytest.fixture
+    # ID: b4633012-55d7-4f61-b4bf-81165712226b
     def worker(self, mock_core_context):
         """Create a ViolationRemediatorWorker instance for testing."""
         from will.workers.violation_remediator import ViolationRemediatorWorker
@@ -62,6 +70,7 @@ class TestViolationRemediatorWorker:
         inst._worker_uuid = "test-worker-uuid"
         return inst
 
+    # ID: ce5c831f-42a0-4024-b638-aa449cf72b60
     async def test_run_no_open_findings(self, worker):
         """Test run method when there are no open findings."""
         worker._load_open_findings = AsyncMock(return_value=[])
@@ -78,6 +87,7 @@ class TestViolationRemediatorWorker:
         worker._load_open_findings.assert_called_once()
         worker.post_report.assert_not_called()
 
+    # ID: 339f11be-d3c9-494e-be81-46c3f472bf37
     async def test_run_with_vocabulary_projection_error(self, worker):
         """When vocabulary projection is broken, run() short-circuits to
         post a ``governance.instrument_degraded`` observation and bails
@@ -118,6 +128,7 @@ class TestViolationRemediatorWorker:
         )
         worker._load_open_findings.assert_not_called()
 
+    # ID: 803a3923-26ba-49b3-a530-6315efc20789
     async def test_run_with_findings_no_remediation(self, worker):
         """#773 T5.2 mock-sampling finding: this test previously exercised
         the unmappable-finding path but asserted nothing about the outcome
@@ -171,6 +182,7 @@ class TestViolationRemediatorWorker:
         assert payload["entries_delegated"] == 0
         assert payload["unmappable_rules"] == ["unknown_rule"]
 
+    # ID: fe33cb71-2874-4ab7-8993-177471c45aee
     async def test_uncommitted_file_skips_proposal_creation(self, worker):
         """Findings whose target file is not in HEAD must not generate a proposal.
 
@@ -222,6 +234,7 @@ class TestViolationRemediatorWorker:
         assert report_payload["entries_held_uncommitted"] == 1
         assert report_payload["proposals_created"] == 0
 
+    # ID: f4f975d8-434b-48cb-956b-a3a6ae75487e
     async def test_committed_file_proceeds_to_proposal_creation(self, worker):
         """Findings whose target is committed must still reach _create_proposal."""
         finding = {
@@ -279,6 +292,7 @@ class TestViolationRemediatorWorker:
         assert report_payload["proposals_created"] == 1
         assert report_payload["entries_deferred"] == 1
 
+    # ID: ff46813c-61d8-4b2e-9eee-3b4f8d531c74
     async def test_flow_findings_bypass_uncommitted_gate(self, worker):
         """Flow-kind remediations have no file_path target and must not be gated."""
         finding = {
@@ -328,3 +342,85 @@ class TestViolationRemediatorWorker:
 
         worker._create_proposal.assert_called_once()
         worker._is_file_committed.assert_not_called()
+
+
+import asyncio
+
+from will.workers.violation_remediator import ViolationRemediatorWorker
+
+
+# ID: 1597b63b-2126-4963-b671-92db7dd9fb3e
+def test_ViolationRemediatorWorker_run() -> None:
+    worker = ViolationRemediatorWorker()
+
+    worker.post_observation = AsyncMock()
+    worker.post_heartbeat = AsyncMock()
+    worker.post_report = AsyncMock()
+    worker._load_open_findings = AsyncMock(return_value=[])
+
+    projection = MagicMock()
+
+    with patch(
+        "will.workers.violation_remediator.load_vocabulary_projection",
+        return_value=projection,
+    ):
+        asyncio.run(worker.run())
+
+    worker.post_heartbeat.assert_awaited_once()
+    worker.post_report.assert_not_awaited()
+    worker.post_observation.assert_not_awaited()
+
+
+
+
+
+# ID: 6a87396e-7871-4468-9496-f2b71a62cc45
+def test_ViolationRemediatorWorker():
+    import asyncio
+
+    worker = ViolationRemediatorWorker()
+
+    # Construction is trivial / no external I/O
+    assert worker.declaration_name == "violation_remediator"
+    assert worker._core_context is None
+
+    # Happy-path helper: _is_file_committed fails open when there is no git service
+    assert worker._is_file_committed("some/file.py") is True
+
+    # _get_remediation_map delegates to PathResolver + _load_remediation_map.
+    # Both are imported locally inside the method, so patch at their defining
+    # modules.
+    worker._core_context = MagicMock()
+    worker._core_context.git_service.repo_path = "/tmp/repo"
+
+    fake_map = {"rule.a": "action.x"}
+    with (
+        patch("shared.path_resolver.PathResolver") as mock_path_resolver,
+        patch(
+            "body.autonomy.audit_analyzer._load_remediation_map", return_value=fake_map
+        ) as mock_load,
+    ):
+        result = worker._get_remediation_map()
+
+    assert result == fake_map
+    mock_path_resolver.assert_called_once_with("/tmp/repo")
+    mock_load.assert_called_once()
+
+    # Happy path of run() with no open findings -> posts a heartbeat and returns.
+    async def _run_happy_path():
+        worker.post_heartbeat = AsyncMock()
+        worker.post_observation = AsyncMock()
+        worker.post_report = AsyncMock()
+        worker._load_open_findings = AsyncMock(return_value=[])
+
+        with patch(
+            "will.workers.violation_remediator.load_vocabulary_projection",
+            return_value=MagicMock(),
+        ):
+            await worker.run()
+
+        worker.post_heartbeat.assert_awaited_once()
+        worker.post_observation.assert_not_awaited()
+        worker.post_report.assert_not_awaited()
+
+    asyncio.run(_run_happy_path())

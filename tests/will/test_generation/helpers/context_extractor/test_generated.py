@@ -51,8 +51,6 @@ def test_ContextExtractor_extract_target_code() -> None:
     assert result == "def my_func():\n    return 42\n"
 
 
-
-
 # ID: 616fe35e-9ec5-45e0-89b2-484571c4253c
 def test_ContextExtractor():
     context_packet = {
@@ -106,3 +104,43 @@ def test_ContextExtractor():
     assert similar_symbols[0]["name"] == "similar_symbol"
     assert similar_symbols[0]["code"] == "def similar_symbol():\n    return 99\n"
     assert similar_symbols[0]["summary"] == "A similar symbol."
+
+
+
+
+# ID: 023f5854-ff26-4623-981d-38fd17cd02bb
+def test_ContextExtractor_extract_similar_symbols():
+    extractor = ContextExtractor()
+    context_packet = {
+        "context": [
+            {
+                "item_type": "symbol",
+                "similarity": 0.95,
+                "name": "foo",
+                "content": "def foo():\n    return 42",
+                "summary": "foo returns 42",
+            },
+            {
+                "item_type": "symbol",
+                "similarity": 0.5,
+                "name": "low_similarity",
+                "content": "def low_similarity(): pass",
+                "summary": "should be excluded",
+            },
+            {
+                "item_type": "file",
+                "similarity": 0.99,
+                "name": "not_a_symbol",
+                "content": "some file",
+                "summary": "should be excluded",
+            },
+        ]
+    }
+
+    result = extractor.extract_similar_symbols(context_packet)
+
+    assert isinstance(result, list)
+    assert len(result) == 1
+    assert result[0]["name"] == "foo"
+    assert result[0]["code"] == "def foo():\n    return 42"
+    assert result[0]["summary"] == "foo returns 42"
