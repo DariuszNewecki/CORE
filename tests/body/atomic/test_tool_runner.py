@@ -94,3 +94,18 @@ def test_tool_runner_runs_no_candidate_code() -> None:
         assert not hasattr(ToolRunner, gone)
     for gone in ("FULL_AUDIT_SUBPROCESS_BOOTSTRAP", "AUDIT_SUBPROCESS_BOOTSTRAP"):
         assert not hasattr(tool_runner, gone)
+
+
+# ID: 9c3e7a1f-2b4d-4e6a-8f0c-5d7b9e1a3c62
+def test_ruff_unfixable_errors_ignores_fixable_reports_the_rest(
+    tmp_path: Path,
+) -> None:
+    """Real ruff: an unused import (auto-fixable) passes; an error no fix can
+    repair (F821 here, E721 in #1365) is reported."""
+    fixable = "import os\n\n\ndef test_x() -> None:\n    assert True\n"
+    assert ToolRunner.ruff_unfixable_errors(tmp_path, "tests/test_g.py", fixable) == ""
+
+    unfixable = "def test_x() -> None:\n    assert undefined_name\n"
+    report = ToolRunner.ruff_unfixable_errors(tmp_path, "tests/test_g.py", unfixable)
+    assert "F821" in report
+    assert not (tmp_path / "tests").exists()  # stdin only, nothing written

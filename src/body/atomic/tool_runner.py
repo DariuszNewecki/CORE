@@ -63,6 +63,38 @@ class ToolRunner:
         return proc.returncode == 0
 
     @staticmethod
+    # ID: 4f0c9e2a-7d1b-4c58-a3e6-9b2d5f8e1c47
+    def ruff_unfixable_errors(worktree: Path, rel_path: str, content: str) -> str:
+        """Lint *content* as if it were *rel_path* in *worktree*, nothing written.
+
+        Runs ``ruff check --fix --unsafe-fixes`` on stdin, so errors that the
+        later ``fix.format`` step repairs (import order, unused imports) do not
+        count. Returns ruff's report of the errors that remain, or "" when
+        none do — those are the ones CI's ``ruff check`` would fail on.
+        """
+        proc = subprocess.run(
+            [
+                "ruff",
+                "check",
+                "--fix",
+                "--unsafe-fixes",
+                "--output-format",
+                "concise",
+                "--stdin-filename",
+                rel_path,
+                "-",
+            ],
+            cwd=str(worktree),
+            input=content,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if proc.returncode == 0:
+            return ""
+        return proc.stderr.strip() or f"ruff exited {proc.returncode}"
+
+    @staticmethod
     # ID: 2da620be-9bda-496a-904b-34463fbaf6ac
     def run_ruff_paths(worktree: Path, files: list[str]) -> bool:
         """``run_ruff`` limited to *files* that exist in *worktree*.
