@@ -149,3 +149,26 @@ def test_IntegrityVerifyResponse():
     )
     assert defaulted.checked_at is None
     assert defaulted.errors == ["missing digest"]
+
+
+from api.v1.schemas import CensusDiffResponse
+
+
+# ID: 2424da4a-e49c-4e5b-88c8-98e4f4a8d5a6
+def test_CensusDiffResponse():
+    diff_payload = {"added": ["a"], "removed": ["b"], "changed": ["c"]}
+    response = CensusDiffResponse(
+        available=True,
+        baseline="2024-01-01",
+        diff=diff_payload,
+    )
+
+    assert response.available is True
+    assert response.error is None
+    assert response.baseline == "2024-01-01"
+    assert response.diff == diff_payload
+
+    dumped = response.model_dump()
+    assert dumped["available"] is True
+    assert dumped["baseline"] == "2024-01-01"
+    assert dumped["diff"] == diff_payload
