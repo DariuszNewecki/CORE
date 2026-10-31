@@ -399,8 +399,6 @@ async def test_CoreApiClient_execute_proposal():
     assert result == expected
 
 
-
-
 # ID: f60e35cc-6efa-4f41-ad2d-8ef7df3f55dd
 async def test_CoreApiClient_reject_proposal() -> None:
     from api.cli.client import CoreApiClient
@@ -416,3 +414,22 @@ async def test_CoreApiClient_reject_proposal() -> None:
 
     assert result == expected
     proposals.reject_proposal.assert_awaited_once_with("prop-123", reason="not needed")
+
+
+
+
+
+# ID: f249aeb3-27e9-426a-8fa6-4dc6594a055e
+async def test_CoreApiClient_approve_proposal() -> None:
+    with patch("api.cli.client.ProposalsClient", MagicMock()):
+        client = CoreApiClient(base_url="unix:///tmp/core.sock")
+
+    mock_proposals = client.proposals
+    mock_proposals.approve_proposal = AsyncMock(
+        return_value={"id": "prop-1", "status": "approved"}
+    )
+
+    result = await client.approve_proposal("prop-1")
+
+    assert result == {"id": "prop-1", "status": "approved"}
+    mock_proposals.approve_proposal.assert_awaited_once_with("prop-1")
