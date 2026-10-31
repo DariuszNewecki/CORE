@@ -316,3 +316,25 @@ async def test_failing_candidate_is_rejected_by_the_sandbox_run(
 
     assert not result.ok
     assert result.data["counts"].get("failed") == 1
+
+
+async def test_candidate_failing_ruff_rejected_before_pytest(repo: Path) -> None:
+    """#1365: a candidate that passes pytest but fails CI's ruff check with an
+    error no auto-fix repairs must be rejected with ruff's message, so the generation loop
+    repairs it instead of committing it."""
+    ctx = _make_context(repo)
+    run_tests = AsyncMock()
+
+    with patch("body.atomic.test_actions.run_tests", new=run_tests):
+        result = await _action(
+            source_file="src/x.py",
+            target_path="tests/x/test_generated.py",
+            candidate_content="def test_new():\n    assert undefined_name\n",
+            core_context=ctx,
+        )
+
+    assert not result.ok
+    assert result.data["violations"][0]["rule"] == "test.candidate.must_lint"
+    assert "F821" in result.data["error"]
+    run_tests.assert_not_called()
+    assert not (repo / "tests").exists()
