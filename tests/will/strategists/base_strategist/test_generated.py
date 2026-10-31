@@ -12,3 +12,15 @@ def test_BaseStrategist_phase():
     result = strategist.phase
 
     assert result is ComponentPhase.RUNTIME
+
+
+
+
+# ID: ead8792d-95cd-4788-b6ad-b7e711342481
+def test_BaseStrategist():
+    strategist = BaseStrategist()
+
+    phase = strategist.phase
+
+    assert phase is not None
+    assert phase.name == "RUNTIME"
