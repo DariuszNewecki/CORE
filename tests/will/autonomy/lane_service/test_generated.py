@@ -192,8 +192,6 @@ def test_LaneService_get_delegated_finding():
     assert result == expected
 
 
-
-
 # ID: c8d79014-46b2-46ef-a61f-a891ad9d502f
 async def test_LaneService_get_finding_bundle():
     service = LaneService.__new__(LaneService)
@@ -207,3 +205,23 @@ async def test_LaneService_get_finding_bundle():
     assert result == bundled
     service.get_delegated_finding.assert_awaited_once_with("f-1")
     service._with_bundle.assert_called_once_with(finding)
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 6b521e11-9931-4478-9e10-8abb0d19ac5c
+async def test_LaneService_next_delegated_finding():
+    finding = {"id": "finding-1", "rule_id": "rule-1", "status": "delegated"}
+    enriched = {**finding, "bundle": {"rationale": "because", "remediation": "fix it"}}
+
+    service = object.__new__(LaneService)
+    service.list_delegated_findings = AsyncMock(return_value=[finding])
+    service._with_bundle = MagicMock(return_value=enriched)
+
+    result = await LaneService.next_delegated_finding(service)
+
+    service.list_delegated_findings.assert_awaited_once_with(limit=1)
+    service._with_bundle.assert_called_once_with(finding)
+    assert result == enriched
