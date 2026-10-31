@@ -184,3 +184,17 @@ def test_CensusBaselineListResponse():
     assert response.count == 1
     assert len(response.baselines) == 1
     assert response.baselines[0] is baseline
+
+
+from api.v1.schemas import CensusBaselineCreateResponse, CensusBaselineItem
+
+
+# ID: 896fd7dc-a554-438c-9d2a-e5139b2edd01
+def test_CensusBaselineCreateResponse():
+    item = CensusBaselineItem.model_construct(name="baseline-1")
+
+    response = CensusBaselineCreateResponse(baseline=item)
+
+    assert isinstance(response, CensusBaselineCreateResponse)
+    assert response.baseline is item
+    assert response.baseline.name == "baseline-1"
