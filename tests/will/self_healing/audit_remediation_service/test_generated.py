@@ -83,3 +83,22 @@ async def test_AuditRemediationService_remediate():
     mock_evidence.write_evidence.assert_awaited_once_with(mock_result)
     mock_create_result.assert_called_once()
     assert mock_result.remediation_output_path == "/tmp/evidence.json"
+
+
+
+
+# ID: 88c6117a-10da-4e07-860f-850b529cbde2
+def test_AuditRemediationService():
+    from will.self_healing.audit_remediation_service import AuditRemediationService
+
+    file_handler = MagicMock()
+    auditor_context = MagicMock()
+    repo_root = MagicMock()
+
+    service = AuditRemediationService(
+        file_handler=file_handler,
+        auditor_context=auditor_context,
+        repo_root=repo_root,
+    )
+
+    assert service.repo_root is repo_root
