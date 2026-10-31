@@ -162,3 +162,33 @@ def test_FileRole():
         default_role.evidence is not default_role.evidence
         or default_role.evidence == []
     )
+
+
+from will.self_healing.remediation_interpretation.models import NormalizedFinding
+
+
+# ID: 3929a8fa-fa3d-4b75-b0ae-68abc6c5e710
+def test_NormalizedFinding():
+    finding = NormalizedFinding(
+        finding_id="finding-001",
+        subject="src/will/example.py:42",
+        rule_id="WILL001",
+        rule_namespace="will.audit",
+        file_path="src/will/example.py",
+        line_number=42,
+        message="Example violation detected",
+        severity="high",
+        dry_run=True,
+    )
+
+    assert finding.finding_id == "finding-001"
+    assert finding.subject == "src/will/example.py:42"
+    assert finding.rule_id == "WILL001"
+    assert finding.rule_namespace == "will.audit"
+    assert finding.file_path == "src/will/example.py"
+    assert finding.line_number == 42
+    assert finding.message == "Example violation detected"
+    assert finding.severity == "high"
+    assert finding.dry_run is True
+    assert finding.raw_payload == {}
+    assert finding.raw_context == {}
