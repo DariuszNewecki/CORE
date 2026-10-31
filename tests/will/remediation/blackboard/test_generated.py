@@ -63,9 +63,6 @@ async def test_RemediationBlackboard_post_failed() -> None:
     assert result is None
 
 
-
-
-
 # ID: c4879aa4-c56f-4179-88ee-0b36f2e6ec30
 async def test_RemediationBlackboard_mark_findings() -> None:
     bb = RemediationBlackboard.__new__(RemediationBlackboard)
@@ -90,3 +87,46 @@ async def test_RemediationBlackboard_mark_findings() -> None:
         await bb.mark_findings(findings, "resolved")
 
     mock_store.update_findings_status.assert_awaited_once_with(findings, "resolved")
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 4681cf97-7936-4c13-86af-c6308005a813
+async def test_RemediationBlackboard():
+    worker_id = uuid.uuid4()
+
+    class _FakeBlackboard:
+        def __init__(self) -> None:
+            self.mark_findings = AsyncMock(return_value=None)
+            self.post_failed = AsyncMock(return_value=None)
+            self.post_report = AsyncMock(return_value=None)
+            self.post_observation = AsyncMock(return_value=None)
+
+        @property
+        # ID: 4c082838-8aab-47b8-a229-219a49cbeb98
+        def worker_uuid(self) -> uuid.UUID | None:
+            return worker_id
+
+    blackboard: RemediationBlackboard = _FakeBlackboard()
+
+    findings = [{"id": "f-1", "status": "open"}]
+    await blackboard.mark_findings(findings, "claimed")
+    blackboard.mark_findings.assert_awaited_once_with(findings, "claimed")
+
+    await blackboard.post_failed(
+        file_path="src/example.py",
+        findings=findings,
+        target_rule="W001",
+        reason="test failure",
+    )
+    blackboard.post_failed.assert_awaited_once_with(
+        file_path="src/example.py",
+        findings=findings,
+        target_rule="W001",
+        reason="test failure",
+    )
+
+    assert blackboard.worker_uuid == worker_id
