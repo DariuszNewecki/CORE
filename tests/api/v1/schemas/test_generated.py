@@ -172,3 +172,15 @@ def test_CensusDiffResponse():
     assert dumped["available"] is True
     assert dumped["baseline"] == "2024-01-01"
     assert dumped["diff"] == diff_payload
+
+
+# ID: 48c683d8-8f55-40f2-8c05-e4677d9cfc40
+def test_CensusBaselineListResponse():
+    from api.v1.schemas import CensusBaselineItem, CensusBaselineListResponse
+
+    baseline = CensusBaselineItem.model_construct()
+    response = CensusBaselineListResponse(count=1, baselines=[baseline])
+
+    assert response.count == 1
+    assert len(response.baselines) == 1
+    assert response.baselines[0] is baseline
