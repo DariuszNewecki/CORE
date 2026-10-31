@@ -276,8 +276,6 @@ async def test_CoreApiClient_inspect_search_commands():
     client.inspect.inspect_search_commands.assert_awaited_once_with("query", limit=5)
 
 
-
-
 # ID: 404c3830-c000-4918-8421-22ad1d9b0e9c
 async def test_CoreApiClient_inspect_search_capabilities():
     client = CoreApiClient(base_url="http://localhost:8000")
@@ -290,3 +288,57 @@ async def test_CoreApiClient_inspect_search_capabilities():
 
     assert result == {"capabilities": ["a", "b"]}
     client.inspect.inspect_search_capabilities.assert_awaited_once_with("q", limit=5)
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 6d2a4d31-6ca5-4fde-89b2-077f418c53ae
+async def test_CoreApiClient_inspect_components() -> None:
+    from api.cli.client import CoreApiClient
+
+    patches = [
+        patch("api.cli.client.InspectClient"),
+        patch("api.cli.client.AuditClient"),
+        patch("api.cli.client.FixClient"),
+        patch("api.cli.client.QualityClient"),
+        patch("api.cli.client.CoverageClient"),
+        patch("api.cli.client.RefactorClient"),
+        patch("api.cli.client.ProposalsClient"),
+        patch("api.cli.client.IntegrationClient"),
+        patch("api.cli.client.CensusClient"),
+        patch("api.cli.client.CognitiveRolesClient"),
+        patch("api.cli.client.SyncClient"),
+        patch("api.cli.client.DaemonClient"),
+        patch("api.cli.client.FindingsClient"),
+        patch("api.cli.client.IntegrityClient"),
+        patch("api.cli.client.LaneClient"),
+        patch("api.cli.client.LlmResourcesClient"),
+        patch("api.cli.client.SecretsClient"),
+        patch("api.cli.client.SymbolsClient"),
+        patch("api.cli.client.VectorsClient"),
+        patch("api.cli.client.ProjectClient"),
+        patch("api.cli.client.parse_base_url", return_value=("http://localhost", None)),
+    ]
+
+    mocks = [p.start() for p in patches]
+    try:
+        mock_inspect_cls = mocks[0]
+        mock_inspect_instance = MagicMock()
+        expected = {"components": [{"name": "foo"}], "count": 1}
+        mock_inspect_instance.inspect_components = AsyncMock(return_value=expected)
+        mock_inspect_cls.return_value = mock_inspect_instance
+
+        client = CoreApiClient(base_url="http://localhost")
+
+        result = await client.inspect_components("arg1", key="value")
+
+        mock_inspect_instance.inspect_components.assert_awaited_once_with(
+            "arg1", key="value"
+        )
+        assert result == expected
+    finally:
+        for p in reversed(patches):
+            p.stop()
