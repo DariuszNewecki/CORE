@@ -104,3 +104,24 @@ def test_LintResponse():
     assert dumped["ok"] is True
     assert "black" in dumped["tools"]
     assert dumped["error"] is None
+
+
+from api.v1.schemas import IntegrateResponse
+
+
+# ID: 3e3d1ffe-f5b2-4c4b-9686-be38b320d035
+def test_IntegrateResponse():
+    resp = IntegrateResponse(ok=True, message="integration complete", exit_code=0)
+
+    assert resp.ok is True
+    assert resp.message == "integration complete"
+    assert resp.error is None
+    assert resp.exit_code == 0
+
+    dumped = resp.model_dump()
+    assert dumped == {
+        "ok": True,
+        "message": "integration complete",
+        "error": None,
+        "exit_code": 0,
+    }
