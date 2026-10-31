@@ -290,7 +290,6 @@ async def test_CoreApiClient_inspect_search_capabilities():
     client.inspect.inspect_search_capabilities.assert_awaited_once_with("q", limit=5)
 
 
-
 import pytest
 
 
@@ -342,3 +341,27 @@ async def test_CoreApiClient_inspect_components() -> None:
     finally:
         for p in reversed(patches):
             p.stop()
+
+
+
+import pytest
+
+
+# ID: 57b212a2-ef47-4567-bb3c-d56cee647e40
+async def test_CoreApiClient_lint():
+    from api.cli.client import CoreApiClient
+
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost", None)
+    ):
+        with patch("api.cli.client.IntegrationClient") as mock_integration_cls:
+            client = CoreApiClient(base_url="http://localhost:8000")
+
+            mock_integration = MagicMock()
+            mock_integration.lint = AsyncMock(return_value={"status": "ok"})
+            client.integration = mock_integration
+
+            result = await client.lint(path="src")
+
+    mock_integration.lint.assert_awaited_once_with(path="src")
+    assert result == {"status": "ok"}
