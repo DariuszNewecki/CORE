@@ -77,3 +77,22 @@ async def test_InspectClient_decisions_patterns():
     facade._request.assert_awaited_once_with(
         "GET", "/v1/decisions/patterns", params={"days": 14}
     )
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 92197b20-7d91-489c-b86b-f12c3dfc869c
+async def test_InspectClient_analysis_common_knowledge():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"items": [{"id": "ck-1"}]})
+
+    client = InspectClient(facade)
+
+    result = await client.analysis_common_knowledge()
+
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/analysis/common-knowledge", params={"limit": 25}
+    )
+    assert result == {"items": [{"id": "ck-1"}]}
