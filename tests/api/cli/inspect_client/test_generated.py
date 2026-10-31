@@ -21,3 +21,21 @@ async def test_InspectClient_analysis_bridges() -> None:
     facade._request.assert_awaited_once_with(
         "GET", "/v1/analysis/bridges", params={"consuming": "service_a"}
     )
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 8a1b856a-cc21-45a8-89e2-4abaa8723e3f
+async def test_InspectClient_refusals_stats():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"total": 5, "by_type": {"x": 5}})
+    client = InspectClient(facade)
+
+    result = await client.refusals_stats(days=14)
+
+    assert result == {"total": 5, "by_type": {"x": 5}}
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/refusals/stats", params={"days": 14}
+    )
