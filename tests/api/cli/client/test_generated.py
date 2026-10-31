@@ -195,8 +195,6 @@ async def test_CoreApiClient_fix_modularity():
     mock_fix.fix_modularity.assert_awaited_once_with("arg1", key="value")
 
 
-
-
 # ID: 29828eb3-2092-4ede-9fcd-9b7b15afcf4f
 def test_CoreApiClient_get_census_run():
     import asyncio
@@ -241,3 +239,22 @@ def test_CoreApiClient_get_census_run():
 
         assert result == expected
         client.census.get_census_run.assert_awaited_once_with(run_id="abc123")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: d7ea6cc5-03cb-4607-8713-d33d9bc3f083
+async def test_CoreApiClient_census_run():
+    client = CoreApiClient(base_url="http://127.0.0.1:8000")
+
+    expected = {"status": "ok", "run_id": "abc123"}
+    census_instance = MagicMock()
+    census_instance.census_run = AsyncMock(return_value=expected)
+    client.census = census_instance
+
+    result = await client.census_run(path="src", depth=2)
+
+    assert result == expected
+    census_instance.census_run.assert_awaited_once_with(path="src", depth=2)
