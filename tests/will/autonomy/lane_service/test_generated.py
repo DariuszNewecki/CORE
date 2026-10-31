@@ -169,3 +169,26 @@ def test_LaneProposeError():
         raised = True
         assert str(exc) == message
     assert raised
+
+
+
+
+# ID: 0bc8f62c-5c2f-4374-b3a1-c167c8a86bd7
+def test_LaneService_get_delegated_finding():
+    from will.autonomy.lane_service import LaneService
+
+    service = LaneService()
+    expected = {"id": "f-123", "status": "delegated"}
+
+    mock_bb = MagicMock()
+    mock_bb.fetch_delegated_finding = AsyncMock(return_value=expected)
+
+    with patch(
+        "body.services.service_registry.service_registry.get_blackboard_service",
+        AsyncMock(return_value=mock_bb),
+    ):
+        import asyncio
+
+        result = asyncio.run(service.get_delegated_finding("f-123"))
+
+    assert result == expected
