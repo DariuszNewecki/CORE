@@ -27,7 +27,6 @@ async def test_LaneClient_propose() -> None:
     assert result == {"proposal_id": "p-1", "status": "created"}
 
 
-
 import pytest
 
 
@@ -46,3 +45,29 @@ async def test_LaneClient_claim() -> None:
         params={"agent": "agent-7"},
     )
     assert result == {"ok": True}
+
+
+
+
+# ID: cea6b1a0-41a9-4560-a2ac-0e17a006cd18
+async def test_LaneClient():
+    facade = MagicMock()
+    facade._request = AsyncMock(side_effect=[{"ok": "claim"}, {"ok": "propose"}])
+
+    client = LaneClient(facade)
+
+    claim_result = await client.claim("finding-1", "agent-1")
+    assert claim_result == {"ok": "claim"}
+    facade._request.assert_awaited_with(
+        "POST",
+        "/v1/lane/finding-1/claim",
+        params={"agent": "agent-1"},
+    )
+
+    propose_result = await client.propose("finding-1", "diff-patch", "run-42")
+    assert propose_result == {"ok": "propose"}
+    facade._request.assert_awaited_with(
+        "POST",
+        "/v1/lane/finding-1/propose",
+        json={"patch": "diff-patch", "validation_run_id": "run-42"},
+    )
