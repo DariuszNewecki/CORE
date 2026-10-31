@@ -34,9 +34,9 @@ def test_QualityImportsResponse() -> None:
     violation_kwargs: dict = {}
     for field_name, field_info in ImportViolation.model_fields.items():
         annotation = field_info.annotation
-        if annotation is str or annotation == str:
+        if annotation is str:
             violation_kwargs[field_name] = "value"
-        elif annotation is int or annotation == int:
+        elif annotation is int:
             violation_kwargs[field_name] = 42
         else:
             violation_kwargs[field_name] = "value"
