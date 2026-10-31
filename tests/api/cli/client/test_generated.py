@@ -383,9 +383,6 @@ async def test_CoreApiClient_integrate() -> None:
     assert result == expected_result
 
 
-
-
-
 # ID: f98b7525-44aa-49dc-8637-6cf2786d5091
 async def test_CoreApiClient_execute_proposal():
     client = CoreApiClient.__new__(CoreApiClient)
@@ -400,3 +397,22 @@ async def test_CoreApiClient_execute_proposal():
 
     client.proposals.execute_proposal.assert_awaited_once_with("p-123", dry_run=False)
     assert result == expected
+
+
+
+
+# ID: f60e35cc-6efa-4f41-ad2d-8ef7df3f55dd
+async def test_CoreApiClient_reject_proposal() -> None:
+    from api.cli.client import CoreApiClient
+
+    client = object.__new__(CoreApiClient)
+
+    expected = {"status": "rejected", "id": "prop-123"}
+    proposals = MagicMock()
+    proposals.reject_proposal = AsyncMock(return_value=expected)
+    client.proposals = proposals
+
+    result = await client.reject_proposal("prop-123", reason="not needed")
+
+    assert result == expected
+    proposals.reject_proposal.assert_awaited_once_with("prop-123", reason="not needed")
