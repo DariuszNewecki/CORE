@@ -171,8 +171,6 @@ def test_LaneProposeError():
     assert raised
 
 
-
-
 # ID: 0bc8f62c-5c2f-4374-b3a1-c167c8a86bd7
 def test_LaneService_get_delegated_finding():
     from will.autonomy.lane_service import LaneService
@@ -192,3 +190,20 @@ def test_LaneService_get_delegated_finding():
         result = asyncio.run(service.get_delegated_finding("f-123"))
 
     assert result == expected
+
+
+
+
+# ID: c8d79014-46b2-46ef-a61f-a891ad9d502f
+async def test_LaneService_get_finding_bundle():
+    service = LaneService.__new__(LaneService)
+    finding = {"id": "f-1", "data": "x"}
+    bundled = {"finding": finding, "bundle": {"context": []}}
+    service.get_delegated_finding = AsyncMock(return_value=finding)
+    service._with_bundle = MagicMock(return_value=bundled)
+
+    result = await LaneService.get_finding_bundle(service, "f-1")
+
+    assert result == bundled
+    service.get_delegated_finding.assert_awaited_once_with("f-1")
+    service._with_bundle.assert_called_once_with(finding)
