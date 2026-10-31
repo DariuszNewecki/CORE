@@ -86,9 +86,6 @@ async def test_LaneService_claim_delegated_finding():
     )
 
 
-
-
-
 # ID: 477b4fe6-76f2-41f2-85f8-bb77169f027d
 async def test_list_delegated_findings():
     findings = [
@@ -109,3 +106,47 @@ async def test_list_delegated_findings():
     assert result == findings
     registry.get_blackboard_service.assert_awaited_once_with()
     bb_service.fetch_delegated_findings.assert_awaited_once_with(limit=50)
+
+
+
+
+# ID: c07e5421-cb6c-4cb6-80d8-eb201bf90b0e
+def test_LaneService():
+    from will.autonomy.lane_service import LaneService
+
+    service = LaneService()
+
+    finding = {"id": "f-1", "payload": {"rule": "rule-1"}}
+    findings = [finding]
+
+    mock_bb = AsyncMock()
+    mock_bb.fetch_delegated_findings = AsyncMock(return_value=findings)
+    mock_bb.fetch_delegated_finding = AsyncMock(return_value=finding)
+
+    mock_registry = MagicMock()
+    mock_registry.get_blackboard_service = AsyncMock(return_value=mock_bb)
+
+    ref = MagicMock()
+    ref.content = {"rationale": "because reasons"}
+
+    mock_intent_repo = MagicMock()
+    mock_intent_repo.get_rule = MagicMock(return_value=ref)
+
+    with (
+        patch("will.autonomy.lane_service.service_registry", mock_registry),
+        patch(
+            "will.autonomy.lane_service.get_intent_repository",
+            return_value=mock_intent_repo,
+        ),
+        patch(
+            "will.autonomy.lane_service.load_remediation_guidance",
+            return_value={"hint": "do the thing"},
+        ),
+    ):
+        import asyncio
+
+        result = asyncio.run(service.list_delegated_findings(limit=10))
+
+    assert result == findings
+    mock_bb.fetch_delegated_findings.assert_awaited_once_with(limit=10)
+    mock_registry.get_blackboard_service.assert_awaited_once()
