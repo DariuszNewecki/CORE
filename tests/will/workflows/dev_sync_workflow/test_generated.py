@@ -45,3 +45,34 @@ def test_DevSyncWorkflow():
     assert all(
         c.kwargs["write"] is False for c in workflow.executor.execute.await_args_list
     )
+
+
+
+from will.workflows.dev_sync_workflow import DevSyncWorkflow
+
+
+# ID: e48f62e5-069c-4b5e-b125-7daef00edd91
+def test_DevSyncWorkflow_run():
+    context = MagicMock()
+    workflow = DevSyncWorkflow(context)
+
+    fix_phase = MagicMock()
+    fix_phase.ok = True
+    sync_phase = MagicMock()
+    sync_phase.ok = True
+
+    workflow._run_fix_phase = AsyncMock(return_value=fix_phase)
+    workflow._run_sync_phase = AsyncMock(return_value=sync_phase)
+
+    final_result = MagicMock()
+    final_result.ok = True
+    workflow._build_result = MagicMock(return_value=final_result)
+
+    import asyncio
+
+    result = asyncio.run(workflow.run(write=True))
+
+    workflow._run_fix_phase.assert_awaited_once_with(write=True)
+    workflow._run_sync_phase.assert_awaited_once_with(write=True)
+    workflow._build_result.assert_called_once_with([fix_phase, sync_phase])
+    assert result is final_result
