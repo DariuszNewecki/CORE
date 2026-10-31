@@ -30,6 +30,8 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 _CATALOG_FILENAME = "catalog.yaml"
+# Tiers whose catalogs are served, in precedence order (ADR-116 D2/D9).
+_SERVED_TIERS = ("licensed", "public")
 
 
 # ID: 738f5685-dd95-4487-ae61-05e63cc141f9
@@ -74,20 +76,22 @@ def resolve_catalog_root(catalog_root: Path | None = None) -> Path:
 def discover_catalogs(catalog_root: Path | None = None) -> dict[str, Path]:
     """Map each available catalog's framework name to its ``catalog.yaml``.
 
-    Globs ``<root>/<tier>/<framework>/catalog.yaml`` across all tiers, so the
-    result is tier-agnostic (ADR-116 D2). An absent root or tier yields fewer
-    entries, never an error (D3). When a framework is present in more than one
-    tier the lexicographically first tier wins (``licensed`` before ``public``),
-    so an entitled catalog overrides a public sample of the same name.
+    Globs ``<root>/<tier>/<framework>/catalog.yaml`` across the served tiers
+    only, so the result is tier-agnostic (ADR-116 D2). ``internal/`` is the
+    licence-gated audit corpus (D9), never served: a ``catalog.yaml`` placed
+    there is not a catalog (#1336). An absent root or tier yields fewer
+    entries, never an error (D3). When a framework is present in both tiers
+    ``licensed`` wins, so an entitled catalog overrides a public sample of
+    the same name.
     """
     root = resolve_catalog_root(catalog_root)
     if not root.is_dir():
         logger.debug("GRC catalog corpus root absent: %s", root)
         return {}
     found: dict[str, Path] = {}
-    for path in sorted(root.glob(f"*/*/{_CATALOG_FILENAME}")):
-        framework = path.parent.name
-        found.setdefault(framework, path)
+    for tier in _SERVED_TIERS:
+        for path in sorted((root / tier).glob(f"*/{_CATALOG_FILENAME}")):
+            found.setdefault(path.parent.name, path)
     return found
 
 
