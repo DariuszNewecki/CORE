@@ -349,7 +349,8 @@ jobs:
   hermetic:
     name: Hermetic tests (unit + wheel e2e)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Usual run 9-10 min (7.5k tests); a slow runner took 14+ (#1369).
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v7

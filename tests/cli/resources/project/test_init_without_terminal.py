@@ -82,8 +82,10 @@ def test_no_terminal_without_yes_stops_at_once_and_writes_nothing(tmp_path) -> N
     assert code != 0
     assert "rerun with --yes" in out
     assert "core-admin project init . --write needs confirmation" in out
-    # The CLI's own start-up is the floor; past it, no more than 2 s.
-    assert elapsed < startup + 2, (elapsed, startup)
+    # The CLI's own start-up is the floor. The hang this guards against waits
+    # for the 60 s timeout; 10 s of margin absorbs a loaded CI runner (#1369
+    # failed at 2 s) and still tells "stops at once" from "waits".
+    assert elapsed < startup + 10, (elapsed, startup)
     assert not (repo / ".intent").exists()
 
 
