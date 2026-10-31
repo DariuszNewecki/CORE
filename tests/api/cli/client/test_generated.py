@@ -343,7 +343,6 @@ async def test_CoreApiClient_inspect_components() -> None:
             p.stop()
 
 
-
 import pytest
 
 
@@ -365,3 +364,20 @@ async def test_CoreApiClient_lint():
 
     mock_integration.lint.assert_awaited_once_with(path="src")
     assert result == {"status": "ok"}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 12ff322d-22bd-4c8f-8868-306393fb4ef3
+async def test_CoreApiClient_integrate() -> None:
+    client = CoreApiClient(base_url="http://localhost:8000")
+
+    expected_result = {"status": "ok", "integrated": True}
+    client.integration.integrate = AsyncMock(return_value=expected_result)
+
+    result = await client.integrate("arg1", key="value")
+
+    client.integration.integrate.assert_awaited_once_with("arg1", key="value")
+    assert result == expected_result
