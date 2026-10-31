@@ -66,3 +66,36 @@ def test_DeterministicSplitPlanner_execute(tmp_path: Path) -> None:
     assert entry["ok"] is True
     assert entry["split_result"] is fake_result
     assert entry["plan"] is fake_plan
+
+
+
+
+
+# ID: a34d4c29-5a03-4aa6-94f2-3cc6d9d5648b
+def test_DeterministicSplitPlanner():
+    from will.phases.code_generation.split_planner import (
+        DeterministicSplitPlanner as DSP,
+    )
+
+    core_context = MagicMock()
+    planner = DSP(core_context)
+
+    fake_plan = MagicMock()
+    fake_plan.modules = [MagicMock(), MagicMock()]
+
+    with patch.object(
+        planner, "_request_split_plan", new=AsyncMock(return_value=fake_plan)
+    ) as mock_request:
+        import asyncio
+
+        result = asyncio.run(
+            planner._request_split_plan(
+                source_file="foo.py",
+                source_code="class A: pass\n",
+                clusters_text="none",
+                actual_symbols=["A"],
+            )
+        )
+
+    assert result is fake_plan
+    mock_request.assert_awaited_once()
