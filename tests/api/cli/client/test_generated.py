@@ -381,3 +381,22 @@ async def test_CoreApiClient_integrate() -> None:
 
     client.integration.integrate.assert_awaited_once_with("arg1", key="value")
     assert result == expected_result
+
+
+
+
+
+# ID: f98b7525-44aa-49dc-8637-6cf2786d5091
+async def test_CoreApiClient_execute_proposal():
+    client = CoreApiClient.__new__(CoreApiClient)
+    client.base_url = "http://localhost:8000"
+    client.timeout = 30
+
+    expected = {"status": "ok", "proposal_id": "p-123"}
+    client.proposals = MagicMock()
+    client.proposals.execute_proposal = AsyncMock(return_value=expected)
+
+    result = await client.execute_proposal("p-123", dry_run=False)
+
+    client.proposals.execute_proposal.assert_awaited_once_with("p-123", dry_run=False)
+    assert result == expected
