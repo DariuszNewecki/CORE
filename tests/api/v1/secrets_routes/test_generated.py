@@ -139,3 +139,35 @@ def test_SecretSetRequest():
     req_defaults = SecretSetRequest(key="k", value="v")
     assert req_defaults.description is None
     assert req_defaults.force is False
+
+
+
+import pytest
+
+from api.v1.secrets_routes import SecretNotFoundError, set_secret
+
+
+@pytest.mark.asyncio
+# ID: e566434d-7d19-4703-a748-1bd6667d0ae3
+async def test_set_secret():
+    body = SecretSetRequest(
+        key="my-key",
+        value="my-value",
+        description="desc",
+        force=False,
+    )
+
+    svc = MagicMock()
+    svc.get_secret = AsyncMock(side_effect=SecretNotFoundError("not found"))
+    svc.set_secret = AsyncMock(return_value=None)
+
+    session = MagicMock()
+
+    result = await set_secret(body=body, session=session, svc=svc)
+
+    assert result == {"key": "my-key", "action": "created"}
+    svc.get_secret.assert_awaited_once()
+    svc.set_secret.assert_awaited_once()
+    _, kwargs = svc.set_secret.call_args
+    assert kwargs["key"] == "my-key"
+    assert kwargs["value"] == "my-value"
