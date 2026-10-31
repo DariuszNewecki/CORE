@@ -258,3 +258,20 @@ async def test_CoreApiClient_census_run():
 
     assert result == expected
     census_instance.census_run.assert_awaited_once_with(path="src", depth=2)
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: f6a3ea23-a5dc-4288-abe2-98f9af8f5cf6
+async def test_CoreApiClient_inspect_search_commands():
+    client = CoreApiClient(base_url="http://localhost:8000")
+    expected = {"commands": ["foo", "bar"]}
+    client.inspect.inspect_search_commands = AsyncMock(return_value=expected)
+
+    result = await client.inspect_search_commands("query", limit=5)
+
+    assert result == expected
+    client.inspect.inspect_search_commands.assert_awaited_once_with("query", limit=5)
