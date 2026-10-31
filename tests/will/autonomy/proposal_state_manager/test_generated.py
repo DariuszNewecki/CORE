@@ -73,8 +73,6 @@ async def test_ProposalStateManager_mark_failed():
     mock_logger_error.assert_called_once()
 
 
-
-
 # ID: 2af0c3c6-407e-498e-8337-dd7620d5f6db
 async def test_ProposalStateManager_mark_finalizing():
     from will.autonomy.proposal_state_manager import ProposalStateManager
@@ -95,3 +93,39 @@ async def test_ProposalStateManager_mark_finalizing():
 
     session.execute.assert_awaited_once()
     session.commit.assert_awaited_once()
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 11b9b819-4e68-471d-aa41-7ae11742fd62
+async def test_ProposalStateManager() -> None:
+    session = MagicMock()
+    session.commit = AsyncMock()
+
+    gate_row = MagicMock()
+    gate_row.validation_checks = []
+    gate_row.validation_results = {"pre_approval_run": True}
+    gate_row.actions = []
+    gate_row.scope = {}
+
+    gate_result = MagicMock()
+    gate_result.first.return_value = gate_row
+
+    update_result = MagicMock()
+    update_result.rowcount = 1
+
+    session.execute = AsyncMock(side_effect=[gate_result, update_result])
+
+    manager = ProposalStateManager(session)
+
+    await manager.approve(
+        proposal_id="prop-1",
+        approved_by="governor",
+        approval_authority="principal.governor",
+        approved_by_original="os-account",
+    )
+
+    assert session.execute.await_count == 2
