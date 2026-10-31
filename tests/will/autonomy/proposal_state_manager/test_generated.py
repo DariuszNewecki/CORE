@@ -49,7 +49,6 @@ async def test_ProposalStateManager_approve():
     assert session.execute.await_count == 2
 
 
-
 import pytest
 
 
@@ -72,3 +71,27 @@ async def test_ProposalStateManager_mark_failed():
     mock_session.execute.assert_awaited_once()
     mock_session.commit.assert_awaited_once()
     mock_logger_error.assert_called_once()
+
+
+
+
+# ID: 2af0c3c6-407e-498e-8337-dd7620d5f6db
+async def test_ProposalStateManager_mark_finalizing():
+    from will.autonomy.proposal_state_manager import ProposalStateManager
+
+    session = MagicMock()
+    execute_result = MagicMock()
+    execute_result.rowcount = 1
+    session.execute = AsyncMock(return_value=execute_result)
+    session.commit = AsyncMock()
+
+    manager = ProposalStateManager(session)
+
+    with patch(
+        "will.autonomy.proposal_state_manager._sanitize_payload",
+        MagicMock(return_value={"ok": True}),
+    ):
+        await manager.mark_finalizing("prop-123", {"output": "done"})
+
+    session.execute.assert_awaited_once()
+    session.commit.assert_awaited_once()
