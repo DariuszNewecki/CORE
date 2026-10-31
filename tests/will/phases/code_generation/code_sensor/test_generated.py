@@ -20,3 +20,29 @@ async def test_CodeSensor_sense_artifact():
 
     assert passed is True
     assert error is None
+
+
+from unittest.mock import AsyncMock
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 92c14ea3-555a-4ba0-bc9c-b7914c1d053a
+async def test_CodeSensor_sense():
+    execution_sensor = MagicMock()
+    sensor = CodeSensor(execution_sensor)
+    sensor.sense_artifact = AsyncMock(return_value=(True, None))
+
+    result = await sensor.sense("print('hi')", "src/foo.py")
+
+    sensor.sense_artifact.assert_awaited_once_with("src/foo.py", "print('hi')")
+    assert result["status"] == "sensed"
+    assert result["passed"] is True
+    assert result["error"] is None
+    assert result["issues"] == []
+    assert result["quality_score"] == 0.92
+    assert result["suggestions"] == []
+    assert result["metadata"]["file"] == "src/foo.py"
+    assert result["metadata"]["validation_mode"] == "structural+functional"
+    assert result["metadata"]["workspace_provided"] is False
