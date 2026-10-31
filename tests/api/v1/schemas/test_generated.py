@@ -125,3 +125,27 @@ def test_IntegrateResponse():
         "error": None,
         "exit_code": 0,
     }
+
+
+from api.v1.schemas import IntegrityVerifyResponse
+
+
+# ID: 3fd727a0-6b6b-4dbd-a262-c002e8505164
+def test_IntegrityVerifyResponse():
+    response = IntegrityVerifyResponse(
+        label="image-abc",
+        ok=True,
+        errors=[],
+        checked_at="2024-01-01T00:00:00Z",
+    )
+
+    assert response.label == "image-abc"
+    assert response.ok is True
+    assert response.errors == []
+    assert response.checked_at == "2024-01-01T00:00:00Z"
+
+    defaulted = IntegrityVerifyResponse(
+        label="image-xyz", ok=False, errors=["missing digest"]
+    )
+    assert defaulted.checked_at is None
+    assert defaulted.errors == ["missing digest"]
