@@ -46,3 +46,26 @@ async def test_CodeSensor_sense():
     assert result["metadata"]["file"] == "src/foo.py"
     assert result["metadata"]["validation_mode"] == "structural+functional"
     assert result["metadata"]["workspace_provided"] is False
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: bc6ca3cc-e2b4-4067-8b50-2f27d3cdf215
+async def test_CodeSensor():
+    execution_sensor = MagicMock()
+    sensor = CodeSensor(execution_sensor)
+
+    valid_code = "def foo():\n    return 42\n"
+    result = await sensor.sense(valid_code, "module.py")
+
+    assert result["status"] == "sensed"
+    assert result["passed"] is True
+    assert result["error"] is None
+    assert result["issues"] == []
+    assert result["quality_score"] == 0.92
+    assert result["suggestions"] == []
+    assert result["metadata"]["file"] == "module.py"
+    assert result["metadata"]["validation_mode"] == "structural+functional"
+    assert result["metadata"]["workspace_provided"] is False
