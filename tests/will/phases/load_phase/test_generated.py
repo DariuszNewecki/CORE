@@ -35,3 +35,36 @@ async def test_LoadPhase_execute() -> None:
     assert result.data["steps"] == 2
     assert result.data["write_mode"] is False
     assert result.data["workflow_type"] == "action"
+
+
+import asyncio
+
+from will.phases.load_phase import LoadPhase
+
+
+# ID: 1d30b89d-1434-4094-a7f8-54d7d96777b1
+def test_LoadPhase() -> None:
+    core_context = MagicMock()
+    core_context.cognitive_service = MagicMock()
+    core_context.file_handler = MagicMock()
+    core_context.git_service = MagicMock()
+
+    phase = LoadPhase(core_context)
+
+    workflow_context = MagicMock()
+    workflow_context.results = {
+        "parse": {"execution_plan": [{"action": "a"}, {"action": "b"}]}
+    }
+    workflow_context.write = False
+    workflow_context.workflow_type = "standard"
+
+    result = asyncio.run(phase.execute(workflow_context))
+
+    assert result.ok is True
+    assert result.name == "load"
+    assert not result.error
+    assert result.data["execution_context_ready"] is True
+    assert result.data["action_set_resolved"] is True
+    assert result.data["steps"] == 2
+    assert result.data["write_mode"] is False
+    assert result.data["workflow_type"] == "standard"
