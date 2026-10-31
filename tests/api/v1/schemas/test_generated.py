@@ -60,8 +60,6 @@ def test_QualityImportsResponse() -> None:
     assert response.model_dump()["status"] == "ok"
 
 
-
-
 # ID: 166961b7-e015-4102-8931-8e6bfe09e3c0
 def test_ImportViolation():
     violation = ImportViolation(
@@ -83,3 +81,26 @@ def test_ImportViolation():
         "rule": "no-relative-imports",
         "message": "Relative import 'from .foo import bar' is not allowed.",
     }
+
+
+from api.v1.schemas import LintResponse, LintToolResult
+
+
+# ID: 73ca1438-6f9d-4ab8-9b70-120d96b16760
+def test_LintResponse():
+    tool_result = LintToolResult(
+        ok=True,
+        returncode=0,
+        stdout="no issues",
+        stderr="",
+    )
+    response = LintResponse(ok=True, tools={"black": tool_result})
+
+    assert response.ok is True
+    assert response.tools == {"black": tool_result}
+    assert response.error is None
+
+    dumped = response.model_dump()
+    assert dumped["ok"] is True
+    assert "black" in dumped["tools"]
+    assert dumped["error"] is None
