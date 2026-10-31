@@ -260,7 +260,6 @@ async def test_CoreApiClient_census_run():
     census_instance.census_run.assert_awaited_once_with(path="src", depth=2)
 
 
-
 import pytest
 
 
@@ -275,3 +274,19 @@ async def test_CoreApiClient_inspect_search_commands():
 
     assert result == expected
     client.inspect.inspect_search_commands.assert_awaited_once_with("query", limit=5)
+
+
+
+
+# ID: 404c3830-c000-4918-8421-22ad1d9b0e9c
+async def test_CoreApiClient_inspect_search_capabilities():
+    client = CoreApiClient(base_url="http://localhost:8000")
+    client.inspect = MagicMock()
+    client.inspect.inspect_search_capabilities = AsyncMock(
+        return_value={"capabilities": ["a", "b"]}
+    )
+
+    result = await client.inspect_search_capabilities("q", limit=5)
+
+    assert result == {"capabilities": ["a", "b"]}
+    client.inspect.inspect_search_capabilities.assert_awaited_once_with("q", limit=5)
