@@ -41,7 +41,6 @@ async def test_InspectClient_refusals_stats():
     )
 
 
-
 import pytest
 
 
@@ -59,3 +58,22 @@ async def test_InspectClient_refusals_list():
         "GET", "/v1/refusals", params={"limit": 50}
     )
     assert result == {"items": []}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 3f617293-b8e5-4b57-8279-07f68bf15cc7
+async def test_InspectClient_decisions_patterns():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"patterns": []})
+
+    client = InspectClient(facade)
+
+    result = await client.decisions_patterns(days=14)
+
+    assert result == {"patterns": []}
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/decisions/patterns", params={"days": 14}
+    )
