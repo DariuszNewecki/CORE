@@ -58,3 +58,28 @@ def test_QualityImportsResponse() -> None:
     assert len(response.violations) == 1
     assert isinstance(response.violations[0], ImportViolation)
     assert response.model_dump()["status"] == "ok"
+
+
+
+
+# ID: 166961b7-e015-4102-8931-8e6bfe09e3c0
+def test_ImportViolation():
+    violation = ImportViolation(
+        file="src/api/v1/schemas.py",
+        line=42,
+        rule="no-relative-imports",
+        message="Relative import 'from .foo import bar' is not allowed.",
+    )
+
+    assert violation.file == "src/api/v1/schemas.py"
+    assert violation.line == 42
+    assert violation.rule == "no-relative-imports"
+    assert violation.message == "Relative import 'from .foo import bar' is not allowed."
+
+    dumped = violation.model_dump()
+    assert dumped == {
+        "file": "src/api/v1/schemas.py",
+        "line": 42,
+        "rule": "no-relative-imports",
+        "message": "Relative import 'from .foo import bar' is not allowed.",
+    }
