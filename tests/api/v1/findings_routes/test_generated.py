@@ -64,3 +64,13 @@ def test_get_finding_chain():
     assert result == expected_chain
     svc.get_finding_proposal_link.assert_awaited_once_with(entry_id, session)
     svc.get_chain_for_proposal.assert_awaited_once_with(proposal_id, session)
+
+
+from api.v1.findings_routes import ResolveFindingRequest
+
+
+# ID: 68308e16-73e6-4606-8f00-95a7f2db8b64
+def test_ResolveFindingRequest():
+    req = ResolveFindingRequest(reason="duplicate of #42")
+    assert req.reason == "duplicate of #42"
+    assert isinstance(req.reason, str)
