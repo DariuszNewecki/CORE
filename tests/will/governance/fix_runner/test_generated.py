@@ -212,3 +212,45 @@ async def test_run_and_persist_modularity() -> None:
     assert payload["successes"] == 2
     assert payload["failures"] == 0
     assert payload["files"] == results
+
+
+
+
+# ID: 55acf141-52ed-49d1-815b-5fe5f7578214
+def test_list_action_definitions():
+    from will.governance.fix_runner import list_action_definitions
+
+    mock_category = MagicMock()
+    mock_category.value = "fix"
+
+    mock_def = MagicMock()
+    mock_def.action_id = "fix.something"
+    mock_def.description = "Does something"
+    mock_def.category = mock_category
+    mock_def.policies = ("policy_a",)
+    mock_def.impact_level = "low"
+    mock_def.requires_db = True
+    mock_def.requires_vectors = False
+    mock_def.remediates = ("issue.x",)
+
+    mock_registry = MagicMock()
+    mock_registry.list_all.return_value = [mock_def]
+
+    with (
+        patch("body.atomic.action_registry", mock_registry, create=True),
+        patch("will.governance.fix_runner.action_registry", mock_registry),
+    ):
+        result = list_action_definitions(category="fix")
+
+    assert result == [
+        {
+            "action_id": "fix.something",
+            "description": "Does something",
+            "category": "fix",
+            "policies": ["policy_a"],
+            "impact_level": "low",
+            "requires_db": True,
+            "requires_vectors": False,
+            "remediates": ["issue.x"],
+        }
+    ]
