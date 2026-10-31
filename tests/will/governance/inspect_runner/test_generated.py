@@ -140,3 +140,91 @@ def test_get_analysis_bridges():
     assert result["bridges"][0]["title"] == "First"
     mock_load_bridges.assert_called_once_with()
     mock_bridges_consuming.assert_not_called()
+
+
+from pathlib import Path
+
+
+# ID: 27d17d75-edae-40c6-a5ea-17ae91dc2d1a
+def test_get_analysis_test_targets(tmp_path):
+    from will.governance.inspect_runner import get_analysis_test_targets
+
+    # Minimal repo tree with one python file under src/
+    repo_root = tmp_path
+    src_dir = repo_root / "src"
+    src_dir.mkdir()
+    py_file = src_dir / "example.py"
+    py_file.write_text("def foo():\n    return 1\n")
+
+    # Fake analyzer returning genuinely dataclass targets (asdict requires dataclasses)
+    # ID: 5ffd426a-5312-41e4-bd04-0ccf97dc2208
+    class FakeTarget:
+        def __init__(self, name, file, classification, complexity):
+            self.name = name
+            self.file = file
+            self.classification = classification
+            self.complexity = complexity
+
+        def __eq__(self, other):
+            return (
+                isinstance(other, FakeTarget)
+                and self.name == other.name
+                and self.file == other.file
+                and self.classification == other.classification
+                and self.complexity == other.complexity
+            )
+
+        def __repr__(self):
+            return (
+                f"FakeTarget(name={self.name!r}, file={self.file!r}, "
+                f"classification={self.classification!r}, complexity={self.complexity!r})"
+            )
+
+    # Patch asdict in the dataclasses module (imported locally inside the function)
+    # ID: 7f27e835-31c4-4009-ba4a-5dd23cc7cf4d
+    def fake_asdict(obj):
+        return {
+            "name": obj.name,
+            "file": obj.file,
+            "classification": obj.classification,
+            "complexity": obj.complexity,
+        }
+
+    fake_analyzer = MagicMock()
+    fake_analyzer.analyze_file.return_value = [
+        FakeTarget(
+            name="foo",
+            file="src/example.py",
+            classification="SIMPLE",
+            complexity=1,
+        )
+    ]
+
+    mock_analyzer_cls = MagicMock(return_value=fake_analyzer)
+
+    context = MagicMock()
+    context.git_service.repo_path = str(repo_root)
+
+    with (
+        patch(
+            "body.self_healing.test_target_analyzer.TestTargetAnalyzer",
+            mock_analyzer_cls,
+        ),
+        patch(
+            "dataclasses.asdict",
+            fake_asdict,
+        ),
+    ):
+        result = get_analysis_test_targets(context)
+
+    assert result["available"] is True
+    assert result["count"] == 1
+    assert len(result["targets"]) == 1
+    target = result["targets"][0]
+    assert target["file"] == "src/example.py"
+    assert target["name"] == "foo"
+    assert target["classification"] == "SIMPLE"
+
+    fake_analyzer.analyze_file.assert_called_once()
+    analyzed_path = fake_analyzer.analyze_file.call_args[0][0]
+    assert isinstance(analyzed_path, Path)
