@@ -42,3 +42,22 @@ def test_PatternValidator_infer_pattern_id():
         "expand the parsing logic for the tokenizer",
     )
     assert result == "pure_function"
+
+
+
+
+
+# ID: 41005b44-7a0e-4988-b0b6-c87e5098cecc
+def test_PatternValidator():
+    intent_guard = MagicMock()
+    validator = PatternValidator(intent_guard=intent_guard)
+
+    task = MagicMock()
+    task.params.pattern_id = "action_pattern"
+    task.params.file_path = "src/will/body/atomic/do_thing.py"
+    task.step = "create a thing"
+
+    result = validator.infer_pattern_id(task)
+
+    assert result == "action_pattern"
+    assert validator.intent_guard is intent_guard
