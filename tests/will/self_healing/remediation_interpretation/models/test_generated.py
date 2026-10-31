@@ -114,3 +114,26 @@ def test_RemediationStrategy():
     assert strategy.preserves_contract is True
     assert strategy.evidence == []
     assert strategy.score == 0
+
+
+from will.self_healing.remediation_interpretation.models import ResponsibilityCluster
+
+
+# ID: 9cfcbdfd-a886-4be9-b8c0-404feff5e36b
+def test_ResponsibilityCluster():
+    cluster = ResponsibilityCluster(name="parsing", summary="Handles input parsing")
+    assert cluster.name == "parsing"
+    assert cluster.summary == "Handles input parsing"
+    assert cluster.evidence == []
+    assert cluster.symbols == []
+
+    cluster2 = ResponsibilityCluster(
+        name="validation",
+        summary="Validates inputs",
+        evidence=["line 10", "line 20"],
+        symbols=["validate", "check"],
+    )
+    assert cluster2.evidence == ["line 10", "line 20"]
+    assert cluster2.symbols == ["validate", "check"]
+
+    assert cluster.evidence is not cluster2.evidence
