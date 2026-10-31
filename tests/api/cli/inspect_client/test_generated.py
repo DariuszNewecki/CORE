@@ -96,3 +96,25 @@ async def test_InspectClient_analysis_common_knowledge():
         "GET", "/v1/analysis/common-knowledge", params={"limit": 25}
     )
     assert result == {"items": [{"id": "ck-1"}]}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 7d674402-6433-473c-932e-5fb133bdc540
+async def test_InspectClient_analysis_duplicates():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"duplicates": []})
+    client = InspectClient(facade)
+
+    result = await client.analysis_duplicates(threshold=0.9)
+
+    facade._request.assert_awaited_once_with(
+        "GET",
+        "/v1/analysis/duplicates",
+        params={"threshold": 0.9},
+        timeout=300.0,
+    )
+    assert result == {"duplicates": []}
