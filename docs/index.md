@@ -19,7 +19,7 @@ CORE is a governance runtime. When an AI agent proposes a change, CORE:
 3. Records decisions and the finding → proposal → approval → execution chain (recording is best-effort: a database failure does not stop execution)
 4. Remediates automatically where rules permit; anything outside the narrow safe-auto-approval envelope waits for a human
 
-The aim: AI-assisted development that is auditable and governed. It is **not yet proven safe to leave unattended** — CORE is not attested production-ready, and unattended reliability (gate G4) is not demonstrated.
+The aim: AI-assisted development that is auditable and governed. For CORE 3.0 it governed a real project (process-governance-tool) for 14 days, 2026-10-16 to 2026-10-29: the governor only approved pull requests (one logged exception), and no finding from that window was handed to a human ([#1054](https://github.com/DariuszNewecki/CORE/issues/1054), [#1055](https://github.com/DariuszNewecki/CORE/issues/1055)). It stays **Beta** until an independent person, not an AI agent, has installed it from the README and used it ([release policy](release.md#semver)).
 
 The goal is that the governor's job shrinks to two things: check the dashboard (`core-admin runtime dashboard`), and write constitutional intent. That is the design target, not today's measured state.
 
