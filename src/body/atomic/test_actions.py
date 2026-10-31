@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from body.atomic.registry import ActionCategory, register_action
+from body.atomic.tool_runner import ToolRunner
 from body.sandbox.repo_tests import run_tests
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
@@ -259,6 +260,37 @@ async def action_test_candidate_validate(
     overlay = ((scratch_rel_path, candidate_content.encode("utf-8")),)
 
     repo_root = core_context.git_service.repo_path if core_context.git_service else None
+
+    # CI's `ruff check` fails a candidate that passes pytest (#1365: E721 held
+    # 104 generated tests back). Reject it here, where the generation loop
+    # retries with ruff's message, instead of after commit.
+    lint_errors = ToolRunner.ruff_unfixable_errors(
+        Path(repo_root or file_handler.repo_path), target_path, candidate_content
+    )
+    if lint_errors:
+        error = (
+            "Candidate fails ruff check (CI lint) with errors auto-fix cannot "
+            "repair:\n" + lint_errors
+        )
+        return ActionResult(
+            action_id="test.candidate_validate",
+            ok=False,
+            data={
+                "error": error,
+                "summary": error,
+                "source_file": source_file,
+                "target_path": target_path,
+                "violations": [
+                    {
+                        "file": target_path,
+                        "rule": "test.candidate.must_lint",
+                        "message": error,
+                    }
+                ],
+            },
+            impact=ActionImpact.WRITE_DATA,
+        )
+
     result = await run_tests(
         target=scratch_rel_path,
         action_id="test.candidate_validate",
