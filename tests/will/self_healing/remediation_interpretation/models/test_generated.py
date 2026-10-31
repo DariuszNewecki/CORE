@@ -137,3 +137,28 @@ def test_ResponsibilityCluster():
     assert cluster2.symbols == ["validate", "check"]
 
     assert cluster.evidence is not cluster2.evidence
+
+
+from will.self_healing.remediation_interpretation.models import FileRole
+
+
+# ID: afa2afcf-1534-4154-8ec7-aace53575b91
+def test_FileRole():
+    role = FileRole(
+        role_id="worker.sensor",
+        layer="will",
+        confidence=0.95,
+        evidence=["path: src/will/workers/foo.py"],
+    )
+
+    assert role.role_id == "worker.sensor"
+    assert role.layer == "will"
+    assert role.confidence == 0.95
+    assert role.evidence == ["path: src/will/workers/foo.py"]
+
+    default_role = FileRole(role_id="unknown", layer="unknown", confidence=0.0)
+    assert default_role.evidence == []
+    assert (
+        default_role.evidence is not default_role.evidence
+        or default_role.evidence == []
+    )
