@@ -92,3 +92,25 @@ def test_ReasoningBrief_to_dict() -> None:
     assert result["recommended_strategy"] == expected_strategy
     assert result["constraints"] == ["c1", "c2"]
     assert result["architectural_notes"] == ["note"]
+
+
+from will.self_healing.remediation_interpretation.models import RemediationStrategy
+
+
+# ID: 1bada618-959d-4bc2-b30e-561bb0be22aa
+def test_RemediationStrategy():
+    strategy = RemediationStrategy(
+        strategy_id="strat-001",
+        summary="Retry with backoff",
+        rationale="Transient failures resolve with backoff",
+        risk_level="low",
+        preserves_contract=True,
+    )
+
+    assert strategy.strategy_id == "strat-001"
+    assert strategy.summary == "Retry with backoff"
+    assert strategy.rationale == "Transient failures resolve with backoff"
+    assert strategy.risk_level == "low"
+    assert strategy.preserves_contract is True
+    assert strategy.evidence == []
+    assert strategy.score == 0
