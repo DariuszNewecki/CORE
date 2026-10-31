@@ -369,3 +369,58 @@ def test_ViolationRemediatorWorker_run() -> None:
     worker.post_heartbeat.assert_awaited_once()
     worker.post_report.assert_not_awaited()
     worker.post_observation.assert_not_awaited()
+
+
+
+
+
+# ID: 6a87396e-7871-4468-9496-f2b71a62cc45
+def test_ViolationRemediatorWorker():
+    import asyncio
+
+    worker = ViolationRemediatorWorker()
+
+    # Construction is trivial / no external I/O
+    assert worker.declaration_name == "violation_remediator"
+    assert worker._core_context is None
+
+    # Happy-path helper: _is_file_committed fails open when there is no git service
+    assert worker._is_file_committed("some/file.py") is True
+
+    # _get_remediation_map delegates to PathResolver + _load_remediation_map.
+    # Both are imported locally inside the method, so patch at their defining
+    # modules.
+    worker._core_context = MagicMock()
+    worker._core_context.git_service.repo_path = "/tmp/repo"
+
+    fake_map = {"rule.a": "action.x"}
+    with (
+        patch("shared.path_resolver.PathResolver") as mock_path_resolver,
+        patch(
+            "body.autonomy.audit_analyzer._load_remediation_map", return_value=fake_map
+        ) as mock_load,
+    ):
+        result = worker._get_remediation_map()
+
+    assert result == fake_map
+    mock_path_resolver.assert_called_once_with("/tmp/repo")
+    mock_load.assert_called_once()
+
+    # Happy path of run() with no open findings -> posts a heartbeat and returns.
+    async def _run_happy_path():
+        worker.post_heartbeat = AsyncMock()
+        worker.post_observation = AsyncMock()
+        worker.post_report = AsyncMock()
+        worker._load_open_findings = AsyncMock(return_value=[])
+
+        with patch(
+            "will.workers.violation_remediator.load_vocabulary_projection",
+            return_value=MagicMock(),
+        ):
+            await worker.run()
+
+        worker.post_heartbeat.assert_awaited_once()
+        worker.post_observation.assert_not_awaited()
+        worker.post_report.assert_not_awaited()
+
+    asyncio.run(_run_happy_path())
