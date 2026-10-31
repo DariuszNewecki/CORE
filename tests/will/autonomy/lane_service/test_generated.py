@@ -108,8 +108,6 @@ async def test_list_delegated_findings():
     bb_service.fetch_delegated_findings.assert_awaited_once_with(limit=50)
 
 
-
-
 # ID: c07e5421-cb6c-4cb6-80d8-eb201bf90b0e
 def test_LaneService():
     from will.autonomy.lane_service import LaneService
@@ -150,3 +148,24 @@ def test_LaneService():
     assert result == findings
     mock_bb.fetch_delegated_findings.assert_awaited_once_with(limit=10)
     mock_registry.get_blackboard_service.assert_awaited_once()
+
+
+from will.autonomy.lane_service import LaneProposeError
+
+
+# ID: be75e045-d7fb-48c9-b2af-5f68a97d125c
+def test_LaneProposeError():
+    message = "finding is not a live lane item"
+    error = LaneProposeError(message)
+
+    assert isinstance(error, Exception)
+    assert str(error) == message
+    assert error.args == (message,)
+
+    raised = False
+    try:
+        raise LaneProposeError(message)
+    except LaneProposeError as exc:
+        raised = True
+        assert str(exc) == message
+    assert raised
