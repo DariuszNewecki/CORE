@@ -180,9 +180,6 @@ async def test_CoreApiClient_fix_ir():
     assert result == {"status": "ok", "fixed": True}
 
 
-
-
-
 # ID: 0fa49ecd-d2b3-40b8-9e0a-8e52a8f9e22f
 async def test_CoreApiClient_fix_modularity():
     client = CoreApiClient(base_url="http://localhost:8000")
@@ -196,3 +193,51 @@ async def test_CoreApiClient_fix_modularity():
 
     assert result == expected
     mock_fix.fix_modularity.assert_awaited_once_with("arg1", key="value")
+
+
+
+
+# ID: 29828eb3-2092-4ede-9fcd-9b7b15afcf4f
+def test_CoreApiClient_get_census_run():
+    import asyncio
+
+    from api.cli.client import CoreApiClient
+
+    with (
+        patch(
+            "api.cli.client.parse_base_url",
+            return_value=("http://localhost:8000", None),
+        ),
+        patch.multiple(
+            "api.cli.client",
+            AuditClient=MagicMock(),
+            FixClient=MagicMock(),
+            QualityClient=MagicMock(),
+            CoverageClient=MagicMock(),
+            RefactorClient=MagicMock(),
+            InspectClient=MagicMock(),
+            ProposalsClient=MagicMock(),
+            IntegrationClient=MagicMock(),
+            CensusClient=MagicMock(),
+            CognitiveRolesClient=MagicMock(),
+            SyncClient=MagicMock(),
+            DaemonClient=MagicMock(),
+            FindingsClient=MagicMock(),
+            IntegrityClient=MagicMock(),
+            LaneClient=MagicMock(),
+            LlmResourcesClient=MagicMock(),
+            SecretsClient=MagicMock(),
+            SymbolsClient=MagicMock(),
+            VectorsClient=MagicMock(),
+            ProjectClient=MagicMock(),
+        ),
+    ):
+        client = CoreApiClient(base_url="http://localhost:8000")
+        client.census = MagicMock()
+        expected = {"run_id": "abc123", "status": "complete"}
+        client.census.get_census_run = AsyncMock(return_value=expected)
+
+        result = asyncio.run(client.get_census_run(run_id="abc123"))
+
+        assert result == expected
+        client.census.get_census_run.assert_awaited_once_with(run_id="abc123")
