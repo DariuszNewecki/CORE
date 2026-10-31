@@ -25,9 +25,6 @@ async def test_ProposalStateManager_reject():
     )
 
 
-
-
-
 # ID: c2c974b6-cf98-46a9-98e5-26070ca9bb56
 async def test_ProposalStateManager_approve():
     session = MagicMock()
@@ -50,3 +47,28 @@ async def test_ProposalStateManager_approve():
         )
 
     assert session.execute.await_count == 2
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 20716b79-a036-47ba-937e-aa849fcfebc4
+async def test_ProposalStateManager_mark_failed():
+    mock_session = MagicMock()
+    mock_result = MagicMock()
+    mock_result.rowcount = 1
+    mock_session.execute = AsyncMock(return_value=mock_result)
+    mock_session.commit = AsyncMock()
+
+    manager = ProposalStateManager(mock_session)
+
+    with patch(
+        "will.autonomy.proposal_state_manager.logger.error"
+    ) as mock_logger_error:
+        await manager.mark_failed("proposal-123", "execution error", {"detail": "boom"})
+
+    mock_session.execute.assert_awaited_once()
+    mock_session.commit.assert_awaited_once()
+    mock_logger_error.assert_called_once()
