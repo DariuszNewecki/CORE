@@ -61,3 +61,32 @@ async def test_RemediationBlackboard_post_failed() -> None:
 
     # Assert: happy path completes without raising and returns None
     assert result is None
+
+
+
+
+
+# ID: c4879aa4-c56f-4179-88ee-0b36f2e6ec30
+async def test_RemediationBlackboard_mark_findings() -> None:
+    bb = RemediationBlackboard.__new__(RemediationBlackboard)
+
+    mock_store = AsyncMock()
+    mock_store.update_findings_status = AsyncMock(return_value=None)
+
+    findings = [
+        {"id": "finding-1"},
+        {"id": "finding-2"},
+    ]
+
+    # ID: d2d21dd7-ee19-496d-96d1-2db1a6c22f64
+    async def fake_mark(items, status):
+        await mock_store.update_findings_status(items, status)
+
+    with patch.object(
+        RemediationBlackboard,
+        "mark_findings",
+        new=AsyncMock(side_effect=fake_mark),
+    ):
+        await bb.mark_findings(findings, "resolved")
+
+    mock_store.update_findings_status.assert_awaited_once_with(findings, "resolved")
