@@ -74,3 +74,69 @@ def test_get_components_list():
         assert row["phase"] == "BUILD"
     ids = {row["component_id"] for row in rows}
     assert ids == {"comp_a", "comp_b"}
+
+
+from types import SimpleNamespace
+
+from will.governance.inspect_runner import get_analysis_bridges
+
+
+# ID: f20de2ae-4c07-4c8a-b672-599bb84495d1
+def test_get_analysis_bridges():
+    bridge_one = SimpleNamespace(
+        id="b-002",
+        title="Second",
+        description="desc two",
+        bridge_class="class2",
+        bridge_layer="layer2",
+        source_layer="src_layer2",
+        source_context="src_ctx2",
+        consuming_types=["typeA"],
+        sink_target="sink2",
+        sink_layer="sink_layer2",
+        sink_via="via2",
+        attribution_mechanism="mech2",
+        attribution_field="field2",
+        attribution_note="note2",
+        authority_adrs=["ADR-002"],
+    )
+    bridge_two = SimpleNamespace(
+        id="b-001",
+        title="First",
+        description="desc one",
+        bridge_class="class1",
+        bridge_layer="layer1",
+        source_layer="src_layer1",
+        source_context="src_ctx1",
+        consuming_types=["typeB"],
+        sink_target="sink1",
+        sink_layer="sink_layer1",
+        sink_via="via1",
+        attribution_mechanism="mech1",
+        attribution_field="field1",
+        attribution_note="note1",
+        authority_adrs=["ADR-001"],
+    )
+
+    mock_load_bridges = MagicMock(return_value=[bridge_one, bridge_two])
+    mock_bridges_consuming = MagicMock(return_value=[bridge_two])
+
+    with (
+        patch(
+            "shared.infrastructure.intent.architecture_bridges.load_bridges",
+            mock_load_bridges,
+        ),
+        patch(
+            "shared.infrastructure.intent.architecture_bridges.bridges_consuming",
+            mock_bridges_consuming,
+        ),
+    ):
+        result = get_analysis_bridges()
+
+    assert result["available"] is True
+    assert result["count"] == 2
+    assert result["consuming"] is None
+    assert [b["id"] for b in result["bridges"]] == ["b-001", "b-002"]
+    assert result["bridges"][0]["title"] == "First"
+    mock_load_bridges.assert_called_once_with()
+    mock_bridges_consuming.assert_not_called()
