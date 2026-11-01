@@ -103,6 +103,10 @@ poetry run core-admin law check-tree  # validate .intent/ and .specs/
   (`gh pr merge --auto --merge`), watch CI in the background, take the next task.
   Report a PR only when its CI goes red.
 - Record decisions in the commit message, not in new documents.
+- Every fix names its cause and says whether it removed it (commit message: "Cause: …;
+  removed" or "Cause: …; guarded only, #<issue>"). A fix that only guards (adds a copy,
+  an exception, a sync test, a fallback, more slack) opens an issue for the cause in the
+  same PR, labelled `unfinished-fix` (governor 2026-11-01, #1381).
 - Reports: outcome first, at most 5 lines, no narration.
 - Never ask the governor to approve law or CLAUDE.md text in chat: open the PR;
   the promotion that carries it is the approval.
