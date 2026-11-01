@@ -11,3 +11,20 @@ def test_InvestigationPlanError():
     assert isinstance(error, Exception)
     assert str(error) == message
     assert error.args == (message,)
+
+
+from will.agents.investigation_planner import InvestigationStep
+
+
+# ID: 689c595f-7d81-4d69-b22f-c1ba7ad902a7
+def test_InvestigationStep():
+    step = InvestigationStep(
+        step="gather_logs",
+        action="read_file",
+        params={"path": "/var/log/app.log", "lines": 100},
+    )
+
+    assert step.step == "gather_logs"
+    assert step.action == "read_file"
+    assert step.params == {"path": "/var/log/app.log", "lines": 100}
+    assert isinstance(step.params, dict)
