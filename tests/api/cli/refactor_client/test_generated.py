@@ -23,3 +23,18 @@ async def test_RefactorClient_poll_refactor_run():
     facade._poll_at_path.assert_awaited_once_with(
         "/v1/refactor/runs/run-123", timeout_seconds=42.0
     )
+
+
+import asyncio
+
+
+# ID: 2a60d2bd-61ab-4907-a8ba-3d298f491650
+def test_RefactorClient_get_refactor_run():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"id": "run-123", "status": "completed"})
+    client = RefactorClient(facade)
+
+    result = asyncio.run(client.get_refactor_run("run-123"))
+
+    facade._request.assert_awaited_once_with("GET", "/v1/refactor/runs/run-123")
+    assert result == {"id": "run-123", "status": "completed"}
