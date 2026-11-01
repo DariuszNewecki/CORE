@@ -30,9 +30,6 @@ def test_RequestInterpreter_phase():
     assert getattr(result, "name", None) == "INTERPRET"
 
 
-
-
-
 # ID: 9e5d27d3-1d63-41a7-8492-bc453b2d2e82
 def test_RequestInterpreter():
     interpreter = RequestInterpreter()
@@ -53,3 +50,29 @@ def test_RequestInterpreter():
     assert result.next_suggested == "analyzer"
     assert result.metadata == {"source": "nl"}
     assert result.duration_sec == 0.0
+
+
+
+from will.interpreters.request_interpreter import TaskStructure
+
+
+# ID: 75e34667-2075-494e-9ad6-e5eeda994182
+def test_TaskStructure() -> None:
+    task_type_cls = TaskStructure.__annotations__["task_type"]
+    task_type_value = next(iter(task_type_cls))
+
+    task = TaskStructure(
+        task_type=task_type_value,
+        intent="Add logging to the handler",
+        targets=["handler.py"],
+        constraints={"write_mode": "safe", "max_attempts": 3},
+        context={"source": "request"},
+        confidence=0.9,
+    )
+
+    assert task.task_type is task_type_value
+    assert task.intent == "Add logging to the handler"
+    assert task.targets == ["handler.py"]
+    assert task.constraints == {"write_mode": "safe", "max_attempts": 3}
+    assert task.context == {"source": "request"}
+    assert task.confidence == 0.9
