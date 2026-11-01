@@ -125,8 +125,6 @@ def test_AuditedCommit_as_payload():
     }
 
 
-
-
 # ID: 27f75f92-a6be-456d-bd34-b3d5a3f62a1d
 def test_AuditedCommit_behind():
     commit = AuditedCommit(audited="abc123", upstream="def456")
@@ -137,3 +135,17 @@ def test_AuditedCommit_behind():
 
     commit = AuditedCommit(audited="", upstream="def456")
     assert commit.behind is False
+
+
+
+
+# ID: 0f019d63-a2ac-429e-93c8-28ad5cabd835
+def test_AuditedCommit():
+    commit = AuditedCommit(audited="abc123", upstream="def456")
+
+    assert commit.behind is True
+    assert commit.as_payload() == {
+        "audited_commit": "abc123",
+        "upstream_commit": "def456",
+        "behind_upstream": True,
+    }
