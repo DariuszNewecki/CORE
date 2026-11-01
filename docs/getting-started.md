@@ -18,10 +18,11 @@ If you only want to audit code against rules, you need none of it: see
 | PostgreSQL  | ≥ 14 — provided by Docker on the default path |
 | Qdrant      | 1.18 — provided by Docker on the default path |
 
-**No LLM is needed** to install CORE, run the offline audit, or run the consequence-chain
-demo. An LLM (local model server or external API, your choice) is needed only for
-autonomous code and test generation. Configure it in `.env` when you want that (see
-`.env.example` for the shape).
+**Models.** The offline audit and the consequence-chain demo need no model. Search
+(`vectors rebuild`, context builds) needs an **embedding model**, and code and test
+generation need a **chat model**. The installer sets both up for you, by default with
+[Ollama](https://ollama.com/download) on this machine; see [Configure a model](#configure-a-model)
+for another server, an API key, or doing it later.
 
 ### Prerequisites on a fresh Ubuntu 24.04
 
@@ -82,9 +83,9 @@ The rest of this section is the same path, done by hand.
 
 **What a healthy fresh install looks like.** The installer's offline audit ends with
 `verdict PASS`. Two reporting rules that need the knowledge graph are skipped offline;
-they block nothing. Without an LLM configured you will also see one line saying no LLM
-is configured and that LLM-checked rules use a stub. That is the documented no-key
-path, not a fault: an LLM is needed only for autonomous code generation. To see
+they block nothing. Without a model set up you will also see one line saying no LLM
+is configured and that LLM-checked rules use a stub. That is not a fault for the
+audit; search and code generation need the models in [Configure a model](#configure-a-model). To see
 CORE's internal start-up detail on any command, set `LOG_LEVEL=DEBUG`.
 
 ### See CORE govern itself (opt-in)
@@ -118,8 +119,8 @@ cd CORE
 poetry install
 
 cp .env.example .env
-# Edit .env: set DATABASE_URL / QDRANT_URL if they differ from the defaults,
-# and configure your LLM provider (see the LLM section of .env.example).
+# Edit .env: set DATABASE_URL / QDRANT_URL if they differ from the defaults.
+# Models are not configured in .env; see "Configure a model" below.
 ```
 
 ---
@@ -149,6 +150,57 @@ Verify the connection:
 
 ```bash
 poetry run core-admin database status
+```
+
+---
+
+## Configure a model
+
+CORE uses two models: an **embedding model** for search (it must return
+768-dimensional vectors, the size of CORE's vector collections) and a **chat model**
+for code, tests and reasoning. They are stored in CORE's database, not in `.env`.
+`install-core.sh` runs the step below for you once the API is up; run it yourself after
+a manual install, with `--bare` (after `./start.sh`), or to change models.
+
+**Local, with Ollama** (the default; no key, nothing leaves your machine):
+
+```bash
+ollama pull nomic-embed-text
+ollama pull qwen2.5-coder:7b
+poetry run core-admin llm-resources setup --write
+```
+
+**Another server** (any Ollama or OpenAI-compatible URL you run yourself):
+
+```bash
+poetry run core-admin llm-resources setup --write \
+  --url http://192.168.1.10:11434 \
+  --embedding-model nomic-embed-text --chat-model qwen2.5-coder:7b
+```
+
+**A hosted chat model with a key.** Put the key in an environment variable and name
+the variable; the key is never typed on the command line. Hosted providers rarely
+offer a 768-dimension embedding model (Anthropic offers none), so keep embeddings on
+Ollama with `--embedding-url`:
+
+```bash
+export MY_LLM_KEY=...        # your provider's API key
+poetry run core-admin llm-resources setup --write \
+  --url https://api.openai.com/v1 --chat-model gpt-4o --api-key-env MY_LLM_KEY \
+  --embedding-url http://localhost:11434 --embedding-model nomic-embed-text
+```
+
+The key is stored encrypted with `CORE_MASTER_KEY`, which `install-core.sh` created in
+`.secrets/core.env` (owner-only; back it up). Restart the API if you add that file by
+hand. An embedding model of another size is refused by `check`, which names both
+sizes.
+
+What `setup` does: creates CORE's cognitive roles, its system settings (models on;
+remote models allowed when you give a key), and two model entries, `setup_embedding`
+and `setup_chat`, then calls each model once. Check them any time:
+
+```bash
+poetry run core-admin llm-resources check     # ✓ Embedding model 768 dimensions / ✓ Chat model answered
 ```
 
 ---
@@ -193,7 +245,8 @@ Auditing a second checkout or worktree under an editable install: set `PYTHONPAT
 
 ## Sync the Vector Layer
 
-CORE uses Qdrant for semantic search across constitutional documents and architectural papers. This is needed for the full (non-offline) audit and for context builds — skip it if you only ran `code audit --offline`. Populate the vector collections (on a fresh install they are empty; this asks for confirmation — add `--yes` to skip the prompt):
+CORE uses Qdrant for semantic search across constitutional documents and architectural papers.
+Building the vectors calls the embedding model, so [configure a model](#configure-a-model) first. This is needed for the full (non-offline) audit and for context builds — skip it if you only ran `code audit --offline`. Populate the vector collections (on a fresh install they are empty; this asks for confirmation — add `--yes` to skip the prompt):
 
 ```bash
 poetry run core-admin vectors rebuild --write
@@ -288,8 +341,8 @@ poetry run core-admin workers show --filter "audit.violation"       # live findi
 ### Let CORE write code (needs an LLM)
 
 The deterministic fixers (symbol IDs, formatting) need no model. To have CORE
-*generate* code — natural-language tasks and LLM-driven remediation — configure
-an LLM provider in `.env` (see the LLM section), then run the remediation
+*generate* code — natural-language tasks and LLM-driven remediation — it uses the
+chat model from [Configure a model](#configure-a-model). Run the remediation
 pipeline for a rule:
 
 ```bash

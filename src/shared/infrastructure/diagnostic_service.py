@@ -63,12 +63,12 @@ class DiagnosticService:
             results["qdrant"] = {"ok": False, "detail": str(e)}
 
         # 3. Environment Variable Sensation
-        # Required: what CORE cannot run without. LLM_API_KEY and
-        # CORE_MASTER_KEY are optional (#915): the documented install runs
-        # without an LLM ("no API key needed") and without stored secrets, so
-        # their absence is reported in the detail, not counted as degraded.
+        # Required: what CORE cannot run without. CORE_MASTER_KEY is optional
+        # (#915): the documented install runs without stored secrets, so its
+        # absence is reported in the detail, not counted as degraded. Models
+        # live in the database (#1374), not in the environment.
         required = ["DATABASE_URL", "QDRANT_URL"]
-        optional = ["LLM_API_KEY", "CORE_MASTER_KEY"]
+        optional = ["CORE_MASTER_KEY"]
         missing_vars = [v for v in required if not getattr(settings, v, None)]
         missing_optional = [v for v in optional if not getattr(settings, v, None)]
 

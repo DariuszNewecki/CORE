@@ -17,14 +17,19 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Body, Request
+from fastapi import APIRouter, Body, Depends, Request
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import require_governor
+from api.dependencies import get_api_session, require_governor
 from api.v1.schemas import LlmResourceAuthoringResponse
 from shared.context import CoreContext
 from shared.logger import getLogger
-from will.governance.llm_resource_runner import run_author_llm_resource
+from will.governance.llm_resource_runner import (
+    run_author_llm_resource,
+    run_check_llm,
+    run_setup_llm,
+)
 
 
 logger = getLogger(__name__)
@@ -66,4 +71,53 @@ async def author_llm_resource(
         ok=result.ok,
         data=result.data,
         duration_sec=result.duration_sec,
+    )
+
+
+# ID: 6e1b8d4a-3f7c-4a2e-b9d5-8c4a1f7e3b6d
+class SetupLlmRequest(BaseModel):
+    """Body for POST /llm-resources/setup (#1374)."""
+
+    api_url: str
+    embedding_model: str
+    chat_model: str
+    locality: str = "local"
+    embedding_api_url: str = ""
+    embedding_locality: str = ""
+    write: bool = False
+
+
+@router.post("/setup", response_model=LlmResourceAuthoringResponse)
+# ID: 2f8a5c1d-7b4e-4d9a-a3c6-5e1f9b7d2a4c
+async def setup_llm(
+    request: Request,
+    payload: SetupLlmRequest = Body(...),
+) -> LlmResourceAuthoringResponse:
+    """Create the system_config row and the two setup model rows."""
+    core_context: CoreContext = request.app.state.core_context
+    result = await run_setup_llm(
+        core_context,
+        write=payload.write,
+        api_url=payload.api_url,
+        embedding_model=payload.embedding_model,
+        chat_model=payload.chat_model,
+        locality=payload.locality,
+        embedding_api_url=payload.embedding_api_url,
+        embedding_locality=payload.embedding_locality,
+    )
+    return LlmResourceAuthoringResponse(
+        ok=result.ok, data=result.data, duration_sec=result.duration_sec
+    )
+
+
+@router.post("/check", response_model=LlmResourceAuthoringResponse)
+# ID: 7d3c9f2e-1a6b-4e8d-9b5f-4a2e8c6d1f3b
+async def check_llm(
+    request: Request, session: AsyncSession = Depends(get_api_session)
+) -> LlmResourceAuthoringResponse:
+    """Call the embedding model and the chat model once each; writes nothing."""
+    core_context: CoreContext = request.app.state.core_context
+    data = await run_check_llm(core_context, session)
+    return LlmResourceAuthoringResponse(
+        ok=bool(data.get("ok")), data=data, duration_sec=0.0
     )

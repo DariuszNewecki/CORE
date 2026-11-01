@@ -66,6 +66,7 @@ actions:
   # system_config from a seed document); refuses any other database. Never in the
   # safe-auto-approval envelope.
   seed.external_run_resources: moderate
+  setup.llm: moderate
   sync.db: moderate
   sync.knowledge_graph: moderate
   sync.vectors_code: moderate

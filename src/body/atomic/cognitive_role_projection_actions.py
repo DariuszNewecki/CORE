@@ -11,11 +11,11 @@ reconciliation (ADR-090 D1).
 
 write=False computes and returns the diff only. write=True applies it,
 UPDATE-ing required_capabilities for roles that exist (by name) in both
-YAML and DB and whose capability values are all canonical. This action
-never INSERTs or DELETEs a core.cognitive_roles row — a role name present
-in only one side is reported, never auto-corrected; changing the role
-*name* universe is a schema/CHECK-constraint migration concern (ADR-090
-D2), out of this action's boundary. A YAML capability value that is not
+YAML and DB and whose capability values are all canonical, and CREATING a
+role the YAML declares but the DB lacks (#894 seeding unit; this is how a
+fresh install gets its roles). It never DELETEs a core.cognitive_roles row:
+a role only the DB has is reported, never removed; the schema's role-name
+CHECK constraint stays the arbiter of names (ADR-090 D2). A YAML capability value that is not
 canonical per capability_taxonomy.yaml blocks that role's row from being
 written even under write=True (fail closed).
 

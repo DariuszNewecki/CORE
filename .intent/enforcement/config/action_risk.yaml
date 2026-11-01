@@ -18,6 +18,7 @@ actions:
   project.cognitive_roles: moderate
   remediate.cognitive_role: moderate
   seed.external_run_resources: moderate
+  setup.llm: moderate
   sync.db: moderate
   sync.knowledge_graph: moderate
   sync.vectors_code: moderate

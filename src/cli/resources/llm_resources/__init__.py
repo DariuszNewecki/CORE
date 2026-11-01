@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 # Register all neurons
-from . import author
+from . import author, setup
 from .hub import app
 
 

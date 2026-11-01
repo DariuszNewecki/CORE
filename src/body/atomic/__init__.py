@@ -18,6 +18,7 @@ from body.atomic import (
     file_ops,
     fix,
     llm_resource_authoring_actions,
+    llm_setup_actions,
     log_actions,
     metadata_ops,
     modularity_fix,
@@ -55,6 +56,7 @@ from body.atomic.fix import (
     action_format_code as action_fix_format,
 )
 from body.atomic.llm_resource_authoring_actions import action_author_llm_resource
+from body.atomic.llm_setup_actions import action_setup_llm
 from body.atomic.log_actions import (
     action_archive_log_partitions,
     action_maintain_log_partitions,
@@ -92,6 +94,7 @@ __all__ = [
     "action_refactor_apply_split",
     "action_registry",
     "action_run_gap_analysis",
+    "action_setup_llm",
     "action_sync_code_vectors",
     "action_sync_constitutional_vectors",
     "action_sync_database",

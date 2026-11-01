@@ -171,6 +171,12 @@ def _loads(calls: list[str]) -> list[str]:
     return [c for c in calls if "--single-transaction" in c]
 
 
+# #1374 (governor 2026-11-01, option B): the installer sets up the models, and
+# that one command writes configuration rows (system_config, llm_resources,
+# roles) -- never the schema. Every other --write stays forbidden.
+MODEL_SETUP = "core-admin llm-resources setup --write"
+
+
 def _never_mutates(calls: list[str]) -> bool:
     forbidden = (
         "database migrate",
@@ -179,7 +185,7 @@ def _never_mutates(calls: list[str]) -> bool:
         "DROP SCHEMA",
         "CASCADE",
     )
-    return not any(f in c for c in calls for f in forbidden)
+    return not any(f in c for c in calls if MODEL_SETUP not in c for f in forbidden)
 
 
 def _no_service_started(out: str, calls: list[str]) -> bool:
@@ -504,7 +510,9 @@ def test_docker_daemon_down_refuses_at_preflight_before_compose_up(
 def test_installer_source_has_no_drop_schema_and_no_mutation_commands() -> None:
     src = INSTALLER.read_text("utf-8")
     code_lines = [
-        line for line in src.splitlines() if not line.lstrip().startswith("#")
+        line
+        for line in src.splitlines()
+        if not line.lstrip().startswith("#") and MODEL_SETUP not in line
     ]
     joined = "\n".join(code_lines)
     assert "DROP SCHEMA" not in joined and "CASCADE" not in joined
