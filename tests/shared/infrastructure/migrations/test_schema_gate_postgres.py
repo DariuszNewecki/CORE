@@ -72,7 +72,7 @@ async def test_current_schema_starts(fresh_database: FreshDatabase) -> None:
     await db.load_schema(SCHEMA_SQL)
     verdict = await evaluate_schema_gate(session_factory=db.session_factory)
     assert verdict.state is SchemaGateState.CURRENT and not verdict.refuses
-    assert "assets: source" in verdict.message
+    assert "assets: bundled" in verdict.message
     returned = await run_startup_schema_gate(
         "CORE API", session_factory=db.session_factory
     )
