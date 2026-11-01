@@ -84,7 +84,6 @@ async def test_guard_stale_audit() -> None:
     blackboard.adjudicate_indeterminate_findings.assert_not_awaited()
 
 
-
 from will.audit_violation.staleness import audited_commit
 
 
@@ -105,3 +104,22 @@ def test_audited_commit():
     ]
     assert "abc123" in values
     assert "def456" in values or "abc123" in values
+
+
+from will.audit_violation.staleness import AuditedCommit
+
+
+# ID: c6aee2bc-2c53-4215-b8af-9413c9c6ce7e
+def test_AuditedCommit_as_payload():
+    record = MagicMock(spec=AuditedCommit)
+    record.audited = "abc123"
+    record.upstream = "def456"
+    record.behind = 3
+
+    payload = AuditedCommit.as_payload(record)
+
+    assert payload == {
+        "audited_commit": "abc123",
+        "upstream_commit": "def456",
+        "behind_upstream": 3,
+    }
