@@ -34,3 +34,62 @@ def test_FindingNormalizer_normalize() -> None:
     assert [
         call.args[0] for call in normalizer.normalize_one.call_args_list
     ] == findings
+
+
+from unittest.mock import patch
+
+
+# ID: 592a0f9b-cf52-4240-a053-0ca93d38d7a9
+def test_FindingNormalizer():
+    findings = [
+        {
+            "id": "finding-2",
+            "subject": "python::py.flake8.E501::b.py",
+            "payload": {
+                "rule": "py.flake8.E501",
+                "file_path": "b.py",
+                "line_number": "10",
+                "message": "line too long",
+                "severity": "warn",
+                "dry_run": True,
+            },
+        },
+        {
+            "id": "finding-1",
+            "subject": "python::py.flake8.E501::a.py",
+            "payload": {
+                "rule": "py.flake8.E501",
+                "rule_namespace": "py.flake8",
+                "file_path": "a.py",
+                "line_number": 3,
+                "message": "line too long",
+                "severity": "error",
+                "dry_run": False,
+                "context": {"extra": "value"},
+            },
+        },
+    ]
+
+    with patch(
+        "shared.infrastructure.intent.audit_namespaces.is_audit_violation_subject",
+        return_value=True,
+    ):
+        normalizer = FindingNormalizer()
+        result = normalizer.normalize(findings)
+
+    assert len(result) == 2
+    first, second = result
+    assert first.finding_id == "finding-1"
+    assert first.file_path == "a.py"
+    assert first.line_number == 3
+    assert first.rule_id == "py.flake8.E501"
+    assert first.rule_namespace == "py.flake8"
+    assert first.severity == "error"
+    assert first.dry_run is False
+    assert first.raw_context == {"extra": "value"}
+
+    assert second.finding_id == "finding-2"
+    assert second.file_path == "b.py"
+    assert second.line_number == 10
+    assert second.severity == "warning"
+    assert second.dry_run is True
