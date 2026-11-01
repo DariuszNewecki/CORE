@@ -28,3 +28,28 @@ def test_RequestInterpreter_phase():
 
     assert result is not None
     assert getattr(result, "name", None) == "INTERPRET"
+
+
+
+
+
+# ID: 9e5d27d3-1d63-41a7-8492-bc453b2d2e82
+def test_RequestInterpreter():
+    interpreter = RequestInterpreter()
+
+    phase = interpreter.phase
+    assert phase is not None
+
+    task = MagicMock()
+    task.confidence = 0.87
+
+    result = interpreter._create_result(task, ok=True, metadata={"source": "nl"})
+
+    assert result.component_id == interpreter.component_id
+    assert result.ok is True
+    assert result.data == {"task": task}
+    assert result.phase == phase
+    assert result.confidence == 0.87
+    assert result.next_suggested == "analyzer"
+    assert result.metadata == {"source": "nl"}
+    assert result.duration_sec == 0.0
