@@ -78,7 +78,9 @@ def _workspace(tmp_path: Path) -> Path:
     shutil.copy(REPO / "install-core.sh", ws / "install-core.sh")
     shutil.copy(REPO / ".env.example", ws / ".env.example")
     shutil.copy(REPO / "Makefile", ws / "Makefile")
-    (ws / "schema.sql").write_text("-- schema for the installer test\n", "utf-8")
+    schema = ws / "src" / "shared" / "_migrations" / "schema.sql"
+    schema.parent.mkdir(parents=True)
+    schema.write_text("-- schema for the installer test\n", "utf-8")
     return ws
 
 

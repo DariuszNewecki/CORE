@@ -12,10 +12,10 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
-from shared.infrastructure.repositories.db.common import REPO_ROOT
 from shared.infrastructure.repositories.db.ledger_seed import (
     SEED_BEGIN,
     SEED_END,
@@ -26,8 +26,9 @@ from shared.infrastructure.repositories.db.ledger_seed import (
 from shared.infrastructure.repositories.db.manifest import load_manifest
 
 
-assert REPO_ROOT is not None
-SCHEMA_SQL = REPO_ROOT / "schema.sql"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+MIGRATIONS_ROOT = REPO_ROOT / "src" / "shared" / "_migrations"
+SCHEMA_SQL = MIGRATIONS_ROOT / "schema.sql"
 RENDER_SCRIPT = REPO_ROOT / "infra" / "scripts" / "render_ledger_seed.py"
 
 

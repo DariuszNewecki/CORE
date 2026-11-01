@@ -135,15 +135,15 @@ bundled `docker-compose.yml` provides both:
 docker compose up -d
 ```
 
-Create the schema in the fresh `core` database. `schema.sql` at the repository root is
-the canonical schema for a **fresh** install. (A migration ledger — `infra/migrations/manifest.yaml`
+Create the schema in the fresh `core` database. `src/shared/_migrations/schema.sql` is
+the canonical schema for a **fresh** install. (A migration ledger — `src/shared/_migrations/infra/migrations/manifest.yaml`
 + `core._migrations` — the migration ledger; a fresh `schema.sql` load seeds it completely, and
 an upgraded database reaches the same ledger through the procedure below.)
 
 ```bash
 # Apply the canonical schema to the empty database (runs psql inside the container,
 # so you don't need a psql client on the host)
-docker compose exec -T postgres psql -U postgres -d core < schema.sql
+docker compose exec -T postgres psql -U postgres -d core < src/shared/_migrations/schema.sql
 ```
 
 Verify the connection:

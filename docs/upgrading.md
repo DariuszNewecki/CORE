@@ -5,7 +5,7 @@ daemon start`, the API, the `core-engine` container) check the schema state **re
 to run against a database that is not current. Migration is a deliberate, operator-run step.
 
 **Fresh installation** — `./install-core.sh` (or `./install-core.sh --bare --db-url … --qdrant-url …`)
-loads `schema.sql` into a database that has no CORE schema, in one transaction, and then shows
+loads `src/shared/_migrations/schema.sql` into a database that has no CORE schema, in one transaction, and then shows
 `core-admin database status` reporting the ledger current. Nothing else is needed. A failed load
 leaves nothing behind (there is no drop-and-retry); the installer refuses and names `var/logs/schema-apply.log`.
 

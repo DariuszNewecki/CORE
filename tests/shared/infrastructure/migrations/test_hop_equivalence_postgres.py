@@ -26,11 +26,11 @@ declared baseline now passes without an expected-failure marker.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
-from shared.infrastructure.repositories.db.common import REPO_ROOT
 from shared.infrastructure.repositories.db.manifest import load_manifest
 from shared.infrastructure.repositories.db.migration_service import (
     adopt_baseline,
@@ -50,8 +50,9 @@ if TYPE_CHECKING:
 
 pytestmark = [pytest.mark.integration]
 
-assert REPO_ROOT is not None
-SCHEMA_SQL = REPO_ROOT / "schema.sql"
+REPO_ROOT = Path(__file__).resolve().parents[4]
+MIGRATIONS_ROOT = REPO_ROOT / "src" / "shared" / "_migrations"
+SCHEMA_SQL = MIGRATIONS_ROOT / "schema.sql"
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "schema"
 
 

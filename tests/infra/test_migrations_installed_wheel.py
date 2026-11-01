@@ -36,13 +36,11 @@ from pathlib import Path
 cwd = Path.cwd()
 assert not (cwd / "pyproject.toml").exists(), "probe cwd must not be a checkout"
 
-from shared.infrastructure.repositories.db.common import (
-    REPO_ROOT, resolve_migration_assets,
-)
+from shared.infrastructure.repositories.db.common import resolve_migration_assets
 from shared.infrastructure.repositories.db.manifest import load_manifest
 from shared.infrastructure.repositories.db.migration_sql import lint_migration_file
 
-out = {"repo_root": REPO_ROOT}
+out = {}
 assets = resolve_migration_assets()
 out["origin"] = assets.origin
 out["root_in_site_packages"] = "site-packages" in str(assets.root)
@@ -104,10 +102,11 @@ def test_installed_wheel_resolves_bundled_migration_assets(tmp_path: Path) -> No
     payload = json.loads(result.stdout.split("PROBE_JSON=", 1)[1])
     expected_entries = len(
         __import__("yaml").safe_load(
-            (REPO_ROOT / "infra/migrations/manifest.yaml").read_text("utf-8")
+            (
+                REPO_ROOT / "src/shared/_migrations/infra/migrations/manifest.yaml"
+            ).read_text("utf-8")
         )["migrations"]["order"]
     )
-    assert payload["repo_root"] is None
     assert payload["origin"] == "bundled" and payload["root_in_site_packages"]
     assert payload["entries"] == expected_entries == payload["linted"]
     assert payload["baselines"][:2] == ["v2.9.1", "v2.10.1"]

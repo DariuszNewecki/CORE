@@ -37,8 +37,9 @@
 # installer never migrates, never adopts a baseline and never drops a schema
 # (ADR-162 D2/D10, U8a). Diagnose with: core-admin database status
 #
-# Status: v2 — schema.sql at root, --no-owner (portable), Qdrant collection
-# created lazily by API lifespan (#521). Bare mode added (#522).
+# Status: v2 — schema.sql (src/shared/_migrations/, #1387), --no-owner
+# (portable), Qdrant collection created lazily by API lifespan (#521). Bare
+# mode added (#522).
 
 set -euo pipefail
 
@@ -369,6 +370,8 @@ setup_models() {
 #      the operator's --db-url).
 CORE_NAMESPACE_PROBE="SELECT count(*) FROM pg_namespace WHERE nspname = 'core'"
 SCHEMA_APPLY_LOG="var/logs/schema-apply.log"
+# The one schema source, packaged with the migrations (#1387).
+SCHEMA_SQL="src/shared/_migrations/schema.sql"
 
 # The real read-only status check, in the mode's own database. In bare mode
 # the supplied --db-url is exported for the check so a pre-existing, unrelated
@@ -503,7 +506,7 @@ run_docker() {
   docker_db_load_schema() {
     # One transaction: either the whole schema lands or nothing does.
     docker compose exec -T postgres psql -v ON_ERROR_STOP=1 --single-transaction -q \
-      -U postgres -d core < schema.sql > "$SCHEMA_APPLY_LOG" 2>&1
+      -U postgres -d core < "$SCHEMA_SQL" > "$SCHEMA_APPLY_LOG" 2>&1
   }
   schema_state_gate docker_db_query docker_db_load_schema
 
@@ -601,7 +604,7 @@ run_bare() {
   bare_db_load_schema() {
     # One transaction: either the whole schema lands or nothing does. Output
     # goes to the log — psql's messages must never carry the URL to the terminal.
-    psql "${DB_URL_LIBPQ}" -v ON_ERROR_STOP=1 --single-transaction -q -f schema.sql \
+    psql "${DB_URL_LIBPQ}" -v ON_ERROR_STOP=1 --single-transaction -q -f "$SCHEMA_SQL" \
       > "$SCHEMA_APPLY_LOG" 2>&1
   }
   schema_state_gate bare_db_query bare_db_load_schema

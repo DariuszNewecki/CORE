@@ -23,11 +23,11 @@ Proven here, with the REAL manifest and the REAL migration files:
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
-from shared.infrastructure.repositories.db.common import REPO_ROOT
 from shared.infrastructure.repositories.db.ledger_engine import (
     MigrationOutcome,
     ensure_ledger,
@@ -44,7 +44,8 @@ if TYPE_CHECKING:
 
 pytestmark = [pytest.mark.integration]
 
-assert REPO_ROOT is not None
+REPO_ROOT = Path(__file__).resolve().parents[4]
+MIGRATIONS_ROOT = REPO_ROOT / "src" / "shared" / "_migrations"
 SCHEMA_V2_9_1 = REPO_ROOT / "tests" / "fixtures" / "schema" / "schema-v2.9.1.sql"
 
 DEDUP = "20260722_active_finding_dedup.sql"
@@ -77,7 +78,7 @@ async def _v2_9_1_database(db: FreshDatabase, manifest: Manifest) -> None:
 async def _apply_by_hand(db: FreshDatabase, manifest: Manifest, mig_id: str) -> None:
     """What the ROLLOUT runbook did on the live database: ``psql -f <file>``."""
     await db.execute_script(
-        manifest.sql_path(mig_id, REPO_ROOT).read_text(encoding="utf-8")
+        manifest.sql_path(mig_id, MIGRATIONS_ROOT).read_text(encoding="utf-8")
     )
 
 

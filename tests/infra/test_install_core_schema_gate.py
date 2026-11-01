@@ -87,7 +87,9 @@ _FAKES: dict[str, str] = {
         'case "$*" in\n'
         '  *"SELECT 1"*) echo 1; exit 0 ;;\n'
         '  *pg_namespace*) echo "${FAKE_CORE_NS:-1}"; exit 0 ;;\n'
-        '  *--single-transaction*) [ -n "${FAKE_LOAD_FAIL:-}" ] && exit 3; exit 0 ;;\n'
+        # the bare load names its file last (-f <schema.sql>); it must exist
+        '  *--single-transaction*) [ -f "${*: -1}" ] || exit 4\n'
+        '    [ -n "${FAKE_LOAD_FAIL:-}" ] && exit 3; exit 0 ;;\n'
         "  *) exit 0 ;;\n"
         "esac\n"
     ),
@@ -122,7 +124,9 @@ def _workspace(tmp_path: Path) -> Path:
     shutil.copy(ENV_EXAMPLE, ws / ".env.example")
     # the installer reads the declared core-cli release from it (ADR-167 D2)
     shutil.copy(REPO / "Makefile", ws / "Makefile")
-    (ws / "schema.sql").write_text("-- schema for the installer test\n", "utf-8")
+    schema = ws / "src" / "shared" / "_migrations" / "schema.sql"
+    schema.parent.mkdir(parents=True)
+    schema.write_text("-- schema for the installer test\n", "utf-8")
     return ws
 
 

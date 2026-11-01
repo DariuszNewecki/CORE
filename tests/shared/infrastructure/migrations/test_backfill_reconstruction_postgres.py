@@ -30,7 +30,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from shared.infrastructure.repositories.db.common import REPO_ROOT
 from shared.infrastructure.repositories.db.ledger_engine import (
     LedgerEngineError,
     MigrationOutcome,
@@ -55,7 +54,8 @@ if TYPE_CHECKING:
 
 pytestmark = [pytest.mark.integration]
 
-assert REPO_ROOT is not None
+REPO_ROOT = Path(__file__).resolve().parents[4]
+MIGRATIONS_ROOT = REPO_ROOT / "src" / "shared" / "_migrations"
 SCHEMA_V2_9_1 = REPO_ROOT / "tests" / "fixtures" / "schema" / "schema-v2.9.1.sql"
 SCHEMA_V2_10_1 = REPO_ROOT / "tests" / "fixtures" / "schema" / "schema-v2.10.1.sql"
 
@@ -70,7 +70,7 @@ async def _apply(db: FreshDatabase, mig_id: str) -> MigrationOutcome:
     manifest = load_manifest()
     result = await apply_migration(
         manifest.entry(mig_id),
-        manifest.sql_path(mig_id, Path(str(REPO_ROOT))),
+        manifest.sql_path(mig_id, MIGRATIONS_ROOT),
         session_factory=db.session_factory,
     )
     return result.outcome

@@ -19,7 +19,7 @@ DB_USER="core"
 LIVE_DB="core"
 TEST_DB="core_test"
 TEST_ROLE="core_test_db"
-SCHEMA_OUT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)/schema.sql"
+SCHEMA_OUT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)/src/shared/_migrations/schema.sql"
 
 if [ -z "${PGPASSWORD:-}" ]; then
     echo "reset_test_db.sh: PGPASSWORD is not set; export the ${DB_USER} password and rerun." >&2
@@ -33,7 +33,7 @@ echo "Resetting ${TEST_DB} schema from ${LIVE_DB} on ${DB_HOST}..."
 dropdb -h "${DB_HOST}" -U "${DB_USER}" --if-exists "${TEST_DB}"
 createdb -h "${DB_HOST}" -U "${DB_USER}" "${TEST_DB}"
 
-# Dump portable schema (no OWNER TO / GRANT lines) to schema.sql at repo root,
+# Dump portable schema (no OWNER TO / GRANT lines) to the packaged schema.sql,
 # then load it into the test DB. --no-owner + --no-acl makes the file
 # installable by any role on a fresh Postgres instance (#521 items 1-3).
 pg_dump -h "${DB_HOST}" -U "${DB_USER}" \
@@ -43,9 +43,9 @@ pg_dump -h "${DB_HOST}" -U "${DB_USER}" \
     > "${SCHEMA_OUT}"
 
 # ADR-162 D9: a fresh install must start with a COMPLETE migration ledger.
-# Append the seed block rendered from infra/migrations/manifest.yaml (ids ==
-# manifest order; tests/shared/infrastructure/test_schema_ledger_seed.py
-# proves the parity). The dump is --schema-only, so this is the only data.
+# Append the seed block rendered from src/shared/_migrations/infra/migrations/
+# manifest.yaml (ids == manifest order;
+# tests/shared/infrastructure/test_schema_ledger_seed.py proves the parity). The dump is --schema-only, so this is the only data.
 REPO_TOP="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 (cd "${REPO_TOP}" && poetry run python infra/scripts/render_ledger_seed.py) \
     >> "${SCHEMA_OUT}"

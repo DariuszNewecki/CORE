@@ -133,8 +133,8 @@ core-admin database migrate --adopt-baseline v2.9.1 --write  # records the ledge
   is unreadable — naming the remedy. `CORE_STRICT_MODE` does not relax it; an unreachable
   database keeps the existing connectivity behaviour, so a service that starts is proof of a
   matching schema when the database is reachable.
-- The wheel bundles the manifest, the migration SQL and `schema.sql` (`src/shared/_migrations/`, a
-  byte-parity mirror): `database status|migrate` work from a `pip install core-runtime` with no
+- The wheel bundles the manifest, the migration SQL and `schema.sql` (`src/shared/_migrations/`,
+  their one source): `database status|migrate` work from a `pip install core-runtime` with no
   checkout (`status --format json` reports `"assets": "bundled"`), and the `core-engine` image
   exposes them as `entrypoint.sh status …` / `entrypoint.sh migrate …` (only `DATABASE_URL` needed).
 

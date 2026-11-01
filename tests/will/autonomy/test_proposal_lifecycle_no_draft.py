@@ -274,6 +274,7 @@ async def test_queued_proposal_can_be_rejected(db_session: AsyncSession) -> None
 # ---------------------------------------------------------------------------
 
 _REPO_ROOT = _SRC_ROOT.parent
+_MIGRATIONS_ROOT = _REPO_ROOT / "src" / "shared" / "_migrations"
 _MIGRATION = "20260914_885_retire_draft_proposal_status.sql"
 
 
@@ -303,7 +304,7 @@ def test_legacy_draft_rows_are_reconciled_by_ledger_migration() -> None:
     were always meant to be discoverable in — before tightening the CHECK
     constraint, and is registered in the manifest so ``core-admin database
     migrate --write`` runs it. Verified by inspection of the migration text."""
-    path = _REPO_ROOT / "infra" / "scripts" / "migrations" / _MIGRATION
+    path = _MIGRATIONS_ROOT / "infra" / "scripts" / "migrations" / _MIGRATION
     assert path.is_file(), path
     sql = path.read_text(encoding="utf-8")
     update_pos = sql.find("SET status = 'pending'")
@@ -315,11 +316,11 @@ def test_legacy_draft_rows_are_reconciled_by_ledger_migration() -> None:
     assert "'draft'" not in check_clause
     assert "SET DEFAULT 'pending'" in sql
 
-    manifest = (_REPO_ROOT / "infra" / "migrations" / "manifest.yaml").read_text(
+    manifest = (_MIGRATIONS_ROOT / "infra" / "migrations" / "manifest.yaml").read_text(
         encoding="utf-8"
     )
     assert f"- {_MIGRATION}" in manifest
 
-    schema = (_REPO_ROOT / "schema.sql").read_text(encoding="utf-8")
+    schema = (_MIGRATIONS_ROOT / "schema.sql").read_text(encoding="utf-8")
     assert "DEFAULT 'draft'::text" not in schema
     assert "ARRAY['draft'::text" not in schema

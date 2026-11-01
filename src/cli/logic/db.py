@@ -125,7 +125,8 @@ async def migrate_db_command(
     """Show the current migration-framework status (currently dormant).
 
     The repo operates under a schema-as-truth model — `infra/sql/db_schema_live.sql`
-    is the canonical schema. One-off SQL files under `infra/scripts/migrations/`
+    is the canonical schema. One-off SQL files under
+    `src/shared/_migrations/infra/scripts/migrations/`
     are historical record and are NOT replayed through this CLI. See #438.
     """
     _ = apply  # currently unused; kept for forward-compat
@@ -141,7 +142,8 @@ async def migrate_db_command(
         "  • Regenerate via:    [cyan]pg_dump --schema-only --schema=core[/cyan]"
     )
     _console.print(
-        "  • One-off SQL files: [cyan]infra/scripts/migrations/[/cyan] (historical record)"
+        "  • One-off SQL files: [cyan]src/shared/_migrations/infra/scripts/migrations/[/cyan]"
+        " (historical record)"
     )
     _console.print()
     _console.print(

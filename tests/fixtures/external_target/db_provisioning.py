@@ -3,7 +3,8 @@
 Reuses CORE's own established hermetic-database mechanism -- the same
 ``postgres:16`` image and "schema.sql is canonical for a fresh install"
 model ``docker-compose.test.yml`` already documents for CI ("Schema
-source: schema.sql at repo root (canonical per #521)") -- but for a
+source: src/shared/_migrations/schema.sql (canonical per #521, #1387)")
+-- but for a
 throwaway, uniquely named database per run, never the shared ``core_test``.
 
 CORE's own ``.env.test`` DATABASE_URL points at a LAN Postgres host; that
@@ -31,7 +32,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCHEMA_SQL = REPO_ROOT / "schema.sql"
+MIGRATIONS_ROOT = REPO_ROOT / "src" / "shared" / "_migrations"
+SCHEMA_SQL = MIGRATIONS_ROOT / "schema.sql"
 
 _DB_NAME_RE = re.compile(r"^core_unitd_[0-9a-f]{16}$")
 _CONTAINER_NAME_RE = re.compile(r"^core_unitd_pg_[0-9a-f]{16}$")
@@ -217,7 +219,8 @@ def _check_migrations_current(database_url: str) -> None:
 
     Run in a fresh subprocess with only DATABASE_URL overridden. This call
     is about CORE's OWN migration ledger (read from CORE's own
-    infra/migrations/manifest.yaml, resolved independently of the process
+    src/shared/_migrations/infra/migrations/manifest.yaml, resolved
+    independently of the process
     cwd) -- REPO_PATH/MIND are left unset here deliberately; this step has
     nothing to do with the external target.
     """

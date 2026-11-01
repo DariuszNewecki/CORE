@@ -1,13 +1,10 @@
 # src/shared/_migrations/__init__.py
-"""Wheel-side mirror of the migration assets (ADR-162 D8, U7).
+"""The migration assets: their one source, shipped in the wheel (ADR-162 D8).
 
-Package data, not a source of truth: ``infra/migrations/manifest.yaml``,
-every ``.sql`` file the manifest lists under ``infra/scripts/migrations/``
-and the repository-root ``schema.sql`` are copied here byte for byte in the
-same relative layout, so the ledger engine resolves paths identically from a
-source checkout and from an installed wheel. The parity test
-(``tests/infra/test_migrations_ship_in_wheel.py``) enforces that every
-change updates source and mirror in the same commit; there is no runtime
-synchronisation. Resolved through
+``infra/migrations/manifest.yaml``, every ``.sql`` file the manifest lists
+under ``infra/scripts/migrations/`` (the manifest's ``directory:``, relative
+to this package) and ``schema.sql`` are authored here and nowhere else
+(#1387), so a source checkout and an installed wheel read the same files.
+Resolved through
 ``shared.infrastructure.repositories.db.common.resolve_migration_assets``.
 """

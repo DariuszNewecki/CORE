@@ -38,7 +38,7 @@ class StatusReport:
     schema_present: bool = True
     probe_failures: list[str] = field(default_factory=list)
     baseline_suggestion: str | None = None
-    assets_origin: str | None = None  # "source" | "bundled" (ADR-162 D8)
+    assets_origin: str | None = None  # "bundled": the packaged assets (ADR-162 D8)
 
     @property
     # ID: 6685ef00-f3c0-47fc-9465-55231b72a51e

@@ -3,7 +3,7 @@
 """LLM configuration domain models — Phase 1 of ADR-052.
 
 Tables introduced by the migration
-`infra/scripts/migrations/20260516_adr_052_phase1_llm_config_schema.sql`:
+`src/shared/_migrations/infra/scripts/migrations/20260516_adr_052_phase1_llm_config_schema.sql`:
 
 * role_resource_assignments — priority-ordered role → resource mapping
 * system_config             — typed singleton for system-wide flags

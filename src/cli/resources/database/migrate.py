@@ -2,9 +2,10 @@
 """
 Database migration command (ADR-162 D1, D3, D7).
 
-Applies pending SQL migrations recorded in infra/migrations/manifest.yaml
-against core._migrations. The canonical schema for a fresh install is the
-repository-root ``schema.sql`` (which seeds the ledger, D9); this ledger
+Applies pending SQL migrations recorded in
+src/shared/_migrations/infra/migrations/manifest.yaml
+against core._migrations. The canonical schema for a fresh install is
+``src/shared/_migrations/schema.sql`` (which seeds the ledger, D9); this ledger
 handles incremental changes on existing databases.
 
 Modes — only ``--write`` mutates anything (``cli.command.dangerous_marking``):
@@ -33,8 +34,9 @@ probe fails). Upgrading an existing database remains UNSUPPORTED until the
 release that ships ADR-162 U2-U7; these commands are unreleased.
 
 Workflow going forward:
-    # 1. Write infra/scripts/migrations/YYYYMMDD_description.sql
-    # 2. Append filename to infra/migrations/manifest.yaml order list
+    # 1. Write src/shared/_migrations/infra/scripts/migrations/YYYYMMDD_description.sql
+    # 2. Append filename to src/shared/_migrations/infra/migrations/manifest.yaml
+    #    order list
     #    (with a `verify` probe under `probes:`)
     # 3. core-admin database migrate --write
 """

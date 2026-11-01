@@ -3,7 +3,8 @@
 LLM cognitive-role storage.
 
 DB-backed against the live schema (core_test in CI/local dev, per
-infra/scripts/migrations/20260830_821_create_task_assignee_roles.sql).
+src/shared/_migrations/infra/scripts/migrations/
+20260830_821_create_task_assignee_roles.sql).
 Verifies the target model directly against the database, not against the
 migration file's text: core.task_assignee_roles exists with the full
 14-role vocabulary and correct actor/cognitive discriminator, core.tasks
@@ -50,7 +51,8 @@ _COGNITIVE_ROLES = {
 @pytest.fixture(autouse=True)
 async def _ensure_task_assignee_roles_seeded(db_session: AsyncSession) -> None:
     """Idempotent re-seed of the migration's own 14-row vocabulary --
-    mirrors infra/scripts/migrations/20260830_821_create_task_assignee_roles.sql
+    mirrors src/shared/_migrations/infra/scripts/migrations/
+    20260830_821_create_task_assignee_roles.sql
     step 2 exactly, so a schema-only-provisioned database (CI) proves the same
     property as one that had the real migration applied (live/local core_test)."""
     for role, kind in [

@@ -10,15 +10,15 @@ for database operations without making strategic decisions about what
 migrations to run or how data should be structured.
 
 RESPONSIBILITIES:
-- Resolve where the migration assets live (source checkout or the wheel's
-  bundled mirror, ADR-162 D8) and load the migration manifest (policy)
+- Resolve where the migration assets live (the packaged ``shared._migrations``
+  directory, ADR-162 D8) and load the migration manifest (policy)
 - Retrieve git commit information
 
-Asset precedence (D8): **bundled-first when running from a wheel** -- the
-migration set must match the installed code -- and the source tree when the
-package *is* the checkout (editable install). ``src/shared/_migrations/`` is
-a byte-parity mirror of ``infra/migrations/manifest.yaml``, the manifest's
-``.sql`` files and ``schema.sql`` in the same relative layout.
+Asset location (D8, #1387): ``src/shared/_migrations/`` is the one source of
+the migration assets -- ``infra/migrations/manifest.yaml``, the manifest's
+``.sql`` files and ``schema.sql`` in that relative layout -- and it ships in
+the wheel as package data. A source checkout and an installed wheel read the
+same directory, so the migration set always matches the running code.
 
 Ledger reads/writes and migration execution live in ``ledger_engine`` (ADR-162
 D7: one transaction per migration, advisory-locked); the typed manifest view
@@ -60,31 +60,12 @@ logger = getLogger(__name__)
 _MANIFEST_REL = pathlib.Path("infra") / "migrations" / "manifest.yaml"
 
 
-# This robust function finds the project root without relying on the global settings object.
-def _get_repo_root_for_migration() -> pathlib.Path:
-    """Finds the repo root by searching upwards for a known marker file."""
-    current_path = pathlib.Path(__file__).resolve()
-    for parent in [current_path, *current_path.parents]:
-        if (parent / "pyproject.toml").exists():
-            return parent
-    raise RuntimeError("Could not determine the repository root for migration.")
-
-
-def _resolve_repo_root() -> pathlib.Path | None:
-    """Return the migration repo root, or None when running as an installed wheel."""
-    try:
-        return _get_repo_root_for_migration()
-    except RuntimeError:
-        return None
-
-
-# Lazy sentinel — None when running as a pip-installed wheel outside the source tree.
-REPO_ROOT: pathlib.Path | None = _resolve_repo_root()
-
 _BUNDLE_PACKAGE = "shared._migrations"
 _SCHEMA_SQL_REL = pathlib.Path("schema.sql")
 
-AssetOrigin = Literal["source", "bundled"]
+# The assets are always read from the package; "bundled" names that origin in
+# ``database status`` output (a source checkout reads the same package).
+AssetOrigin = Literal["bundled"]
 
 
 @dataclass(frozen=True)
@@ -93,7 +74,7 @@ class MigrationAssets:
     """Where the manifest, the migration SQL and schema.sql are read from."""
 
     root: pathlib.Path
-    origin: AssetOrigin
+    origin: AssetOrigin = "bundled"
 
     @property
     # ID: da3b76bd-1279-426a-9b92-092c50f60654
@@ -107,21 +88,20 @@ class MigrationAssets:
 
 
 def _bundled_root() -> pathlib.Path:
-    # Same precedent as shared.config's machinery-floor lookup: an installed
-    # wheel exposes package data as a real directory.
+    # Same precedent as shared.config's machinery-floor lookup: the package is
+    # a real directory both in a checkout (src/shared/_migrations) and in an
+    # installed wheel (site-packages/shared/_migrations).
     return pathlib.Path(str(importlib.resources.files(_BUNDLE_PACKAGE)))
 
 
 # ID: ea71c3ec-2c6d-47c7-ab72-8d3ec27e15fc
 def resolve_migration_assets() -> MigrationAssets:
-    """Source tree when the package is the checkout; the bundle otherwise (D8)."""
-    if REPO_ROOT is not None:
-        return MigrationAssets(root=REPO_ROOT, origin="source")
+    """The packaged migration assets (``shared._migrations``, ADR-162 D8)."""
     root = _bundled_root()
     if not (root / _MANIFEST_REL).is_file():
         raise RuntimeError(
-            "Migration assets are neither a source checkout nor bundled in this "
-            f"installation ({root}); the installed core-runtime is incomplete."
+            "Migration assets are not in the shared._migrations package "
+            f"({root}); the installed core-runtime is incomplete."
         )
     return MigrationAssets(root=root, origin="bundled")
 
