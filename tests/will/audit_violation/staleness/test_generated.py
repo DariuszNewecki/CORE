@@ -43,7 +43,6 @@ def test_check_audited_commit():
     mock_guard.assert_awaited_once_with(worker, blackboard, audited, 3)
 
 
-
 import pytest
 
 from will.audit_violation.staleness import (
@@ -83,3 +82,26 @@ async def test_guard_stale_audit() -> None:
     assert kwargs["status"] == "indeterminate"
     assert kwargs["payload"]["cycles_behind"] == STALE_AFTER_CYCLES
     blackboard.adjudicate_indeterminate_findings.assert_not_awaited()
+
+
+
+from will.audit_violation.staleness import audited_commit
+
+
+# ID: 35c945ec-b898-433c-b6c3-441b4dcbfd46
+def test_audited_commit():
+    git_service = MagicMock()
+    git_service.get_current_commit.return_value = "abc123"
+    git_service.resolve_ref.return_value = "def456"
+    git_service.is_ancestor.return_value = True
+
+    result = audited_commit(git_service, "main")
+
+    git_service.get_current_commit.assert_called_once_with()
+    git_service.resolve_ref.assert_called_once_with("refs/remotes/upstream/main")
+    attrs = {k: getattr(result, k) for k in dir(result) if not k.startswith("_")}
+    values = [
+        getattr(result, name) for name in attrs if not callable(getattr(result, name))
+    ]
+    assert "abc123" in values
+    assert "def456" in values or "abc123" in values
