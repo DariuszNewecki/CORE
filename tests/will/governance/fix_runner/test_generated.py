@@ -317,7 +317,6 @@ async def test_run_and_persist_flow() -> None:
     assert final_call.kwargs.get("finished") is True
 
 
-
 import pytest
 
 from will.governance.fix_runner import run_and_persist_fix
@@ -377,3 +376,27 @@ async def test_run_and_persist_fix():
     payload = final_call.kwargs["result"]
     assert payload["kind"] == "atomic"
     assert payload["ok"] is True
+
+
+
+
+# ID: e2d34099-fdf5-41ce-8cd5-2d82bc176390
+def test_list_registered_flow_ids():
+    from will.governance.fix_runner import list_registered_flow_ids
+
+    definition_a = MagicMock()
+    definition_a.flow_id = "flow-alpha"
+    definition_b = MagicMock()
+    definition_b.flow_id = "flow-beta"
+
+    mock_registry = MagicMock()
+    mock_registry.list_all.return_value = [definition_a, definition_b]
+
+    with patch(
+        "will.governance.fix_runner.flow_registry",
+        mock_registry,
+    ):
+        result = list_registered_flow_ids()
+
+    assert result == {"flow-alpha", "flow-beta"}
+    mock_registry.list_all.assert_called_once_with()
