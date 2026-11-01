@@ -28,3 +28,34 @@ async def test_GovernanceDecider_execute():
     assert out.data["blockers"] == []
     assert out.data["authorization_token"] is not None
     decider.tracer.record.assert_called_once()
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 5aeec669-1a2e-46bb-8f7e-45eb3c9dbc68
+async def test_GovernanceDecider():
+    decider = GovernanceDecider()
+    decider.tracer = MagicMock()
+
+    ok_result = MagicMock()
+    ok_result.component_id = "some_evaluator"
+    ok_result.ok = True
+    ok_result.confidence = 0.9
+    ok_result.data = {}
+    ok_result.metadata = {"violation_count": 0}
+
+    result = await decider.execute(
+        evaluation_results=[ok_result],
+        risk_tier="STANDARD",
+    )
+
+    assert result.ok is True
+    assert result.data["decision"] == "PROCEED"
+    assert result.data["can_proceed"] is True
+    assert result.data["authorization_token"] is not None
+    assert result.data["blockers"] == []
+    assert result.data["critical_blocks"] == []
+    decider.tracer.record.assert_called_once()
