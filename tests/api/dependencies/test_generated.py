@@ -211,7 +211,6 @@ def test_CallerPrincipal():
     assert principal.binding_error is None
 
 
-
 import pytest
 
 from api.dependencies import open_background_session
@@ -230,3 +229,26 @@ async def test_open_background_session():
         session = await agen.__anext__()
         assert session is mock_session
         await agen.aclose()
+
+
+import pytest
+
+from api.dependencies import get_api_session
+
+
+@pytest.mark.asyncio
+# ID: 86434aa1-e399-426b-ba0d-2685ac82f76a
+async def test_get_api_session():
+    mock_session = MagicMock(name="AsyncSession")
+
+    async def _fake_db_session():
+        yield mock_session
+
+    with patch("api.dependencies.get_db_session", _fake_db_session):
+        agen = get_api_session()
+        yielded = await agen.__anext__()
+
+        assert yielded is mock_session
+
+        with pytest.raises(StopAsyncIteration):
+            await agen.__anext__()
