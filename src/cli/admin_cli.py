@@ -173,6 +173,21 @@ def _help_requested(argv: list[str]) -> bool:
     return False
 
 
+# Commands that install law. The release they run from may register an action
+# the installed law does not rate yet: building the CoreContext (whose
+# ActionExecutor checks every registered action against action_risk.yaml)
+# refused, so the law that rates it could never be applied (#1377: setup.llm,
+# promotion #1376). They declare requires_context=False and read no ctx.obj;
+# their checks run in a child process on the new law tree.
+_LAW_INSTALL_COMMANDS = frozenset({("law", "apply"), ("law", "apply-merge")})
+
+
+def _installs_law(argv: list[str]) -> bool:
+    """True when argv names `law apply` or `law apply-merge`."""
+    words = [token for token in argv if not token.startswith("-")]
+    return tuple(words[:2]) in _LAW_INSTALL_COMMANDS
+
+
 def _print_version(value: bool) -> None:
     """Eager --version: print the installed core-runtime and exit (#1157).
 
@@ -250,7 +265,8 @@ def main(
     # Help exits before any command runs. If "--help" was really an option
     # *value*, core_command builds the context on demand, so skipping here can
     # never leave a running command without one.
-    if not _help_requested(sys.argv[1:]):
+    argv = sys.argv[1:]
+    if not _help_requested(argv) and not _installs_law(argv):
         try:
             ctx.obj = create_core_context(service_registry)
         except GovernanceError as exc:
