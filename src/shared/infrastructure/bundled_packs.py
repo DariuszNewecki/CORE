@@ -2,13 +2,12 @@
 
 """Bundled governance-pack registry resolver.
 
-The published ``core-runtime`` wheel carries the open governance packs as
-package data under ``shared._packs`` -- the wheel-side mirror of the
-repository's top-level ``packs/`` registry (ADR-149). This module is the only
-place that names that package. Precedence is **repository first, bundle
-second**, the same rule the prompt corpus follows (#909): a CORE source
-checkout reads its own ``packs/``; a ``pip install core-runtime`` user, whose
-repository has no ``packs/``, reads the bundle.
+The open governance packs (ADR-149) live in one place, ``src/shared/_packs/``,
+shipped as package data under ``shared._packs`` (#1387; until then a
+top-level ``packs/`` was copied there). This module is the only place that
+names that package. Precedence is **repository first, bundle second**: a
+repository that carries its own ``packs/`` reads it; every other one,
+including CORE's own checkout, reads the bundle.
 
 Callers that need files on disk take :func:`pack_registry_dir`, whose lifetime
 bounds any temporary extraction (an installed wheel resolves in place, a

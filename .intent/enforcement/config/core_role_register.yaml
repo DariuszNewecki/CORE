@@ -64,7 +64,7 @@ files:
     reason: Typed loader for every knob in operational_config.yaml (ADR-040).
   src/shared/infrastructure/intent/pack_loader.py:
     role: catalog
-    reason: Loader for the packs/*.yaml governance pack registry (ADR-149).
+    reason: Loader for the governance pack registry, src/shared/_packs/*.yaml (ADR-149).
   src/shared/infrastructure/intent/rule_registry.py:
     role: catalog
     reason: RuleRegistry, the validated dictionary of rule ids from .intent/rules/.

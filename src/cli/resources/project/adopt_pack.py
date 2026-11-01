@@ -77,8 +77,8 @@ async def adopt_pack_command(
 
     Packs are self-contained bundles of rules and enforcement mappings that
     remove the need to author governance YAML manually. Packs are resolved from
-    the repository's packs/ registry when it has one (a CORE source checkout),
-    otherwise from the registry bundled with the installed core-runtime.
+    the repository's own packs/ directory when it has one, otherwise from the
+    registry bundled with the installed core-runtime.
 
     The target must already carry CORE's machinery floor (.intent/META and the
     rest, delivered by `project new` or `project onboard`); without it the
