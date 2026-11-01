@@ -28,6 +28,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, cast
 
 
 # ID: 827dbbaf-da04-4f07-8aee-83c68f30bc33
@@ -173,7 +174,9 @@ def command_meta(**kwargs) -> Callable:
 
     # ID: 258dc4d7-d473-45ea-b32b-31726a0b01df
     def decorator(func: Callable) -> Callable:
-        func.__command_meta__ = meta  # type: ignore[attr-defined]
+        # A function object takes arbitrary attributes; Callable's type does not
+        # declare this one, so set it through Any.
+        cast(Any, func).__command_meta__ = meta
         return func
 
     return decorator

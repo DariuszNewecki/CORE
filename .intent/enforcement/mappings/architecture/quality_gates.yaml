@@ -7,3 +7,11 @@
         applies_to:
           - "src/**/*.py"
 
+    quality.no_attr_call_suppression:
+      engine: regex_gate
+      params:
+        forbidden_patterns:
+          - "type:\\s*ignore\\[[^\\]]*\\b(?:attr-defined|call-arg)\\b"
+      scope:
+        applies_to:
+          - "src/**/*.py"

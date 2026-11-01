@@ -107,11 +107,6 @@ class ProposalService:
         """Get proposal by ID."""
         return await self._repository.get(proposal_id)
 
-    # ID: a576c452-efd2-466a-a296-44af1bbd0015
-    async def update(self, proposal: Proposal) -> None:
-        """Update proposal."""
-        await self._repository.update(proposal)  # type: ignore[attr-defined]
-
     # ID: 03c9360e-4bae-4a75-b208-8fe1c0c1d58b
     async def list_by_status(
         self, status: ProposalStatus, limit: int = _CFG_PR.list_limit

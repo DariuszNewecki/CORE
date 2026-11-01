@@ -104,21 +104,16 @@ from api.v1.inspect_routes import analysis_command_tree
 @pytest.mark.asyncio
 # ID: bb82eae8-7d87-4968-834f-2b710594f35a
 async def test_analysis_command_tree():
-    mock_core_context = MagicMock()
-    mock_request = MagicMock()
-    mock_request.app.state.core_context = mock_core_context
-    mock_request.app.state.__dict__ = {"core_context": mock_core_context}
-
     expected_tree = {"commands": ["foo", "bar"]}
 
     with patch(
         "api.v1.inspect_routes.get_analysis_command_tree",
         return_value=expected_tree,
     ) as mock_get_tree:
-        result = await analysis_command_tree(mock_request)
+        result = await analysis_command_tree()
 
     assert result == expected_tree
-    mock_get_tree.assert_called_once_with(mock_core_context)
+    mock_get_tree.assert_called_once_with()
 
 
 import inspect
@@ -351,7 +346,6 @@ async def test_status_db():
 
     assert result == fake_status
     mock_get_db_status.assert_awaited_once_with(fake_session)
-
 
 
 import pytest

@@ -314,3 +314,35 @@ def test_core_command_preserves_function_metadata():
     assert decorated.__module__ == original_func.__module__
     result = decorated(5, y="test")
     assert result == "5_test"
+
+
+def test_core_command_without_ctx_param_ignores_active_click_context():
+    """A command that takes no ``ctx`` gets no context, even while a click
+    context is active (#1386: the old fallback called the nonexistent
+    ``typer.get_current_context`` and swallowed the AttributeError). So no
+    brain services are warmed for it, and requires_context=True still stops
+    it with the "must accept ctx" error."""
+    import click
+
+    core_context = Mock()
+    core_context.registry.get_qdrant_service = AsyncMock(
+        side_effect=AssertionError("no warm-up for a command without ctx")
+    )
+    active = typer.Context(click.Command("core-admin"), obj=core_context)
+    ran: list[bool] = []
+
+    @core_command(requires_context=False)
+    async def no_ctx_command():
+        ran.append(True)
+
+    @core_command(requires_context=True)
+    def needs_ctx_command():
+        ran.append(False)
+
+    with active:
+        no_ctx_command()
+        with pytest.raises(typer.Exit):
+            needs_ctx_command()
+
+    assert ran == [True]
+    core_context.registry.get_qdrant_service.assert_not_called()

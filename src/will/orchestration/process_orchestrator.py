@@ -47,8 +47,9 @@ still the live V2 path (see `will/test_generation/`, `will/self_healing/`).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from shared.component_primitive import Component, ComponentResult, discover_components
 from shared.infrastructure.intent.operational_config import load_operational_config
@@ -265,7 +266,10 @@ class ProcessOrchestrator:
                     f"Component {name!r} requires repo_root; "
                     f"pass it to ProcessOrchestrator(repo_root=...)"
                 )
-            return cls(repo_root=self.repo_root)  # type: ignore[call-arg]
+            # Component.__init__ takes no arguments; the components in
+            # _COMPONENTS_NEEDING_REPO_ROOT override it with a repo_root one.
+            factory = cast(Callable[..., Component], cls)
+            return factory(repo_root=self.repo_root)
         return cls()
 
     # ID: ddbd6436-f139-43bc-80c2-0387e8bdba8b

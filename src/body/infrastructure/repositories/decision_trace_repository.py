@@ -14,6 +14,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import desc, or_, select
@@ -200,3 +201,34 @@ class DecisionTraceRepository:
         )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
+
+    # ID: 7a4da5e0-6b30-4eed-a81a-7ea57324f202
+    async def get_pattern_summary(self, days: int) -> dict[str, dict[str, Any]]:
+        """Per-pattern use and violation counts over the last ``days`` days.
+
+        A pattern is a key of a trace's ``pattern_stats``. For each pattern:
+        ``count`` is the number of traces that used it, ``violations`` the
+        number of those with ``has_violations == "true"``, ``success_rate``
+        the percentage without violations, and ``decisions`` the summed
+        per-trace frequency.
+        """
+        since = datetime.now(UTC) - timedelta(days=days)
+        stmt = select(DecisionTrace.pattern_stats, DecisionTrace.has_violations).where(
+            DecisionTrace.created_at >= since
+        )
+        result = await self._session.execute(stmt)
+        summary: dict[str, dict[str, Any]] = {}
+        for pattern_stats, has_violations in result.all():
+            for pattern, frequency in (pattern_stats or {}).items():
+                entry = summary.setdefault(
+                    pattern, {"count": 0, "violations": 0, "decisions": 0}
+                )
+                entry["count"] += 1
+                entry["decisions"] += int(frequency or 0)
+                if has_violations == "true":
+                    entry["violations"] += 1
+        for entry in summary.values():
+            entry["success_rate"] = (
+                (entry["count"] - entry["violations"]) / entry["count"] * 100
+            )
+        return summary

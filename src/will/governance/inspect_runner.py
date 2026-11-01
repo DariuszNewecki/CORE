@@ -24,7 +24,7 @@ direct response serialisation by the route handler.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import text
 
@@ -437,9 +437,14 @@ async def get_decisions(
 
 # ID: 237e4592-f2d1-4ea5-8fa3-2673ceaa0c58
 async def get_decisions_patterns(*, days: int = 7) -> dict:
-    """Return classification stats grouped by pattern."""
+    """Return per-pattern use/violation stats over the last ``days`` days.
+
+    ``patterns`` maps each pattern (a key of a trace's ``pattern_stats``)
+    to ``{count, violations, success_rate, decisions}`` — the shape
+    ``core-admin inspect patterns`` renders.
+    """
     async with DecisionTraceRepository.open() as repo:
-        stats = await repo.get_pattern_stats(days=days)  # type: ignore[call-arg]
+        stats = await repo.get_pattern_summary(days)
     return {"days": days, "patterns": stats}
 
 
@@ -519,30 +524,37 @@ async def get_analysis_duplicates(
         return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
 
+# The raw callable is not JSON; the rest are audit-only walker fields.
+_COMMAND_TREE_DROPPED_FIELDS = frozenset(
+    {"callback", "file_path", "params_list", "has_callback", "has_explicit_meta"}
+)
+
+
 # ID: 2f3a4b5c-6d7e-4f80-91a2-b3c4d5e6f708
-def get_analysis_command_tree(context: CoreContext) -> dict:
+def get_analysis_command_tree() -> dict:
     """Return the introspected CLI command hierarchy.
 
-    Pre-CLI-extraction (ADR-050) this introspects the local Typer app via
-    `body.maintenance.command_sync_service.collect_commands`. Post-
-    extraction the endpoint's semantics shift to "API endpoint tree";
-    that re-binding is tracked as a follow-up ADR per ADR-057 D3.
+    Walks the live `core-admin` Typer app with the same walker the
+    cli_gate audit and the command DB sync use, and returns one JSON-safe
+    row per command (the raw callback and audit-only fields dropped).
+    Post-extraction (ADR-050) the endpoint's semantics shift to "API
+    endpoint tree"; that re-binding is tracked as a follow-up ADR per
+    ADR-057 D3.
     """
-    try:
-        from body.maintenance.command_sync_service import (  # type: ignore[attr-defined]
-            collect_commands,
-        )
+    from cli.admin_cli import app as main_app
+    from shared.cli.app_introspection import walk_typer_app
+    from shared.protocols.typer_protocols import TyperAppLike
 
-        rows = collect_commands(context.git_service.repo_path)
-        return {
-            "available": True,
-            "source": "cli",
-            "count": len(rows),
-            "commands": rows,
-        }
-    except Exception as exc:
-        logger.info("inspect_runner: command-tree backend unavailable: %s", exc)
-        return {"available": False, "source": "cli", "error": str(exc)}
+    rows = [
+        {k: v for k, v in cmd.items() if k not in _COMMAND_TREE_DROPPED_FIELDS}
+        for cmd in walk_typer_app(cast(TyperAppLike, main_app))
+    ]
+    return {
+        "available": True,
+        "source": "cli",
+        "count": len(rows),
+        "commands": rows,
+    }
 
 
 # ID: 3a4b5c6d-7e8f-4091-a2b3-c4d5e6f70819

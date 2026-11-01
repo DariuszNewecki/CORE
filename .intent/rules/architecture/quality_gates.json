@@ -16,6 +16,14 @@
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "audit"
+        },
+        {
+            "id": "quality.no_attr_call_suppression",
+            "statement": "Source files in src/ MUST NOT silence mypy's attr-defined or call-arg diagnostics inline: no `# type: ignore[...]` whose code list names attr-defined or call-arg. A missing attribute or a wrong call signature is a defect to fix; where the code is correct and only a stub is wrong, express that in code (a cast, a typed wrapper, a Protocol).",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "quality.type_safety (blocking) is verified through mypy; an inline ignore removes the line from that verification while the rule still reports green. Observed 2026-11-01 (#1386): of 18 such ignores in src/, seven hid calls that failed at runtime behind a broad except, a mock, or nothing (a method that did not exist, a module attribute that did not exist, a wrong keyword, a missing argument), one hid an AttributeError that escaped its except, and the rest were stub mismatches. All were removed; this rule keeps the codes from coming back."
         }
     ]
 }

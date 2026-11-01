@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from .async_checks import AsyncChecks
 from .awaiting_reaudit_checks import AwaitingReauditChecks
-from .capability_checks import CapabilityChecks
 from .conservation_checks import ConservationChecks
 from .generic_checks import GenericASTChecks
 from .import_checks import ImportChecks
@@ -23,7 +22,6 @@ from .schema_conformance_checks import SchemaConformanceChecks
 __all__ = [
     "AsyncChecks",
     "AwaitingReauditChecks",
-    "CapabilityChecks",
     "ConservationChecks",
     "GenericASTChecks",
     "ImportChecks",

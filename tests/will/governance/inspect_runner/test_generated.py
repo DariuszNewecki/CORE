@@ -230,39 +230,21 @@ def test_get_analysis_test_targets(tmp_path):
     assert isinstance(analyzed_path, Path)
 
 
-
-
 # ID: ab5cae4a-0fe0-41b0-a47f-da6a93476c41
 def test_get_analysis_command_tree():
+    """Walks the real core-admin Typer app (#1386: the backend it imported
+    never existed, so the endpoint always answered available=False)."""
+    import json
+
     from will.governance.inspect_runner import get_analysis_command_tree
 
-    context = MagicMock()
-    context.git_service.repo_path = "/tmp/repo"
+    result = get_analysis_command_tree()
 
-    rows = [
-        {"name": "alpha", "help": "first"},
-        {"name": "beta", "help": "second"},
-    ]
-
-    # The dependency is imported LOCALLY inside get_analysis_command_tree via
-    # `from body.maintenance.command_sync_service import collect_commands`.
-    # Since the real module does not expose `collect_commands`, patch the
-    # module attribute by injecting a fresh fake module into sys.modules.
-    import sys
-    from types import ModuleType
-
-    fake_module = ModuleType("body.maintenance.command_sync_service")
-    fake_collect = MagicMock(return_value=rows)
-    fake_module.collect_commands = fake_collect
-
-    with patch.dict(
-        sys.modules,
-        {"body.maintenance.command_sync_service": fake_module},
-    ):
-        result = get_analysis_command_tree(context)
-
-    fake_collect.assert_called_once_with("/tmp/repo")
     assert result["available"] is True
     assert result["source"] == "cli"
-    assert result["count"] == 2
-    assert result["commands"] == rows
+    assert result["count"] == len(result["commands"]) > 0
+    names = {row["name"] for row in result["commands"]}
+    assert "code.audit" in names
+    for row in result["commands"]:
+        assert "callback" not in row
+    json.dumps(result)  # the route returns it as JSON

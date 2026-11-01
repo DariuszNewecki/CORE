@@ -98,9 +98,14 @@ class PurityChecks:
     # ID: 4bd29d4a-63e7-4132-8ab2-16865c9d500c
     def check_docstrings_present(tree: ast.AST) -> list[str]:
         """Flags public functions and classes whose body lacks a docstring."""
-        for node in ast.walk(tree):
-            for child in ast.iter_child_nodes(node):
-                child._parent = node  # type: ignore[attr-defined]
+        # Nodes whose immediate parent is a function; recorded by id instead
+        # of tagging the AuditorContext's cached AST nodes with a parent.
+        nested_in_function = {
+            id(child)
+            for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            for child in ast.iter_child_nodes(node)
+        }
 
         violations: list[str] = []
         for node in ast.walk(tree):
@@ -110,10 +115,11 @@ class PurityChecks:
                 continue
             if node.name.startswith("_"):
                 continue
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                parent = getattr(node, "_parent", None)
-                if isinstance(parent, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    continue
+            if (
+                isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and id(node) in nested_in_function
+            ):
+                continue
             if ast.get_docstring(node) is None:
                 kind = "Class" if isinstance(node, ast.ClassDef) else "Function"
                 violations.append(

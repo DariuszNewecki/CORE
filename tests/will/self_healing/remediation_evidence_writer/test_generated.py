@@ -92,79 +92,34 @@ async def test_write_evidence():
     assert second_call.args[1] == payload
 
 
-from unittest.mock import AsyncMock
-
-
+@pytest.mark.asyncio
 # ID: 36c58ede-1f33-4450-baa5-4c00a51fbef1
-async def test_RemediationEvidenceWriter_validate_improvement():
-    file_handler = MagicMock()
-    auditor = MagicMock()
-    auditor.audit = AsyncMock(return_value=[MagicMock(), MagicMock()])
-    repo_root = Path("/tmp/repo")
+async def test_RemediationEvidenceWriter_validate_improvement(tmp_path: Path):
+    """The validation audit is a real full audit (#1386).
 
+    It used to call ``AuditorContext.audit()``, which does not exist: the
+    except turned every validation into (False, before, None). Here a real
+    AuditorContext on a one-file repo runs the real ConstitutionalAuditor
+    (stateless: no database, no LLM).
+    """
+    from mind.governance.audit_context import AuditorContext
+
+    (tmp_path / ".intent").mkdir()
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "sample.py").write_text("print('hi')\n", encoding="utf-8")
     writer = RemediationEvidenceWriter(
-        file_handler=file_handler,
-        auditor_context=auditor,
-        repo_root=repo_root,
+        file_handler=MagicMock(),
+        auditor_context=AuditorContext(tmp_path, stateless=True),
+        repo_root=tmp_path,
     )
 
-    with patch(
-        "will.self_healing.remediation_evidence_writer.PathResolver"
-    ) as mock_resolver:
-        reports_dir = Path("/tmp/repo/reports")
-        mock_resolver.from_repo.return_value.reports_dir = reports_dir
+    passed, findings_after_count, audit_path = await writer.validate_improvement(
+        findings_before_count=0
+    )
 
-        passed, findings_after_count, audit_path = await writer.validate_improvement(
-            findings_before_count=5
-        )
-
-    assert passed is True
-    assert findings_after_count == 2
-    assert audit_path == reports_dir / "audit_findings.json"
-    auditor.audit.assert_awaited_once()
-
-
-import pytest
-
-
-@pytest.mark.asyncio
-# ID: 70cc332d-06d8-48cd-b4de-9fc4293f8733
-async def test_RemediationEvidenceWriter(tmp_path: Path) -> None:
-    file_handler = MagicMock()
-    file_handler.ensure_dir = MagicMock()
-    file_handler.write_json = MagicMock()
-
-    auditor = MagicMock()
-    auditor.audit = AsyncMock(return_value=[MagicMock(), MagicMock()])
-
-    reports_dir = tmp_path / "reports"
-
-    mock_resolver = MagicMock()
-    mock_resolver.reports_dir = reports_dir
-
-    with patch(
-        "will.self_healing.remediation_evidence_writer.PathResolver"
-    ) as mock_path_resolver_cls:
-        mock_path_resolver_cls.from_repo.return_value = mock_resolver
-        (reports_dir / "remediation").mkdir(parents=True, exist_ok=True)
-
-        writer = RemediationEvidenceWriter(
-            file_handler=file_handler,
-            auditor_context=auditor,
-            repo_root=tmp_path,
-        )
-
-        passed, findings_after_count, audit_path = await writer.validate_improvement(
-            findings_before_count=5
-        )
-
-        assert passed is True
-        assert findings_after_count == 2
-        assert audit_path == reports_dir / "audit_findings.json"
-        auditor.audit.assert_awaited_once()
-
-
-
+    assert findings_after_count > 0
+    assert passed is False
+    assert audit_path is not None
 
 
 # ID: badb4860-e818-479c-8323-a8ad38c21645

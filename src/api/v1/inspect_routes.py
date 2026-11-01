@@ -345,10 +345,10 @@ async def analysis_common_knowledge(
     ),
 )
 # ID: 0f4a6b2c-3d5e-4f7a-8b9c-0d1e2f3a4bf0
-async def analysis_command_tree(request: Request) -> dict:
+async def analysis_command_tree() -> dict:
     """Return the introspected CLI command hierarchy."""
-    core_context: CoreContext = request.app.state.core_context
-    return get_analysis_command_tree(core_context)
+    # The first call imports the whole CLI; keep it off the API event loop.
+    return await asyncio.to_thread(get_analysis_command_tree)
 
 
 @analysis_router.get(

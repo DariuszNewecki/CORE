@@ -34,11 +34,14 @@ def validate_yaml_code(code: str) -> tuple[str, list[Violation]]:
     try:
         yaml.safe_load(code)
     except yaml.YAMLError as e:
+        # Only MarkedYAMLError carries problem_mark; a ReaderError (e.g. a
+        # control character in the input) is a YAMLError without one.
+        mark = e.problem_mark if isinstance(e, yaml.MarkedYAMLError) else None
         violations.append(
             {
                 "rule": "syntax.yaml",
                 "message": f"Invalid YAML format: {e}",
-                "line": e.problem_mark.line + 1 if e.problem_mark else 0,  # type: ignore[attr-defined]
+                "line": mark.line + 1 if mark else 0,
                 "severity": "error",
             }
         )
