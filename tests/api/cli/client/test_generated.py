@@ -416,9 +416,6 @@ async def test_CoreApiClient_reject_proposal() -> None:
     proposals.reject_proposal.assert_awaited_once_with("prop-123", reason="not needed")
 
 
-
-
-
 # ID: f249aeb3-27e9-426a-8fa6-4dc6594a055e
 async def test_CoreApiClient_approve_proposal() -> None:
     with patch("api.cli.client.ProposalsClient", MagicMock()):
@@ -433,3 +430,26 @@ async def test_CoreApiClient_approve_proposal() -> None:
 
     assert result == {"id": "prop-1", "status": "approved"}
     mock_proposals.approve_proposal.assert_awaited_once_with("prop-1")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 674e6f93-f980-4d89-af02-ccaa46f9341e
+async def test_CoreApiClient_list_proposals():
+    from api.cli.client import CoreApiClient
+
+    mock_proposals = MagicMock()
+    mock_proposals.list_proposals = AsyncMock(return_value={"proposals": []})
+
+    with (
+        patch("api.cli.client.parse_base_url", return_value=("http://localhost", None)),
+        patch("api.cli.client.ProposalsClient", return_value=mock_proposals),
+    ):
+        client = CoreApiClient(base_url="http://localhost:8080")
+        client.proposals = mock_proposals
+        result = await client.list_proposals(status="open")
+
+    mock_proposals.list_proposals.assert_awaited_once_with(status="open")
+    assert result == {"proposals": []}
