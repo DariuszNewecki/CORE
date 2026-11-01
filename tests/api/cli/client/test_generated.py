@@ -453,3 +453,23 @@ async def test_CoreApiClient_list_proposals():
 
     mock_proposals.list_proposals.assert_awaited_once_with(status="open")
     assert result == {"proposals": []}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 2f2370f5-8584-46d5-b004-0ab3526cc83a
+async def test_CoreApiClient_create_proposal():
+    client = CoreApiClient(base_url="http://localhost:8000")
+    client.proposals = MagicMock()
+    client.proposals.create_proposal = AsyncMock(
+        return_value={"id": "prop-123", "status": "created"}
+    )
+
+    result = await client.create_proposal(title="My proposal", description="desc")
+
+    client.proposals.create_proposal.assert_awaited_once_with(
+        title="My proposal", description="desc"
+    )
+    assert result == {"id": "prop-123", "status": "created"}
