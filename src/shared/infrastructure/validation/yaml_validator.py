@@ -46,3 +46,5 @@ def validate_yaml_code(code: str) -> tuple[str, list[Violation]]:
             }
         )
     return code, violations
+
+_probe = int("1").nope  # type: ignore[attr-defined]
