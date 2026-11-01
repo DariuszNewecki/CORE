@@ -31,3 +31,34 @@ def test_artifact_saver_save_generation_artifacts():
     saver._save_report.assert_called_once_with(report_data, "work/dir")
     saver._log_summary.assert_called_once_with(report_data, "work/dir")
     assert saver._save_report.call_count == 1
+
+
+
+
+
+# ID: f08bc020-b72a-4761-8b84-4179f6cf5682
+def test_ArtifactSaver():
+    file_service = MagicMock()
+
+    step = MagicMock()
+    step.action = "refactor.module"
+    step.description = "Refactor the module"
+    step.params = {"code": "print('hello')", "file_path": "src/target.py"}
+    step.metadata = {}
+
+    saver = ArtifactSaver(file_service)
+    saver.save_generation_artifacts([step], "work_dir", "refactor goal")
+
+    written_paths = [c.args[0] for c in file_service.write.call_args_list]
+    assert "work_dir/generation_report.json" in written_paths
+    assert any(p.startswith("work_dir/step_01_") for p in written_paths)
+
+    report_call = next(
+        c
+        for c in file_service.write.call_args_list
+        if c.args[0] == "work_dir/generation_report.json"
+    )
+    report_json = report_call.args[1]
+    assert '"goal": "refactor goal"' in report_json
+    assert '"total_steps": 1' in report_json
+    assert '"successful": 1' in report_json
