@@ -67,3 +67,19 @@ def test_get_drift_analysis():
 
     assert result is run_drift_analysis_async
     assert callable(result)
+
+
+
+from api.dependencies import get_scout_analyzer
+
+
+# ID: be1860e5-190b-454e-88c1-cc113baaf7c0
+def test_get_scout_analyzer():
+    with patch("api.dependencies.ScoutAnalyzer") as mock_analyzer_cls:
+        instance = MagicMock()
+        mock_analyzer_cls.return_value = instance
+
+        result = get_scout_analyzer()
+
+        mock_analyzer_cls.assert_called_once_with()
+        assert result is instance
