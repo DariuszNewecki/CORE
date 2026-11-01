@@ -40,3 +40,28 @@ async def test_InterpretPhase_execute():
     phase._extract_target_info.assert_called_once_with(
         "Refactor the foo module for modularity"
     )
+
+
+
+
+
+# ID: 83580088-4af8-40e6-a895-6a97291484b1
+def test_InterpretPhase():
+    context = MagicMock()
+    phase = InterpretPhase(context)
+
+    workflow_context = MagicMock()
+    workflow_context.goal = "Refactor the user_service module to improve modularity"
+    workflow_context.workflow_type = "refactor_modularity"
+
+    import asyncio
+
+    result = asyncio.run(phase.execute(workflow_context))
+
+    assert result.name == "interpret"
+    assert result.ok is True
+    assert result.data["workflow_type"] == "refactor_modularity"
+    assert result.data["goal"] == workflow_context.goal
+    assert result.data["clarification_needed"] is False
+    assert result.data["_metadata"]["interpretation_method"] == "explicit"
+    assert "user_service" in result.data["targets"]
