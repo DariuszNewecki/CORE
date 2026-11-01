@@ -57,3 +57,54 @@ def test_CanaryValidationPhase_execute():
         phase._trace_test_execution.assert_called_once_with(test_paths, test_result)
         phase.result_builder.build_success_result.assert_called_once()
         assert result is success_result
+
+
+
+from will.phases.canary_validation_phase import CanaryValidationPhase
+
+
+# ID: bd74d5b3-96d4-47d8-bcda-95edb85dc7f9
+def test_CanaryValidationPhase():
+    core_context = MagicMock()
+    core_context.path_resolver = MagicMock()
+    core_context.action_executor = MagicMock()
+
+    import_result = MagicMock()
+    import_result.ok = True
+    import_result.data = {}
+    core_context.action_executor.execute = AsyncMock(return_value=import_result)
+
+    workflow_context = MagicMock()
+    workflow_context.results = {}
+
+    result_builder = MagicMock()
+    expected_result = MagicMock()
+    result_builder.build_skipped_result.return_value = expected_result
+
+    with (
+        patch(
+            "will.phases.canary_validation_phase.TestDiscoveryService",
+            MagicMock(),
+        ),
+        patch(
+            "will.phases.canary_validation_phase.PytestRunner",
+            MagicMock(),
+        ),
+        patch(
+            "will.phases.canary_validation_phase.CanaryResultBuilder",
+            MagicMock(return_value=result_builder),
+        ),
+        patch(
+            "will.phases.canary_validation_phase.DecisionTracer",
+            MagicMock(),
+        ),
+    ):
+        phase = CanaryValidationPhase(core_context)
+        result = __import__("asyncio").run(phase.execute(workflow_context))
+
+    assert result is expected_result
+    core_context.action_executor.execute.assert_awaited_once_with(
+        action_id="check.imports",
+        write=False,
+    )
+    result_builder.build_skipped_result.assert_called_once()
