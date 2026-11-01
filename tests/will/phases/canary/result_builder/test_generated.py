@@ -115,9 +115,6 @@ def test_build_skipped_result():
     assert result.data["existing_tests_pass"] is True
 
 
-
-
-
 # ID: d2320bd3-4516-4e3b-9513-6602eb4676c0
 def test_CanaryResultBuilder():
     test_result = {
@@ -140,3 +137,26 @@ def test_CanaryResultBuilder():
     assert result.data["tests_failed"] == 0
     assert result.data["test_files"] == ["tests/test_a.py"]
     assert result.data["advisory"] is False
+
+
+
+
+
+# ID: a78b6501-1602-4b82-ad8f-d171a5b11a2a
+def test_CanaryResultBuilderbuild_error_result():
+    error = ValueError("boom")
+    builder = MagicMock(spec=CanaryResultBuilder)
+    with patch("will.phases.canary.result_builder.logger", MagicMock()) as mock_logger:
+        result = CanaryResultBuilder.build_error_result(error, 1.25)
+
+    assert result.name == "canary_validation"
+    assert result.ok is True
+    assert result.duration_sec == 1.25
+    data = result.data
+    assert data["syntax_valid"] is True
+    assert data["logic_preserved"] is True
+    assert data["canary_passes"] is False
+    assert data["existing_tests_pass"] is False
+    assert data["error"] == "boom"
+    assert data["advisory"] is True
+    mock_logger.error.assert_called_once()
