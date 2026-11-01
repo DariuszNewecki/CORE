@@ -49,3 +49,21 @@ async def test_SecretsClient_set_secret():
         },
     )
     assert result == {"key": "my-key", "status": "created"}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: f032eeeb-c069-431f-8b3b-08d99c03fe27
+async def test_SecretsClient_list_secrets():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"secrets": ["KEY_A", "KEY_B"]})
+
+    client = SecretsClient(facade)
+
+    result = await client.list_secrets()
+
+    assert result == {"secrets": ["KEY_A", "KEY_B"]}
+    facade._request.assert_awaited_once_with("GET", "/v1/secrets")
