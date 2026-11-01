@@ -69,7 +69,6 @@ def test_get_drift_analysis():
     assert callable(result)
 
 
-
 from api.dependencies import get_scout_analyzer
 
 
@@ -83,3 +82,18 @@ def test_get_scout_analyzer():
 
         mock_analyzer_cls.assert_called_once_with()
         assert result is instance
+
+
+from api.dependencies import get_consequence_log_service
+
+
+# ID: a4fd966f-d296-4073-988d-5c6ba4124ab9
+def test_get_consequence_log_service():
+    with patch("api.dependencies.ConsequenceLogService") as mock_service_cls:
+        mock_instance = MagicMock()
+        mock_service_cls.return_value = mock_instance
+
+        result = get_consequence_log_service()
+
+        mock_service_cls.assert_called_once_with()
+        assert result is mock_instance
