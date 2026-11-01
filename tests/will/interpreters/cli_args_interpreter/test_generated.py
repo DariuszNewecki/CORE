@@ -43,3 +43,39 @@ async def test_CLIArgsInterpreter_execute():
         "flags": {"write": True},
     }
     assert result is fake_result
+
+
+from unittest.mock import patch
+
+
+# ID: a7b9fff9-d5bd-41ab-a6c7-78fc0d1b85b2
+async def test_CLIArgsInterpreter():
+    interpreter = CLIArgsInterpreter()
+
+    sentinel_result = MagicMock()
+    sentinel_result.duration_sec = 0.0
+
+    with patch.object(
+        CLIArgsInterpreter, "_create_result", return_value=sentinel_result
+    ) as mock_create_result:
+        result = await interpreter.execute(
+            command="fix",
+            subcommand="clarity",
+            targets=["src/models/user.py"],
+            write=True,
+        )
+
+    assert result is sentinel_result
+    mock_create_result.assert_called_once()
+
+    task = mock_create_result.call_args[0][0]
+    assert task.intent == "fix clarity src/models/user.py"
+    assert task.targets == ["src/models/user.py"]
+    assert task.constraints == {"write": True}
+    assert task.context["source"] == "cli_args"
+    assert task.context["command"] == "fix"
+    assert task.context["subcommand"] == "clarity"
+    assert task.confidence == 1.0
+
+    assert isinstance(result.duration_sec, float)
+    assert result.duration_sec >= 0.0
