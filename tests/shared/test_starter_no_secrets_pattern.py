@@ -16,8 +16,6 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 COPIES = (
-    "packs/starter_python.yaml",
-    "packs/python_hygiene.yaml",
     "src/shared/_packs/starter_python.yaml",
     "src/shared/_packs/python_hygiene.yaml",
 )

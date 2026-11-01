@@ -53,8 +53,6 @@ def test_named_or_handled_exceptions_pass(src: str) -> None:
 def test_the_starter_and_hygiene_packs_use_the_ast_check() -> None:
     root = Path(__file__).resolve().parents[6]
     for rel in (
-        "packs/starter_python.yaml",
-        "packs/python_hygiene.yaml",
         "src/shared/_packs/starter_python.yaml",
         "src/shared/_packs/python_hygiene.yaml",
     ):
