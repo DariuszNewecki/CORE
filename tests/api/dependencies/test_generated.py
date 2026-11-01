@@ -43,3 +43,15 @@ async def test_get_secrets_service_dep():
 
     assert result is expected_service
     mock_get_secrets_svc.assert_awaited_once_with(session)
+
+
+
+from api.dependencies import get_capability_docs_generator
+
+
+# ID: 31559c0d-b0b6-429d-a03f-bbc766d1d10e
+def test_get_capability_docs_generator():
+    sentinel = object()
+    with patch("api.dependencies._generate_capability_docs", sentinel):
+        result = get_capability_docs_generator()
+    assert result is sentinel
