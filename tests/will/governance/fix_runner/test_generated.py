@@ -254,7 +254,6 @@ def test_list_action_definitions():
     ]
 
 
-
 from will.governance.fix_runner import run_and_persist_flow
 
 
@@ -316,3 +315,65 @@ async def test_run_and_persist_flow() -> None:
     final_call = mock_update.await_args_list[1]
     assert final_call.args[2] == "completed"
     assert final_call.kwargs.get("finished") is True
+
+
+
+import pytest
+
+from will.governance.fix_runner import run_and_persist_fix
+
+
+@pytest.mark.asyncio
+# ID: 27eece5d-69a0-4e00-b061-323dee715fd7
+async def test_run_and_persist_fix():
+    context = MagicMock()
+    session = MagicMock()
+    run_id = uuid4()
+
+    action_result = MagicMock()
+    action_result.ok = True
+    action_result.data = {"files_changed": 2}
+    action_result.duration_sec = 1.5
+
+    mock_executor = MagicMock()
+    mock_executor.execute = AsyncMock(return_value=action_result)
+
+    mock_update_status = AsyncMock()
+
+    with (
+        patch(
+            "will.governance.fix_runner.ActionExecutor",
+            return_value=mock_executor,
+        ),
+        patch(
+            "will.governance.fix_runner._update_fix_run_status",
+            mock_update_status,
+        ),
+    ):
+        await run_and_persist_fix(
+            context,
+            session,
+            run_id=run_id,
+            fix_id="fix.docstrings",
+            target_files=["a.py"],
+            write=True,
+            params={"limit": 5},
+        )
+
+    mock_executor.execute.assert_awaited_once_with(
+        "fix.docstrings", write=True, target_files=["a.py"], limit=5
+    )
+
+    assert mock_update_status.await_count == 2
+
+    first_call = mock_update_status.await_args_list[0]
+    assert first_call.args == (session, run_id, "executing")
+    assert first_call.kwargs == {"started": True}
+
+    final_call = mock_update_status.await_args_list[1]
+    assert final_call.args == (session, run_id, "completed")
+    assert final_call.kwargs["finished"] is True
+    assert final_call.kwargs["error"] is None
+    payload = final_call.kwargs["result"]
+    assert payload["kind"] == "atomic"
+    assert payload["ok"] is True
