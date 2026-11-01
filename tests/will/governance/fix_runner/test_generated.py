@@ -214,8 +214,6 @@ async def test_run_and_persist_modularity() -> None:
     assert payload["files"] == results
 
 
-
-
 # ID: 55acf141-52ed-49d1-815b-5fe5f7578214
 def test_list_action_definitions():
     from will.governance.fix_runner import list_action_definitions
@@ -254,3 +252,67 @@ def test_list_action_definitions():
             "remediates": ["issue.x"],
         }
     ]
+
+
+
+from will.governance.fix_runner import run_and_persist_flow
+
+
+# ID: 9817f999-5e91-4177-862f-158b4e631317
+async def test_run_and_persist_flow() -> None:
+    context = MagicMock()
+    session = MagicMock()
+    run_id = uuid4()
+    flow_id = "test_flow"
+
+    step = MagicMock()
+    step.ref_id = "step-1"
+    step.kind = "check"
+    step.ok = True
+    step.required = True
+    step.duration_sec = 0.5
+    step.data = {}
+
+    flow_result = MagicMock()
+    flow_result.ok = True
+    flow_result.flow_id = flow_id
+    flow_result.duration_sec = 1.23
+    flow_result.steps = [step]
+
+    mock_executor = MagicMock()
+    mock_executor.execute = AsyncMock(return_value=flow_result)
+
+    mock_delegate = MagicMock()
+    mock_update = AsyncMock()
+
+    with (
+        patch(
+            "will.governance.fix_runner._build_cognitive_delegate",
+            return_value=mock_delegate,
+        ),
+        patch(
+            "will.governance.fix_runner.FlowExecutor",
+            return_value=mock_executor,
+        ),
+        patch(
+            "will.governance.fix_runner._update_fix_run_status",
+            mock_update,
+        ),
+    ):
+        await run_and_persist_flow(
+            context,
+            session,
+            run_id=run_id,
+            flow_id=flow_id,
+            write=False,
+            params=None,
+        )
+
+    mock_executor.execute.assert_awaited_once_with(flow_id, write=False)
+    assert mock_update.await_count == 2
+    first_call = mock_update.await_args_list[0]
+    assert first_call.args[2] == "executing"
+    assert first_call.kwargs.get("started") is True
+    final_call = mock_update.await_args_list[1]
+    assert final_call.args[2] == "completed"
+    assert final_call.kwargs.get("finished") is True
