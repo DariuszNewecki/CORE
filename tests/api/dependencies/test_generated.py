@@ -45,7 +45,6 @@ async def test_get_secrets_service_dep():
     mock_get_secrets_svc.assert_awaited_once_with(session)
 
 
-
 from api.dependencies import get_capability_docs_generator
 
 
@@ -55,3 +54,16 @@ def test_get_capability_docs_generator():
     with patch("api.dependencies._generate_capability_docs", sentinel):
         result = get_capability_docs_generator()
     assert result is sentinel
+
+
+from api.dependencies import get_drift_analysis
+
+
+# ID: 45fd08fa-5ce2-48de-9aae-2aeb47361f00
+def test_get_drift_analysis():
+    from api.dependencies import run_drift_analysis_async
+
+    result = get_drift_analysis()
+
+    assert result is run_drift_analysis_async
+    assert callable(result)
