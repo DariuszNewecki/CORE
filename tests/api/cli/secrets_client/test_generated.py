@@ -21,3 +21,31 @@ async def test_SecretsClient_get_secret():
     facade._request.assert_awaited_once_with(
         "GET", "/v1/secrets/db_password", params={"show": True}
     )
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 5a85f27d-89aa-40cb-9974-001b2f927af7
+async def test_SecretsClient_set_secret():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"key": "my-key", "status": "created"})
+
+    client = SecretsClient(facade)
+
+    result = await client.set_secret(
+        "my-key", "my-value", description="desc", force=True
+    )
+
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/secrets",
+        json={
+            "key": "my-key",
+            "value": "my-value",
+            "description": "desc",
+            "force": True,
+        },
+    )
+    assert result == {"key": "my-key", "status": "created"}
