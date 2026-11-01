@@ -20,6 +20,7 @@ class ThesisConfig:
     governor: str | None = None
     deploy_ledger: Path = Path("/opt/core/deploy-ledger.jsonl")
     pipeline_logs: Path = Path("/var/lib/core-pipeline/logs")
+    trip_counts: Path | None = None
 
 
 # ID: adac3300-9fe2-4840-93a5-34be0edb8499
@@ -43,7 +44,7 @@ def pipeline_governor(conf: Path) -> str | None:
 def thesis_config() -> ThesisConfig:
     """CORE_GITHUB_REPO, CORE_GITHUB_TOKEN, CORE_CLAUDE_TRANSCRIPTS,
     CORE_GOVERNOR_GITHUB or else the runner's GOVERNOR_GITHUB,
-    CORE_DEPLOY_LEDGER and CORE_PIPELINE_LOGS."""
+    CORE_DEPLOY_LEDGER, CORE_PIPELINE_LOGS and CORE_THESIS_TRIP_COUNTS."""
     from shared.config import settings
 
     return ThesisConfig(
@@ -54,4 +55,5 @@ def thesis_config() -> ThesisConfig:
         or pipeline_governor(Path(settings.CORE_PIPELINE_CONF)),
         Path(settings.CORE_DEPLOY_LEDGER),
         Path(settings.CORE_PIPELINE_LOGS),
+        Path(settings.CORE_THESIS_TRIP_COUNTS),
     )

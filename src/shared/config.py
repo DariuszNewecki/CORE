@@ -282,6 +282,13 @@ class Settings(BaseSettings):
         Path("/home/core-claude/.claude/projects/-opt-dev-CORE"),
         validation_alias="CORE_CLAUDE_TRANSCRIPTS",
     )
+    # The daemon cannot read the transcripts (governor 2026-11-01, #1396);
+    # core-claude writes their per-day trip counts here, numbers only
+    # (infra/scripts/thesis_transcript_counts.py).
+    CORE_THESIS_TRIP_COUNTS: Path = Field(
+        Path("/opt/dev/CORE/var/thesis/transcript_trips.json"),
+        validation_alias="CORE_THESIS_TRIP_COUNTS",
+    )
     # Deploys the governor ran by hand and the runner's deploys that did not
     # go live count as waste trips (infra/core-deploy, infra/core-pipeline).
     CORE_DEPLOY_LEDGER: Path = Field(

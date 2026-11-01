@@ -33,6 +33,7 @@ async def measure_today(
             f"refs/remotes/upstream/{upstream_branch()}",
             config.transcripts,
             deploys=(config.deploy_ledger, config.pipeline_logs),
+            trip_counts=config.trip_counts,
             governor=config.governor,
             stored=stored,
         )

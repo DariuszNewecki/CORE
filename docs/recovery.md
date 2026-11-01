@@ -52,7 +52,9 @@ without a merge, first run 5 minutes after boot) and `core-law-digest` (a daily 
 core-law-setup now removes both. Backups from 2026-10-19 to the deploy that runs
 core-one-path-setup step 8b/8c also restore `core-promote-propose` (never ran: no token) and
 `core-qdrant-backup` (a Qdrant snapshot job, removed by #1258). From 2026-10-23 `core-claude`'s
-crontab runs the daily promotion proposal at 06:00 (`infra/scripts/core-promote-daily.sh`). None of
+crontab runs the daily promotion proposal at 06:00 (`infra/scripts/core-promote-daily.sh`); from
+2026-11-02 it also writes the thesis trip counts at 05:30 (`infra/scripts/thesis_transcript_counts.py`,
+#1396). None of
 these is stopped before the first boot,
 because that would mean editing the VM's disk from `pve` ([#1090](https://github.com/DariuszNewecki/CORE/issues/1090)).
 
