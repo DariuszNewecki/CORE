@@ -136,3 +136,26 @@ def test_require_identified_producer() -> None:
     with pytest.raises(HTTPException) as excinfo:
         require_identified_producer(unknown_role)
     assert excinfo.value.status_code == 403
+
+
+import asyncio
+
+from api.dependencies import get_governor
+
+
+# ID: 41696513-06a9-4913-a552-c08e364c0dde
+def test_get_governor():
+    principal = MagicMock()
+    principal.uid = 1000
+    principal.account = "governor_acct"
+    principal.role = "governor"
+    principal.binding_error = None
+
+    import api.dependencies as deps
+
+    governor_const = getattr(deps, "GOVERNOR", principal.role)
+    principal.role = governor_const
+
+    result = asyncio.run(get_governor(principal=principal))
+
+    assert result == {"sub": "governor_acct", "principal": governor_const}
