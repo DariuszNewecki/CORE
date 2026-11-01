@@ -38,3 +38,23 @@ def test_RefactorClient_get_refactor_run():
 
     facade._request.assert_awaited_once_with("GET", "/v1/refactor/runs/run-123")
     assert result == {"id": "run-123", "status": "completed"}
+
+
+
+
+
+# ID: 464af4e1-fd9d-4da5-a22e-2209c3ea86b3
+async def test_RefactorClient_refactor_autonomous() -> None:
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "ok", "cycle": 42})
+
+    client = RefactorClient(facade)
+
+    result = await client.refactor_autonomous("reduce complexity", write=True)
+
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/refactor/autonomous",
+        json={"goal": "reduce complexity", "write": True},
+    )
+    assert result == {"status": "ok", "cycle": 42}
