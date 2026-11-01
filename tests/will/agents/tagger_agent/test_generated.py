@@ -48,3 +48,42 @@ def test_suggest_and_apply_tags():
         cognitive_service.aget_client_for_role.assert_awaited_once()
         knowledge_service.get_graph.assert_awaited_once()
         processor.run_async.assert_awaited_once()
+
+
+
+
+
+# ID: a3fd2683-c305-4cab-973c-4727325d865b
+def test_CapabilityTaggerAgent():
+    cognitive_service = MagicMock()
+    knowledge_service = MagicMock()
+
+    fake_manifest = MagicMock()
+    fake_manifest.role = "tagger"
+    fake_prompt_model = MagicMock()
+    fake_prompt_model.manifest = fake_manifest
+
+    fake_tracer = MagicMock()
+
+    with (
+        patch(
+            "will.agents.tagger_agent.PromptModel.load", return_value=fake_prompt_model
+        ) as mock_load,
+        patch(
+            "will.agents.tagger_agent.DecisionTracer", return_value=fake_tracer
+        ) as mock_tracer_cls,
+    ):
+        agent = CapabilityTaggerAgent(
+            cognitive_service=cognitive_service,
+            knowledge_service=knowledge_service,
+            entry_point_patterns=[],
+        )
+
+    mock_load.assert_called_once_with("capability_definer")
+    mock_tracer_cls.assert_called_once()
+    assert agent.cognitive_service is cognitive_service
+    assert agent.knowledge_service is knowledge_service
+    assert agent.prompt_model is fake_prompt_model
+    assert agent.tracer is fake_tracer
+    assert agent.entry_point_patterns == []
+    assert agent.tagger_client is None
