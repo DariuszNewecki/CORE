@@ -33,3 +33,35 @@ class LlmResourcesClient:
             "/v1/llm-resources/author",
             json={"definition": definition, "write": write},
         )
+
+    # ID: 4b9e2d7a-8c3f-4a1e-b6d4-2e7a9c5f1b3d
+    async def setup(
+        self,
+        *,
+        api_url: str,
+        embedding_model: str,
+        chat_model: str,
+        locality: str = "local",
+        embedding_api_url: str = "",
+        embedding_locality: str = "",
+        write: bool = False,
+    ) -> dict:
+        """POST /v1/llm-resources/setup — the one-step model setup (#1374)."""
+        return await self._facade._request(
+            "POST",
+            "/v1/llm-resources/setup",
+            json={
+                "api_url": api_url,
+                "embedding_model": embedding_model,
+                "chat_model": chat_model,
+                "locality": locality,
+                "embedding_api_url": embedding_api_url,
+                "embedding_locality": embedding_locality,
+                "write": write,
+            },
+        )
+
+    # ID: 8f1c6a3e-2d9b-4e7a-a5c8-3b6e1d9f4a2c
+    async def check(self) -> dict:
+        """POST /v1/llm-resources/check — call both setup models once."""
+        return await self._facade._request("POST", "/v1/llm-resources/check")

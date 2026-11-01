@@ -86,6 +86,17 @@ class CognitiveService:
             self._loaded = True
             logger.info("CognitiveService initialized and connections detached.")
 
+    # ID: 5d2a8f4c-1e7b-4c9a-b3d6-8f1e4a7c2b9d
+    async def reload(self, session: AsyncSession) -> None:
+        """Re-read roles and models from the database (#1374).
+
+        The model list is loaded once; `llm-resources setup` writes new rows
+        into a running API, and its check must see them without a restart.
+        """
+        async with self._init_lock:
+            self._loaded = False
+        await self.initialize(session)
+
     def _require_ready(self) -> None:
         if not self._loaded or not self._orch or not self._config:
             raise RuntimeError("CognitiveService is not initialized.")

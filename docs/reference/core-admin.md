@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-113 commands.
+115 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -25,7 +25,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`grc`](#grc) | 2 | Compliance gap-analysis: check a document corpus against a requirements catalog. |
 | [`interactive-test`](#interactive-test) | 2 | Interactive test generation with step-by-step approval |
 | [`law`](#law) | 10 | Grounded answers about this repository's law, with sources. |
-| [`llm-resources`](#llm-resources) | 2 | core.llm_resources authoring/validation surface. |
+| [`llm-resources`](#llm-resources) | 4 | core.llm_resources authoring/validation surface. |
 | [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant. |
 | [`project`](#project) | 3 | Operations for project lifecycle: scaffolding. |
 | [`promote`](#promote) | 1 | Promotions: main's commits the governor approves to run live. |
@@ -1413,6 +1413,31 @@ Validate and, with --apply, persist an llm_resources definition.
 |---|---|---|
 | `DEFINITION_FILE` | required | Path to a JSON file describing the llm_resources row. |
 | `--apply` | off | Persist the definition to core.llm_resources (otherwise behaves like validate). |
+
+### `core-admin llm-resources check` {#llm-resources-check}
+
+```
+core-admin llm-resources check
+```
+
+Call the embedding model and the chat model once each.
+
+### `core-admin llm-resources setup` {#llm-resources-setup}
+
+```
+core-admin llm-resources setup [OPTIONS]
+```
+
+Set up the models CORE uses: roles, settings, an embedding model and a chat model, then check both.
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--url` | `http://localhost:11434` | Model server URL (Ollama or OpenAI-compatible). |
+| `--embedding-url` |  | Server for the embedding model when it differs from --url (e.g. a hosted chat model with local Ollama embeddings). |
+| `--embedding-model` | `nomic-embed-text` | Model for search; must return 768-dimensional vectors. |
+| `--chat-model` | `qwen2.5-coder:7b` | Model for code and reasoning. |
+| `--api-key-env` |  | Name of the environment variable holding a remote server's API key. |
+| `--write` | off | Apply the setup. |
 
 ### `core-admin llm-resources validate` {#llm-resources-validate}
 

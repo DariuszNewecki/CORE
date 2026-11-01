@@ -33,7 +33,6 @@ class ConfigValidator:
             "Must be a valid PostgreSQL asyncpg URL",
         ),
         "QDRANT_URL": (True, r"^http", "Must be a valid URL for Qdrant API"),
-        "LLM_API_KEY": (True, r".+", "Cannot be empty"),
         "CORE_MASTER_KEY": (
             True,
             r".{32,}",

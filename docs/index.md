@@ -44,7 +44,7 @@ CORE is a **controlled production pipeline** whose purpose is to converge toward
 | Add ready-made rules to a governed repository | [Add a rule pack](adopt-a-pack.md) | Python 3.12+ |
 | Block pull requests that break the rules | [Audit in CI](cold-reviewer.md) (GitHub) · [pre-commit or GitLab](other-ci.md) | A repository with a `.intent/` |
 | Bring an existing repository under governance, with rules fitted to it | [Govern your own repository](byor-quickstart.md) | `core-cli` and a running CORE |
-| Run the whole loop — audit, propose, approve, fix, verify — and see CORE govern itself | [Run the full runtime](getting-started.md) | Docker, Poetry; an LLM only for code generation |
+| Run the whole loop — audit, propose, approve, fix, verify — and see CORE govern itself | [Run the full runtime](getting-started.md) | Docker, Poetry; a model for search and code generation (the installer sets up a local one) |
 | Let your AI assistant ask CORE and propose changes | [Connect your AI assistant](connect-an-assistant.md) | Python 3.12+; a running CORE to submit changes |
 | Check compliance documents against a regulation | [Run a GRC gap analysis](grc-gap-analysis.md) | The full runtime |
 | Upgrade an existing installation | [Upgrade a CORE database](upgrading.md) | — |
@@ -65,9 +65,10 @@ small client for a running CORE: proposals, the remediation lane, onboarding. Se
 - **No identity over TCP.** The API binds to `127.0.0.1`; a TCP caller is not identified, so
   governor and producer acts are refused there (403). Those are accepted only on CORE's Unix
   socket, from the OS account bound to that role. Keep the TCP port on `127.0.0.1`.
-- **An LLM is optional.** Auditing, rule packs, CI gating and the deterministic fixes
-  need none. Code generation, rule induction and judged GRC verdicts do; CORE names no
-  vendor and works with a local model server or an external API.
+- **A model is optional for auditing.** Auditing, rule packs, CI gating and the
+  deterministic fixes need none. Search, code generation, rule induction and judged GRC
+  verdicts do; CORE names no vendor and works with a local model server or an external
+  API ([Configure a model](getting-started.md#configure-a-model)).
 - **Open and complete.** Everything on this site is in the open-source product (MIT),
   free indefinitely. Commercial offerings add usability and scale around it, never a
   missing capability (ADR-084). Open CORE is the command line, the API and the MCP server;

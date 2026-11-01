@@ -192,5 +192,6 @@ class NoLLMConfiguredError(CoreException, RuntimeError):
         self.role_name = role_name
         super().__init__(
             f"No LLM configured (no cognitive roles or resources in the Mind); "
-            f"role '{role_name}' has no resource"
+            f"role '{role_name}' has no resource. Set one up with: "
+            f"core-admin llm-resources setup --write"
         )

@@ -20,6 +20,16 @@
 #       A plain postgresql:// URL is accepted and normalised to the
 #       postgresql+asyncpg:// form CORE's async runtime requires (ADR-162 U1).
 #
+#   Model setup (both paths, #1374): CORE needs an embedding model (search)
+#   and a chat model (code). With no option the installer looks for Ollama at
+#   http://localhost:11434 and registers nomic-embed-text + qwen2.5-coder:7b.
+#     --llm-url URL           another model server (Ollama or OpenAI-compatible)
+#     --embedding-url URL     the embedding model's server, when not --llm-url
+#     --embedding-model NAME  must return 768-dimensional vectors
+#     --chat-model NAME
+#     --llm-api-key-env VAR   a remote server's API key, read from $VAR
+#     --no-llm                skip model setup (offline audit only)
+#
 # Re-run is safe against a CURRENT database — steps that have already happened
 # are detected and skipped. A database whose CORE schema is not current
 # (pending migrations, an empty ledger, a ledger/schema contradiction, or a
@@ -53,6 +63,12 @@ die()  { printf '\n%s✗ %s%s\n' "$R" "$*" "$X" >&2; exit 1; }
 BARE=0
 DB_URL=""
 QDRANT_URL=""
+LLM_SETUP=1
+LLM_URL=""
+LLM_EMBEDDING_MODEL="nomic-embed-text"
+LLM_CHAT_MODEL="qwen2.5-coder:7b"
+LLM_API_KEY_ENV=""
+LLM_EMBEDDING_URL=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --bare)       BARE=1; shift ;;
@@ -60,8 +76,19 @@ while [[ $# -gt 0 ]]; do
     --db-url=*)   DB_URL="${1#*=}"; shift ;;
     --qdrant-url) QDRANT_URL="$2"; shift 2 ;;
     --qdrant-url=*) QDRANT_URL="${1#*=}"; shift ;;
+    --llm-url)    LLM_URL="$2"; shift 2 ;;
+    --llm-url=*)  LLM_URL="${1#*=}"; shift ;;
+    --embedding-url) LLM_EMBEDDING_URL="$2"; shift 2 ;;
+    --embedding-url=*) LLM_EMBEDDING_URL="${1#*=}"; shift ;;
+    --embedding-model) LLM_EMBEDDING_MODEL="$2"; shift 2 ;;
+    --embedding-model=*) LLM_EMBEDDING_MODEL="${1#*=}"; shift ;;
+    --chat-model) LLM_CHAT_MODEL="$2"; shift 2 ;;
+    --chat-model=*) LLM_CHAT_MODEL="${1#*=}"; shift ;;
+    --llm-api-key-env) LLM_API_KEY_ENV="$2"; shift 2 ;;
+    --llm-api-key-env=*) LLM_API_KEY_ENV="${1#*=}"; shift ;;
+    --no-llm)     LLM_SETUP=0; shift ;;
     -h|--help)
-      sed -n '2,31p' "$0" | sed 's/^#//' | sed 's/^ //'
+      sed -n '2,41p' "$0" | sed 's/^#//' | sed 's/^ //'
       exit 0 ;;
     *) die "Unknown argument: $1. Run with --help for usage." ;;
   esac
@@ -253,6 +280,68 @@ env_file_value() {
   done < .env
 }
 
+# ---- master key (#1374) -----------------------------------------------------
+# CORE_MASTER_KEY encrypts stored secrets (a remote model's API key). It cannot
+# live in the database it decrypts, so it gets its own owner-only file, read by
+# Settings at start (#962). Created once; never printed; an existing key in
+# .secrets/core.env or .env is kept.
+ensure_master_key() {
+  local secrets_file=".secrets/core.env"
+  if [[ -f "$secrets_file" ]] && grep -q '^CORE_MASTER_KEY=.' "$secrets_file"; then
+    ok "master key present (${secrets_file})"; return 0
+  fi
+  if [[ -n "$(env_file_value CORE_MASTER_KEY)" ]]; then
+    ok "master key present (.env)"; return 0
+  fi
+  local key
+  key="$(poetry run python -c \
+    'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" \
+    || die "could not generate a master key (is the Python environment installed?)"
+  [[ -n "$key" ]] || die "could not generate a master key"
+  mkdir -p .secrets && chmod 700 .secrets
+  ( umask 077; printf 'CORE_MASTER_KEY=%s\n' "$key" >> "$secrets_file" )
+  ok "master key created (${secrets_file}, owner-only; back it up — stored secrets need it)"
+}
+
+# ---- model setup (#1374) ----------------------------------------------------
+# Needs the API running. Never fails the install: a missing model is reported
+# with the exact command that fixes it, and the setup command to re-run.
+setup_models() {
+  step "Setting up models (search + code)"
+  local url="${LLM_URL:-http://localhost:11434}"
+  local -a args=(--url "$url" --embedding-model "$LLM_EMBEDDING_MODEL"
+                 --chat-model "$LLM_CHAT_MODEL")
+  [[ -z "$LLM_EMBEDDING_URL" ]] || args+=(--embedding-url "$LLM_EMBEDDING_URL")
+  [[ -z "$LLM_API_KEY_ENV" ]] || args+=(--api-key-env "$LLM_API_KEY_ENV")
+  local rerun="poetry run core-admin llm-resources setup --write ${args[*]}"
+
+  if [[ "$LLM_SETUP" -eq 0 ]]; then
+    warn "skipped (--no-llm). The offline audit works without models; search and code generation need them. Later: ${rerun}"
+    return 0
+  fi
+  if [[ -z "$LLM_URL" ]]; then
+    local tags
+    if ! tags="$(curl -fsS -m 5 "${url}/api/tags" 2>/dev/null)"; then
+      warn "no model server found at ${url}."
+      warn "Install Ollama (https://ollama.com/download), then run: ${rerun}"
+      warn "Or point at another server: ${rerun/--url $url/--url <server URL>}"
+      return 0
+    fi
+    local model
+    for model in "$LLM_EMBEDDING_MODEL" "$LLM_CHAT_MODEL"; do
+      [[ "$model" == *:* ]] || model="${model}:latest"
+      if [[ "$tags" != *"\"${model}\""* ]]; then
+        warn "Ollama does not have ${model} yet. Run: ollama pull ${model}"
+      fi
+    done
+  fi
+  if poetry run core-admin llm-resources setup --write "${args[@]}"; then
+    ok "models set up and answering"
+  else
+    warn "models are not working yet (see above). After fixing, run: ${rerun}"
+  fi
+}
+
 # ---- schema-state gate (ADR-162 D2/D10, U8a) --------------------------------
 # One read-only decision shared by both paths. The database is in exactly one
 # of three states, and only the first one is ever written to:
@@ -421,6 +510,8 @@ run_docker() {
   # ---- verify ----------------------------------------------------------------
   verify_offline_audit docker
 
+  ensure_master_key
+
   # ---- start API -------------------------------------------------------------
   step "Starting the CORE API"
   if curl -fsS "http://${API_HOST}:${API_PORT}/health" >/dev/null 2>&1; then
@@ -439,6 +530,8 @@ run_docker() {
       [[ "$i" -lt 30 ]] || { printf '\n'; die "API did not respond within 60s. Check ${API_LOG}."; }
     done
   fi
+
+  setup_models
 
   # ---- done ------------------------------------------------------------------
   # ADR-155 D1: installation must NOT run the demo. The isolated
@@ -459,8 +552,12 @@ run_docker() {
   Turn on autonomy (CORE watches and self-heals in the background):
     make daemon-start
 
-  Watch CORE write code (needs an LLM — configure one in .env):
+  Watch CORE write code (uses the models set up above):
     poetry run core-admin workers remediate <rule>
+
+  Check or change the models:
+    poetry run core-admin llm-resources check
+    poetry run core-admin llm-resources setup --help
 
   Docs: https://dariusznewecki.github.io/CORE/
 EOF
@@ -508,6 +605,8 @@ run_bare() {
       > "$SCHEMA_APPLY_LOG" 2>&1
   }
   schema_state_gate bare_db_query bare_db_load_schema
+
+  ensure_master_key
 
   # ---- write start.sh / stop.sh ----------------------------------------------
   step "Writing start.sh and stop.sh"
@@ -580,7 +679,9 @@ STOPEOF
     poetry run core-admin code audit --offline      # offline audit, no services
     poetry run core-admin runtime dashboard         # situational awareness
 
-  Configure an LLM in .env to enable autonomous code generation.
+  Then set up the models CORE uses for search and code (Ollama by default;
+  --help lists the options for another server):
+    poetry run core-admin llm-resources setup --write
 
   Docs: https://dariusznewecki.github.io/CORE/
 EOF

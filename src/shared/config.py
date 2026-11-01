@@ -304,9 +304,8 @@ class Settings(BaseSettings):
         None, validation_alias="REDIS_RATE_LIMIT_URL"
     )
 
-    LLM_API_URL: str = Field("", validation_alias="LLM_API_URL")
-    LLM_API_KEY: str | None = Field(None, validation_alias="LLM_API_KEY")
-    LLM_MODEL_NAME: str = Field("gpt-4o", validation_alias="LLM_MODEL_NAME")
+    # Models are configured in the database (`core-admin llm-resources setup`,
+    # #1374), never here.
 
     CORE_MASTER_KEY: str | None = Field(None, validation_alias="CORE_MASTER_KEY")
     LOG_LEVEL: str = Field("INFO", validation_alias="LOG_LEVEL")
