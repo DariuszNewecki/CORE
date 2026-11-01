@@ -99,8 +99,6 @@ def test_DecisionTracer_explain_chain():
         assert '"key": "value"' in result
 
 
-
-
 # ID: 95844d24-07d0-4b91-900d-0917ddf0a814
 def test_DecisionTracer_record():
     from will.orchestration.decision_tracer import DecisionTracer
@@ -163,3 +161,29 @@ def test_DecisionTracer_record():
     assert decision.alternatives_considered == ["do_other"]
     assert decision.context == {"k": "v"}
     assert decision.confidence == 0.9
+
+
+from will.orchestration.decision_tracer import Decision
+
+
+# ID: 11645f55-66ec-473a-a3e1-759d0d2a1ea7
+def test_Decision():
+    decision = Decision(
+        timestamp="2024-01-01T00:00:00Z",
+        agent="test_agent",
+        decision_type="action_selection",
+        context={"key": "value"},
+        rationale="because it works",
+        chosen_action="do_the_thing",
+        alternatives_considered=["do_nothing", "do_other_thing"],
+        confidence=0.87,
+    )
+
+    assert decision.timestamp == "2024-01-01T00:00:00Z"
+    assert decision.agent == "test_agent"
+    assert decision.decision_type == "action_selection"
+    assert decision.context == {"key": "value"}
+    assert decision.rationale == "because it works"
+    assert decision.chosen_action == "do_the_thing"
+    assert decision.alternatives_considered == ["do_nothing", "do_other_thing"]
+    assert decision.confidence == 0.87

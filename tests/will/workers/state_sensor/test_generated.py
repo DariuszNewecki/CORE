@@ -91,3 +91,21 @@ async def test_StateSensor_run():
     assert payload["law_venv"] == "y"
     assert payload["access"] == "z"
     assert payload["signatures"] == "s"
+
+
+
+from will.workers.state_sensor import law_drift_subjects
+
+
+# ID: efd78e64-30ce-4e6a-a401-7ab9c14ff110
+def test_law_drift_subjects():
+    law = MagicMock()
+    law.relationship = "DRIFT"
+    law.drift_paths = ["src/a.py", "src/b.py"]
+
+    result = law_drift_subjects(law)
+
+    assert result == {
+        "governance::law_drift::src/a.py": "src/a.py",
+        "governance::law_drift::src/b.py": "src/b.py",
+    }

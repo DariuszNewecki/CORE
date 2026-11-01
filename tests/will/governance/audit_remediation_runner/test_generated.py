@@ -70,3 +70,18 @@ async def test_run_and_persist_audit_remediation():
     assert last_call.kwargs["finished"] is True
     assert last_call.kwargs["error"] is None
     assert last_call.kwargs["result"]["fixes_succeeded"] == 2
+
+
+from will.governance.audit_remediation_runner import resolve_mode
+
+
+# ID: ef50d4c1-615e-41fa-8ea2-07d3184552ed
+def test_resolve_mode() -> None:
+    from will.governance.audit_remediation_runner import MODE_ALIASES
+
+    for wire_mode, expected in MODE_ALIASES.items():
+        assert resolve_mode(wire_mode) == expected
+
+    assert resolve_mode("safe") == MODE_ALIASES["safe"]
+    assert resolve_mode("medium") == MODE_ALIASES["medium"]
+    assert resolve_mode("all") == MODE_ALIASES["all"]

@@ -198,3 +198,14 @@ def test_CensusBaselineCreateResponse():
     assert isinstance(response, CensusBaselineCreateResponse)
     assert response.baseline is item
     assert response.baseline.name == "baseline-1"
+
+
+
+
+# ID: 8f3e90d7-b505-4029-bce1-81cba7a5a72b
+def test_LintToolResult():
+    result = LintToolResult(returncode=0, stdout="ok", stderr="")
+    assert result.returncode == 0
+    assert result.stdout == "ok"
+    assert result.stderr == ""
+    assert LintToolResult(returncode=1, stdout="", stderr="boom").returncode == 1

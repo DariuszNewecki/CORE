@@ -214,8 +214,6 @@ async def test_run_and_persist_modularity() -> None:
     assert payload["files"] == results
 
 
-
-
 # ID: 55acf141-52ed-49d1-815b-5fe5f7578214
 def test_list_action_definitions():
     from will.governance.fix_runner import list_action_definitions
@@ -254,3 +252,151 @@ def test_list_action_definitions():
             "remediates": ["issue.x"],
         }
     ]
+
+
+from will.governance.fix_runner import run_and_persist_flow
+
+
+# ID: 9817f999-5e91-4177-862f-158b4e631317
+async def test_run_and_persist_flow() -> None:
+    context = MagicMock()
+    session = MagicMock()
+    run_id = uuid4()
+    flow_id = "test_flow"
+
+    step = MagicMock()
+    step.ref_id = "step-1"
+    step.kind = "check"
+    step.ok = True
+    step.required = True
+    step.duration_sec = 0.5
+    step.data = {}
+
+    flow_result = MagicMock()
+    flow_result.ok = True
+    flow_result.flow_id = flow_id
+    flow_result.duration_sec = 1.23
+    flow_result.steps = [step]
+
+    mock_executor = MagicMock()
+    mock_executor.execute = AsyncMock(return_value=flow_result)
+
+    mock_delegate = MagicMock()
+    mock_update = AsyncMock()
+
+    with (
+        patch(
+            "will.governance.fix_runner._build_cognitive_delegate",
+            return_value=mock_delegate,
+        ),
+        patch(
+            "will.governance.fix_runner.FlowExecutor",
+            return_value=mock_executor,
+        ),
+        patch(
+            "will.governance.fix_runner._update_fix_run_status",
+            mock_update,
+        ),
+    ):
+        await run_and_persist_flow(
+            context,
+            session,
+            run_id=run_id,
+            flow_id=flow_id,
+            write=False,
+            params=None,
+        )
+
+    mock_executor.execute.assert_awaited_once_with(flow_id, write=False)
+    assert mock_update.await_count == 2
+    first_call = mock_update.await_args_list[0]
+    assert first_call.args[2] == "executing"
+    assert first_call.kwargs.get("started") is True
+    final_call = mock_update.await_args_list[1]
+    assert final_call.args[2] == "completed"
+    assert final_call.kwargs.get("finished") is True
+
+
+import pytest
+
+from will.governance.fix_runner import run_and_persist_fix
+
+
+@pytest.mark.asyncio
+# ID: 27eece5d-69a0-4e00-b061-323dee715fd7
+async def test_run_and_persist_fix():
+    context = MagicMock()
+    session = MagicMock()
+    run_id = uuid4()
+
+    action_result = MagicMock()
+    action_result.ok = True
+    action_result.data = {"files_changed": 2}
+    action_result.duration_sec = 1.5
+
+    mock_executor = MagicMock()
+    mock_executor.execute = AsyncMock(return_value=action_result)
+
+    mock_update_status = AsyncMock()
+
+    with (
+        patch(
+            "will.governance.fix_runner.ActionExecutor",
+            return_value=mock_executor,
+        ),
+        patch(
+            "will.governance.fix_runner._update_fix_run_status",
+            mock_update_status,
+        ),
+    ):
+        await run_and_persist_fix(
+            context,
+            session,
+            run_id=run_id,
+            fix_id="fix.docstrings",
+            target_files=["a.py"],
+            write=True,
+            params={"limit": 5},
+        )
+
+    mock_executor.execute.assert_awaited_once_with(
+        "fix.docstrings", write=True, target_files=["a.py"], limit=5
+    )
+
+    assert mock_update_status.await_count == 2
+
+    first_call = mock_update_status.await_args_list[0]
+    assert first_call.args == (session, run_id, "executing")
+    assert first_call.kwargs == {"started": True}
+
+    final_call = mock_update_status.await_args_list[1]
+    assert final_call.args == (session, run_id, "completed")
+    assert final_call.kwargs["finished"] is True
+    assert final_call.kwargs["error"] is None
+    payload = final_call.kwargs["result"]
+    assert payload["kind"] == "atomic"
+    assert payload["ok"] is True
+
+
+
+
+# ID: e2d34099-fdf5-41ce-8cd5-2d82bc176390
+def test_list_registered_flow_ids():
+    from will.governance.fix_runner import list_registered_flow_ids
+
+    definition_a = MagicMock()
+    definition_a.flow_id = "flow-alpha"
+    definition_b = MagicMock()
+    definition_b.flow_id = "flow-beta"
+
+    mock_registry = MagicMock()
+    mock_registry.list_all.return_value = [definition_a, definition_b]
+
+    with patch(
+        "will.governance.fix_runner.flow_registry",
+        mock_registry,
+    ):
+        result = list_registered_flow_ids()
+
+    assert result == {"flow-alpha", "flow-beta"}
+    mock_registry.list_all.assert_called_once_with()
