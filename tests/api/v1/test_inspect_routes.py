@@ -162,12 +162,11 @@ def test_analysis_stub_sunset_does_not_precede_deprecation():
 
 
 async def test_analysis_command_tree_returns_facade_payload():
-    request = _mock_request_with_context()
     with patch(
         "api.v1.inspect_routes.get_analysis_command_tree",
         return_value={"available": True, "source": "cli", "count": 0, "commands": []},
     ):
-        out = await analysis_command_tree(request=request)
+        out = await analysis_command_tree()
     assert out["available"] is True
 
 

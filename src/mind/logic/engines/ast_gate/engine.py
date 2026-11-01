@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from mind.logic.engines.ast_gate.checks import (
     AsyncChecks,
     AwaitingReauditChecks,
-    CapabilityChecks,
     ConservationChecks,
     GenericASTChecks,
     ImportChecks,
@@ -57,7 +56,6 @@ class ASTGateEngine(BaseEngine):
 
     def __init__(self, path_resolver: PathResolver):
         self._paths = path_resolver
-        self._capability_checks = CapabilityChecks(path_resolver)
         self._modularity_checker = ModularityChecker()
         self._fs_taxonomy: FsOperationTaxonomy | None = None
 
@@ -120,7 +118,6 @@ class ASTGateEngine(BaseEngine):
             "required_decorator",
             "action_pattern",
             "decorator_args",
-            "capability_assignment",
             "no_direct_writes",
             "required_calls",
             "modularity",
@@ -298,13 +295,6 @@ class ASTGateEngine(BaseEngine):
             res = RuntimeImportBoundaryCheck.check(file_path, tree, params)
             if not res.ok:
                 violations.extend(res.violations)
-
-        elif check_type == "capability_assignment":
-            violations.extend(
-                self._capability_checks.check_capability_assignment(
-                    tree, file_path=file_path
-                )
-            )
 
         elif check_type == "modularity":
             # Modularity checks return dicts carrying structured detail

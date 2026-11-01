@@ -154,6 +154,9 @@ async def run_and_persist_audit_remediation(
         )
         return
 
+    # The validation audit after a write runs the DB-backed rules too, as
+    # the audit that produced the findings did (same as audit_runner).
+    context.auditor_context.db_session = session
     try:
         service = AuditRemediationService(
             file_handler=context.file_service,
@@ -174,6 +177,8 @@ async def run_and_persist_audit_remediation(
             error=f"{type(exc).__name__}: {exc}",
         )
         return
+    finally:
+        context.auditor_context.db_session = None
 
     summary = {
         "total_findings": result.total_findings,

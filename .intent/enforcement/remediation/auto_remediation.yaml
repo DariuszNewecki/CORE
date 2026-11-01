@@ -1708,6 +1708,17 @@ mappings:
       metadata path -- governor decision. Non-automatable.
     status: DELEGATE
 
+  quality.no_attr_call_suppression:
+    action: fix.modularity
+    confidence: 0.40
+    description: >
+      A source line silences mypy's attr-defined or call-arg check inline
+      (type: ignore). Removing the comment alone only exposes the error; the
+      fix is repairing the call, deleting dead code, or typing a genuine stub
+      mismatch -- semantic decision. Non-automatable. Routed to governor inbox
+      as DELEGATE.
+    status: DELEGATE
+
   quality.type_safety:
     action: fix.modularity
     confidence: 0.40

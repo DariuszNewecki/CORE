@@ -14,7 +14,6 @@ def test_ASTGateEngine_verify(tmp_path: Path) -> None:
     path_resolver = MagicMock()
 
     with (
-        patch("mind.logic.engines.ast_gate.engine.CapabilityChecks"),
         patch("mind.logic.engines.ast_gate.engine.ModularityChecker"),
         patch("mind.logic.engines.ast_gate.engine.PurityChecks") as mock_purity,
     ):

@@ -70,9 +70,14 @@ def _find_undocumented_public_symbols(
     classes are NOT excluded — only nested functions, matching the
     source-of-truth predicate exactly.
     """
-    for node in ast.walk(tree):
-        for child in ast.iter_child_nodes(node):
-            child._parent = node  # type: ignore[attr-defined]
+    # Nodes whose immediate parent is a function; recorded by id instead of
+    # tagging the (possibly cached, shared) AST nodes with a parent attribute.
+    nested_in_function = {
+        id(child)
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        for child in ast.iter_child_nodes(node)
+    }
 
     candidates: list[ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef] = []
     for node in ast.walk(tree):
@@ -80,10 +85,11 @@ def _find_undocumented_public_symbols(
             continue
         if node.name.startswith("_"):
             continue
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            parent = getattr(node, "_parent", None)
-            if isinstance(parent, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
+        if (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and id(node) in nested_in_function
+        ):
+            continue
         if ast.get_docstring(node) is not None:
             continue
         candidates.append(node)

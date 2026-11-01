@@ -35,6 +35,7 @@ from referencing.jsonschema import DRAFT7
 from mind.governance.meta_validator import ValidationError, ValidationReport
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.intent.law_roots import law_glob, law_relpath
+from shared.infrastructure.validation.schema_registry import registry_with_retrieve
 from shared.logger import getLogger
 
 
@@ -116,7 +117,7 @@ class SpecsDocValidator:
                 )
             raise NoSuchResource(uri)
 
-        return Registry(retrieve=_retrieve)  # type: ignore[call-arg]
+        return registry_with_retrieve(_retrieve)
 
     # ID: 8b2787f8-73fe-4d83-b77e-98fabb52a807
     def validate_header(

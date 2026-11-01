@@ -24,6 +24,7 @@ from referencing.jsonschema import DRAFT7
 from shared.infrastructure.intent.intent_repository import (
     get_intent_repository,
 )
+from shared.infrastructure.validation.schema_registry import registry_with_retrieve
 from shared.logger import getLogger
 
 
@@ -131,7 +132,7 @@ class MetaValidator:
                 )
             raise NoSuchResource(uri)
 
-        return Registry(retrieve=_retrieve)  # type: ignore[call-arg]
+        return registry_with_retrieve(_retrieve)
 
     def _load_meta_schema(self) -> dict[str, Any]:
         rel_path = "META/GLOBAL-DOCUMENT-META-SCHEMA.json"

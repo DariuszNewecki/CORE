@@ -7,6 +7,8 @@ MOVED: From features/project_lifecycle to body/project_lifecycle (Wave 1 Rebirth
 
 from __future__ import annotations
 
+from typing import Any
+
 # REFACTORED: Removed direct settings import
 from shared.context import CoreContext
 from shared.exceptions import CoreError
@@ -65,6 +67,7 @@ async def integrate_changes(context: CoreContext, commit_message: str) -> None:
             except Exception:
                 continue
 
+        integration_steps: list[dict[str, Any]]
         if not workflow_policy or "integration_workflow" not in workflow_policy:
             integration_steps = [
                 {
@@ -90,7 +93,7 @@ async def integrate_changes(context: CoreContext, commit_message: str) -> None:
                 len(integration_steps) + 2,
                 step["description"],
             )
-            command_parts = step["command"].split()  # type: ignore[attr-defined]
+            command_parts = step["command"].split()
             result = await run_command_async(
                 command_parts, cwd=context.git_service.repo_path
             )

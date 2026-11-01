@@ -503,6 +503,49 @@ async def test_no_resolution_suppression_clean_for_unrelated_ignores(
 
 
 # ---------------------------------------------------------------------------
+# quality.no_attr_call_suppression
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "graph = svc.get_graph_sync()  # type: ignore[attr-defined]\n",
+        "svc.initialize()  # type:ignore[call-arg]\n",
+        "x = f(a=1)  # type: ignore[arg-type, call-arg]\n",
+    ],
+)
+async def test_no_attr_call_suppression_fires(
+    tmp_py: Path, engine: RegexGateEngine, line: str
+) -> None:
+    params = _load_rule_params(
+        "architecture/quality_gates.yaml", "quality.no_attr_call_suppression"
+    )
+    tmp_py.write_text(line, encoding="utf-8")
+    result = await engine.verify(tmp_py, params)
+    assert result.violations
+
+
+async def test_no_attr_call_suppression_clean_for_other_ignores(
+    tmp_py: Path, engine: RegexGateEngine
+) -> None:
+    params = _load_rule_params(
+        "architecture/quality_gates.yaml", "quality.no_attr_call_suppression"
+    )
+    tmp_py.write_text(
+        "import yaml  # type: ignore[import-untyped]\n"
+        "x = thing.attr  # type: ignore[union-attr]\n"
+        "def verify(self, p):  # type: ignore[override]\n"
+        "    return cast(Any, p).attr\n",
+        encoding="utf-8",
+    )
+    result = await engine.verify(tmp_py, params)
+    assert not result.violations, (
+        f"other ignore codes should not false-positive; got {result.violations}"
+    )
+
+
+# ---------------------------------------------------------------------------
 # architecture.sandbox.tests_run_in_sandbox
 # ---------------------------------------------------------------------------
 

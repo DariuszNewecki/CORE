@@ -21,12 +21,13 @@ from typing import Any
 
 import jsonschema
 from jsonschema import Draft7Validator
-from referencing import Registry, Resource
+from referencing import Resource
 from referencing.exceptions import NoSuchResource
 from referencing.jsonschema import DRAFT7
 
 from shared.infrastructure.intent.canonical_enums import get_enum_members
 from shared.infrastructure.intent.errors import GovernanceError
+from shared.infrastructure.validation.schema_registry import registry_with_retrieve
 from shared.logger import getLogger
 
 
@@ -64,7 +65,7 @@ def _build_validator() -> Draft7Validator:
             return Resource.from_contents(by_name[name], default_specification=DRAFT7)
         raise NoSuchResource(uri)
 
-    registry = Registry(retrieve=_retrieve)  # type: ignore[call-arg]
+    registry = registry_with_retrieve(_retrieve)
 
     # Principle 2: worker_phase must exist and be non-empty before any
     # worker declaration may validate. get_enum_members raises

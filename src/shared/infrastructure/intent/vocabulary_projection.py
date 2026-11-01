@@ -21,12 +21,13 @@ from typing import Literal
 
 import jsonschema
 from jsonschema import Draft7Validator
-from referencing import Registry, Resource
+from referencing import Resource
 from referencing.exceptions import NoSuchResource
 from referencing.jsonschema import DRAFT7
 
 from shared.infrastructure.intent._floor import resolve_floor_path
 from shared.infrastructure.intent.law_roots import configured_repo_root, law_path
+from shared.infrastructure.validation.schema_registry import registry_with_retrieve
 from shared.logger import getLogger
 
 
@@ -89,7 +90,7 @@ def _validate_schema(instance: dict, schema_path: Path, schema: dict) -> str | N
             )
         raise NoSuchResource(uri)
 
-    registry = Registry(retrieve=_retrieve)  # type: ignore[call-arg]
+    registry = registry_with_retrieve(_retrieve)
     try:
         Draft7Validator(schema, registry=registry).validate(instance)
     except jsonschema.ValidationError as e:

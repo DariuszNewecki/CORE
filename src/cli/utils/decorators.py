@@ -117,14 +117,12 @@ def core_command(
         @functools.wraps(func)
         # ID: 77ebffad-b3e8-4cc7-8835-f49770a2a653
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            # A command gets its context only through its own `ctx` parameter.
+            # A command without one has ctx None: requires_context=True stops
+            # below, and no brain services are warmed for it.
             ctx = next(
                 (a for a in args if isinstance(a, typer.Context)), kwargs.get("ctx")
             )
-            if ctx is None:
-                try:
-                    ctx = typer.get_current_context()  # type: ignore[attr-defined]
-                except Exception:
-                    ctx = None
             if requires_context and (not ctx):
                 console.print(
                     "[bold red]System Error: CLI command must accept 'ctx: typer.Context'[/bold red]"

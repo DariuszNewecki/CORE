@@ -13,6 +13,7 @@ from pathlib import Path
 from body.self_healing.remediation_models import RemediationResult
 from body.services.file_service import FileService
 from mind.governance.audit_context import AuditorContext
+from mind.governance.auditor import ConstitutionalAuditor
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 
@@ -48,28 +49,22 @@ class RemediationEvidenceWriter:
             Tuple of (passed, findings_after_count, audit_path).
         """
         logger.info("Running validation audit...")
-        try:
-            findings_after = await self.auditor.audit()  # type: ignore[attr-defined]
-            findings_after_count = len(findings_after)
-            improvement = findings_before_count - findings_after_count
-            passed = improvement > 0
-            audit_path = (
-                PathResolver.from_repo(self.repo_root).reports_dir
-                / "audit_findings.json"
-            )
+        results = await ConstitutionalAuditor(self.auditor).run_full_audit_async()
+        findings_after_count = len(results["findings"])
+        improvement = findings_before_count - findings_after_count
+        passed = improvement > 0
+        audit_path = (
+            PathResolver.from_repo(self.repo_root).reports_dir / "audit_findings.json"
+        )
 
-            logger.info(
-                "Validation complete: %d → %d findings (delta=%d, passed=%s)",
-                findings_before_count,
-                findings_after_count,
-                improvement,
-                passed,
-            )
-            return passed, findings_after_count, audit_path
-
-        except Exception as e:
-            logger.error("Validation audit failed: %s", e)
-            return False, findings_before_count, None
+        logger.info(
+            "Validation complete: %d → %d findings (delta=%d, passed=%s)",
+            findings_before_count,
+            findings_after_count,
+            improvement,
+            passed,
+        )
+        return passed, findings_after_count, audit_path
 
     # ID: 54f2ddb8-17c0-4d2a-9add-8d4f2298efcc
     async def write_evidence(self, result: RemediationResult) -> Path:

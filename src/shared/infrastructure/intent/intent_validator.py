@@ -12,11 +12,12 @@ from typing import Any
 
 import jsonschema
 from jsonschema import Draft7Validator
-from referencing import Registry, Resource
+from referencing import Resource
 from referencing.exceptions import NoSuchResource
 from referencing.jsonschema import DRAFT7
 
 from shared.infrastructure.intent.errors import GovernanceError
+from shared.infrastructure.validation.schema_registry import registry_with_retrieve
 from shared.logger import getLogger
 
 
@@ -233,7 +234,7 @@ def validate_intent_tree(intent_root: Path, *, strict: bool = True) -> Validatio
                 )
             raise NoSuchResource(uri)
 
-        registry = Registry(retrieve=_retrieve)  # type: ignore[call-arg]
+        registry = registry_with_retrieve(_retrieve)
         try:
             Draft7Validator(schema, registry=registry).validate(document)
         except jsonschema.ValidationError as e:
