@@ -1,3 +1,0 @@
-Refactor the following code to ensure no lines exceed 100 characters:
-
-{source_code}

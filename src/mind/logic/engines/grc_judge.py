@@ -11,7 +11,7 @@ CONSTITUTIONAL ALIGNMENT:
 - Handles AI failures as 'UNAVAILABLE' for audit truthfulness — emits the
   shared SYSTEM_ERROR_AI_OFFLINE marker so rule_executor aggregates transient
   failures rather than miscounting them as gaps.
-- Prompt governed via var/prompts/grc_judge/ PromptModel artifact.
+- Prompt governed via src/shared/_prompts/grc_judge/ PromptModel artifact.
 - Internal corpus augmentation (ADR-122 D4): queries grc-internal-{framework_id}
   for top-3 passages; degrades gracefully when collection is absent or Qdrant
   is unreachable (EvidenceClass stays JUDGED regardless of augmentation).

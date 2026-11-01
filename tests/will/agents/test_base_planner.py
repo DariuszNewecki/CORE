@@ -106,14 +106,14 @@ def test_plan_steps_unwraps_or_returns_none() -> None:
 
 
 def test_artifact_example_parses_under_the_parser() -> None:
-    """The example in var/prompts/plan_goal/system.txt IS a valid plan for
+    """The example in src/shared/_prompts/plan_goal/system.txt IS a valid plan for
     this parser -- the artifact and the parser state one contract."""
     from pathlib import Path
 
     from shared.utils.parsing import extract_json_from_response
 
     repo_root = Path(__file__).resolve().parents[3]
-    system_txt = (repo_root / "var/prompts/plan_goal/system.txt").read_text()
+    system_txt = (repo_root / "src/shared/_prompts/plan_goal/system.txt").read_text()
     example = system_txt.split("EXAMPLE of a valid plan:", 1)[1]
     parsed = extract_json_from_response(example)
     assert isinstance(parsed, dict) and isinstance(parsed.get("plan"), list)

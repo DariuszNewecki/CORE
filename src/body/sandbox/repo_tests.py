@@ -186,7 +186,11 @@ def _tracked_var(tree: Path) -> tuple[str, ...]:
 
     pr = PathResolver(tree)
     dirs = (pr.prompts_dir, pr.knowledge_dir, pr.mind_dir, pr.var_dir / "core")
-    rels = sorted({d.relative_to(tree).as_posix() for d in dirs})
+    # Only var/ needs listing: a prompt root under src/ (CORE's own, #1387)
+    # is copied with src/.
+    rels = sorted(
+        {r for d in dirs if (r := d.relative_to(tree).as_posix()).startswith("var/")}
+    )
     # A directory already copied whole carries its subdirectories.
     return tuple(r for r in rels if not any(r.startswith(o + "/") for o in rels))
 

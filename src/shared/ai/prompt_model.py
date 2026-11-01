@@ -13,8 +13,8 @@ DESIGN:
     Direct calls to make_request_async() are constitutionally prohibited
     outside of this file and llm_client.py.
 
-    A PromptModel is loaded from a directory under var/prompts/:
-        var/prompts/<n>/
+    A PromptModel is loaded from a directory under src/shared/_prompts/:
+        src/shared/_prompts/<n>/
             model.yaml    — manifest: id, role, input contract, output contract
             system.txt    — constitutional system prompt (governs AI behaviour)
             user.txt      — user-turn template with {placeholders}
@@ -164,11 +164,11 @@ class PromptModel:
     # ID: d24a1c7f-2165-4fb4-8a7f-181c0a2743f3
     def load(cls, name: str, prompts_root: Path | None = None) -> PromptModel:
         """
-        Load a PromptModel artifact by name from var/prompts/.
+        Load a PromptModel artifact by name from src/shared/_prompts/.
 
         Args:
-            name: Directory name under var/prompts/ (e.g. 'docstring_writer').
-            prompts_root: Override path to var/prompts/. Defaults to
+            name: Directory name under src/shared/_prompts/ (e.g. 'docstring_writer').
+            prompts_root: Override path to src/shared/_prompts/. Defaults to
                           settings.paths.prompts_dir.
 
         Returns:

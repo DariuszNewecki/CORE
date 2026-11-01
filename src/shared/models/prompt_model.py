@@ -16,7 +16,7 @@ DESIGN:
         client = await cognitive_service.aget_client_for_role(pm.manifest.role)
         result = await pm.invoke(client, {"source_code": src})
 
-ARTIFACT LAYOUT (var/prompts/<name>/):
+ARTIFACT LAYOUT (src/shared/_prompts/<name>/):
     model.yaml   — manifest: id, role, model config, output constraints
     system.txt   — constitutional system prompt (verbatim, no templating)
     user.txt     — user-turn template with {placeholder} variables
@@ -132,7 +132,7 @@ class PromptModel:
     # ID: a6fdf7fe-5563-4cfd-a2aa-a3d8d1e9304e
     def load(cls, name: str) -> PromptModel:
         """
-        Loads a PromptModel artifact from var/prompts/<name>/.
+        Loads a PromptModel artifact from src/shared/_prompts/<name>/.
 
         This is the only constructor. Must not be called at module level —
         settings may not be fully initialised at import time.

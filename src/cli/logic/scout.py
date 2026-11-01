@@ -112,7 +112,7 @@ _CATALOG_REL = ("var", "prompts", "scout_rule_inducer", "enforcement_catalog.yam
 
 # Embedded enforcement catalog for the 4 universal starter rules.
 # Used when the file-based catalog isn't available (wheel install without source tree).
-# Mirrors var/prompts/scout_rule_inducer/enforcement_catalog.yaml; update both on changes.
+# Mirrors src/shared/_prompts/scout_rule_inducer/enforcement_catalog.yaml; update both on changes.
 _CATALOG_EMBEDDED: list[dict[str, Any]] = [
     {
         "id": "no_bare_except",
@@ -941,7 +941,7 @@ def _display_candidate(candidate: dict[str, Any]) -> None:
         )
         console.print(
             "  [dim]To enforce it, add an entry to "
-            "var/prompts/scout_rule_inducer/enforcement_catalog.yaml[/dim]"
+            "src/shared/_prompts/scout_rule_inducer/enforcement_catalog.yaml[/dim]"
         )
 
     console.print()
@@ -966,7 +966,7 @@ def _build_rules_document(confirmed: list[dict[str, Any]]) -> str:
         if not c.get("enforcement_matched"):
             rule["enforcement_note"] = (
                 "declared-only: no enforcement catalog entry exists for this rule. "
-                "To add enforcement, extend var/prompts/scout_rule_inducer/enforcement_catalog.yaml "
+                "To add enforcement, extend src/shared/_prompts/scout_rule_inducer/enforcement_catalog.yaml "
                 "with an entry whose match_keys include a substring of this rule's id."
             )
         rules.append(rule)

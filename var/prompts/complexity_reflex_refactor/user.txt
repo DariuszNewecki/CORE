@@ -1,4 +1,0 @@
-Refactor {rel_path} to reduce complexity. Strategy: {strategy}
-
-CODE:
-{original_code}

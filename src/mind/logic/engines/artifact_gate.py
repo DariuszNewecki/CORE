@@ -3,7 +3,7 @@
 """
 Constitutional Artifact Gate — PromptModel manifest validator.
 
-Enforces structural and abstraction-boundary rules on var/prompts/*/model.yaml
+Enforces structural and abstraction-boundary rules on src/shared/_prompts/*/model.yaml
 files. Every check is deterministic: no LLM, no I/O beyond reading the file
 already provided by the auditor.
 
@@ -821,7 +821,7 @@ class ArtifactGateEngine(BaseEngine):
         namespace_manifest_completeness/fs_operations_completeness) dispatch
         context-level. The four PromptModel check_types (required_fields,
         no_provider_leak, role_abstraction, governed_prompt_has_anchor) dispatch
-        per-file over var/prompts/**/model.yaml.
+        per-file over src/shared/_prompts/**/model.yaml.
         """
         if check_type is None:
             return False

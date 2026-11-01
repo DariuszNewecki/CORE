@@ -31,9 +31,9 @@ path matching rather than the pre-existing `_match()` helper: real dispatch
 (rule_executor.py's per-file audit loop) always hands an absolute
 filesystem path, but `_match()`'s prefix branch only ever does a leading
 `str.startswith`, which can never match an absolute path against a
-repo-relative pattern prefix like "var/prompts" -- confirmed by writing
+repo-relative pattern prefix like "src/shared/_prompts" -- confirmed by writing
 these fixtures with a real tmp_path (necessarily absolute). Both
-rules' fixture pairs below use tmp_path-relative var/prompts/ layouts
+rules' fixture pairs below use tmp_path-relative src/shared/_prompts/ layouts
 matching each rule's own applies_to scope, not an arbitrary path.
 """
 
@@ -68,7 +68,7 @@ async def test_model_artifact_required_fires_on_missing_manifest_files(
     params = _load_rule_params(
         "ai/prompt_governance.yaml", "ai.prompt.model_artifact_required"
     )
-    prompt_dir = tmp_path / "var" / "prompts" / "incomplete_prompt"
+    prompt_dir = tmp_path / "src" / "shared" / "_prompts" / "incomplete_prompt"
     prompt_dir.mkdir(parents=True)
     (prompt_dir / "system.txt").write_text("You are a helpful assistant.")
     # model.yaml and user.txt are missing.
@@ -86,7 +86,7 @@ async def test_model_artifact_required_clean_when_all_three_present(
     params = _load_rule_params(
         "ai/prompt_governance.yaml", "ai.prompt.model_artifact_required"
     )
-    prompt_dir = tmp_path / "var" / "prompts" / "complete_prompt"
+    prompt_dir = tmp_path / "src" / "shared" / "_prompts" / "complete_prompt"
     prompt_dir.mkdir(parents=True)
     (prompt_dir / "model.yaml").write_text("provider: anthropic\n")
     (prompt_dir / "system.txt").write_text("You are a helpful assistant.")
@@ -100,14 +100,14 @@ async def test_model_artifact_required_clean_when_all_three_present(
 async def test_model_artifact_required_skips_loose_file_directly_under_root(
     tmp_path: Path,
 ) -> None:
-    """A file sitting directly in var/prompts/ (not inside a subdirectory,
+    """A file sitting directly in src/shared/_prompts/ (not inside a subdirectory,
     e.g. a loose .md note) is not a governed module -- proves the "not
     inside a subdirectory" skip path is a real no-op, not an accidental
     always-pass."""
     params = _load_rule_params(
         "ai/prompt_governance.yaml", "ai.prompt.model_artifact_required"
     )
-    prompts_root = tmp_path / "var" / "prompts"
+    prompts_root = tmp_path / "src" / "shared" / "_prompts"
     prompts_root.mkdir(parents=True)
     loose_file = prompts_root / "README.md"
     loose_file.write_text("notes")
@@ -128,7 +128,7 @@ async def test_system_prompt_required_fires_on_empty_system_txt(
     params = _load_rule_params(
         "ai/prompt_governance.yaml", "ai.prompt.system_prompt_required"
     )
-    prompt_dir = tmp_path / "var" / "prompts" / "empty_prompt"
+    prompt_dir = tmp_path / "src" / "shared" / "_prompts" / "empty_prompt"
     prompt_dir.mkdir(parents=True)
     system_txt = prompt_dir / "system.txt"
     system_txt.write_text("   \n  \n")  # whitespace-only
@@ -144,7 +144,7 @@ async def test_system_prompt_required_clean_for_populated_system_txt(
     params = _load_rule_params(
         "ai/prompt_governance.yaml", "ai.prompt.system_prompt_required"
     )
-    prompt_dir = tmp_path / "var" / "prompts" / "populated_prompt"
+    prompt_dir = tmp_path / "src" / "shared" / "_prompts" / "populated_prompt"
     prompt_dir.mkdir(parents=True)
     system_txt = prompt_dir / "system.txt"
     system_txt.write_text("You are a helpful assistant.")
@@ -159,13 +159,13 @@ async def test_system_prompt_required_ignores_empty_non_system_file(
 ) -> None:
     """An empty model.yaml in the same directory must NOT trip this rule --
     proves the fixed _match() suffix handling actually scopes the pattern to
-    system.txt files, not to every file under var/prompts/** (the pre-fix
+    system.txt files, not to every file under src/shared/_prompts/** (the pre-fix
     _match() ignored the "/system.txt" suffix entirely and would have
     matched any file here)."""
     params = _load_rule_params(
         "ai/prompt_governance.yaml", "ai.prompt.system_prompt_required"
     )
-    prompt_dir = tmp_path / "var" / "prompts" / "mixed_prompt"
+    prompt_dir = tmp_path / "src" / "shared" / "_prompts" / "mixed_prompt"
     prompt_dir.mkdir(parents=True)
     (prompt_dir / "system.txt").write_text("You are a helpful assistant.")
     empty_model_yaml = prompt_dir / "model.yaml"

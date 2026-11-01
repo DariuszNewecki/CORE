@@ -3,6 +3,10 @@ remediation:
 
   min_confidence: 0.80
 
+prompts:
+  # The one prompt source; the wheel ships it as package data (#1387).
+  root: "src/shared/_prompts"
+
 audit_findings:
   raw_path: "var/reports/audit_findings.json"
 

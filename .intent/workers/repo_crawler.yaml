@@ -40,7 +40,7 @@ mandate:
       - "src/**"
       - "docs/**"
       - "tests/**"
-      - "var/prompts/**"
+      - "src/shared/_prompts/**"
       - "reports/**"
       - ".intent/**"
       - ".specs/**"

@@ -92,6 +92,7 @@ class PathResolver:
         # Resolved on first use, not here: Settings builds a PathResolver
         # while it is itself being constructed (ADR-132 D10 · D2 law roots).
         self._intent_root: Path | None = None
+        self._prompts_dir: Path | None = None
 
         logger.debug("PathResolver initialized (repo_root=%s)", self._repo_root)
 
@@ -220,7 +221,28 @@ class PathResolver:
     @property
     # ID: 5c680e81-7027-4d4b-b6b2-57b1769c53c2
     def prompts_dir(self) -> Path:
-        return self._repo_root.joinpath(*self._DEFAULT_PROMPTS_SUBDIR)
+        """This repository's prompt root.
+
+        ``prompts.root`` in governance_paths.yaml when the law declares it
+        (CORE's own law: ``src/shared/_prompts``, the one source the wheel
+        ships, #1387), else ``var/prompts`` (an adopter's override folder).
+        """
+        if self._prompts_dir is None:
+            self._prompts_dir = self._repo_root.joinpath(*self._prompts_subdir())
+        return self._prompts_dir
+
+    def _prompts_subdir(self) -> tuple[str, ...]:
+        import yaml
+
+        try:
+            data = yaml.safe_load(self.governance_config_path.read_text()) or {}
+            root = str((data.get("prompts") or {}).get("root") or "")
+        except (OSError, yaml.YAMLError, AttributeError, TypeError):
+            return self._DEFAULT_PROMPTS_SUBDIR
+        parts = tuple(part for part in root.strip("/").split("/") if part)
+        if not parts or ".." in parts or root.startswith("/"):
+            return self._DEFAULT_PROMPTS_SUBDIR
+        return parts
 
     @property
     # ID: a948fe7e-3ee9-493d-bc03-5917669eaea6
@@ -321,7 +343,7 @@ class PathResolver:
             (self.canary_dir, "var/workflows/canary/"),
             (self.proposals_dir, "var/workflows/proposals/"),
             (self.pending_writes_dir, "var/workflows/pending_writes/"),
-            (self.prompts_dir, "var/prompts/"),
+            (self.prompts_dir, "prompt root (governance_paths.yaml prompts.root)"),
             (self.context_dir, "var/context/"),
             (self.context_cache_dir, "var/cache/context/"),
             (self.knowledge_dir, "var/mind/knowledge/"),
