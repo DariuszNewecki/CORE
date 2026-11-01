@@ -159,3 +159,40 @@ def test_get_governor():
     result = asyncio.run(get_governor(principal=principal))
 
     assert result == {"sub": "governor_acct", "principal": governor_const}
+
+
+from types import SimpleNamespace
+
+from api.dependencies import get_caller_principal
+
+
+PEER_CRED_EXTENSION = "peer_cred"
+
+
+# ID: 764133d3-fc83-4887-b88f-c119e04d065f
+def test_get_caller_principal():
+    peer_cred = {"uid": 1000}
+    request = MagicMock()
+    request.scope = {"extensions": {PEER_CRED_EXTENSION: peer_cred}}
+
+    fake_pw = SimpleNamespace(pw_name="alice")
+    fake_binding = MagicMock()
+    fake_binding.role_for.return_value = "admin"
+    fake_binding.error = None
+
+    with (
+        patch("api.dependencies.pwd.getpwuid", return_value=fake_pw) as mock_getpwuid,
+        patch(
+            "api.dependencies.load_principal_binding", return_value=fake_binding
+        ) as mock_load,
+    ):
+        result = asyncio.run(get_caller_principal(request))
+
+    mock_getpwuid.assert_called_once_with(1000)
+    mock_load.assert_called_once_with()
+    fake_binding.role_for.assert_called_once_with(1000)
+
+    assert result.uid == 1000
+    assert result.account == "alice"
+    assert result.role == "admin"
+    assert result.binding_error is None
