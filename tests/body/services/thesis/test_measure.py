@@ -3,7 +3,10 @@ waste trip. These reproduce the 2026-10-13 baseline method."""
 
 from __future__ import annotations
 
+import importlib.util
 import json
+import os
+import stat
 from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -18,6 +21,9 @@ from body.services.thesis.measure import (
     promotion_cutover,
     promotion_verdict,
     transcript_trips,
+    transcript_trips_by_day,
+    trip_counts_payload,
+    trip_counts_since,
 )
 
 
@@ -925,3 +931,133 @@ async def test_the_cutover_is_the_moment_not_the_day(tmp_path: Path) -> None:
     )
     assert [b["sha"] for b in taken.unverified_breaches] == ["b" * 40, "q" * 40]
     assert taken.detail["unverified"]["deploys_judged"] == 2
+
+
+# -- #1396: the daemon reads trip counts, never the transcripts -----------------
+
+
+def _write_trip_counts(root: Path, out: Path, since: date, now=None) -> dict:
+    """The real writer, infra/scripts/thesis_transcript_counts.py."""
+    script = (
+        Path(__file__).resolve().parents[4]
+        / "infra/scripts/thesis_transcript_counts.py"
+    )
+    spec = importlib.util.spec_from_file_location("thesis_transcript_counts", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    payload = trip_counts_payload(root, since, now)
+    module.write(payload, out)
+    return payload
+
+
+def _transcript_with_secret(root: Path) -> None:
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "s.jsonl").write_text(
+        "\n".join(
+            [
+                _line(
+                    "assistant",
+                    "2026-10-12T10:00:00Z",
+                    [{"type": "tool_use", "name": "AskUserQuestion"}],
+                ),
+                _line(
+                    "user",
+                    "2026-10-13T09:00:00Z",
+                    [
+                        {
+                            "type": "tool_result",
+                            "content": "Permission for this action was denied: SECRET-TEXT",
+                        }
+                    ],
+                ),
+                _line("user", "2026-10-13T09:05:00Z", "SECRET-TEXT the governor typed"),
+            ]
+        )
+    )
+
+
+def test_trip_counts_hold_numbers_only_and_are_group_readable(tmp_path: Path) -> None:
+    transcripts = tmp_path / "t"
+    _transcript_with_secret(transcripts)
+    out = tmp_path / "thesis" / "transcript_trips.json"
+    now = datetime(2026, 10, 14, 5, 30, tzinfo=UTC)
+    _write_trip_counts(transcripts, out, date(2026, 10, 1), now)
+
+    text = out.read_text()
+    assert "SECRET-TEXT" not in text
+    assert json.loads(text)["days"] == {
+        "2026-10-12": {"question to the governor": 1},
+        "2026-10-13": {"permission block": 1},
+    }
+    assert stat.S_IMODE(os.stat(out).st_mode) == 0o640
+    assert trip_counts_since(out, date(2026, 10, 13), now) == {"permission block": 1}
+    assert (
+        transcript_trips_by_day(transcripts, date(2026, 10, 1))
+        == json.loads(text)["days"]
+    )
+
+
+def test_a_stale_or_foreign_count_file_is_refused(tmp_path: Path) -> None:
+    out = tmp_path / "c.json"
+    now = datetime(2026, 10, 14, tzinfo=UTC)
+    out.write_text(
+        json.dumps({"version": 1, "generated_at": "2026-10-10T00:00:00Z", "days": {}})
+    )
+    try:
+        trip_counts_since(out, date(2026, 10, 1), now)
+        raise AssertionError("stale file accepted")
+    except ValueError as exc:
+        assert "stale" in str(exc)
+    out.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "generated_at": "2026-10-14T00:00:00Z",
+                "days": {"2026-10-13": {"anything typed": 3}},
+            }
+        )
+    )
+    try:
+        trip_counts_since(out, date(2026, 10, 1), now)
+        raise AssertionError("foreign key accepted")
+    except ValueError as exc:
+        assert "unexpected entry" in str(exc)
+
+
+async def test_unreadable_transcripts_are_measured_from_the_count_file(
+    tmp_path: Path,
+) -> None:
+    """The daemon's case: transcripts closed, count file fresh -> no
+    'transcripts unavailable', and the counted trips reach the waste detail."""
+    transcripts = tmp_path / "t"
+    _transcript_with_secret(transcripts)
+    out = tmp_path / "c.json"
+    _write_trip_counts(transcripts, out, date(2026, 10, 1))
+    taken = await measure(
+        date.today(),
+        _FakeGitHub([], []),
+        _git(),
+        "ref",
+        tmp_path / "not-readable",
+        trip_counts=out,
+        with_convergence=False,
+        governor=GOV,
+    )
+    assert not any("transcripts" in u or "trip counts" in u for u in taken.unavailable)
+
+
+async def test_a_missing_count_file_leaves_transcripts_unavailable(
+    tmp_path: Path,
+) -> None:
+    taken = await measure(
+        date(2026, 10, 15),
+        _FakeGitHub([], []),
+        _git(),
+        "ref",
+        tmp_path / "not-readable",
+        trip_counts=tmp_path / "missing.json",
+        with_convergence=False,
+        governor=GOV,
+    )
+    assert taken.measures.waste_per_change is None
+    assert any("claude code trip counts" in u for u in taken.unavailable)

@@ -1613,3 +1613,10 @@ flagged (`test_coverage_paths.py:327-329`, `test_runner_sensor.py:241`, #1210), 
 `tests symbols` showed 423 of 434 symbols passing, 2 untested, 9 capped. The 122 "untested"
 that argued for the table came from a dev checkout 360 commits behind main (#1246), so the
 table would fix nothing. Items 1 and 2 are done (#1229; #1230, #1231); item 4 stays planned.
+
+## Governor rulings
+
+One line each; the cause issue carries the detail.
+
+- 2026-11-01 — Type-safety findings (`quality.type_safety`, ~289 files; #1381 L23, cause [#1396](https://github.com/DariuszNewecki/CORE/issues/1396)): B, they stay off the blackboard. Revisit only when the no-suppression rule covers every new `type: ignore` in src/ and the fan-out has a daily cap.
+- 2026-11-01 — Thesis transcripts (#1381 F12, cause [#1396](https://github.com/DariuszNewecki/CORE/issues/1396)): the daemon (user core) gets no read access to /home/core-claude. core-claude writes only the numbers the thesis measure needs to a file core can read, and the measure reads that file. This is the governor's yes for that one file and its writer (a core-claude crontab entry), nothing broader.

@@ -45,6 +45,23 @@ AI_AUTHOR = re.compile(r"claude|^core:", re.IGNORECASE)
 RUNNER = "core-runner"
 LIVE_BRANCH = "live"
 SHELL_PROMPT = re.compile(r"(?:^|\s)[\w.-]+@[\w.-]+:[^\s$#]*[$#] \S")
+# Round trips counted in Claude Code's transcripts (``_event_trips``). They
+# are also the only keys the trip-count file may carry (#1396, governor
+# 2026-11-01: the daemon reads numbers, never the transcripts).
+TRIP_STOP_HOOK = "stop-hook rewrite"
+TRIP_GOVERNOR_COMMAND = "command run by the governor"
+TRIP_QUESTION = "question to the governor"
+TRIP_PERMISSION = "permission block"
+TRIP_HOOK_REFUSAL = "commit refused by a hook"
+TRANSCRIPT_TRIPS = (
+    TRIP_STOP_HOOK,
+    TRIP_GOVERNOR_COMMAND,
+    TRIP_QUESTION,
+    TRIP_PERMISSION,
+    TRIP_HOOK_REFUSAL,
+)
+# The count file is written daily; older than this, it no longer measures today.
+TRIP_COUNTS_MAX_AGE = timedelta(days=2)
 RUNNER_ENTRY = re.compile(r"^\[([^\]]+)\] (.*?)(?=^\[[^\]]+\] |\Z)", re.M | re.S)
 EXIT_LINE = re.compile(r"^\(exit (-?\d+)\)$", re.MULTILINE)
 CI_FAILED = ("FAILURE", "TIMED_OUT", "STARTUP_FAILURE")
@@ -506,6 +523,71 @@ def transcript_trips(root: Path, since: date) -> Counter:
     return trips
 
 
+# ID: 7a2c9e4f-1b6d-4e8a-9c3f-5d1e8b4a2f6c
+def transcript_trips_by_day(root: Path, since: date) -> dict[str, dict[str, int]]:
+    """Per-day transcript trip counts from *since* on: the numbers only,
+    keyed by ISO day and then by a TRANSCRIPT_TRIPS category."""
+    start = _iso(since)
+    days: dict[str, Counter] = {}
+    for path in root.rglob("*.jsonl"):
+        if date.fromtimestamp(os.path.getmtime(path)) < since:
+            continue
+        with path.open(errors="replace") as handle:
+            for line in handle:
+                trips = _event_trips(line, start)
+                if not trips:
+                    continue
+                day = str(json.loads(line).get("timestamp") or "")[:10]
+                days.setdefault(day, Counter()).update(trips)
+    return {day: dict(counts) for day, counts in sorted(days.items())}
+
+
+# ID: 2e8b5d1a-6c4f-4a9e-b7d3-1f9c4e6a8b2d
+def trip_counts_payload(
+    root: Path, since: date, now: datetime | None = None
+) -> dict[str, Any]:
+    """The count file's content for *root* (#1396): numbers only, keyed by
+    day and TRANSCRIPT_TRIPS category. infra/scripts/thesis_transcript_counts.py
+    writes it, as the transcripts' owner, for the daemon to read."""
+    return {
+        "version": 1,
+        "generated_at": (now or datetime.now(UTC)).isoformat(),
+        "since": since.isoformat(),
+        "days": transcript_trips_by_day(root, since),
+    }
+
+
+# ID: 9d4f2b7e-3a1c-4e6b-8f5d-2c7a9e1b4d6f
+def trip_counts_since(path: Path, since: date, now: datetime | None = None) -> Counter:
+    """Transcript trips from *since* on, read from the count file.
+
+    Raises ValueError when the file is stale, malformed, or carries anything
+    but TRANSCRIPT_TRIPS keys with integer counts; OSError when unreadable."""
+    data = json.loads(path.read_text())
+    if not isinstance(data, dict) or data.get("version") != 1:
+        raise ValueError("unknown format")
+    generated = _when(data.get("generated_at"))
+    if (
+        generated is None
+        or (now or datetime.now(UTC)) - generated > TRIP_COUNTS_MAX_AGE
+    ):
+        raise ValueError(f"stale (written {data.get('generated_at')})")
+    days = data.get("days")
+    if not isinstance(days, dict):
+        raise ValueError("no days")
+    start = _iso(since)[:10]
+    trips: Counter = Counter()
+    for day, counts in days.items():
+        if not isinstance(counts, dict) or not all(
+            key in TRANSCRIPT_TRIPS and isinstance(value, int) and value >= 0
+            for key, value in counts.items()
+        ):
+            raise ValueError(f"unexpected entry for {day}")
+        if str(day) >= start:
+            trips.update(counts)
+    return trips
+
+
 def _event_trips(line: str, start: str) -> Counter:
     trips: Counter = Counter()
     try:
@@ -518,17 +600,17 @@ def _event_trips(line: str, start: str) -> Counter:
     if event.get("type") == "user":
         blob = json.dumps(content)
         if "Stop hook feedback" in blob and "lines outside code blocks" in blob:
-            trips["stop-hook rewrite"] += 1
+            trips[TRIP_STOP_HOOK] += 1
         typed = _typed_text(content)
         if "<bash-input>" in typed or SHELL_PROMPT.search(typed):
-            trips["command run by the governor"] += 1
+            trips[TRIP_GOVERNOR_COMMAND] += 1
     if not isinstance(content, list):
         return trips
     for block in content:
         if not isinstance(block, dict):
             continue
         if block.get("type") == "tool_use" and block.get("name") == "AskUserQuestion":
-            trips["question to the governor"] += 1
+            trips[TRIP_QUESTION] += 1
         if block.get("type") != "tool_result":
             continue
         body = block.get("content")
@@ -538,9 +620,9 @@ def _event_trips(line: str, start: str) -> Counter:
             else " ".join(b.get("text", "") for b in body or [] if isinstance(b, dict))
         )
         if "Permission for this action was denied" in text:
-            trips["permission block"] += 1
+            trips[TRIP_PERMISSION] += 1
         if "hook error" in text and "commit refused" in text:
-            trips["commit refused by a hook"] += 1
+            trips[TRIP_HOOK_REFUSAL] += 1
     return trips
 
 
@@ -706,6 +788,7 @@ async def measure(
     transcripts: Path,
     *,
     deploys: tuple[Path, Path] | None = None,
+    trip_counts: Path | None = None,
     with_convergence: bool = True,
     governor: str | None = None,
     stored: list[dict[str, Any]] | None = None,
@@ -714,6 +797,9 @@ async def measure(
 
     *deploys* is (deploy ledger, runner logs directory); when given, its
     trips count toward waste and an unreadable one leaves waste unavailable.
+    *trip_counts* is the per-day count file core-claude writes from its
+    transcripts (infra/scripts/thesis_transcript_counts.py); it is read when the transcripts
+    themselves are not readable, which is the daemon's case (#1396).
     *governor* is the governor's GitHub login (the runner's GOVERNOR_GITHUB);
     without it unverified writes cannot be judged and read as unavailable.
     *stored* are the unverified writes already kept (``stored_unverified``);
@@ -813,7 +899,13 @@ async def measure(
         readable = transcripts.is_dir() and os.access(transcripts, os.R_OK | os.X_OK)
     except OSError:  # a parent the daemon's user may not enter
         readable = False
-    if not readable:
+    transcript_counts: Counter | None = None
+    if not readable and trip_counts is not None:
+        try:
+            transcript_counts = trip_counts_since(trip_counts, waste_since)
+        except (OSError, ValueError) as exc:
+            unavailable.append(f"claude code trip counts: {trip_counts}: {exc}")
+    elif not readable:
         unavailable.append(f"claude code transcripts: {transcripts} not readable")
     if deploys is not None:
         try:
@@ -822,8 +914,13 @@ async def measure(
             unavailable.append(f"deploy records: {exc}")
     deploys_read = not any(u.startswith("deploy records") for u in unavailable)
     github_read = not any(u.startswith("github") for u in unavailable)
-    if readable and github_read and deploys_read:
-        trips += transcript_trips(transcripts, waste_since)
+    transcripts_read = readable or transcript_counts is not None
+    if transcripts_read and github_read and deploys_read:
+        trips += (
+            transcript_trips(transcripts, waste_since)
+            if readable
+            else (transcript_counts or Counter())
+        )
         if writes_14:
             waste = round(sum(trips.values()) / writes_14, 1)
     detail["waste"] = {"trips": dict(trips.most_common()), "writes": writes_14}
