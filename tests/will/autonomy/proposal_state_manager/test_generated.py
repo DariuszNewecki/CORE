@@ -95,7 +95,6 @@ async def test_ProposalStateManager_mark_finalizing():
     session.commit.assert_awaited_once()
 
 
-
 import pytest
 
 
@@ -129,3 +128,16 @@ async def test_ProposalStateManager() -> None:
     )
 
     assert session.execute.await_count == 2
+
+
+from will.autonomy.proposal_state_manager import ProposalNotFoundError
+
+
+# ID: 4223a982-60b4-4de1-af61-d6cd0a20e649
+def test_ProposalNotFoundError():
+    message = "no proposal matched proposal_id=42"
+    exc = ProposalNotFoundError(message)
+
+    assert isinstance(exc, Exception)
+    assert exc.args == (message,)
+    assert str(exc) == message
