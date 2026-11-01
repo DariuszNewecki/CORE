@@ -429,7 +429,7 @@ is the way back and the rebuild is the fallback.
 | `core-code` | 6,898 | `src/**` | `core-admin vectors rebuild --write --yes` |
 | `core-tests` | 7,469 | `tests/**` | same |
 | `core-docs` | 615 | `docs/**`, infra SQL | same |
-| `core-prompts` | 156 | `var/prompts/**` | same |
+| `core-prompts` | 156 | `src/shared/_prompts/**` | same |
 | `core-patterns` | 2,492 | `.intent/**` | same (both of its phases write it) |
 | `core_policies` | 265 | `.intent/rules/**` | same (phase 2) |
 | `core_specs` | 2,546 | `.specs/**` | same (phase 2) |

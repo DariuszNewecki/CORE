@@ -14,23 +14,23 @@ mappings:
     engine: glob_gate
     params:
       check_type: directory_has_required_files
-      root: "var/prompts"
+      root: "src/shared/_prompts"
       required_files:
         - "model.yaml"
         - "system.txt"
         - "user.txt"
     scope:
       applies_to:
-        - "var/prompts/**"
+        - "src/shared/_prompts/**"
 
   ai.prompt.system_prompt_required:
     engine: glob_gate
     params:
       check_type: files_not_empty
-      pattern: "var/prompts/**/system.txt"
+      pattern: "src/shared/_prompts/**/system.txt"
     scope:
       applies_to:
-        - "var/prompts/**"
+        - "src/shared/_prompts/**"
 
   ai.prompt.output_validation_required:
     engine: ast_gate

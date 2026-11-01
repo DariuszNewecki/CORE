@@ -5,7 +5,7 @@ The daily money cap on test generation (ADR-172).
 ``.intent/enforcement/config/generation_budget.yaml`` sets
 ``budgets.test_generation.daily_spend_usd_max``. Before a
 flow.build_test_for_symbol proposal runs, today's (UTC) spend of the role
-test generation calls the model as (``Coder``, var/prompts/
+test generation calls the model as (``Coder``, src/shared/_prompts/
 context_aware_test_gen*) is summed from core.llm_exchange_log. At or over
 the cap the proposal is blocked, not failed: it stays approved and runs on
 a later day, and no symbol attempt is spent. A call logged without a price

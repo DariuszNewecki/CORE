@@ -5,7 +5,7 @@ mappings:
       check_type: required_fields
     scope:
       applies_to:
-        - "var/prompts/**/model.yaml"
+        - "src/shared/_prompts/**/model.yaml"
 
   ai.prompt.artifact.no_provider_leak:
     engine: artifact_gate
@@ -13,7 +13,7 @@ mappings:
       check_type: no_provider_leak
     scope:
       applies_to:
-        - "var/prompts/**/model.yaml"
+        - "src/shared/_prompts/**/model.yaml"
 
   ai.prompt.artifact.role_abstraction:
     engine: artifact_gate
@@ -21,7 +21,7 @@ mappings:
       check_type: role_abstraction
     scope:
       applies_to:
-        - "var/prompts/**/model.yaml"
+        - "src/shared/_prompts/**/model.yaml"
 
   ai.prompt.governed_prompt_must_have_anchor:
     engine: artifact_gate
@@ -29,4 +29,4 @@ mappings:
       check_type: governed_prompt_has_anchor
     scope:
       applies_to:
-        - "var/prompts/**/model.yaml"
+        - "src/shared/_prompts/**/model.yaml"

@@ -42,7 +42,7 @@ mandate:
       - "src/**"
       - "docs/**"
       - "tests/**"
-      - "var/prompts/**"
+      - "src/shared/_prompts/**"
       - "reports/**"
     domains:
       - knowledge

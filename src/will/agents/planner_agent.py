@@ -117,7 +117,7 @@ class PlannerAgent:
             prompt_template = (prompt_dir / "system.txt").read_text(encoding="utf-8")
         except FileNotFoundError:
             logger.error(
-                "Constitutional prompt 'planner_agent/system.txt' missing from var/prompts/"
+                "Constitutional prompt 'planner_agent/system.txt' missing from src/shared/_prompts/"
             )
             raise
 

@@ -14,7 +14,7 @@ metadata:
     migration campaign. Implementation in body.workers.prompt_artifact_writer
     verified complete 2026-05-23 against declared mandate (#258 closed):
     three-artifact generation, atomic blackboard claim via FOR UPDATE SKIP LOCKED,
-    FileHandler-scoped writes to var/prompts/, LLM role aligns (model
+    FileHandler-scoped writes to src/shared/_prompts/, LLM role aligns (model
     'prompt_artifact_generator' uses role: Architect, mandate permits
     llm.architect). PromptModel 'prompt_artifact_generator' confirmed on disk
     with model.yaml + system.txt + user.txt. Pre-activation correctness:
@@ -29,14 +29,14 @@ identity:
 mandate:
   responsibility: >
     For each approved prompt extraction on the blackboard, generate and write
-    the three PromptModel artifact files to var/prompts/.
+    the three PromptModel artifact files to src/shared/_prompts/.
   phase: execution
   permitted_tools:
     - llm.architect
     - file.write
   scope:
     paths:
-      - "var/prompts/**"
+      - "src/shared/_prompts/**"
     domains:
       - compliance
   approval_required: true

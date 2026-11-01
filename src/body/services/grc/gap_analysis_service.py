@@ -353,7 +353,7 @@ class DocumentCorpusAnalysisService:
         from shared.infrastructure.intent.intent_repository import get_intent_repository
         from shared.path_resolver import PathResolver
 
-        # Engine internals (e.g. llm_gate prompts under var/prompts/) resolve
+        # Engine internals (e.g. llm_gate prompts under src/shared/_prompts/) resolve
         # against CORE's own root; the corpus is addressed only via the
         # _CorpusContext below. Two independent roots — the Intent/Artifact split.
         # get_intent_repository().root.parent is the governed way to locate the

@@ -1,3 +1,0 @@
-Draft metadata for the maintenance function: {function_name}
-
-Generate canonical_name (resource.action format), behavior (query/mutate/transform), dangerous flag, and description.

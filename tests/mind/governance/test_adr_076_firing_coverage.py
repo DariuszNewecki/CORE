@@ -169,10 +169,10 @@ async def test_required_fields_fires_on_missing_field(tmp_path: Path) -> None:
     repo = _scaffold_repo(tmp_path)
     # model.yaml missing 'role' and 'success_criteria'
     _write_model_yaml(
-        repo / "var" / "prompts" / "bad_required" / "model.yaml",
+        repo / "src" / "shared" / "_prompts" / "bad_required" / "model.yaml",
         {"id": "x", "version": "1.0"},
     )
-    scope = ["var/prompts/**/*.yaml"]
+    scope = ["src/shared/_prompts/**/*.yaml"]
     ctx = _make_per_file_test_context(
         repo, "ai.prompt.artifact.required_fields", "required_fields", scope
     )
@@ -186,7 +186,7 @@ async def test_required_fields_fires_on_missing_field(tmp_path: Path) -> None:
 async def test_no_provider_leak_fires_on_anthropic_preference(tmp_path: Path) -> None:
     repo = _scaffold_repo(tmp_path)
     _write_model_yaml(
-        repo / "var" / "prompts" / "leaky" / "model.yaml",
+        repo / "src" / "shared" / "_prompts" / "leaky" / "model.yaml",
         {
             "id": "x",
             "version": "1.0",
@@ -197,7 +197,7 @@ async def test_no_provider_leak_fires_on_anthropic_preference(tmp_path: Path) ->
             "model": {"preference": "anthropic"},
         },
     )
-    scope = ["var/prompts/**/*.yaml"]
+    scope = ["src/shared/_prompts/**/*.yaml"]
     ctx = _make_per_file_test_context(
         repo, "ai.prompt.artifact.no_provider_leak", "no_provider_leak", scope
     )
@@ -211,7 +211,7 @@ async def test_no_provider_leak_fires_on_anthropic_preference(tmp_path: Path) ->
 async def test_role_abstraction_fires_on_unknown_role(tmp_path: Path) -> None:
     repo = _scaffold_repo(tmp_path)
     _write_model_yaml(
-        repo / "var" / "prompts" / "wrong_role" / "model.yaml",
+        repo / "src" / "shared" / "_prompts" / "wrong_role" / "model.yaml",
         {
             "id": "x",
             "version": "1.0",
@@ -221,7 +221,7 @@ async def test_role_abstraction_fires_on_unknown_role(tmp_path: Path) -> None:
             "output": {"format": "text"},
         },
     )
-    scope = ["var/prompts/**/*.yaml"]
+    scope = ["src/shared/_prompts/**/*.yaml"]
     ctx = _make_per_file_test_context(
         repo, "ai.prompt.artifact.role_abstraction", "role_abstraction", scope
     )
@@ -419,7 +419,7 @@ def test_active_per_file_rule_scopes_derives_from_policies_and_loader(
         repo,
         "test.per_file.alpha",
         "required_fields",
-        ["var/prompts/**/*.yaml"],
+        ["src/shared/_prompts/**/*.yaml"],
     )
     mappings_dir = repo / ".intent" / "enforcement" / "mappings"
     (mappings_dir / "test_fixture_beta.yaml").write_text(
@@ -480,7 +480,7 @@ def test_active_per_file_rule_scopes_derives_from_policies_and_loader(
     union = ctx._active_per_file_rule_scopes()
 
     # The two per-file scopes appear; the context-level scope does NOT.
-    assert "var/prompts/**/*.yaml" in union
+    assert "src/shared/_prompts/**/*.yaml" in union
     assert "src/**/*.py" in union
     assert ".intent/**/*.yaml" not in union, (
         "Context-level rule scope leaked into the per-file union — the "

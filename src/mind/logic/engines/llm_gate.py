@@ -12,7 +12,7 @@ CONSTITUTIONAL ALIGNMENT:
 HARDENING (V2.7):
 - Uses Protocols to avoid Mind -> Body leakage (P2.2).
 - Handles AI failures as 'UNAVAILABLE' for audit truthfulness (P1.3).
-- Prompts governed via var/prompts/llm_gate/ PromptModel artifact.
+- Prompts governed via src/shared/_prompts/llm_gate/ PromptModel artifact.
 
 ADR-044 — Incremental LLM-gate verdict cache:
 - Before dispatching to Ollama, checks core.llm_gate_verdicts for a row
@@ -61,7 +61,7 @@ class LLMGateEngine(BaseEngine):
 
     Uses LLM reasoning to verify abstract rules (Spirit of the Law).
     Decoupled from the Body layer via LLMClientProtocol.
-    Prompts governed via var/prompts/llm_gate/ PromptModel artifact.
+    Prompts governed via src/shared/_prompts/llm_gate/ PromptModel artifact.
     """
 
     engine_id = "llm_gate"

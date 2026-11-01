@@ -48,7 +48,7 @@ _SCOPE_DIRS: tuple[str, ...] = (
     "src/body/atomic",
 )
 
-# Placeholder-content rejection pattern. var/prompts/docstring_writer/system.txt
+# Placeholder-content rejection pattern. src/shared/_prompts/docstring_writer/system.txt
 # rule #7 forbids FUTURE/PENDING/placeholder text; this is the post-generation
 # enforcement that catches the case where the LLM disregards the rule. If the
 # pattern matches we skip the symbol — inserting placeholder content would land

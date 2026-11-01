@@ -3,7 +3,7 @@
 PromptArtifactWriter - Constitutional Compliance Acting Worker.
 
 Responsibility: For each approved prompt extraction on the blackboard,
-generate and write the three PromptModel artifact files to var/prompts/.
+generate and write the three PromptModel artifact files to src/shared/_prompts/.
 
 Constitutional standing:
 - Declaration:      .intent/workers/prompt_artifact_writer.yaml
@@ -12,7 +12,7 @@ Constitutional standing:
 - Permitted tools:  llm.architect, file.write
 - Approval:         true
 
-LAYER: body/workers — acting worker. Writes to var/prompts/ only via
+LAYER: body/workers — acting worker. Writes to src/shared/_prompts/ only via
 FileHandler (IntentGuard enforced). No src/ writes.
 """
 
@@ -44,7 +44,7 @@ class PromptArtifactWriter(Worker):
     """
     Acting worker. Claims open prompt.extraction findings from the blackboard,
     invokes the prompt_artifact_generator PromptModel to produce three artifact
-    files, writes them to var/prompts/<suggested_name>/ via FileHandler,
+    files, writes them to src/shared/_prompts/<suggested_name>/ via FileHandler,
     and posts a completion finding to the blackboard.
 
     approval_required: true — writes to the filesystem.
@@ -204,7 +204,7 @@ class PromptArtifactWriter(Worker):
 
             written += 1
             logger.info(
-                "PromptArtifactWriter: wrote var/prompts/%s/ (%s:%s)",
+                "PromptArtifactWriter: wrote src/shared/_prompts/%s/ (%s:%s)",
                 suggested_name,
                 file_path,
                 line_number,

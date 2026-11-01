@@ -3,7 +3,7 @@
 Ollama Model Evaluation Harness for CORE PromptModel artifacts.
 
 Standalone script — does NOT import from CORE's src/ package, does NOT
-touch the database or daemon. Reads var/prompts/ artifacts directly,
+touch the database or daemon. Reads src/shared/_prompts/ artifacts directly,
 runs each prompt against three local Ollama models, scores each response,
 and writes results to var/llm_eval/.
 """
@@ -36,7 +36,7 @@ from rich.table import Table
 # ---------------------------------------------------------------------------
 
 REPO_ROOT = Path("/opt/dev/CORE")
-PROMPTS_DIR = REPO_ROOT / "var" / "prompts"
+PROMPTS_DIR = REPO_ROOT / "src" / "shared" / "_prompts"
 RESULTS_DIR = REPO_ROOT / "var" / "llm_eval"
 
 OLLAMA_URL = "http://192.168.20.40:11434"
@@ -1310,7 +1310,7 @@ def main() -> int:
         default=None,
         metavar="NAME",
         help="Restrict the run to the named prompt artifact(s) (directory name "
-             "under var/prompts/). Repeatable.",
+             "under src/shared/_prompts/). Repeatable.",
     )
     parser.add_argument(
         "--models",
@@ -1376,7 +1376,7 @@ def main() -> int:
         if unknown:
             console.print(
                 "[red]ERROR[/red] unknown prompt name(s) (no matching "
-                f"directory under var/prompts/): {', '.join(unknown)}"
+                f"directory under src/shared/_prompts/): {', '.join(unknown)}"
             )
             return 2
         candidates = [p for p in all_prompts if p.name in requested]
