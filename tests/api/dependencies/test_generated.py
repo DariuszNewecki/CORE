@@ -209,3 +209,24 @@ def test_CallerPrincipal():
     assert principal.account == "alice"
     assert principal.role == "admin"
     assert principal.binding_error is None
+
+
+
+import pytest
+
+from api.dependencies import open_background_session
+
+
+@pytest.mark.asyncio
+# ID: 7ce58083-1c96-4516-8969-477ba226d1f1
+async def test_open_background_session():
+    mock_session = AsyncMock()
+    mock_cm = AsyncMock()
+    mock_cm.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_cm.__aexit__ = AsyncMock(return_value=None)
+
+    with patch("api.dependencies.get_session", return_value=mock_cm):
+        agen = open_background_session()
+        session = await agen.__anext__()
+        assert session is mock_session
+        await agen.aclose()
