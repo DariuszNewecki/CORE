@@ -43,8 +43,6 @@ def test_StrategyCatalog_list_templates():
     assert catalog.list_templates() is not templates
 
 
-
-
 # ID: 90600c99-6f3b-446b-93c9-c57b2e394c48
 def test_StrategyCatalog() -> None:
     catalog = StrategyCatalog()
@@ -90,3 +88,46 @@ def test_StrategyCatalog() -> None:
 
     defer = by_id["defer_structural_split_choose_local_cleanup"]
     assert "unknown" in defer.preferred_for_roles
+
+
+from will.self_healing.remediation_interpretation.strategy_catalog import (
+    StrategyTemplate,
+)
+
+
+# ID: 32e1fa50-1ec5-4f7c-8743-7e5ca5c7a3fc
+def test_StrategyTemplate():
+    strategy = StrategyTemplate(
+        strategy_id="extract_helper",
+        summary="Extract duplicated logic into a shared helper.",
+        rationale="Reduces duplication and centralizes behavior.",
+        risk_level="low",
+        preserves_contract=True,
+        preferred_for_roles=("utility", "service"),
+        preferred_for_rules=("duplicate_code",),
+        discouraged_for_roles=("entrypoint",),
+        discouraged_for_rules=("public_api",),
+    )
+
+    assert strategy.strategy_id == "extract_helper"
+    assert strategy.summary == "Extract duplicated logic into a shared helper."
+    assert strategy.rationale == "Reduces duplication and centralizes behavior."
+    assert strategy.risk_level == "low"
+    assert strategy.preserves_contract is True
+    assert strategy.preferred_for_roles == ("utility", "service")
+    assert strategy.preferred_for_rules == ("duplicate_code",)
+    assert strategy.discouraged_for_roles == ("entrypoint",)
+    assert strategy.discouraged_for_rules == ("public_api",)
+
+    minimal = StrategyTemplate(
+        strategy_id="rename_symbol",
+        summary="Rename symbol for clarity.",
+        rationale="Improves readability.",
+        risk_level="low",
+        preserves_contract=True,
+    )
+
+    assert minimal.preferred_for_roles == ()
+    assert minimal.preferred_for_rules == ()
+    assert minimal.discouraged_for_roles == ()
+    assert minimal.discouraged_for_rules == ()
