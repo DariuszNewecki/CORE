@@ -196,3 +196,16 @@ def test_get_caller_principal():
     assert result.account == "alice"
     assert result.role == "admin"
     assert result.binding_error is None
+
+
+from api.dependencies import CallerPrincipal
+
+
+# ID: 39ad01e4-0cf2-4abd-978e-09d124f38969
+def test_CallerPrincipal():
+    principal = CallerPrincipal(uid=1000, account="alice", role="admin")
+
+    assert principal.uid == 1000
+    assert principal.account == "alice"
+    assert principal.role == "admin"
+    assert principal.binding_error is None
