@@ -52,7 +52,6 @@ def test_RequestInterpreter():
     assert result.duration_sec == 0.0
 
 
-
 from will.interpreters.request_interpreter import TaskStructure
 
 
@@ -76,3 +75,14 @@ def test_TaskStructure() -> None:
     assert task.constraints == {"write_mode": "safe", "max_attempts": 3}
     assert task.context == {"source": "request"}
     assert task.confidence == 0.9
+
+
+from will.interpreters.request_interpreter import TaskType
+
+
+# ID: 75b45b8c-523a-4e8e-b4bb-244a57830d70
+def test_TaskType():
+    assert TaskType.QUERY.value == "query"
+    assert TaskType.UNKNOWN.value == "unknown"
+    assert TaskType("analyze") is TaskType.ANALYZE
+    assert isinstance(TaskType.FIX, str)
