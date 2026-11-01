@@ -20,3 +20,26 @@ async def test_get_thesis_latest():
 
     mock_daily_records.assert_awaited_once()
     assert result == {"report": "b"}
+
+
+from unittest.mock import MagicMock
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 2e83dbd6-380e-4d89-8927-290b6f78a1a2
+async def test_get_secrets_service_dep():
+    from api.dependencies import get_secrets_service_dep
+
+    session = MagicMock()
+    expected_service = MagicMock()
+
+    with patch(
+        "api.dependencies._get_secrets_svc",
+        new=AsyncMock(return_value=expected_service),
+    ) as mock_get_secrets_svc:
+        result = await get_secrets_service_dep(session=session)
+
+    assert result is expected_service
+    mock_get_secrets_svc.assert_awaited_once_with(session)
