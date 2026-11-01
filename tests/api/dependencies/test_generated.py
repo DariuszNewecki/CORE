@@ -97,3 +97,42 @@ def test_get_consequence_log_service():
 
         mock_service_cls.assert_called_once_with()
         assert result is mock_instance
+
+
+import pytest
+from fastapi import HTTPException
+
+from api.dependencies import require_identified_producer
+
+
+# ID: 1eef254b-14d0-49f9-bd5c-9db132bd94d5
+def test_require_identified_producer() -> None:
+    from api.dependencies import CANDIDATE_CODE_ROLES
+
+    roles = sorted(CANDIDATE_CODE_ROLES)
+    valid_role = roles[0]
+
+    class _Principal:
+        def __init__(self, uid, role, account, binding_error=None):
+            self.uid = uid
+            self.role = role
+            self.account = account
+            self.binding_error = binding_error
+
+    identified = _Principal(uid=1000, role=valid_role, account="some-account")
+    assert require_identified_producer(identified) == "some-account"
+
+    tcp_principal = _Principal(uid=None, role=valid_role, account="some-account")
+    with pytest.raises(HTTPException) as excinfo:
+        require_identified_producer(tcp_principal)
+    assert excinfo.value.status_code == 403
+
+    no_account = _Principal(uid=1000, role=valid_role, account=None)
+    with pytest.raises(HTTPException) as excinfo:
+        require_identified_producer(no_account)
+    assert excinfo.value.status_code == 403
+
+    unknown_role = _Principal(uid=1000, role="AUDITOR", account="auditor-account")
+    with pytest.raises(HTTPException) as excinfo:
+        require_identified_producer(unknown_role)
+    assert excinfo.value.status_code == 403
