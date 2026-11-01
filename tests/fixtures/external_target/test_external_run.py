@@ -44,6 +44,7 @@ from cli.runtime_external_run import (
     runner_prompt_sources,
     vector_store_leak,
 )
+from shared.infrastructure.bundled_prompts import is_package_marker
 from shared.infrastructure.intent.machinery_floor_integrity import verify_floor
 from shared.infrastructure.intent.target_intent_assembly import subject_fingerprint
 
@@ -570,21 +571,29 @@ def test_runner_prompt_is_installed_into_the_copy(tmp_path: Path) -> None:
     installed = run / "target" / "var" / "prompts" / "plan_goal" / "model.yaml"
     assert (
         installed.read_bytes()
-        == (REPO_ROOT / "var" / "prompts" / "plan_goal" / "model.yaml").read_bytes()
+        == (
+            REPO_ROOT / "src" / "shared" / "_prompts" / "plan_goal" / "model.yaml"
+        ).read_bytes()
     )
     assert (run / "evidence" / "prompt_collision_manifest.json").is_file()
     # Ruling B at its principle: the runner's WHOLE prompt set is machinery.
-    runner_root = REPO_ROOT / "var" / "prompts"
+    runner_root = REPO_ROOT / "src" / "shared" / "_prompts"
     runner_ids = {
         e.name
         for e in runner_root.iterdir()
         if (e.is_dir() and (e / "model.yaml").is_file())
-        or (e.is_file() and not e.name.startswith("."))
+        or (
+            e.is_file() and not e.name.startswith(".") and not is_package_marker(e.name)
+        )
     }
     copy_ids = {e.name for e in (run / "target" / "var" / "prompts").iterdir()}
     assert copy_ids == runner_ids and len(runner_ids) > 2
     assert set(runner_prompt_sources(REPO_ROOT)) == runner_ids
-    loose = sorted(e.name for e in runner_root.iterdir() if e.is_file())
+    loose = sorted(
+        e.name
+        for e in runner_root.iterdir()
+        if e.is_file() and not is_package_marker(e.name)
+    )
     assert loose, "CORE's corpus has loose prompt files; the copy carries them"
     for name in loose:
         assert (run / "target" / "var" / "prompts" / name).read_bytes() == (
