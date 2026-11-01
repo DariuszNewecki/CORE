@@ -33,7 +33,8 @@ import yaml
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_SCHEMA = _REPO_ROOT / "schema.sql"
+_MIGRATIONS_ROOT = _REPO_ROOT / "src" / "shared" / "_migrations"
+_SCHEMA = _MIGRATIONS_ROOT / "schema.sql"
 _REGISTRY_DIR = _REPO_ROOT / ".intent" / "artifact_types"
 
 

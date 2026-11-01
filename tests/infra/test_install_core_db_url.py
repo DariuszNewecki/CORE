@@ -105,9 +105,9 @@ def _workspace(tmp_path: Path) -> tuple[Path, Path]:
     shutil.copy(ENV_EXAMPLE, ws / ".env.example")
     # the installer reads the declared core-cli release from it (ADR-167 D2)
     shutil.copy(REPO / "Makefile", ws / "Makefile")
-    (ws / "schema.sql").write_text(
-        "-- empty schema for the installer test\n", encoding="utf-8"
-    )
+    schema = ws / "src" / "shared" / "_migrations" / "schema.sql"
+    schema.parent.mkdir(parents=True)
+    schema.write_text("-- empty schema for the installer test\n", encoding="utf-8")
     return ws, tmp_path / "psql.log"
 
 

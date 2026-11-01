@@ -34,7 +34,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from shared.infrastructure.repositories.db.common import REPO_ROOT
 from shared.infrastructure.repositories.db.manifest import load_manifest
 from shared.infrastructure.repositories.db.migration_service import adopt_baseline
 
@@ -45,9 +44,10 @@ if TYPE_CHECKING:
 
 pytestmark = [pytest.mark.integration, pytest.mark.upgrade]
 
-assert REPO_ROOT is not None
+REPO_ROOT = Path(__file__).resolve().parents[4]
+MIGRATIONS_ROOT = REPO_ROOT / "src" / "shared" / "_migrations"
 INSTALLER = REPO_ROOT / "install-core.sh"
-SCHEMA_SQL = REPO_ROOT / "schema.sql"
+SCHEMA_SQL = MIGRATIONS_ROOT / "schema.sql"
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "schema"
 SCHEMA_V2_9_1 = FIXTURES / "schema-v2.9.1.sql"
 SCHEMA_V2_10_1 = FIXTURES / "schema-v2.10.1.sql"
@@ -100,7 +100,9 @@ def _workspace(tmp_path: Path, schema_sql: Path = SCHEMA_SQL) -> Path:
     shutil.copy(REPO_ROOT / ".env.example", ws / ".env.example")
     # the installer reads the declared core-cli release from it (ADR-167 D2)
     shutil.copy(REPO_ROOT / "Makefile", ws / "Makefile")
-    shutil.copy(schema_sql, ws / "schema.sql")
+    packaged = ws / "src" / "shared" / "_migrations" / "schema.sql"
+    packaged.parent.mkdir(parents=True)
+    shutil.copy(schema_sql, packaged)
     return ws
 
 

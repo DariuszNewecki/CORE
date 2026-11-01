@@ -11,7 +11,7 @@
 #     env:
 #       DATABASE_URL: postgresql+asyncpg://core_db:test@localhost:5433/core_test
 #
-# Schema source: schema.sql at repo root (canonical per #521).
+# Schema source: src/shared/_migrations/schema.sql (canonical per #521, #1387).
 # Portable: no OWNER TO / GRANT lines (dumped with --no-owner --no-acl).
 
 services:
@@ -25,7 +25,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - ./schema.sql:/schema/schema.sql:ro
+      - ./src/shared/_migrations/schema.sql:/schema/schema.sql:ro
       - ./infra/scripts/init-test-db.sh:/docker-entrypoint-initdb.d/00-init.sh:ro
     tmpfs:
       - /var/lib/postgresql/data

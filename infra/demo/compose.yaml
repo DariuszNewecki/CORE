@@ -20,7 +20,8 @@
 #   identity, so cleanup can find (and verify it removed) everything
 #   belonging to this run and nothing else.
 #
-# Postgres schema (D4): initialized from the canonical root schema.sql via
+# Postgres schema (D4): initialized from the canonical schema.sql
+# (src/shared/_migrations/schema.sql, #1387) via
 # a bind mount, NOT a copy — docker-entrypoint-initdb.d applies it exactly
 # as install-core.sh does (`psql ... < schema.sql`). The relative path
 # below is resolved by Compose against this file's own directory, so it
@@ -43,7 +44,7 @@ services:
     tmpfs:
       - /var/lib/postgresql/data
     volumes:
-      - ../../schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      - ../../src/shared/_migrations/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
     ports:
       - "127.0.0.1::5432"
     healthcheck:

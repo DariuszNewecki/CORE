@@ -13,7 +13,6 @@ from pathlib import Path
 
 import pytest
 
-from shared.infrastructure.repositories.db.common import REPO_ROOT
 from shared.infrastructure.repositories.db.manifest import load_manifest
 from shared.infrastructure.repositories.db.migration_sql import (
     MigrationSqlError,
@@ -24,8 +23,9 @@ from shared.infrastructure.repositories.db.migration_sql import (
 )
 
 
-assert REPO_ROOT is not None
-MIGRATIONS_DIR = REPO_ROOT / "infra" / "scripts" / "migrations"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+MIGRATIONS_ROOT = REPO_ROOT / "src" / "shared" / "_migrations"
+MIGRATIONS_DIR = MIGRATIONS_ROOT / "infra" / "scripts" / "migrations"
 
 
 # ── every migration on disk is atomically executable ─────────────────────────
@@ -51,7 +51,7 @@ def test_every_migration_file_passes_the_transaction_lint(sql_file: str) -> None
 def test_every_manifest_entry_is_lintable() -> None:
     manifest = load_manifest()
     for entry in manifest.entries:
-        lint_migration_file(manifest.sql_path(entry.id, REPO_ROOT))
+        lint_migration_file(manifest.sql_path(entry.id, MIGRATIONS_ROOT))
 
 
 # ── stripping rules ──────────────────────────────────────────────────────────

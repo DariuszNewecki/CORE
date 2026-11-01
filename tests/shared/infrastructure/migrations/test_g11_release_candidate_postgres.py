@@ -45,7 +45,6 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from shared.infrastructure.repositories.db.common import REPO_ROOT
 from shared.infrastructure.repositories.db.ledger_engine import MigrationOutcome
 from shared.infrastructure.repositories.db.manifest import load_manifest
 from shared.infrastructure.repositories.db.migration_service import (
@@ -71,8 +70,9 @@ if TYPE_CHECKING:
 
 pytestmark = [pytest.mark.integration, pytest.mark.upgrade]
 
-assert REPO_ROOT is not None
-SCHEMA_SQL = REPO_ROOT / "schema.sql"
+REPO_ROOT = Path(__file__).resolve().parents[4]
+MIGRATIONS_ROOT = REPO_ROOT / "src" / "shared" / "_migrations"
+SCHEMA_SQL = MIGRATIONS_ROOT / "schema.sql"
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "schema"
 BASELINES = ["v2.9.1", "v2.10.1"]
 

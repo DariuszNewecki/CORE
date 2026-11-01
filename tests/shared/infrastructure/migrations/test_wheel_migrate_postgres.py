@@ -24,7 +24,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from shared.infrastructure.repositories.db.common import REPO_ROOT
 from shared.infrastructure.repositories.db.manifest import load_manifest
 
 
@@ -34,7 +33,7 @@ if TYPE_CHECKING:
 
 pytestmark = [pytest.mark.integration, pytest.mark.upgrade, pytest.mark.slow]
 
-assert REPO_ROOT is not None
+REPO_ROOT = Path(__file__).resolve().parents[4]
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "schema"
 BASELINES = ["v2.9.1", "v2.10.1"]
 

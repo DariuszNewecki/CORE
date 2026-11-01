@@ -480,7 +480,7 @@ jobs:
             -c "CREATE EXTENSION IF NOT EXISTS btree_gin;" \
             -c "CREATE EXTENSION IF NOT EXISTS btree_gist;"
           psql -h localhost -U core_test_db -d core_test -v ON_ERROR_STOP=1 \
-            < schema.sql
+            < src/shared/_migrations/schema.sql
 
       # #773 T5.1: this job provisions a real ephemeral Postgres above
       # (services: postgres) -- DB reachability here is a guaranteed

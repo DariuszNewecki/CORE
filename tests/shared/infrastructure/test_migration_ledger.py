@@ -19,12 +19,13 @@ DB-backed proofs of atomicity, retry and concurrency live in
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
 import yaml
 
-from shared.infrastructure.repositories.db.common import REPO_ROOT, load_policy
+from shared.infrastructure.repositories.db.common import load_policy
 from shared.infrastructure.repositories.db.ledger_engine import (
     MigrationOutcome,
     MigrationResult,
@@ -37,9 +38,10 @@ from shared.infrastructure.repositories.db.migration_service import (
 )
 
 
-assert REPO_ROOT is not None
-_MANIFEST = REPO_ROOT / "infra" / "migrations" / "manifest.yaml"
-_MIGRATIONS_DIR = REPO_ROOT / "infra" / "scripts" / "migrations"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+MIGRATIONS_ROOT = REPO_ROOT / "src" / "shared" / "_migrations"
+_MANIFEST = MIGRATIONS_ROOT / "infra" / "migrations" / "manifest.yaml"
+_MIGRATIONS_DIR = MIGRATIONS_ROOT / "infra" / "scripts" / "migrations"
 _SVC = "shared.infrastructure.repositories.db.migration_service"
 
 

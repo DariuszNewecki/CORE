@@ -76,10 +76,10 @@ Once the one-time setup is complete:
 
 Before tagging a release that changes the database schema:
 
-- **Manifest complete.** Every new `.sql` under `infra/scripts/migrations/` is in
-  `infra/migrations/manifest.yaml` `order` with a `verify` probe under `probes:`
+- **Manifest complete.** Every new `.sql` under `src/shared/_migrations/infra/scripts/migrations/` is in
+  `src/shared/_migrations/infra/migrations/manifest.yaml` `order` with a `verify` probe under `probes:`
   (`tests/shared/infrastructure/test_migration_manifest_completeness.py`).
-- **`schema.sql` regenerated** from the migrated database by `infra/scripts/reset_test_db.sh`,
+- **`src/shared/_migrations/schema.sql` regenerated** from the migrated database by `infra/scripts/reset_test_db.sh`,
   which appends the ledger seed; seed ids must equal the manifest order
   (`tests/shared/infrastructure/test_schema_ledger_seed.py`).
 - **Hop test green.** The previous release's `schema.sql` plus the entries added since must

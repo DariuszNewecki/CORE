@@ -22,7 +22,6 @@ from pathlib import Path
 
 import pytest
 
-from shared.infrastructure.repositories.db.common import REPO_ROOT
 from shared.infrastructure.repositories.db.manifest import (
     ManifestError,
     load_manifest,
@@ -31,8 +30,9 @@ from shared.infrastructure.repositories.db.manifest import (
 )
 
 
-assert REPO_ROOT is not None
-MIGRATIONS_DIR = REPO_ROOT / "infra" / "scripts" / "migrations"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+MIGRATIONS_ROOT = REPO_ROOT / "src" / "shared" / "_migrations"
+MIGRATIONS_DIR = MIGRATIONS_ROOT / "infra" / "scripts" / "migrations"
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "schema"
 RELEASED = json.loads((FIXTURES / "released_migrations_sha256.json").read_text("utf-8"))
 

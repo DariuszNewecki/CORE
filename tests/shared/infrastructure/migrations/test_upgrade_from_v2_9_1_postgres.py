@@ -39,7 +39,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from shared.infrastructure.repositories.db.common import REPO_ROOT
 from shared.infrastructure.repositories.db.ledger_engine import MigrationOutcome
 from shared.infrastructure.repositories.db.manifest import load_manifest, parse_manifest
 from shared.infrastructure.repositories.db.migration_service import (
@@ -56,8 +55,9 @@ if TYPE_CHECKING:
 
 pytestmark = [pytest.mark.integration, pytest.mark.upgrade]
 
-assert REPO_ROOT is not None
-SCHEMA_SQL = REPO_ROOT / "schema.sql"
+REPO_ROOT = Path(__file__).resolve().parents[4]
+MIGRATIONS_ROOT = REPO_ROOT / "src" / "shared" / "_migrations"
+SCHEMA_SQL = MIGRATIONS_ROOT / "schema.sql"
 SCHEMA_V2_9_1 = REPO_ROOT / "tests" / "fixtures" / "schema" / "schema-v2.9.1.sql"
 SCHEMA_V2_10_1 = REPO_ROOT / "tests" / "fixtures" / "schema" / "schema-v2.10.1.sql"
 RECONCILED_COLUMN = "20260919_adr162_migrations_reconciled.sql"

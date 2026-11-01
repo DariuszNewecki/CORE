@@ -36,7 +36,8 @@ from sqlalchemy.ext.asyncio import (
 
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-SCHEMA_SQL = REPO_ROOT / "schema.sql"
+MIGRATIONS_ROOT = REPO_ROOT / "src" / "shared" / "_migrations"
+SCHEMA_SQL = MIGRATIONS_ROOT / "schema.sql"
 SCHEMA_V2_9_1 = REPO_ROOT / "tests" / "fixtures" / "schema" / "schema-v2.9.1.sql"
 
 _IMAGE = os.environ.get("CORE_TEST_POSTGRES_IMAGE", "postgres:16")

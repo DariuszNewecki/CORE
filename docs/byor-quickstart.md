@@ -80,7 +80,7 @@ cd CORE
 poetry install
 cp .env.example .env
 docker compose up -d                        # Postgres + Qdrant
-docker compose exec -T postgres psql -U postgres -d core < schema.sql
+docker compose exec -T postgres psql -U postgres -d core < src/shared/_migrations/schema.sql
 ```
 
 Start the API server. In a fresh clone with no systemd user units installed
