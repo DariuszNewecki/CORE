@@ -83,9 +83,6 @@ async def test_SyncClient_sync_code_vectors():
     assert result == {"status": "ok", "count": 3}
 
 
-
-
-
 # ID: 358b3a40-b016-415a-9a78-77b0f52594fb
 async def test_SyncClient_sync_vectors():
     facade = MagicMock()
@@ -103,3 +100,29 @@ async def test_SyncClient_sync_vectors():
         json={"write": True, "target": "vectors", "requested_by": "tester"},
     )
     assert result == {"status": "ok", "synced": 3}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 13317954-97ed-4301-963b-fa2207734dc8
+async def test_SyncClient_sync_knowledge_graph():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True, "synced": 1})
+
+    client = SyncClient(facade)
+
+    result = await client.sync_knowledge_graph(
+        write=True,
+        target="local",
+        requested_by="tester",
+    )
+
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/sync/knowledge-graph",
+        json={"write": True, "target": "local", "requested_by": "tester"},
+    )
+    assert result == {"ok": True, "synced": 1}
