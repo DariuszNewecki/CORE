@@ -378,8 +378,6 @@ async def test_run_and_persist_fix():
     assert payload["ok"] is True
 
 
-
-
 # ID: e2d34099-fdf5-41ce-8cd5-2d82bc176390
 def test_list_registered_flow_ids():
     from will.governance.fix_runner import list_registered_flow_ids
@@ -400,3 +398,22 @@ def test_list_registered_flow_ids():
 
     assert result == {"flow-alpha", "flow-beta"}
     mock_registry.list_all.assert_called_once_with()
+
+
+
+
+# ID: c3857d5a-e2a9-4e25-8b7d-ca98301b57bc
+def test_action_runs_candidate_code():
+    from will.governance.fix_runner import action_runs_candidate_code
+
+    definition = MagicMock()
+    definition.runs_candidate_code = True
+
+    with patch(
+        "body.atomic.action_registry.get",
+        return_value=definition,
+    ) as mock_get:
+        result = action_runs_candidate_code("some.action")
+
+    assert result is True
+    mock_get.assert_called_once_with("some.action")
