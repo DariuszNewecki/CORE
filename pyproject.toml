@@ -119,7 +119,7 @@ aiosqlite = "^0.22.1"
 pre-commit = "^4.7.0"
 mypy = "^2.4"
 types-PyYAML = "^6.0"
-types-jsonschema = "^4.0"
+types-jsonschema = "^4.26"
 ruff = "^0.17.3"
 
 # Documentation
