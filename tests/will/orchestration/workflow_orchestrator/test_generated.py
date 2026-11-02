@@ -51,8 +51,6 @@ async def test_WorkflowOrchestrator_execute_goal():
     )
 
 
-
-
 # ID: d3810e1c-2860-45f5-91fc-126c5d46fc1a
 def test_WorkflowOrchestrator():
     from will.orchestration.workflow_orchestrator import WorkflowOrchestrator
@@ -98,3 +96,19 @@ def test_WorkflowOrchestrator():
     assert workflow_def.description == "A feature workflow"
     assert workflow_def.phases == ["interpret", "audit"]
     assert workflow_def.write_required is True
+
+
+from will.orchestration.workflow_orchestrator import WorkflowContext
+
+
+# ID: 6a74a082-1365-4232-8adb-a0c5e74d61fe
+def test_WorkflowContext():
+    ctx = WorkflowContext(goal="build feature", workflow_type="feature", write=True)
+
+    assert ctx.goal == "build feature"
+    assert ctx.workflow_type == "feature"
+    assert ctx.write is True
+    assert ctx.results == {}
+
+    ctx.results["phase1"] = {"output": "value"}
+    assert ctx.results == {"phase1": {"output": "value"}}
