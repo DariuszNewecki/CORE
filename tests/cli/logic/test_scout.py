@@ -23,6 +23,7 @@ from cli.logic.scout import (
     _extract_repo_signals,
     _format_signal_report,
     _load_candidate_cache,
+    _load_enforcement_catalog,
     _load_fallback_candidates,
     _save_candidate_cache,
 )
@@ -258,37 +259,40 @@ def test_format_signal_report_ci_signals_included() -> None:
 # ── _load_fallback_candidates ──────────────────────────────────────────────────
 
 
-def test_fallback_candidates_loaded_from_starter(tmp_path: Path) -> None:
-    """Fallback loads rule IDs from starter.json; engine comes from catalog matching."""
-    rules_path = tmp_path / "examples" / "starter-intent" / ".intent" / "rules"
-    rules_path.mkdir(parents=True)
-
-    rules_doc = {
-        "kind": "rule_document",
-        "metadata": {"id": "rules.starter"},
-        "rules": [
-            {
-                "id": "starter.docstrings",
-                "statement": "Public functions MUST have a docstring.",
-                "enforcement": "reporting",
-            }
-        ],
-    }
-    (rules_path / "starter.json").write_text(json.dumps(rules_doc))
+def test_fallback_candidates_come_from_the_shipped_starter_pack(tmp_path: Path) -> None:
+    """Fallback reads the starter pack the wheel ships; no embedded copy (#1387 C5)."""
+    pack = yaml.safe_load(
+        (
+            Path(__file__).resolve().parents[3]
+            / "src/shared/_packs/starter_python.yaml"
+        ).read_text(encoding="utf-8")
+    )
 
     candidates = _load_fallback_candidates(tmp_path)
 
-    assert len(candidates) == 1
-    c = candidates[0]
-    assert c["rule_id"] == "scout.docstrings"
-    assert c["enforcement"] == "reporting"
+    assert [c["rule_id"] for c in candidates] == [
+        "scout." + r["id"].split(".", 1)[-1] for r in pack["rules"]
+    ]
+    assert [c["statement"] for c in candidates] == [
+        r["statement"] for r in pack["rules"]
+    ]
     # engine is NOT present here — it's added by _match_enforcement in induce_rules()
-    assert "engine" not in c
+    assert all("engine" not in c for c in candidates)
 
 
-def test_fallback_missing_files_returns_empty(tmp_path: Path) -> None:
-    result = _load_fallback_candidates(tmp_path)
-    assert len(result) == 4
+# ── _load_enforcement_catalog ─────────────────────────────────────────────────
+
+
+def test_enforcement_catalog_comes_from_the_shipped_prompt(tmp_path: Path) -> None:
+    """A repo without its own prompt root gets the bundled catalog in full (#1387 C5)."""
+    shipped = yaml.safe_load(
+        (
+            Path(__file__).resolve().parents[3]
+            / "src/shared/_prompts/scout_rule_inducer/enforcement_catalog.yaml"
+        ).read_text(encoding="utf-8")
+    )["entries"]
+
+    assert _load_enforcement_catalog(tmp_path) == shipped
 
 
 # ── _build_rules_document ─────────────────────────────────────────────────────
