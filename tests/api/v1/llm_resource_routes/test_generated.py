@@ -33,7 +33,6 @@ async def test_check_llm():
     assert result is mock_response_cls.return_value
 
 
-
 import pytest
 
 from api.v1.llm_resource_routes import setup_llm
@@ -80,3 +79,22 @@ async def test_setup_llm():
     assert response.ok is True
     assert response.data == {"created": True}
     assert response.duration_sec == 0.5
+
+
+# ID: 5a2c7826-ecfb-4da3-8fed-cae7f5b59b70
+def test_SetupLlmRequest():
+    from api.v1.llm_resource_routes import SetupLlmRequest
+
+    req = SetupLlmRequest(
+        api_url="http://localhost:11434",
+        embedding_model="nomic-embed-text",
+        chat_model="llama3",
+    )
+
+    assert req.api_url == "http://localhost:11434"
+    assert req.embedding_model == "nomic-embed-text"
+    assert req.chat_model == "llama3"
+    assert req.locality == "local"
+    assert req.embedding_api_url == ""
+    assert req.embedding_locality == ""
+    assert req.write is False
