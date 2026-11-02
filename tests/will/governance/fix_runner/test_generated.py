@@ -441,8 +441,6 @@ def test_action_mutates_files() -> None:
         assert action_mutates_files("some_action") is True
 
 
-
-
 # ID: 695f41ee-6ddb-4097-a486-327fec2cab2a
 def test_list_registered_action_ids():
     import will.governance.fix_runner as fix_runner
@@ -460,3 +458,23 @@ def test_list_registered_action_ids():
 
     assert result == {"action_a", "action_b"}
     mock_registry.list_all.assert_called_once()
+
+
+
+from will.governance.fix_runner import QualityGateResult
+
+
+# ID: b16ad973-21fa-4479-b70a-e21ca92163b2
+def test_QualityGateResult_as_payload():
+    result = QualityGateResult(ok=True)
+
+    with patch.object(
+        QualityGateResult,
+        "model_dump",
+        return_value={"ok": True, "status": "pass", "score": 100},
+    ) as mock_dump:
+        payload = result.as_payload()
+
+    mock_dump.assert_called_once_with()
+    assert payload == {"ok": True, "status": "pass", "score": 100}
+    assert isinstance(payload, dict)
