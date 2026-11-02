@@ -36,3 +36,35 @@ def test_SyncStrategist_execute():
     strategist.tracer.record.assert_called_once()
     strategist._select_strategy.assert_called_once()
     strategist._build_sequence.assert_called_once()
+
+
+from unittest.mock import patch
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 84df1d61-357f-432b-af94-c43cfcf754f2
+async def test_SyncStrategist():
+    with patch("will.strategists.sync_strategist.DecisionTracer") as mock_tracer_cls:
+        mock_tracer = MagicMock()
+        mock_tracer_cls.return_value = mock_tracer
+
+        strategist = SyncStrategist()
+
+        result = await strategist.execute(sync_target="all", force_refresh=False)
+
+        assert result.ok is True
+        assert result.data["strategy"] == "full"
+        assert result.data["sync_target"] == "all"
+        assert result.data["sync_sequence"] == [
+            "domains",
+            "symbols",
+            "vectors_policies",
+            "vectors_patterns",
+            "vectors_symbols",
+        ]
+        assert "execution_mode" in result.data
+        assert "force_flags" in result.data
+        assert result.next_suggested == "sync_executor"
+        mock_tracer.record.assert_called_once()
