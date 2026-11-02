@@ -204,3 +204,22 @@ async def test_CoverageClient_coverage_gaps() -> None:
         params={"threshold": 75.0, "limit": 20},
         timeout=300.0,
     )
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 209c80db-cbfc-41e9-984f-f4b437d19854
+async def test_CoverageClient_coverage_targets():
+    expected = {"targets": [{"name": "constitutional", "value": 100}]}
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value=expected)
+
+    client = CoverageClient(facade)
+
+    result = await client.coverage_targets()
+
+    assert result == expected
+    facade._request.assert_awaited_once_with("GET", "/v1/coverage/targets")
