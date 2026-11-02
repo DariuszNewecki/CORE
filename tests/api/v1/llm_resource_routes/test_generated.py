@@ -98,3 +98,41 @@ def test_SetupLlmRequest():
     assert req.embedding_api_url == ""
     assert req.embedding_locality == ""
     assert req.write is False
+
+
+from types import SimpleNamespace
+
+import pytest
+
+from api.v1.llm_resource_routes import author_llm_resource
+
+
+@pytest.mark.asyncio
+# ID: 0a50f228-98b6-4c6c-aae0-abb40b2392a5
+async def test_author_llm_resource():
+    payload = MagicMock()
+    payload.write = True
+    payload.definition = {"name": "res"}
+
+    core_context = MagicMock()
+    request = MagicMock()
+    request.app.state.core_context = core_context
+
+    run_result = SimpleNamespace(
+        ok=True,
+        data={"id": "123"},
+        duration_sec=0.42,
+    )
+
+    with patch(
+        "api.v1.llm_resource_routes.run_author_llm_resource",
+        new=AsyncMock(return_value=run_result),
+    ) as mock_run:
+        response = await author_llm_resource(request, payload)
+
+    mock_run.assert_awaited_once_with(
+        core_context, write=True, definition={"name": "res"}
+    )
+    assert response.ok is True
+    assert response.data == {"id": "123"}
+    assert response.duration_sec == 0.42
