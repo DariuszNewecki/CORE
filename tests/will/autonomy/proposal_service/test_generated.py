@@ -163,9 +163,6 @@ async def test_ProposalService_list_pending_approval_paginated():
     mock_repo.list_by_status_paginated.assert_awaited_once()
 
 
-
-
-
 # ID: 9aa76e85-1061-467d-8f88-7a7addb150d1
 async def test_ProposalService_create():
     session = MagicMock()
@@ -186,3 +183,43 @@ async def test_ProposalService_create():
 
     assert result == "proposal-123"
     mock_repository.create.assert_awaited_once_with(proposal)
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 84caee6c-1662-4c1c-90c0-7d8a0e156019
+async def test_ProposalService_open():
+    mock_session = MagicMock()
+
+    mock_session_cm = MagicMock()
+    mock_session_cm.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session_cm.__aexit__ = AsyncMock(return_value=None)
+
+    mock_registry = MagicMock()
+    mock_registry.session.return_value = mock_session_cm
+
+    with (
+        patch(
+            "will.autonomy.proposal_service.service_registry",
+            mock_registry,
+        ),
+        patch(
+            "will.autonomy.proposal_service.ProposalRepository",
+        ) as mock_repo_cls,
+        patch(
+            "will.autonomy.proposal_service.ProposalStateManager",
+        ) as mock_state_cls,
+    ):
+        async with ProposalService.open() as service:
+            assert isinstance(service, ProposalService)
+            assert service._session is mock_session
+            assert service._repository is mock_repo_cls.return_value
+            assert service._state_manager is mock_state_cls.return_value
+
+        mock_registry.session.assert_called_once()
+        mock_repo_cls.assert_called_once_with(mock_session)
+        mock_state_cls.assert_called_once_with(mock_session)
+        mock_session_cm.__aenter__.assert_awaited_once()
+        mock_session_cm.__aexit__.assert_awaited_once()
