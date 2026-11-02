@@ -460,7 +460,6 @@ def test_list_registered_action_ids():
     mock_registry.list_all.assert_called_once()
 
 
-
 from will.governance.fix_runner import QualityGateResult
 
 
@@ -478,3 +477,33 @@ def test_QualityGateResult_as_payload():
     mock_dump.assert_called_once_with()
     assert payload == {"ok": True, "status": "pass", "score": 100}
     assert isinstance(payload, dict)
+
+
+
+
+# ID: ae5c15c2-65a5-4342-85f5-d89feaa6516d
+def test_QualityGateResult():
+    components = {
+        "lint": {"exit_code": 0, "stdout": "", "stderr": "", "is_warning": False},
+        "tests": {
+            "exit_code": 1,
+            "stdout": "1 failed",
+            "stderr": "",
+            "is_warning": True,
+        },
+    }
+    result = QualityGateResult(ok=True, components=components)
+
+    assert result.check == "gates"
+    assert result.ok is True
+    assert result.components == components
+
+    payload = result.as_payload()
+    assert payload["check"] == "gates"
+    assert payload["ok"] is True
+    assert payload["components"] == components
+    assert isinstance(payload, dict)
+
+    default_result = QualityGateResult(ok=False)
+    assert default_result.check == "gates"
+    assert default_result.components == {}
