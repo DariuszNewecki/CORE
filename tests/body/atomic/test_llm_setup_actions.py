@@ -132,7 +132,8 @@ async def test_unknown_locality_fails_before_the_database() -> None:
 async def _restore_state(
     db_session: AsyncSession,
 ) -> AsyncGenerator[None, None]:
-    """Remove the setup rows and any system_config row; restore afterwards."""
+    """Reset to a fresh install: no setup rows, the default system_config row
+    (schema.sql creates it, #1390). Restore the saved rows afterwards."""
     saved = [
         {
             "operating_mode": c.operating_mode,
@@ -154,6 +155,8 @@ async def _restore_state(
         await db_session.commit()
 
     await _clear()
+    db_session.add(SystemConfig())  # the row a fresh install carries (#1390)
+    await db_session.commit()
     try:
         yield
     finally:
@@ -188,8 +191,8 @@ async def test_dry_run_writes_nothing(db_session: AsyncSession) -> None:
     result = await _run(write=False)
     assert result.ok is True, result.data
     assert result.data["dry_run"] is True
-    assert result.data["system_config"] == "created (local_only, llm enabled)"
-    assert await _state(db_session) == ([], [])
+    assert result.data["system_config"] == "kept (local_only, llm enabled)"
+    assert await _state(db_session) == ([("local_only", True)], [])
 
 
 @pytest.mark.integration

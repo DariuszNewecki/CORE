@@ -38,7 +38,7 @@ class LlmPartitionArchiverWorker(Worker):
     """ADR-052 GxP retention — moves old llm_exchange_log partitions to core_archive.
 
     Delegates to log.archive_partitions via ActionExecutor with write=True.
-    The action reads log_retention_months from system_config (defaults to 24).
+    The action reads log_retention_months from the system_config row.
     Posts a report on success; posts a finding on failure. Always posts a heartbeat.
     """
 

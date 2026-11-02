@@ -18,7 +18,12 @@ from shared.exceptions import NoLLMConfiguredError
 from will.agents.cognitive_orchestrator import CognitiveOrchestrator
 
 
-def _orch(roles: list, resources: list, system_config=None) -> CognitiveOrchestrator:
+_ROW = MagicMock(operating_mode="local_only")
+
+
+def _orch(
+    roles: list, resources: list, system_config: object = _ROW
+) -> CognitiveOrchestrator:
     mind = MagicMock()
     mind.get_llm_resources = AsyncMock(return_value=resources)
     mind.get_cognitive_roles = AsyncMock(return_value=roles)
@@ -55,26 +60,9 @@ async def test_missing_role_in_configured_mind_is_still_an_error() -> None:
 
 
 # ID: a34cbad4-34c9-4de7-b502-6ffa8e34bae3
-async def test_missing_system_config_is_info_when_unconfigured(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
+async def test_missing_system_config_row_is_refused_not_defaulted() -> None:
+    """#1390 G5: every database has the row; its absence is not a default."""
     orch = _orch(roles=[], resources=[], system_config=None)
 
-    with caplog.at_level(logging.DEBUG):
+    with pytest.raises(RuntimeError, match=r"core\.system_config has no row"):
         await orch.initialize()
-
-    record = next(r for r in caplog.records if "system_config row missing" in r.message)
-    assert record.levelno == logging.INFO
-
-
-# ID: f10ebed3-9d47-400f-a6aa-24220bd787bf
-async def test_missing_system_config_is_warning_when_configured(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    orch = _orch(roles=[MagicMock()], resources=[MagicMock()], system_config=None)
-
-    with caplog.at_level(logging.DEBUG):
-        await orch.initialize()
-
-    record = next(r for r in caplog.records if "system_config row missing" in r.message)
-    assert record.levelno == logging.WARNING

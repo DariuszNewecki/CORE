@@ -34,13 +34,12 @@ from shared.infrastructure.intent.operational_config import load_operational_con
 def test_partition_policy_sourced_from_operational_config() -> None:
     """The DDL partition-maintenance dials are governed aliases, not literals.
 
-    `_ADVANCE_MONTHS` / `_DEFAULT_RETENTION_MONTHS` must equal the values in
+    `_ADVANCE_MONTHS` must equal the value in
     operational_config.yaml `log_maintenance`, proving the #774 migration off
     hardcoded constants held (ADR-040 no-literal-runtime-knobs).
     """
     cfg = load_operational_config().log_maintenance
     assert log_actions._ADVANCE_MONTHS == cfg.advance_months
-    assert log_actions._DEFAULT_RETENTION_MONTHS == cfg.default_retention_months
 
 
 # ── _cutoff_month ─────────────────────────────────────────────────────────────
@@ -234,3 +233,26 @@ async def test_archive_log_partitions_write_archives_candidates() -> None:
     assert result.data["errors"] == []
     # Verify DDL was executed (CREATE SCHEMA + 2 ALTER TABLE calls)
     assert ddl_session.execute.call_count >= 3
+
+
+# ── _read_retention_months_from_db (#1390 G5) ─────────────────────────────────
+
+
+# ID: 5b0e7f3c-2a91-4d6e-8c47-1f9a3e6d2b80
+async def test_missing_system_config_row_is_refused_not_defaulted(monkeypatch) -> None:
+    """The row always exists; a missing one is raised, not replaced by 24."""
+    from contextlib import asynccontextmanager
+    from unittest.mock import AsyncMock, MagicMock
+
+    import pytest
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=MagicMock(fetchone=lambda: None))
+
+    @asynccontextmanager
+    async def fake_session():
+        yield session
+
+    monkeypatch.setattr(log_actions, "get_session", fake_session)
+    with pytest.raises(RuntimeError, match=r"core\.system_config has no row"):
+        await log_actions._read_retention_months_from_db()

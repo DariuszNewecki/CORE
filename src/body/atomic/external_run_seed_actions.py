@@ -15,8 +15,10 @@ Scope, exactly as ruled:
   validator ``author.llm_resource`` uses, ``core.role_resource_assignments``
   {role, resource, priority, is_active}, ``core.system_config``
   {operating_mode, llm_enabled};
-- create-only: a database that already carries any of these rows is not
-  the empty isolated database this action is for -- refuse;
+- create-only for resources and assignments: a database that already
+  carries any of these rows is not the empty isolated database this action
+  is for -- refuse. ``core.system_config`` is the singleton every database
+  has from install (#1390 G5), so the seed sets its two fields;
 - risk classification ``moderate`` (``.intent/enforcement/config/action_risk.yaml``);
   never listed in the safe-auto-approval envelope; ``write=False`` validates
   and reports without touching the database.
@@ -158,11 +160,6 @@ async def action_seed_external_run_resources(
                         select(func.count()).select_from(RoleResourceAssignment)
                     )
                 ).scalar_one(),
-                "system_config": (
-                    await session.execute(
-                        select(func.count()).select_from(SystemConfig)
-                    )
-                ).scalar_one(),
             }
             occupied = {k: v for k, v in counts.items() if v}
             if occupied:
@@ -171,6 +168,15 @@ async def action_seed_external_run_resources(
                     "create-only for an empty isolated database",
                     start,
                     occupied=occupied,
+                )
+            config = (
+                await session.execute(select(SystemConfig).limit(1))
+            ).scalar_one_or_none()
+            if config is None:
+                return _refuse(
+                    "core.system_config has no row; run "
+                    "`core-admin database migrate --write` first (#1390)",
+                    start,
                 )
             # Ruling E ordering: roles come from the copy's taxonomy via
             # project.cognitive_roles and must already exist -- an assignment
@@ -238,12 +244,8 @@ async def action_seed_external_run_resources(
                         is_active=a["is_active"],
                     )
                 )
-            session.add(
-                SystemConfig(
-                    operating_mode=seed.system_config["operating_mode"],
-                    llm_enabled=seed.system_config["llm_enabled"],
-                )
-            )
+            config.operating_mode = seed.system_config["operating_mode"]
+            config.llm_enabled = seed.system_config["llm_enabled"]
             await session.flush()
             await session.commit()
             plan["dry_run"] = False

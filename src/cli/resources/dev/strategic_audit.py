@@ -78,9 +78,10 @@ async def strategic_audit_cmd(
         write = True
     async with get_session() as session:
         config = await ConfigService.create(session)
-        if not await config.get_bool("LLM_ENABLED", default=False):
+        if not await config.get_bool("LLM_ENABLED"):
             console.print(
-                "[red]❌ LLM_ENABLED is False. Enable LLMs in database settings to use strategic audit.[/red]"
+                "[red]❌ LLMs are disabled (core.system_config.llm_enabled is false). "
+                "Enable them with `core-admin llm-resources setup` to use strategic audit.[/red]"
             )
             raise typer.Exit(code=1)
     mode_parts = []

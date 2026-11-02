@@ -135,16 +135,23 @@ class ConfigService:
             "FROM core.system_config LIMIT 1"
         )
         sysrow = (await db.execute(system_q)).mappings().fetchone()
-        if sysrow is not None:
-            enabled_text = "true" if sysrow["llm_enabled"] else "false"
-            cache["system.llm_enabled"] = enabled_text
-            cache["llm.enabled"] = enabled_text
-            cache["LLM_ENABLED"] = enabled_text
-            timeout = str(sysrow["request_timeout_seconds"])
-            cache["llm.default_timeout"] = timeout
-            cache["llm_request.timeout"] = timeout
-            if sysrow["embed_model_revision"]:
-                cache["embed_model.revision"] = sysrow["embed_model_revision"]
+        if sysrow is None:
+            # #1390 G5: schema.sql and migration 20261102_1390 create the row;
+            # a reader that defaulted here would hide a database that skipped
+            # its migrations.
+            raise RuntimeError(
+                "core.system_config has no row. Run "
+                "`core-admin database migrate --write` to bring the database current."
+            )
+        enabled_text = "true" if sysrow["llm_enabled"] else "false"
+        cache["system.llm_enabled"] = enabled_text
+        cache["llm.enabled"] = enabled_text
+        cache["LLM_ENABLED"] = enabled_text
+        timeout = str(sysrow["request_timeout_seconds"])
+        cache["llm.default_timeout"] = timeout
+        cache["llm_request.timeout"] = timeout
+        if sysrow["embed_model_revision"]:
+            cache["embed_model.revision"] = sysrow["embed_model_revision"]
 
         return cache
 

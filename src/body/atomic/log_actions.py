@@ -31,7 +31,6 @@ logger = getLogger(__name__)
 # module constants are thin governed aliases, not literals.
 _CFG = load_operational_config().log_maintenance
 _ADVANCE_MONTHS: int = _CFG.advance_months
-_DEFAULT_RETENTION_MONTHS: int = _CFG.default_retention_months
 _TABLE = "core.llm_exchange_log"
 _ARCHIVE_SCHEMA = "core_archive"
 _PARTITION_RE = re.compile(r"^llm_exchange_log_(\d{4})_(\d{2})$")
@@ -187,27 +186,23 @@ def _parse_partition_month(relname: str) -> tuple[int, int] | None:
 
 
 async def _read_retention_months_from_db() -> int:
-    """Read log_retention_months from system_config; fall back to default.
+    """Read log_retention_months from the system_config row.
 
-    The column was added in ADR-052 — callers must tolerate its absence on older
-    deployments until the live DB schema is updated.
+    The row always exists (#1390 G5: schema.sql and migration
+    20261102_1390 create it), so a missing row or a failed read is raised,
+    not replaced by a default.
     """
-    try:
-        async with get_session() as session:
-            row = await session.execute(
-                text("SELECT log_retention_months FROM core.system_config LIMIT 1")
-            )
-            result = row.fetchone()
-            if result is not None:
-                return int(result[0])
-    except Exception as exc:
-        logger.warning(
-            "log.archive_partitions: could not read log_retention_months "
-            "from system_config (%s) — using default %d",
-            exc,
-            _DEFAULT_RETENTION_MONTHS,
+    async with get_session() as session:
+        row = await session.execute(
+            text("SELECT log_retention_months FROM core.system_config LIMIT 1")
         )
-    return _DEFAULT_RETENTION_MONTHS
+        result = row.fetchone()
+    if result is None:
+        raise RuntimeError(
+            "core.system_config has no row. Run "
+            "`core-admin database migrate --write` to bring the database current."
+        )
+    return int(result[0])
 
 
 @register_action(
@@ -231,8 +226,8 @@ async def action_archive_log_partitions(
 ) -> ActionResult:
     """Archive llm_exchange_log partitions older than the retention window.
 
-    retention_months: if None, reads from system_config.log_retention_months
-    (default 24 when the column is absent). The Body layer owns this DB read.
+    retention_months: if None, reads system_config.log_retention_months; the
+    row always exists (#1390). The Body layer owns this DB read.
 
     GxP variant (ADR-052): partitions are NEVER dropped — they are detached from
     the active table and moved to core_archive schema, where they remain queryable

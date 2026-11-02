@@ -45,7 +45,7 @@ pg_dump -h "${DB_HOST}" -U "${DB_USER}" \
 # ADR-162 D9: a fresh install must start with a COMPLETE migration ledger.
 # Append the seed block rendered from src/shared/_migrations/infra/migrations/
 # manifest.yaml (ids == manifest order;
-# tests/shared/infrastructure/test_schema_ledger_seed.py proves the parity). The dump is --schema-only, so this is the only data.
+# tests/shared/infrastructure/test_schema_ledger_seed.py proves the parity). The dump is --schema-only, so this block (ledger rows and the system_config singleton row, #1390) is the only data.
 REPO_TOP="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 (cd "${REPO_TOP}" && poetry run python infra/scripts/render_ledger_seed.py) \
     >> "${SCHEMA_OUT}"
