@@ -42,12 +42,12 @@ def test_apply_log_level_rejects_unknown_level() -> None:
 
 
 def test_lifespan_no_longer_references_the_governed_coroutine() -> None:
-    """Regression pin for #889: the composition root must call the primitive,
-    never the @atomic_action (un-awaited = no-op; awaited = bypass error)."""
+    """Regression pin for #889: the composition root never calls the
+    @atomic_action (un-awaited = no-op; awaited = bypass error). Since #1390
+    F13 it sets no level from the database at all."""
     from pathlib import Path
 
     src = Path("src/body/infrastructure/lifespan.py").read_text(encoding="utf-8")
-    assert "apply_log_level(" in src
     assert "reconfigure_log_level(" not in src.replace(
         "`reconfigure_log_level(...)`", ""
     )
