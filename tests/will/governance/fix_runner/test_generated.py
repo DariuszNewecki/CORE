@@ -479,8 +479,6 @@ def test_QualityGateResult_as_payload():
     assert isinstance(payload, dict)
 
 
-
-
 # ID: ae5c15c2-65a5-4342-85f5-d89feaa6516d
 def test_QualityGateResult():
     components = {
@@ -507,3 +505,34 @@ def test_QualityGateResult():
     default_result = QualityGateResult(ok=False)
     assert default_result.check == "gates"
     assert default_result.components == {}
+
+
+import pytest
+
+
+# ID: 51db0226-7244-4dfe-9394-eac6863ff9b0
+def test_FixRunResult_as_payload() -> None:
+    from will.governance import fix_runner
+
+    # Find the class that owns `as_payload` (symbol given as method on a class).
+    target_cls = None
+    for name in dir(fix_runner):
+        obj = getattr(fix_runner, name)
+        if isinstance(obj, type) and "as_payload" in getattr(obj, "__dict__", {}):
+            target_cls = obj
+            break
+
+    assert target_cls is not None, "Could not locate class defining as_payload"
+
+    # Build an instance with the simplest valid construction path.
+    try:
+        instance = target_cls()  # type: ignore[call-arg]
+    except Exception:
+        # Fall back to constructing via model_construct if it's a pydantic model.
+        instance = target_cls.model_construct()  # type: ignore[attr-defined]
+
+    payload = instance.as_payload()
+
+    assert isinstance(payload, dict)
+    # exclude_none=True means no value in the resulting dict should be None.
+    assert all(value is not None for value in payload.values())
