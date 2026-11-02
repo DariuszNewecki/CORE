@@ -122,3 +122,75 @@ async def test_run_probe_i6():
     assert result["result"]["approved"] is False
     assert result["result"]["denial"] is not None
     assert result["result"]["proposal_status_after"] == ProposalStatus.PENDING.value
+
+
+from types import SimpleNamespace
+
+import pytest
+
+from will.orchestration.goal_run_probes import (
+    CONTAINMENT_RULE_ID,
+    PROBE_I5,
+    run_probe_i5,
+)
+
+
+@pytest.mark.asyncio
+# ID: 60db86d1-f09a-482c-a7a9-f0d4722b2963
+async def test_run_probe_i5(tmp_path):
+    subject_root = tmp_path / "subject"
+    subject_root.mkdir()
+
+    binding = SimpleNamespace(
+        subject_path=str(subject_root),
+        bound_repo_path=str(tmp_path),
+    )
+    context = SimpleNamespace(target_binding=binding)
+
+    refusal = {"rule_id": CONTAINMENT_RULE_ID}
+    result = SimpleNamespace(
+        ok=False,
+        data={
+            "error": "refused",
+            "error_type": "containment",
+            "rule_id": CONTAINMENT_RULE_ID,
+            "refusal": refusal,
+        },
+    )
+
+    executor_instance = MagicMock()
+    executor_instance.execute = AsyncMock(return_value=result)
+
+    with (
+        patch(
+            "body.atomic.executor.ActionExecutor", return_value=executor_instance
+        ) as mock_executor_cls,
+        patch(
+            "will.orchestration.goal_run_probes.rule_in_bound_law",
+            return_value={"loaded": True},
+        ) as mock_rule_in_bound_law,
+    ):
+        record = await run_probe_i5(context, run_id="run-123")
+
+    mock_executor_cls.assert_called_once_with(context)
+    executor_instance.execute.assert_awaited_once()
+    call_kwargs = executor_instance.execute.await_args.kwargs
+    assert call_kwargs["action_id"] == "file.create"
+    assert call_kwargs["write"] is True
+    assert call_kwargs["file_path"] == str(
+        subject_root.resolve() / "_core_probe_I-5.py"
+    )
+
+    mock_rule_in_bound_law.assert_called_once_with(CONTAINMENT_RULE_ID)
+
+    assert record["probe"] == PROBE_I5
+    assert record["run_id"] == "run-123"
+    assert record["expected_rule_id"] == CONTAINMENT_RULE_ID
+    assert record["attempt"]["bound_repo_path"] == str(tmp_path)
+    assert record["result"]["ok"] is False
+    assert record["result"]["rule_id"] == CONTAINMENT_RULE_ID
+    assert record["result"]["refusal"] == refusal
+    assert record["artefact_exists_after"] is False
+    assert record["rule_in_bound_law"] == {"loaded": True}
+    assert record["passed"] is True
+    assert "reason" not in record
