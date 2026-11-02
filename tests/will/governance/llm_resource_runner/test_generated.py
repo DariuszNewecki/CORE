@@ -30,7 +30,6 @@ async def test_run_author_llm_resource():
     assert result is expected
 
 
-
 from will.governance.llm_resource_runner import run_check_llm
 
 
@@ -68,3 +67,44 @@ async def test_run_check_llm():
     assert result["chat"]["ok"] is True
     assert result["chat"]["reply"] == "hello there"
     assert result["ok"] is True
+
+
+
+from will.governance.llm_resource_runner import run_setup_llm
+
+
+# ID: 33971a5e-97f8-497c-a795-8dec2aba5e61
+async def test_run_setup_llm():
+    context = MagicMock()
+    expected_result = MagicMock()
+
+    mock_executor_instance = MagicMock()
+    mock_executor_instance.execute = AsyncMock(return_value=expected_result)
+
+    with patch(
+        "body.atomic.executor.ActionExecutor",
+        return_value=mock_executor_instance,
+    ) as mock_executor_cls:
+        result = await run_setup_llm(
+            context=context,
+            write=True,
+            api_url="https://api.example.com",
+            embedding_model="embed-model",
+            chat_model="chat-model",
+            locality="local",
+            embedding_api_url="https://embed.example.com",
+            embedding_locality="remote",
+        )
+
+    mock_executor_cls.assert_called_once_with(context)
+    mock_executor_instance.execute.assert_awaited_once_with(
+        "setup.llm",
+        write=True,
+        api_url="https://api.example.com",
+        embedding_model="embed-model",
+        chat_model="chat-model",
+        locality="local",
+        embedding_api_url="https://embed.example.com",
+        embedding_locality="remote",
+    )
+    assert result is expected_result
