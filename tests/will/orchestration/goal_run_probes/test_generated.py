@@ -39,7 +39,6 @@ async def test_run_and_record_probes():
     worker.post_observation.assert_not_awaited()
 
 
-
 import pytest
 
 from will.orchestration.goal_run_probes import run_apparatus_probes
@@ -66,3 +65,60 @@ async def test_run_apparatus_probes():
     assert result == [record_i5, record_i6]
     mock_i5.assert_awaited_once_with(context, run_id)
     mock_i6.assert_awaited_once_with(context, run_id)
+
+
+import pytest
+
+from will.orchestration.goal_run_probes import run_probe_i6
+
+
+@pytest.mark.asyncio
+# ID: 36d4f47e-1fc1-41b4-9ca6-32c2a0f7e2cc
+async def test_run_probe_i6():
+    from will.autonomy.proposal import ProposalStatus
+    from will.autonomy.safe_auto_approval_envelope import SafeAutoApprovalDeniedError
+
+    session = MagicMock()
+    session.commit = AsyncMock()
+    session.rollback = AsyncMock()
+
+    session_ctx = MagicMock()
+    session_ctx.__aenter__ = AsyncMock(return_value=session)
+    session_ctx.__aexit__ = AsyncMock(return_value=False)
+
+    service_registry = MagicMock()
+    service_registry.session = MagicMock(return_value=session_ctx)
+
+    repo = MagicMock()
+    repo.create = AsyncMock(return_value="proposal-123")
+
+    # Build the denial error via the real class signature (single message arg).
+    denial_exc = SafeAutoApprovalDeniedError("denied by safe auto-approval envelope")
+
+    manager = MagicMock()
+    manager.approve = AsyncMock(side_effect=denial_exc)
+
+    with (
+        patch("body.services.service_registry.service_registry", service_registry),
+        patch(
+            "will.autonomy.proposal_repository.ProposalRepository", return_value=repo
+        ),
+        patch(
+            "will.autonomy.proposal_state_manager.ProposalStateManager",
+            return_value=manager,
+        ),
+        patch(
+            "will.orchestration.goal_run_probes._proposal_status",
+            AsyncMock(return_value=ProposalStatus.PENDING.value),
+        ),
+        patch(
+            "will.orchestration.goal_run_probes.rule_in_bound_law",
+            return_value={"loaded": True},
+        ),
+    ):
+        result = await run_probe_i6(context=MagicMock(), run_id="run-abc")
+
+    assert result["proposal_id"] == "proposal-123"
+    assert result["result"]["approved"] is False
+    assert result["result"]["denial"] is not None
+    assert result["result"]["proposal_status_after"] == ProposalStatus.PENDING.value
