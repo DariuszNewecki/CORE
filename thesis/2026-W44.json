@@ -1,0 +1,342 @@
+{
+  "days": [
+    {
+      "ai_share": 0.739,
+      "breaches": [],
+      "convergence": 0.991,
+      "day": "2026-10-26",
+      "detail": {
+        "authorship": {
+          "ai": 846,
+          "bot": 7,
+          "human_or_unmarked": 292
+        },
+        "convergence": {
+          "abandoned": 10976,
+          "created": 205838,
+          "resolved": 203988,
+          "telemetry_excluded": 1618
+        },
+        "unverified": {
+          "ci_pending": [],
+          "corrected": 0,
+          "deploys_judged": 15,
+          "list": [],
+          "new": 0,
+          "promotion_cutover": "2026-10-18T13:06:12.064022+00:00",
+          "writes": 122
+        },
+        "waste": {
+          "trips": {
+            "CI red": 11,
+            "CI rerun after branch update": 16,
+            "PR closed unmerged": 4,
+            "command run by the governor": 58,
+            "commit refused by a hook": 57,
+            "deploy refused": 7,
+            "deploy run by hand": 8,
+            "force-push": 2,
+            "permission block": 59,
+            "question to the governor": 7,
+            "stop-hook rewrite": 99
+          },
+          "writes": 234
+        }
+      },
+      "line": "thesis 2026-10-26: unverified writes 0 ? AI authorship 74% ? waste 1.4 per change ? convergence 99%",
+      "unavailable": [],
+      "unverified_breaches": [],
+      "unverified_corrections": [],
+      "unverified_writes": 0,
+      "waste_per_change": 1.4
+    },
+    {
+      "ai_share": 0.74,
+      "breaches": [],
+      "convergence": 1.007,
+      "day": "2026-10-27",
+      "detail": {
+        "authorship": {
+          "ai": 851,
+          "bot": 7,
+          "human_or_unmarked": 292
+        },
+        "convergence": {
+          "abandoned": 9536,
+          "created": 199493,
+          "resolved": 200924,
+          "telemetry_excluded": 1620
+        },
+        "unverified": {
+          "ci_pending": [],
+          "corrected": 0,
+          "deploys_judged": 16,
+          "list": [],
+          "new": 0,
+          "promotion_cutover": "2026-10-18T13:06:12.064022+00:00",
+          "writes": 122
+        },
+        "waste": {
+          "trips": {
+            "CI red": 12,
+            "CI rerun after branch update": 17,
+            "PR closed unmerged": 4,
+            "command run by the governor": 45,
+            "commit refused by a hook": 45,
+            "deploy refused": 6,
+            "deploy run by hand": 3,
+            "force-push": 2,
+            "permission block": 46,
+            "question to the governor": 5,
+            "stop-hook rewrite": 81
+          },
+          "writes": 236
+        }
+      },
+      "line": "thesis 2026-10-27: unverified writes 0 ? AI authorship 74% ? waste 1.1 per change ? convergence 101%",
+      "unavailable": [],
+      "unverified_breaches": [],
+      "unverified_corrections": [],
+      "unverified_writes": 0,
+      "waste_per_change": 1.1
+    },
+    {
+      "ai_share": 0.74,
+      "breaches": [],
+      "convergence": 1.024,
+      "day": "2026-10-28",
+      "detail": {
+        "authorship": {
+          "ai": 851,
+          "bot": 7,
+          "human_or_unmarked": 292
+        },
+        "convergence": {
+          "abandoned": 8096,
+          "created": 192292,
+          "resolved": 196891,
+          "telemetry_excluded": 1619
+        },
+        "unverified": {
+          "ci_pending": [],
+          "corrected": 0,
+          "deploys_judged": 16,
+          "list": [],
+          "new": 0,
+          "promotion_cutover": "2026-10-18T13:06:12.064022+00:00",
+          "writes": 122
+        },
+        "waste": {
+          "trips": {
+            "deploy refused": 5,
+            "deploy run by hand": 3
+          },
+          "writes": 209
+        }
+      },
+      "line": "thesis 2026-10-28: unverified writes 0 ? AI authorship 74% ? waste unavailable per change ? convergence 102%",
+      "unavailable": [
+        "github pull requests: GraphQL: HTTP 504 None"
+      ],
+      "unverified_breaches": [],
+      "unverified_corrections": [],
+      "unverified_writes": 0,
+      "waste_per_change": null
+    },
+    {
+      "ai_share": 0.74,
+      "breaches": [],
+      "convergence": 1.042,
+      "day": "2026-10-29",
+      "detail": {
+        "authorship": {
+          "ai": 851,
+          "bot": 7,
+          "human_or_unmarked": 292
+        },
+        "convergence": {
+          "abandoned": 6656,
+          "created": 185097,
+          "resolved": 192864,
+          "telemetry_excluded": 1624
+        },
+        "unverified": {
+          "ci_pending": [],
+          "corrected": 0,
+          "deploys_judged": 17,
+          "list": [],
+          "new": 0,
+          "promotion_cutover": "2026-10-18T13:06:12.064022+00:00",
+          "writes": 122
+        },
+        "waste": {
+          "trips": {
+            "CI red": 12,
+            "CI rerun after branch update": 17,
+            "PR closed unmerged": 4,
+            "command run by the governor": 35,
+            "commit refused by a hook": 16,
+            "deploy refused": 4,
+            "deploy run by hand": 2,
+            "force-push": 2,
+            "permission block": 23,
+            "question to the governor": 5,
+            "stop-hook rewrite": 65
+          },
+          "writes": 200
+        }
+      },
+      "line": "thesis 2026-10-29: unverified writes 0 ? AI authorship 74% ? waste 0.9 per change ? convergence 104%",
+      "unavailable": [],
+      "unverified_breaches": [],
+      "unverified_corrections": [],
+      "unverified_writes": 0,
+      "waste_per_change": 0.9
+    },
+    {
+      "ai_share": 0.742,
+      "breaches": [],
+      "convergence": 1.053,
+      "day": "2026-10-30",
+      "detail": {
+        "authorship": {
+          "ai": 859,
+          "bot": 7,
+          "human_or_unmarked": 292
+        },
+        "convergence": {
+          "abandoned": 5217,
+          "created": 189300,
+          "resolved": 199254,
+          "telemetry_excluded": 1654
+        },
+        "unverified": {
+          "ci_pending": [],
+          "corrected": 0,
+          "deploys_judged": 18,
+          "list": [],
+          "new": 0,
+          "promotion_cutover": "2026-10-18T13:06:12.064022+00:00",
+          "writes": 122
+        },
+        "waste": {
+          "trips": {
+            "CI red": 13,
+            "CI rerun after branch update": 18,
+            "PR closed unmerged": 4,
+            "command run by the governor": 34,
+            "commit refused by a hook": 15,
+            "force-push": 2,
+            "permission block": 28,
+            "question to the governor": 5,
+            "stop-hook rewrite": 63
+          },
+          "writes": 174
+        }
+      },
+      "line": "thesis 2026-10-30: unverified writes 0 ? AI authorship 74% ? waste 1.0 per change ? convergence 105%",
+      "unavailable": [],
+      "unverified_breaches": [],
+      "unverified_corrections": [],
+      "unverified_writes": 0,
+      "waste_per_change": 1.0
+    },
+    {
+      "ai_share": 0.783,
+      "breaches": [],
+      "convergence": 0.977,
+      "day": "2026-10-31",
+      "detail": {
+        "authorship": {
+          "ai": 1062,
+          "bot": 7,
+          "human_or_unmarked": 287
+        },
+        "convergence": {
+          "abandoned": 3777,
+          "created": 196347,
+          "resolved": 191809,
+          "telemetry_excluded": 1693
+        },
+        "unverified": {
+          "ci_pending": [],
+          "corrected": 0,
+          "deploys_judged": 20,
+          "list": [],
+          "new": 0,
+          "promotion_cutover": "2026-10-18T13:06:12.064022+00:00",
+          "writes": 122
+        },
+        "waste": {
+          "trips": {
+            "CI red": 9,
+            "CI rerun after branch update": 14,
+            "PR closed unmerged": 5,
+            "command run by the governor": 33,
+            "commit refused by a hook": 15,
+            "force-push": 2,
+            "permission block": 28,
+            "question to the governor": 2,
+            "stop-hook rewrite": 58
+          },
+          "writes": 158
+        }
+      },
+      "line": "thesis 2026-10-31: unverified writes 0 ? AI authorship 78% ? waste 1.1 per change ? convergence 98%",
+      "unavailable": [],
+      "unverified_breaches": [],
+      "unverified_corrections": [],
+      "unverified_writes": 0,
+      "waste_per_change": 1.1
+    },
+    {
+      "ai_share": 0.939,
+      "breaches": [],
+      "convergence": 0.986,
+      "day": "2026-11-01",
+      "detail": {
+        "authorship": {
+          "ai": 1168,
+          "bot": 7,
+          "human_or_unmarked": 69
+        },
+        "convergence": {
+          "abandoned": 2361,
+          "created": 203266,
+          "resolved": 200417,
+          "telemetry_excluded": 1673
+        },
+        "unverified": {
+          "ci_pending": [],
+          "corrected": 0,
+          "deploys_judged": 21,
+          "list": [],
+          "new": 0,
+          "promotion_cutover": "2026-10-18T13:06:12.064022+00:00",
+          "writes": 122
+        },
+        "waste": {
+          "trips": {
+            "CI red": 3,
+            "CI rerun after branch update": 9,
+            "PR closed unmerged": 5,
+            "command run by the governor": 31,
+            "commit refused by a hook": 13,
+            "force-push": 2,
+            "permission block": 21,
+            "question to the governor": 2,
+            "stop-hook rewrite": 45
+          },
+          "writes": 150
+        }
+      },
+      "line": "thesis 2026-11-01: unverified writes 0 ? AI authorship 94% ? waste 0.9 per change ? convergence 99%",
+      "unavailable": [],
+      "unverified_breaches": [],
+      "unverified_corrections": [],
+      "unverified_writes": 0,
+      "waste_per_change": 0.9
+    }
+  ],
+  "week": "2026-W44"
+}
