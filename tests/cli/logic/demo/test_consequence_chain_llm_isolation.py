@@ -7,8 +7,10 @@ run_child_process``) never inherits ambient LLM-shaped environment variables
 from the parent — ``run_child_process`` passes an explicit, non-merged
 ``env`` dict to ``asyncio.create_subprocess_exec``, and
 ``run_consequence_chain`` builds that dict from nothing but ``PATH``; and
-(2) the clone's own ``.env`` (written by ``_write_child_env``) hardcodes
-``LLM_ENABLED=False`` rather than deriving it from any parent env var.
+(2) the clone's own ``.env`` (written by ``_write_child_env``) is fixed
+text that carries nothing from the parent. (It once also wrote
+``LLM_ENABLED=False``, a setting nothing reads; removed in #1390 F3. The
+child's database has no LLM resources, which is what keeps it LLM-free.)
 
 Follows the same monkeypatch technique as
 ``test_isolation.py::test_e03_compose_up_env_is_passed_through_verbatim``
@@ -46,10 +48,8 @@ _SENTINELS: dict[str, str] = {
     "ANTHROPIC_API_KEY": "sentinel-should-not-leak",
     "OPENAI_API_KEY": "sentinel-should-not-leak",
     "LLM_BASE_URL": "http://sentinel.invalid:1/",
-    # Deliberately True in the parent's ambient env, to prove the child's own
-    # explicit False (written to its .env by _write_child_env) wins — not an
-    # inherited/derived value.
-    "LLM_ENABLED": "True",
+    # Present in the parent's ambient env; must not reach the child.
+    "LLM_ENABLED": "sentinel-should-not-leak",
 }
 
 
@@ -163,11 +163,11 @@ async def test_e14_no_llm_env_leaks_into_child_scenario_process_spawn(
     )
 
     # Second half of E14: the clone's own .env is deterministic, not derived
-    # from the parent's ambient LLM_ENABLED=True set above.
+    # from the parent's ambient env set above.
     clone_repo_path = captured["cwd"]
     assert clone_repo_path is not None
     env_file = Path(str(clone_repo_path)) / ".env"
     assert env_file.exists(), f"_write_child_env never wrote {env_file}"
     env_file_text = env_file.read_text(encoding="utf-8")
-    assert "LLM_ENABLED=False" in env_file_text
+    assert "LLM_ENABLED" not in env_file_text
     assert "sentinel-should-not-leak" not in env_file_text

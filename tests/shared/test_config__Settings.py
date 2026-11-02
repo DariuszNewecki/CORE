@@ -19,17 +19,14 @@ def test_initialize_for_test():
     )
     original_repo_path = settings.REPO_PATH
     original_mind = settings.MIND
-    original_body = settings.BODY
     with tempfile.TemporaryDirectory() as tmpdir:
         test_repo_path = Path(tmpdir)
         settings.initialize_for_test(test_repo_path)
         assert settings.REPO_PATH == test_repo_path
         assert settings.MIND == test_repo_path / ".intent"
-        assert settings.BODY == test_repo_path / "src"
         assert settings._path_resolver is None
         assert settings.REPO_PATH != original_repo_path
         assert settings.MIND != original_mind
-        assert settings.BODY != original_body
 
 
 def test_get_env_file_name():

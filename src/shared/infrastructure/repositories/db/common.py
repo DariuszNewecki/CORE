@@ -50,9 +50,7 @@ from typing import Literal
 
 import yaml
 
-from shared.config import settings
 from shared.logger import getLogger
-from shared.utils.subprocess_utils import run_command
 
 
 logger = getLogger(__name__)
@@ -111,16 +109,3 @@ def load_policy(assets: MigrationAssets | None = None) -> dict:
     """Load the migration manifest (infra/migrations/manifest.yaml) as a mapping."""
     assets = assets or resolve_migration_assets()
     return yaml.safe_load(assets.manifest_path.read_text(encoding="utf-8"))
-
-
-# ID: c0a84f36-7546-405b-8de4-eba8548ff56b
-def git_commit_sha() -> str:
-    """Best-effort: get current commit SHA via CLI or Settings."""
-    try:
-        res = run_command(["git", "rev-parse", "--verify", "HEAD"])
-        if res.returncode == 0:
-            return res.stdout.strip()[:40]
-    except Exception as e:
-        logger.debug("Git command failed, using settings fallback: %s", e)
-
-    return str(getattr(settings, "GIT_COMMIT", "") or "").strip()[:40]

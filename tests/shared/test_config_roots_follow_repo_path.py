@@ -25,8 +25,6 @@ def test_repo_path_from_environment_moves_every_unset_root(
     assert s.REPO_PATH == tmp_path
     assert s.MIND == tmp_path / ".intent"
     assert s.SPECS == tmp_path / ".specs"
-    assert s.BODY == tmp_path / "src"
-    assert s.KEY_STORAGE_DIR == tmp_path / ".intent" / "keys"
     assert Path(s.CORE_ACTION_LOG_PATH) == tmp_path / "var" / "logs" / "actions.jsonl"
 
 
@@ -41,8 +39,6 @@ def test_explicit_law_roots_outside_the_clone_win(
     s = Settings()
     assert s.MIND == law / ".intent"
     assert s.SPECS == law / ".specs"
-    assert s.KEY_STORAGE_DIR == law / ".intent" / "keys"
-    assert s.BODY == repo / "src"
     assert s.paths.intent_root == law / ".intent"
 
 

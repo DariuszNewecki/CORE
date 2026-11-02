@@ -205,7 +205,6 @@ def _prepare_clone(clone_dir: Path, disposable_infra: dict) -> Path:
 
     (clone_dir / ".env").write_text(
         "CORE_ENV=development\n"
-        "LLM_ENABLED=False\n"
         f"DATABASE_URL=postgresql+asyncpg://core_demo:core_demo@127.0.0.1:"
         f"{disposable_infra['pg_port']}/core_demo\n"
         f"QDRANT_URL=http://127.0.0.1:{disposable_infra['qdrant_port']}\n"
@@ -301,7 +300,6 @@ def test_unauthorized_intent_write_still_blocked(
 
     (clone_dir / ".env").write_text(
         "CORE_ENV=development\n"
-        "LLM_ENABLED=False\n"
         f"DATABASE_URL=postgresql+asyncpg://core_demo:core_demo@127.0.0.1:"
         f"{disposable_infra['pg_port']}/core_demo\n"
         f"QDRANT_URL=http://127.0.0.1:{disposable_infra['qdrant_port']}\n"
