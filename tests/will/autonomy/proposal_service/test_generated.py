@@ -161,3 +161,28 @@ async def test_ProposalService_list_pending_approval_paginated():
     assert has_more is True
     assert cursor == "cursor-123"
     mock_repo.list_by_status_paginated.assert_awaited_once()
+
+
+
+
+
+# ID: 9aa76e85-1061-467d-8f88-7a7addb150d1
+async def test_ProposalService_create():
+    session = MagicMock()
+
+    with (
+        patch("will.autonomy.proposal_service.ProposalRepository") as mock_repo_cls,
+        patch("will.autonomy.proposal_service.ProposalStateManager") as mock_state_cls,
+    ):
+        mock_repository = MagicMock()
+        mock_repository.create = AsyncMock(return_value="proposal-123")
+        mock_repo_cls.return_value = mock_repository
+
+        service = ProposalService(session)
+
+        proposal = MagicMock()
+
+        result = await service.create(proposal)
+
+    assert result == "proposal-123"
+    mock_repository.create.assert_awaited_once_with(proposal)
