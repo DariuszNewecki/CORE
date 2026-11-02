@@ -91,9 +91,6 @@ async def test_RefactorClient_refactor_candidates():
     )
 
 
-
-
-
 # ID: 06e83689-46fc-42de-ad79-90822dc53162
 def test_RefactorClient_refactor_score():
     facade = MagicMock()
@@ -106,3 +103,22 @@ def test_RefactorClient_refactor_score():
         "GET", "/v1/refactor/score", params={"file": "src/module.py"}
     )
     assert result == {"score": 42}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 2ee60e03-2cc4-48c9-b5a4-d44931ab380b
+async def test_RefactorClient_refactor_threshold():
+    facade = MagicMock()
+    expected = {"threshold": 7, "status": "ok"}
+    facade._request = AsyncMock(return_value=expected)
+
+    client = RefactorClient(facade)
+
+    result = await client.refactor_threshold()
+
+    assert result == expected
+    facade._request.assert_awaited_once_with("GET", "/v1/refactor/threshold")
