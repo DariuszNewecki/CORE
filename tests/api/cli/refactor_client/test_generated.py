@@ -40,9 +40,6 @@ def test_RefactorClient_get_refactor_run():
     assert result == {"id": "run-123", "status": "completed"}
 
 
-
-
-
 # ID: 464af4e1-fd9d-4da5-a22e-2209c3ea86b3
 async def test_RefactorClient_refactor_autonomous() -> None:
     facade = MagicMock()
@@ -58,3 +55,18 @@ async def test_RefactorClient_refactor_autonomous() -> None:
         json={"goal": "reduce complexity", "write": True},
     )
     assert result == {"status": "ok", "cycle": 42}
+
+
+
+
+
+# ID: 41bf5e2c-05a1-4c5c-8692-3274dc8d754d
+def test_RefactorClient_refactor_stats():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"buckets": [1, 2, 3]})
+    client = RefactorClient(facade)
+
+    result = asyncio.run(client.refactor_stats())
+
+    assert result == {"buckets": [1, 2, 3]}
+    facade._request.assert_awaited_once_with("GET", "/v1/refactor/stats", timeout=300.0)
