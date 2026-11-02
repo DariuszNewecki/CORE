@@ -17,7 +17,7 @@ Observation and enforcement are separate concerns:
 - The human ratifies both the governance intent and the proposed enforcement.
 
 LLM-unavailable fallback (D7): when no cognitive_service is reachable, presents
-the four universal rules from examples/starter-intent/ as the candidate menu.
+the four rules of the shipped starter pack (shared._packs) as the candidate menu.
 Per-rule ratification still applies. Fallback candidates also go through catalog
 matching for consistency.
 
@@ -45,161 +45,27 @@ from rich.prompt import Prompt
 from rich.rule import Rule
 
 from body.services.outside_write_ledger import OutsideWriteLog
+from shared.infrastructure.bundled_packs import bundled_packs_root
+from shared.infrastructure.bundled_prompts import bundled_prompt
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 
 
 if TYPE_CHECKING:
+    from importlib.resources.abc import Traversable
+
     from shared.context import CoreContext
 
 
 logger = getLogger(__name__)
 console = Console()
 
-# Fallback source — ADR-119 D7 (source-tree path; wheel install uses _FALLBACK_RULES_EMBEDDED)
-_FALLBACK_RULES_REL = ("examples", "starter-intent", ".intent", "rules", "starter.json")
+# Fallback menu — ADR-119 D7: the starter pack the wheel ships (shared._packs).
+_STARTER_PACK_FILE = "starter_python.yaml"
 
-# Embedded universal rules — used when source-tree path is unavailable (wheel install).
-# Mirrors examples/starter-intent/.intent/rules/starter.json; update both on rule changes.
-_FALLBACK_RULES_EMBEDDED: list[dict[str, Any]] = [
-    {
-        "id": "starter.no_bare_except",
-        "statement": (
-            "Code MUST NOT swallow exceptions with a bare 'except:' or 'except Exception: pass'. "
-            "Name the exception you expect and handle it; a silent except hides the bug you most need to see."
-        ),
-        "enforcement": "blocking",
-        "rationale": (
-            "A bare except that silently passes is unambiguous bad practice in any Python codebase "
-            "— it hides failures that would otherwise surface immediately."
-        ),
-    },
-    {
-        "id": "starter.docstrings",
-        "statement": (
-            "Public functions and classes MUST have a docstring that states their intent. "
-            "A docstring is the contract a future reader — human or tool — relies on."
-        ),
-        "enforcement": "reporting",
-        "rationale": "",
-    },
-    {
-        "id": "starter.no_print",
-        "statement": (
-            "Importable library code MUST NOT use print(). Use a logger so output is structured, "
-            "leveled, and routable. print() in shipped code is almost always a debugging leftover."
-        ),
-        "enforcement": "reporting",
-        "rationale": "",
-    },
-    {
-        "id": "starter.no_secrets",
-        "statement": (
-            "Source code MUST NOT contain hardcoded credentials — passwords, API keys, or secret "
-            "tokens assigned directly to a string literal. Move them to environment variables or a "
-            "secrets manager."
-        ),
-        "enforcement": "reporting",
-        "rationale": (
-            "Hardcoded credentials are the most common cause of secret leaks in version-controlled "
-            "repositories."
-        ),
-    },
-]
-
-# Enforcement catalog — maps governance intents to engine + params
-_CATALOG_REL = ("var", "prompts", "scout_rule_inducer", "enforcement_catalog.yaml")
-
-# Embedded enforcement catalog for the 4 universal starter rules.
-# Used when the file-based catalog isn't available (wheel install without source tree).
-# Mirrors src/shared/_prompts/scout_rule_inducer/enforcement_catalog.yaml; update both on changes.
-_CATALOG_EMBEDDED: list[dict[str, Any]] = [
-    {
-        "id": "no_bare_except",
-        "match_keys": [
-            "bare_except",
-            "swallow_exception",
-            "silent_except",
-            "except_pass",
-        ],
-        "engine": "regex_gate",
-        "params": {"forbidden_patterns": ["except:\\s*pass", "except:\\s*$"]},
-        "scope_default": {
-            "applies_to": ["**/*.py"],
-            "excludes": ["**/venv/**", "**/.venv/**", "**/build/**", "**/dist/**"],
-        },
-    },
-    {
-        "id": "docstrings",
-        "match_keys": [
-            "missing_docstring",
-            "no_docstring",
-            "undocumented",
-            "docstrings_required",
-        ],
-        "engine": "ast_gate",
-        "params": {"check_type": "docstrings_present"},
-        "scope_default": {
-            "applies_to": ["**/*.py"],
-            "excludes": [
-                "**/__init__.py",
-                "tests/**/*.py",
-                "test/**/*.py",
-                "**/venv/**",
-                "**/.venv/**",
-            ],
-        },
-    },
-    {
-        "id": "no_print",
-        "match_keys": [
-            "no_print_statements",
-            "print_statement",
-            "debug_print",
-            "console_print",
-        ],
-        "engine": "ast_gate",
-        "params": {"check_type": "no_print_statements"},
-        "scope_default": {
-            "applies_to": ["**/*.py"],
-            "excludes": [
-                "tests/**/*.py",
-                "test/**/*.py",
-                "scripts/**/*.py",
-                "**/venv/**",
-                "**/.venv/**",
-            ],
-        },
-    },
-    {
-        "id": "no_secrets",
-        "match_keys": [
-            "hardcoded_secret",
-            "hardcoded_credential",
-            "password_literal",
-            "api_key_literal",
-            "secret_literal",
-            "credential",
-        ],
-        "engine": "regex_gate",
-        "params": {
-            "forbidden_patterns": [
-                "(?i)\\b(password|passwd|secret_key|api_key|access_token|auth_token)\\s*=\\s*['\"][^'\"\\s]{8,}['\"]"
-            ]
-        },
-        "scope_default": {
-            "applies_to": ["**/*.py"],
-            "excludes": [
-                "tests/**/*.py",
-                "test/**/*.py",
-                "**/test_*.py",
-                "**/*_test.py",
-                "**/venv/**",
-                "**/.venv/**",
-            ],
-        },
-    },
-]
+# Scout prompt artifact; carries the enforcement catalog.
+_SCOUT_PROMPT = "scout_rule_inducer"
+_CATALOG_FILE = "enforcement_catalog.yaml"
 
 # Output paths relative to <target>/.intent/
 _RULES_OUTPUT = "rules/scout_inducted.json"
@@ -664,11 +530,11 @@ def _candidate_cache_key(code_signals: str, core_root: Path) -> str:
     invalidated when the prompt or model config changes — a prompt improvement
     on unchanged code still triggers a fresh LLM call.
     """
-    prompt_dir = core_root.joinpath("var", "prompts", "scout_rule_inducer")
+    prompt_dir = _scout_prompt_dir(core_root)
 
     def _read(name: str) -> str:
         try:
-            return (prompt_dir / name).read_text(encoding="utf-8")
+            return prompt_dir.joinpath(name).read_text(encoding="utf-8")
         except OSError:
             return ""
 
@@ -725,31 +591,33 @@ def _evict_candidate_cache(core_root: Path, cache_key: str) -> None:
 # ── Enforcement catalog (ADR-119 separation of observation from enforcement) ────
 
 
+def _scout_prompt_dir(core_root: Path) -> Path | Traversable:
+    """The Scout prompt artifact: the repository's prompt root first, the bundle second."""
+    repo_dir = PathResolver(core_root).prompts_dir / _SCOUT_PROMPT
+    if repo_dir.is_dir():
+        return repo_dir
+    bundled = bundled_prompt(_SCOUT_PROMPT)
+    if bundled is None:
+        raise RuntimeError(
+            f"Scout prompt '{_SCOUT_PROMPT}' is not in the installed package. "
+            "This is a packaging error — please report it."
+        )
+    return bundled
+
+
 def _load_enforcement_catalog(core_root: Path) -> list[dict[str, Any]]:
     """Load the Scout enforcement catalog.
 
-    Maps governance intent labels to engine + params. Tries the file-based
-    catalog first (source-tree); falls back to the embedded constant so wheel
-    installs can still match the 4 universal starter rules.
+    Maps governance intent labels to engine + params. Read from the Scout
+    prompt artifact (repository prompt root first, shipped bundle second);
+    there is no embedded copy (#1387 C5).
     """
-    catalog_path = core_root.joinpath(*_CATALOG_REL)
-    if catalog_path.exists():
-        try:
-            doc = yaml.safe_load(catalog_path.read_text(encoding="utf-8"))
-            entries = doc.get("entries", []) if isinstance(doc, dict) else []
-            if entries:
-                return entries
-        except Exception as e:
-            logger.warning(
-                "Could not load enforcement catalog from %s: %s", catalog_path, e
-            )
-
-    # Wheel install (or source catalog missing): use the embedded universal set.
-    logger.info(
-        "Scout: using embedded enforcement catalog (catalog not found at %s).",
-        catalog_path,
-    )
-    return _CATALOG_EMBEDDED
+    catalog = _scout_prompt_dir(core_root).joinpath(_CATALOG_FILE)
+    doc = yaml.safe_load(catalog.read_text(encoding="utf-8"))
+    entries = doc.get("entries") if isinstance(doc, dict) else None
+    if not entries:
+        raise RuntimeError(f"Scout enforcement catalog has no entries: {catalog}")
+    return entries
 
 
 def _match_enforcement(
@@ -798,26 +666,14 @@ def _augment(candidate: dict[str, Any], entry: dict[str, Any]) -> dict[str, Any]
 def _load_fallback_candidates(core_root: Path) -> list[dict[str, Any]]:
     """Load the starter rules as fallback candidates (ADR-119 D7).
 
-    Tries the source-tree path first; falls back to the embedded constant
-    so `project scout` works after `pip install core-runtime` without the
-    source checkout. Produces observation-only candidates — they go through
+    Reads the starter pack the wheel ships, so source checkouts and
+    `pip install core-runtime` see the same four rules (#1387 C5). Produces observation-only candidates — they go through
     catalog matching in induce_rules() like LLM-produced candidates.
     """
-    raw_rules: list[dict[str, Any]] | None = None
-
-    rules_path = core_root.joinpath(*_FALLBACK_RULES_REL)
-    if rules_path.exists():
-        try:
-            doc = json.loads(rules_path.read_text(encoding="utf-8"))
-            raw_rules = doc.get("rules", [])
-        except Exception as e:
-            logger.warning(
-                "Could not load fallback candidates from %s: %s", rules_path, e
-            )
-
-    if raw_rules is None:
-        # Wheel install (no source tree): use the embedded universal rule set.
-        raw_rules = _FALLBACK_RULES_EMBEDDED
+    pack = yaml.safe_load(
+        bundled_packs_root().joinpath(_STARTER_PACK_FILE).read_text(encoding="utf-8")
+    )
+    raw_rules: list[dict[str, Any]] = pack["rules"]
 
     candidates: list[dict[str, Any]] = []
     for rule in raw_rules:

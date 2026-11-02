@@ -9,6 +9,7 @@ Path classification utilities live in cim_path_utils.py.
 from __future__ import annotations
 
 import ast
+import tomllib
 from collections import defaultdict
 from pathlib import Path
 
@@ -128,16 +129,14 @@ def extract_cli_entrypoints(repo_root: Path) -> list[str]:
     if not pyproject.exists():
         return []
     try:
-        import tomli
-
-        data = tomli.loads(pyproject.read_text(encoding="utf-8"))
-        scripts = data.get("project", {}).get("scripts", {})
-        if not scripts:
-            scripts = data.get("tool", {}).get("poetry", {}).get("scripts", {})
-        return sorted(scripts.keys())
-    except Exception as e:
-        logger.debug("Failed to extract CLI entrypoints: %s", e)
+        data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError) as e:
+        logger.warning("Cannot read CLI entrypoints from %s: %s", pyproject, e)
         return []
+    scripts = data.get("project", {}).get("scripts", {})
+    if not scripts:
+        scripts = data.get("tool", {}).get("poetry", {}).get("scripts", {})
+    return sorted(scripts.keys())
 
 
 # ID: 37641417-45c8-4027-aa63-9a032f55c528
@@ -176,9 +175,7 @@ def scan_execution_surfaces(
     pyproject = repo_root / "pyproject.toml"
     if pyproject.exists():
         try:
-            import tomli
-
-            data = tomli.loads(pyproject.read_text(encoding="utf-8"))
+            data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
             scripts = data.get("project", {}).get("scripts", {})
             if not scripts:
                 scripts = data.get("tool", {}).get("poetry", {}).get("scripts", {})
@@ -190,7 +187,7 @@ def scan_execution_surfaces(
                         line=None,
                     )
                 )
-        except Exception as e:
+        except (OSError, tomllib.TOMLDecodeError) as e:
             errors.append(
                 CensusError(
                     path="pyproject.toml",
