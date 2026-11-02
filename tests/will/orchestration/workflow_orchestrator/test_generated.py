@@ -49,3 +49,52 @@ async def test_WorkflowOrchestrator_execute_goal():
         {"all": True},
         result and orchestrator._evaluate_success_criteria.call_args[0][1],
     )
+
+
+
+
+# ID: d3810e1c-2860-45f5-91fc-126c5d46fc1a
+def test_WorkflowOrchestrator():
+    from will.orchestration.workflow_orchestrator import WorkflowOrchestrator
+
+    phase_registry = MagicMock()
+    path_resolver = MagicMock()
+
+    mock_repo = MagicMock()
+
+    with (
+        patch(
+            "will.orchestration.workflow_orchestrator.get_intent_repository",
+            return_value=mock_repo,
+        ),
+        patch(
+            "will.orchestration.workflow_orchestrator.DecisionTracer",
+        ),
+    ):
+        orchestrator = WorkflowOrchestrator(phase_registry, path_resolver)
+
+    assert orchestrator.phases is phase_registry
+    assert orchestrator._paths is path_resolver
+    assert orchestrator._intent_repo is mock_repo
+
+    mock_repo.load_workflow.return_value = {
+        "workflow_id": "feature",
+        "description": "A feature workflow",
+        "stages": [
+            {"stage_id": "interpret.intent", "order": 0},
+            {"stage_id": "audit.sandbox", "order": 1},
+            {"stage_id": "interpret.again", "order": 2},
+        ],
+        "success_criteria": {},
+        "write_required": True,
+        "dangerous": False,
+        "timeout_minutes": 30,
+    }
+
+    workflow_def = orchestrator._load_workflow_definition("feature")
+
+    mock_repo.load_workflow.assert_called_once_with("feature")
+    assert workflow_def.workflow_type == "feature"
+    assert workflow_def.description == "A feature workflow"
+    assert workflow_def.phases == ["interpret", "audit"]
+    assert workflow_def.write_required is True
