@@ -88,3 +88,34 @@ async def test_PlannerAgent_create_execution_plan():
     parse_plan.assert_called_once_with("valid plan response")
     tracer_instance.record.assert_called_once()
     cognitive_service.aget_client_for_role.assert_awaited_once_with("planner")
+
+
+
+
+
+# ID: 00adb47a-5cca-4038-9b97-ab5447f02c10
+def test_PlannerAgent():
+    cognitive_service = MagicMock()
+    repo_path = Path("/tmp/repo")
+
+    with (
+        patch("will.agents.planner_agent.PromptModel") as mock_prompt_model,
+        patch("will.agents.planner_agent.PolicyVectorizer") as mock_policy_vectorizer,
+        patch("will.agents.planner_agent.DecisionTracer") as mock_tracer,
+    ):
+        mock_prompt_model.load.return_value = MagicMock()
+        mock_tracer.return_value = MagicMock()
+
+        agent = PlannerAgent(
+            cognitive_service=cognitive_service,
+            repo_path=repo_path,
+            qdrant_service=None,
+            max_retries=3,
+        )
+
+        assert agent.cognitive_service is cognitive_service
+        assert agent.repo_path == repo_path
+        assert agent.max_retries == 3
+        assert agent.policy_vectorizer is None
+        mock_prompt_model.load.assert_called_once_with("plan_goal")
+        mock_policy_vectorizer.assert_not_called()
