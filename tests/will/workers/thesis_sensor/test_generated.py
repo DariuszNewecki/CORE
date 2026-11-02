@@ -78,7 +78,6 @@ async def test_ThesisSensor():
     mock_push.assert_awaited_once()
 
 
-
 from will.workers.thesis_sensor import week_records
 
 
@@ -106,3 +105,68 @@ def test_week_records() -> None:
     assert label.startswith("2024")
     # label should reference the previous week's start date
     assert "2024" in label
+
+
+# ID: 6342ff09-85c4-4e9e-8aae-4480adcdb4ae
+async def test_guard_breaches() -> None:
+    from unittest.mock import AsyncMock, MagicMock
+
+    from will.workers.thesis_sensor import BROKEN_SUBJECT, MEASURES, guard_breaches
+
+    # Build a breach for the first measure
+    measure_name = MEASURES[0]
+
+    class _Breach:
+        def __init__(self, measure: str, message: str) -> None:
+            self.measure = measure
+            self.message = message
+
+    breach = _Breach(measure=measure_name, message="measure broken")
+
+    # Active findings: none for the broken subject, but some for a different
+    # measure that currently holds again (so it should be resolved).
+    other_measure = MEASURES[1] if len(MEASURES) > 1 else measure_name
+    held_subject = f"{BROKEN_SUBJECT}{other_measure}"
+
+    blackboard = MagicMock()
+    blackboard.fetch_active_finding_subjects_by_prefix = AsyncMock(
+        return_value={held_subject}
+    )
+    blackboard.adjudicate_indeterminate_findings = AsyncMock(return_value=None)
+
+    worker = MagicMock()
+    worker.post_observation = AsyncMock(return_value=None)
+
+    class _Measures:
+        day = MagicMock()
+        day.isoformat.return_value = "2026-10-13"
+
+    measures = _Measures()
+    # Set all measures to None except the broken one; the held one should be
+    # a non-None value so it gets resolved.
+    for name in MEASURES:
+        setattr(measures, name, None)
+    setattr(measures, measure_name, 0.0)
+    setattr(measures, other_measure, 0.0)
+
+    await guard_breaches(worker, blackboard, measures, [breach])
+
+    # The broken measure raised exactly one observation.
+    worker.post_observation.assert_awaited_once()
+    kwargs = worker.post_observation.await_args.kwargs
+    assert kwargs["subject"] == f"{BROKEN_SUBJECT}{measure_name}"
+    assert kwargs["status"] == "indeterminate"
+    assert kwargs["payload"]["severity"] == "block"
+    assert kwargs["payload"]["measure"] == measure_name
+    assert kwargs["payload"]["day"] == "2026-10-13"
+    assert kwargs["payload"]["message"] == "measure broken"
+
+    blackboard.fetch_active_finding_subjects_by_prefix.assert_awaited_once()
+
+    # If the held measure differs from the broken one, it should be resolved.
+    if other_measure != measure_name:
+        blackboard.adjudicate_indeterminate_findings.assert_awaited_once()
+        adj_kwargs = blackboard.adjudicate_indeterminate_findings.await_args.kwargs
+        assert adj_kwargs["subject_prefix"] == held_subject
+        assert adj_kwargs["resolved_by"] == "thesis_sensor"
+        assert adj_kwargs["current_violation_subjects"] == set()
