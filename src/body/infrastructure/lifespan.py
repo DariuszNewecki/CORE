@@ -19,11 +19,10 @@ from body.infrastructure.bootstrap import create_core_context
 from body.infrastructure.repo_sync import recover_at_boot
 from body.services.service_registry import service_registry
 from shared.config import settings
-from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.diagnostic_service import DiagnosticService
 from shared.infrastructure.intent.law_root_gate import require_service_law_root
 from shared.infrastructure.repositories.db.schema_gate import run_startup_schema_gate
-from shared.logger import apply_log_level, getLogger
+from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
@@ -106,24 +105,8 @@ async def core_lifespan(app: FastAPI):
                 service_registry.get_capability_tagging_service()
             )
 
-            # 4. DATABASE & CONFIG INITIALIZATION
+            # 4. COGNITIVE SERVICE INITIALIZATION
             async with service_registry.session() as session:
-                config = await ConfigService.create(session)
-                log_level_from_db = await config.get("LOG_LEVEL", "INFO")
-                # #889: was `reconfigure_log_level(...)` un-awaited -- a
-                # coroutine that never ran, so the DB LOG_LEVEL never
-                # applied. Awaiting it is not the fix: it is an
-                # @atomic_action and raises GovernanceBypassError outside
-                # an executor. Bootstrap applies the primitive directly.
-                try:
-                    apply_log_level(str(log_level_from_db))
-                    logger.info("Log level set from DB config: %s", log_level_from_db)
-                except ValueError as exc:
-                    logger.warning(
-                        "Ignoring invalid LOG_LEVEL from DB config (%r): %s",
-                        log_level_from_db,
-                        exc,
-                    )
                 await cognitive.initialize(session)
 
             # 5. LOAD KNOWLEDGE GRAPH

@@ -72,7 +72,7 @@ _DB_BY_LOOP: WeakKeyDictionary[asyncio.AbstractEventLoop, _DbState] = (
 
 
 def _engine_echo() -> bool:
-    return str(getattr(settings, "DATABASE_ECHO", "false")).lower() == "true"
+    return settings.DATABASE_ECHO
 
 
 # ID: 23044df2-b617-4951-9474-00ad0c371ddb

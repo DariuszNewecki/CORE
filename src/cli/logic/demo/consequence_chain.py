@@ -79,7 +79,6 @@ def _write_child_env(clone_repo_path: Path, pg_port: str, qdrant_port: str) -> N
     """
     content = (
         "CORE_ENV=development\n"
-        "LLM_ENABLED=False\n"
         f"DATABASE_URL=postgresql+asyncpg://core_demo:core_demo@127.0.0.1:{pg_port}/core_demo\n"
         f"QDRANT_URL=http://127.0.0.1:{qdrant_port}\n"
         "CORE_STRICT_MODE=False\n"

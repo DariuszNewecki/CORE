@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING
 from body.analyzers.file_analyzer import FileAnalyzer
 from body.evaluators.clarity_evaluator import ClarityEvaluator
 from shared.ai.prompt_model import PromptModel
-from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 from will.deciders.governance_decider import GovernanceDecider  # NEW
@@ -34,7 +33,6 @@ async def remediate_clarity_v2(
     context: CoreContext,
     file_path: Path,
     write: bool = False,
-    config_service: ConfigService | None = None,
 ):
     """
     V2.3 Orchestrator: Combines high-resilience adaptive loops with
@@ -80,12 +78,9 @@ async def remediate_clarity_v2(
     # =========================================================================
     # 4 & 5. THE ADAPTIVE LOOP (GENERATE + EVALUATE)
     # =========================================================================
-    if config_service is not None:
-        repo_root = Path(await config_service.get("REPO_PATH", required=True))
-    else:
-        async with context.registry.session() as session:
-            runtime_config = await ConfigService.create(session)
-            repo_root = Path(await runtime_config.get("REPO_PATH", required=True))
+    # #1390 F13: the repository is the one this context runs on; no
+    # configuration table holds REPO_PATH (ADR-052 cutover).
+    repo_root = Path(context.git_service.repo_path)
 
     original_code = (repo_root / rel_path_str).read_text(encoding="utf-8")
 

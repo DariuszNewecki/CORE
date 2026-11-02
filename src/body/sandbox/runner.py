@@ -66,7 +66,6 @@ def child_environment(work_dir: Path) -> dict[str, str]:
         "LANG": "C.UTF-8",
         "PYTHONDONTWRITEBYTECODE": "1",
         "CORE_ENV": "test",
-        "LLM_ENABLED": "false",
         "LOG_LEVEL": "WARNING",
         # The audit's ruff and mypy keep their caches in the job's scratch:
         # the snapshot is read-only.

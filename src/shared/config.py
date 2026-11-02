@@ -162,9 +162,6 @@ class Settings(BaseSettings):
     """
 
     # --- Operational State ---
-    DEBUG: bool = False
-    VERBOSE: bool = False
-
     # NEW: The "Teeth" Toggle (Phase 3 Hardening)
     # If False (default): Violations are reported but don't block execution.
     # If True: Any 'error' level violation halts the transaction immediately.
@@ -184,12 +181,8 @@ class Settings(BaseSettings):
     REPO_PATH: Path = Field(default_factory=resolve_default_repo_path)
     MIND: Path = Field(default_factory=resolve_default_mind_path)
     SPECS: Path = Field(default_factory=lambda: resolve_default_repo_path() / ".specs")
-    BODY: Path = Field(default_factory=lambda: resolve_default_repo_path() / "src")
 
     # --- Standard Infrastructure Paths ---
-    KEY_STORAGE_DIR: Path = Field(
-        default_factory=lambda: resolve_default_repo_path() / ".intent" / "keys"
-    )
     CORE_ACTION_LOG_PATH: Path = Field(
         default_factory=lambda: (
             __import__("shared.path_resolver", fromlist=["PathResolver"])
@@ -236,9 +229,9 @@ class Settings(BaseSettings):
         """When REPO_PATH is set explicitly, unset roots follow it.
 
         Each root's default is discovered from the working directory on its
-        own, so setting REPO_PATH alone left MIND, SPECS, BODY, the key
-        directory and the action log pointing at whatever the cwd walk (or
-        the source tree, or the machinery floor) found. A service running
+        own, so setting REPO_PATH alone left MIND, SPECS and the action log
+        pointing at whatever the cwd walk (or the source tree, or the
+        machinery floor) found. A service running
         from a release with an empty working directory (ADR-132 D10 · D2)
         would then judge against the wrong law. A root set explicitly (e.g.
         MIND=/opt/core/law/.intent, law kept outside the code clone) wins.
@@ -251,10 +244,6 @@ class Settings(BaseSettings):
             self.MIND = repo / ".intent"
         if "SPECS" not in explicit:
             self.SPECS = repo / ".specs"
-        if "BODY" not in explicit:
-            self.BODY = repo / "src"
-        if "KEY_STORAGE_DIR" not in explicit:
-            self.KEY_STORAGE_DIR = Path(self.MIND) / "keys"
         if "CORE_ACTION_LOG_PATH" not in explicit:
             from shared.path_resolver import PathResolver
 
@@ -324,12 +313,13 @@ class Settings(BaseSettings):
         validation_alias="CORS_ORIGINS",
     )
 
-    LLM_ENABLED: bool = True
     QDRANT_COLLECTION_NAME: str = "core-code"
     LOCAL_EMBEDDING_DIM: int = 768
     LOCAL_EMBEDDING_MODEL_NAME: str = "nomic-embed-text"
     EMBED_MODEL_REVISION: str = "2025-09-15"
     CORE_MAX_CONCURRENT_REQUESTS: int = 2
+    # SQLAlchemy engine echo (shared.infrastructure.database.session_manager).
+    DATABASE_ECHO: bool = False
 
     # Database connection pool sizing. SQLAlchemy defaults (pool_size=5,
     # max_overflow=10 → 15 max) are too low for the daemon's worker fleet
@@ -426,7 +416,6 @@ class Settings(BaseSettings):
         self.REPO_PATH = repo_path
         self.MIND = repo_path / ".intent"
         self.SPECS = repo_path / ".specs"
-        self.BODY = repo_path / "src"
         self._path_resolver = None
 
     # =========================================================================

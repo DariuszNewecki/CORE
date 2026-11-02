@@ -320,9 +320,9 @@ class ServiceRegistry:
     async def get_auditor_context(self) -> AuditorContext:
         # #306: resolve an LLM client OUTSIDE the lock so the slow
         # CognitiveService init doesn't block other registry callers.
-        # CognitiveService bootstrap can fail (LLM_ENABLED=false, provider
-        # unreachable, missing role). Every failure mode falls back to
-        # llm_client=None — the AuditorContext then propagates that to
+        # CognitiveService bootstrap can fail (system_config.llm_enabled
+        # false, provider unreachable, missing role). Every failure mode
+        # falls back to llm_client=None — the AuditorContext then propagates that to
         # EngineRegistry, which routes llm_gate-engined rules through
         # LLMGateStubEngine. rule_executor.py surfaces the stub fall-back
         # as a per-rule WARNING finding so the audit is never silent.
