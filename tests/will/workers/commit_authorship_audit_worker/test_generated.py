@@ -68,3 +68,47 @@ def test_CommitAuthorshipAuditWorker_run():
     assert payload["checked"] == 1
     assert payload["violations_detected"] == 0
     assert payload["suppressed"] == 0
+
+
+
+
+
+# ID: 6b8a9527-982f-49ae-92c1-312a8453eb3d
+async def test_CommitAuthorshipAuditWorker():
+    core_context = MagicMock()
+    worker = CommitAuthorshipAuditWorker(core_context)
+
+    worker.post_heartbeat = AsyncMock()
+    worker.post_observation = AsyncMock()
+    worker.post_report = AsyncMock()
+
+    blackboard_service = MagicMock()
+    blackboard_service.fetch_active_finding_subjects_by_prefix = AsyncMock(
+        return_value=set()
+    )
+
+    consequence_svc = MagicMock()
+    consequence_svc.get_recent_for_audit = AsyncMock(return_value=[])
+
+    core_context.registry.get_consequence_log_service = AsyncMock(
+        return_value=consequence_svc
+    )
+    core_context.git_service = MagicMock()
+
+    proposal_svc = MagicMock()
+    proposal_svc.fetch_completed_without_consequence = AsyncMock(return_value=[])
+    proposal_svc.fetch_completed_with_degraded_consequence = AsyncMock(return_value=[])
+
+    service_registry = MagicMock()
+    service_registry.get_blackboard_service = AsyncMock(return_value=blackboard_service)
+    service_registry.get_proposal_consequence_audit_service = AsyncMock(
+        return_value=proposal_svc
+    )
+
+    with patch("body.services.service_registry.service_registry", service_registry):
+        await worker.run()
+
+    worker.post_heartbeat.assert_awaited_once()
+    worker.post_report.assert_awaited_once()
+    worker.post_observation.assert_not_awaited()
+    consequence_svc.get_recent_for_audit.assert_awaited_once_with(lookback_days=7)
