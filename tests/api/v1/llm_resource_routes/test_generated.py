@@ -1,0 +1,33 @@
+from __future__ import annotations
+
+from unittest.mock import AsyncMock, MagicMock, patch
+
+from api.v1.llm_resource_routes import check_llm
+
+
+# ID: d5443d85-621d-4891-bcdc-61608f64ecd7
+async def test_check_llm():
+    request = MagicMock()
+    core_context = MagicMock()
+    request.app.state.core_context = core_context
+
+    session = MagicMock()
+
+    fake_data = {"ok": True, "embed": "ok", "chat": "ok"}
+
+    with (
+        patch(
+            "api.v1.llm_resource_routes.run_check_llm",
+            new=AsyncMock(return_value=fake_data),
+        ) as mock_run_check_llm,
+        patch(
+            "api.v1.llm_resource_routes.LlmResourceAuthoringResponse"
+        ) as mock_response_cls,
+    ):
+        mock_response_cls.return_value = MagicMock()
+
+        result = await check_llm(request=request, session=session)
+
+    mock_run_check_llm.assert_awaited_once_with(core_context, session)
+    mock_response_cls.assert_called_once_with(ok=True, data=fake_data, duration_sec=0.0)
+    assert result is mock_response_cls.return_value
