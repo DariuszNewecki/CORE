@@ -112,3 +112,25 @@ def test_WorkflowContext():
 
     ctx.results["phase1"] = {"output": "value"}
     assert ctx.results == {"phase1": {"output": "value"}}
+
+
+from will.orchestration.workflow_orchestrator import WorkflowDefinition
+
+
+# ID: 1dfb5c80-0eed-4bf3-b2e0-b2c945ec38e4
+def test_WorkflowDefinition():
+    wd = WorkflowDefinition(
+        workflow_type="feature",
+        description="Add a new feature to the system",
+        phases=["plan", "implement", "verify"],
+        success_criteria={"tests_pass": True},
+    )
+
+    assert wd.workflow_type == "feature"
+    assert wd.description == "Add a new feature to the system"
+    assert wd.phases == ["plan", "implement", "verify"]
+    assert wd.success_criteria == {"tests_pass": True}
+    assert wd.write_required is True
+    assert wd.dangerous is False
+    assert isinstance(wd.timeout_minutes, int)
+    assert wd.timeout_minutes > 0
