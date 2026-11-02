@@ -54,3 +54,30 @@ async def test_PromptDriftSensor_run() -> None:
     }
     assert report_kwargs["payload"]["checked"] == 2
     assert report_kwargs["payload"]["drifted"] == ["prompt_a"]
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: a71c29e4-afb7-46d8-957b-3def3d7814c3
+async def test_PromptDriftSensor():
+    from will.workers.prompt_drift_sensor import PromptDriftSensor
+
+    worker = PromptDriftSensor()
+    worker.post_heartbeat = AsyncMock()
+    worker.post_finding = AsyncMock()
+    worker.post_report = AsyncMock()
+
+    worker._load_governed_prompts = MagicMock(return_value=[])
+    worker._fetch_baseline = AsyncMock(return_value=None)
+
+    await worker.run()
+
+    worker.post_heartbeat.assert_awaited_once()
+    worker.post_report.assert_awaited_once()
+    kwargs = worker.post_report.call_args.kwargs
+    assert kwargs["subject"] == "prompt_drift_sensor.baseline"
+    assert kwargs["payload"]["checked"] == 0
+    assert kwargs["payload"]["drifted"] == []
