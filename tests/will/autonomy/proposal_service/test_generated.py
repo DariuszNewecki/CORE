@@ -225,9 +225,6 @@ async def test_ProposalService_open():
         mock_session_cm.__aexit__.assert_awaited_once()
 
 
-
-
-
 # ID: c3a90bf4-a215-4854-965c-ce4d3a9d86cb
 async def test_ProposalService():
     session = MagicMock()
@@ -270,4 +267,33 @@ async def test_ProposalService():
     service._state_manager.reject.assert_awaited_once_with("prop-123", "bad diff")
     mock_revive.assert_awaited_once_with(
         "prop-123", "bad diff", {"proposal_origin": "autonomous"}
+    )
+
+
+
+from will.autonomy.proposal_service import revive_findings_for_rejected_proposal
+
+
+# ID: b0bffc32-88c3-4ff3-b648-9ac7290182a6
+async def test_revive_findings_for_rejected_proposal():
+    mock_bb_service = MagicMock()
+    expected = {"revived": 2}
+    mock_bb_service.revive_findings_for_failed_proposal = AsyncMock(
+        return_value=expected
+    )
+
+    with patch(
+        "body.services.service_registry.service_registry.get_blackboard_service",
+        new=AsyncMock(return_value=mock_bb_service),
+    ):
+        result = await revive_findings_for_rejected_proposal(
+            proposal_id="prop-123",
+            reason="not enough evidence",
+            constitutional_constraints=None,
+        )
+
+    assert result == expected
+    mock_bb_service.revive_findings_for_failed_proposal.assert_awaited_once_with(
+        proposal_id="prop-123",
+        failure_reason="rejected: not enough evidence",
     )
