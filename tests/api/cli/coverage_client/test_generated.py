@@ -123,3 +123,27 @@ def test_CoverageClient_coverage_generate_batch() -> None:
         "/v1/coverage/generate:batch",
         json={"priority": "high", "write": True},
     )
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: ad24c475-c93e-4bec-8e4e-5f5f17afd98a
+async def test_CoverageClient_coverage_generate():
+    facade = MagicMock()
+    facade._request = AsyncMock(
+        return_value={"generated": True, "target_file": "foo.py"}
+    )
+
+    client = CoverageClient(facade)
+
+    result = await client.coverage_generate("foo.py", write=True)
+
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/coverage/generate",
+        json={"target_file": "foo.py", "write": True},
+    )
+    assert result == {"generated": True, "target_file": "foo.py"}
