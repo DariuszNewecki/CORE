@@ -28,3 +28,30 @@ def test_rollback_proposal():
     git_service.restore_paths.assert_called_once_with(
         ["src/a.py", "src/b.py"], source="abcdef1234567890"
     )
+
+
+from unittest.mock import AsyncMock
+
+import pytest
+
+from will.autonomy.proposal_execution_pipeline import resolve_deferred_findings
+
+
+@pytest.mark.asyncio
+# ID: aa626ee3-65b3-4169-99b3-fdb180480ab2
+async def test_resolve_deferred_findings():
+    mock_bb_service = AsyncMock()
+    mock_bb_service.resolve_deferred_entries_for_completed_proposal = AsyncMock(
+        return_value={"resolved_count": 3}
+    )
+
+    with patch(
+        "body.services.service_registry.service_registry.get_blackboard_service",
+        new=AsyncMock(return_value=mock_bb_service),
+    ):
+        result = await resolve_deferred_findings("prop-123")
+
+    assert result is True
+    mock_bb_service.resolve_deferred_entries_for_completed_proposal.assert_awaited_once_with(
+        "prop-123"
+    )
