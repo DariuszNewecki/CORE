@@ -88,7 +88,6 @@ async def test_CoverageClient_poll_coverage_run():
     assert result == {"status": "complete", "run_id": "run-123"}
 
 
-
 import pytest
 
 
@@ -104,3 +103,23 @@ async def test_CoverageClient_get_coverage_run():
 
     facade._request.assert_awaited_once_with("GET", "/v1/coverage/runs/run-123")
     assert result == {"id": "run-123", "status": "complete"}
+
+
+import asyncio
+
+
+# ID: e22df961-8bea-4dbb-9a47-d98417e54814
+def test_CoverageClient_coverage_generate_batch() -> None:
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "ok", "generated": 3})
+
+    client = CoverageClient(facade)
+
+    result = asyncio.run(client.coverage_generate_batch(priority="high", write=True))
+
+    assert result == {"status": "ok", "generated": 3}
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/coverage/generate:batch",
+        json={"priority": "high", "write": True},
+    )
