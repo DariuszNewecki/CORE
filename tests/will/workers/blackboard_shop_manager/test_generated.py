@@ -86,3 +86,53 @@ def test_BlackboardShopManager_run() -> None:
     assert report_kwargs["subject"] == "blackboard_shop_manager.run.complete"
     assert report_kwargs["payload"]["flagged"] == 1
     assert report_kwargs["payload"]["entries_checked"] == 1
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 03313adc-30d1-4971-bdaf-f92ff00c444c
+async def test_BlackboardShopManager() -> None:
+    worker = BlackboardShopManager()
+
+    # Mock worker async posting methods (instance attributes)
+    worker.post_heartbeat = AsyncMock()
+    worker.post_finding = AsyncMock()
+    worker.post_report = AsyncMock()
+    worker.post_observation = AsyncMock()
+
+    # Mock internal sweep/fetch helpers on the instance to isolate run()
+    worker._sweep_resolved_stale_alerts = AsyncMock(return_value=0)
+    worker._sweep_telemetry_keep_last_n = AsyncMock(return_value=0)
+    worker._sweep_delegate_findings_ttl = AsyncMock(return_value=0)
+    worker._sweep_orphaned_claims = AsyncMock(
+        return_value={"skipped": False, "released": [], "abandoned": []}
+    )
+    worker._sweep_retired_rule_findings = AsyncMock(
+        return_value={"resolved": 0, "retired_rules": [], "skipped": False}
+    )
+    worker._count_active_entries = AsyncMock(return_value=3)
+
+    stale_entry = {
+        "id": "11111111-1111-1111-1111-111111111111",
+        "entry_type": "finding",
+        "subject": "some.subject",
+        "worker_uuid": "22222222-2222-2222-2222-222222222222",
+        "status": "open",
+        "age_seconds": 9999,
+        "sla_seconds": 3600,
+    }
+    worker._fetch_stale_entries = AsyncMock(return_value=[stale_entry])
+    worker._fetch_existing_findings = AsyncMock(return_value=set())
+
+    await worker.run()
+
+    worker.post_heartbeat.assert_awaited_once()
+    worker._fetch_stale_entries.assert_awaited_once()
+    worker._fetch_existing_findings.assert_awaited_once()
+    worker.post_finding.assert_awaited_once()
+    worker.post_report.assert_awaited_once()
+    report_kwargs = worker.post_report.await_args.kwargs
+    assert report_kwargs["payload"]["flagged"] == 1
+    assert report_kwargs["payload"]["entries_checked"] == 3
