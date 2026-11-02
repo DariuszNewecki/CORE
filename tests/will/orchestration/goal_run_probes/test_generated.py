@@ -194,3 +194,36 @@ async def test_run_probe_i5(tmp_path):
     assert record["rule_in_bound_law"] == {"loaded": True}
     assert record["passed"] is True
     assert "reason" not in record
+
+
+from pathlib import Path
+
+
+# ID: e924027d-50cb-44cd-b8ac-e84ffe607d8e
+def test_rule_in_bound_law():
+    from will.orchestration.goal_run_probes import rule_in_bound_law
+
+    root = Path("/execution/copy/.intent")
+    source_path = root / "laws" / "governance.md"
+
+    ref = SimpleNamespace(
+        source_path=str(source_path),
+        rule_content_hash="abc123hash",
+    )
+    mock_repo = MagicMock()
+    mock_repo.root = root
+    mock_repo.get_rule.return_value = ref
+
+    with patch(
+        "shared.infrastructure.intent.intent_repository.get_intent_repository",
+        return_value=mock_repo,
+    ):
+        result = rule_in_bound_law("ADR-133")
+
+    mock_repo.get_rule.assert_called_once_with("ADR-133")
+    assert result == {
+        "loaded": True,
+        "rule_id": "ADR-133",
+        "document": str(Path("laws") / "governance.md"),
+        "content_hash": "abc123hash",
+    }
