@@ -64,3 +64,16 @@ async def test_ViolationExecutorWorker_run() -> None:
     assert payload["succeeded"] == 1
     assert payload["failed"] == 0
     assert payload["candidates_surfaced"] == 1
+
+
+
+from will.workers.violation_executor import ViolationExecutorWorker
+
+
+# ID: 2fee95c0-848a-417f-8397-5f944debccb1
+def test_ViolationExecutorWorker() -> None:
+    core_context = MagicMock()
+    worker = ViolationExecutorWorker(core_context)
+    assert worker._ctx is core_context
+    assert worker.declaration_name == "violation_executor"
+    assert isinstance(worker._files_per_cycle_max, int)
