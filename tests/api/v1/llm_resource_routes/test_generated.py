@@ -136,3 +136,22 @@ async def test_author_llm_resource():
     assert response.ok is True
     assert response.data == {"id": "123"}
     assert response.duration_sec == 0.42
+
+
+from api.v1.llm_resource_routes import AuthorLlmResourceRequest
+
+
+# ID: b6980380-ae5c-4a33-9871-41ca3818e9ce
+def test_AuthorLlmResourceRequest():
+    definition = {"kind": "llm-resource", "spec": {"model": "gpt-4"}}
+
+    model = AuthorLlmResourceRequest(definition=definition, write=True)
+
+    assert model.definition == definition
+    assert model.write is True
+
+    defaulted = AuthorLlmResourceRequest(definition=definition)
+
+    assert defaulted.definition == definition
+    assert defaulted.write is False
+    assert defaulted.model_dump() == {"definition": definition, "write": False}
