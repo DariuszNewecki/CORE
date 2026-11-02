@@ -97,7 +97,6 @@ async def test_run_and_persist_coverage_report():
     assert payload["ok"] is True
 
 
-
 import pytest
 
 from will.governance.coverage_runner import get_latest_coverage_report
@@ -119,3 +118,56 @@ async def test_get_latest_coverage_report():
     assert out == payload
     session.execute.assert_awaited_once()
     result.first.assert_called_once()
+
+
+
+import pytest
+
+from will.governance.coverage_runner import (
+    run_and_persist_coverage_batch,
+)
+
+
+@pytest.mark.asyncio
+# ID: f52cda23-6d4e-488c-9f65-4ab163d24e3c
+async def test_run_and_persist_coverage_batch():
+    context = MagicMock()
+    context.cognitive_service = MagicMock()
+    session = MagicMock()
+    run_id = uuid4()
+
+    update_status = AsyncMock()
+    remediate = AsyncMock(
+        return_value={"status": "completed", "summary": {"total": 1, "ok": 1}}
+    )
+
+    with (
+        patch(
+            "will.governance.coverage_runner._update_coverage_run_status", update_status
+        ),
+        patch("will.governance.coverage_runner.remediate_batch_by_symbol", remediate),
+    ):
+        await run_and_persist_coverage_batch(
+            context,
+            session,
+            run_id=run_id,
+            batch_priority="high",
+            write=True,
+        )
+
+    # executed → completed transitions
+    assert update_status.await_count == 2
+    first_call = update_status.await_args_list[0]
+    assert first_call.args[2] == "executing"
+    assert first_call.kwargs.get("started") is True
+
+    final_call = update_status.await_args_list[-1]
+    assert final_call.args[2] == "completed"
+    assert final_call.kwargs.get("finished") is True
+    assert final_call.kwargs.get("error") is None
+    assert final_call.kwargs.get("result") == {
+        "status": "completed",
+        "summary": {"total": 1, "ok": 1},
+    }
+
+    remediate.assert_awaited_once_with(context, write=True)
