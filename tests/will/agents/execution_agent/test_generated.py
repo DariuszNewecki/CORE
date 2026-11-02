@@ -45,3 +45,18 @@ def test_ExecutionAgent_execute_plan():
     assert "out.py" in results.files_written
     agent._execute_step.assert_awaited_once_with(step, 1)
     agent.tracer.record.assert_called_once()
+
+
+
+
+
+# ID: 27dcb9e4-9a09-417c-a3e3-6651a94aa3da
+def test_ExecutionAgent():
+    executor = MagicMock()
+    executor.execute = AsyncMock()
+
+    agent = ExecutionAgent(executor=executor, write=False)
+
+    assert agent.executor is executor
+    assert agent.write is False
+    assert agent.tracer is not None
