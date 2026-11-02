@@ -149,3 +149,30 @@ def test_RemediationEvidenceWriter_count_by_severity():
     result = writer.count_by_severity(findings)
 
     assert result == {"error": 2, "warning": 1, "info": 3}
+
+
+from types import SimpleNamespace
+
+
+# ID: 01a95b2f-b59e-4380-8345-acf475f88c3e
+def test_RemediationEvidenceWriter(tmp_path: Path) -> None:
+    file_handler = MagicMock()
+    auditor_context = MagicMock()
+    repo_root = tmp_path
+
+    writer = RemediationEvidenceWriter(
+        file_handler=file_handler,
+        auditor_context=auditor_context,
+        repo_root=repo_root,
+    )
+
+    # --- happy path: count_by_severity ---
+    findings = [
+        SimpleNamespace(severity="error"),
+        SimpleNamespace(severity="error"),
+        SimpleNamespace(severity="warning"),
+        SimpleNamespace(severity="info"),
+        SimpleNamespace(severity="unknown"),
+    ]
+    counts = writer.count_by_severity(findings)
+    assert counts == {"error": 2, "warning": 1, "info": 1}
