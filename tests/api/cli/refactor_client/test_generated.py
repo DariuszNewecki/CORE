@@ -105,7 +105,6 @@ def test_RefactorClient_refactor_score():
     assert result == {"score": 42}
 
 
-
 import pytest
 
 
@@ -122,3 +121,36 @@ async def test_RefactorClient_refactor_threshold():
 
     assert result == expected
     facade._request.assert_awaited_once_with("GET", "/v1/refactor/threshold")
+
+
+
+
+
+# ID: d1e226b8-908b-487d-a579-f6a2bc25339e
+def test_RefactorClient():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True})
+    facade._poll_at_path = AsyncMock(return_value={"status": "done"})
+
+    client = RefactorClient(facade)
+    assert client._facade is facade
+
+    assert asyncio.run(client.refactor_threshold()) == {"ok": True}
+    facade._request.assert_awaited_with("GET", "/v1/refactor/threshold")
+
+    assert asyncio.run(client.refactor_score("a.py")) == {"ok": True}
+    facade._request.assert_awaited_with(
+        "GET", "/v1/refactor/score", params={"file": "a.py"}
+    )
+
+    assert asyncio.run(client.refactor_autonomous("goal", write=True)) == {"ok": True}
+    facade._request.assert_awaited_with(
+        "POST",
+        "/v1/refactor/autonomous",
+        json={"goal": "goal", "write": True},
+    )
+
+    assert asyncio.run(client.poll_refactor_run("run-1")) == {"status": "done"}
+    facade._poll_at_path.assert_awaited_with(
+        "/v1/refactor/runs/run-1", timeout_seconds=1800.0
+    )
