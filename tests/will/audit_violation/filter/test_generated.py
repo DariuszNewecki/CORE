@@ -24,3 +24,11 @@ def test_non_remediable_violations():
     assert result == [
         {"file_path": "src/real.py", "rule_id": "E501"},
     ]
+
+
+from will.audit_violation.filter import is_autonomously_remediable_target
+
+
+# ID: e47aff14-7c7f-473f-9c41-6501becbcd66
+def test_is_autonomously_remediable_target():
+    assert is_autonomously_remediable_target("src/will/module.py") is True
