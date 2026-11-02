@@ -278,7 +278,6 @@ def test_get_coverage_history():
     assert result == {"count": 2, "history": entries[-2:]}
 
 
-
 import pytest
 
 from will.governance.coverage_runner import get_coverage_gaps
@@ -313,3 +312,32 @@ async def test_get_coverage_gaps():
         {"file": "src/a.py", "coverage": 50.0, "deficit": 25.0},
         {"file": "src/c.py", "coverage": 60.0, "deficit": 15.0},
     ]
+
+
+from pathlib import Path
+
+
+# ID: 524da227-c344-4ab5-8356-55ad2c8d7842
+def test_get_coverage_targets():
+    from will.governance.coverage_runner import get_coverage_targets
+
+    mock_repo = MagicMock()
+    mock_repo.root = Path("/mind")
+    mock_repo.load_document = MagicMock(return_value={"statement": 90, "branch": 85})
+
+    mock_context = MagicMock()
+
+    with patch(
+        "shared.infrastructure.intent.intent_repository.get_intent_repository",
+        return_value=mock_repo,
+    ):
+        result = get_coverage_targets(mock_context)
+
+    assert result["path"] == str(
+        Path(".intent") / "enforcement" / "config" / "test_coverage.yaml"
+    )
+    assert result["targets"] == {"statement": 90, "branch": 85}
+    mock_repo.initialize.assert_called_once()
+    mock_repo.load_document.assert_called_once_with(
+        mock_repo.root / "enforcement" / "config" / "test_coverage.yaml"
+    )
