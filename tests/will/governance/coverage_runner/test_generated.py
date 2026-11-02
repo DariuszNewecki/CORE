@@ -172,7 +172,6 @@ async def test_run_and_persist_coverage_batch():
     remediate.assert_awaited_once_with(context, write=True)
 
 
-
 from will.governance.coverage_runner import run_and_persist_coverage_generation
 
 
@@ -223,3 +222,27 @@ async def test_run_and_persist_coverage_generation(tmp_path):
     assert final.kwargs["finished"] is True
     assert final.kwargs["error"] is None
     assert final.kwargs["result"] == {"status": "completed"}
+
+
+
+from will.governance.coverage_runner import get_coverage_methods
+
+
+# ID: 10deab41-92c0-437a-8cda-ec899e375d08
+def test_get_coverage_methods():
+    context = MagicMock()
+
+    result = get_coverage_methods(context)
+
+    assert isinstance(result, dict)
+    assert "methods" in result
+    methods = result["methods"]
+    assert len(methods) == 2
+
+    ids = [m["id"] for m in methods]
+    assert ids == ["legacy", "adaptive"]
+    assert methods[0]["name"] == "Legacy coverage generator"
+    assert methods[1]["name"] == "Adaptive coverage generator"
+    for method in methods:
+        assert isinstance(method["description"], str)
+        assert method["description"]
