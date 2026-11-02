@@ -30,3 +30,22 @@ async def test_refuse_when_daily_spend_cap_reached() -> None:
 
     session.execute.assert_awaited_once()
     budget.for_task_type.assert_called_once_with("test_generation")
+
+
+
+from will.autonomy.daily_spend_cap import is_test_generation
+
+
+# ID: 5e8fb7c8-0703-4ab8-b92e-4d4e006c5f6e
+def test_is_test_generation():
+    matching_action = MagicMock()
+    matching_action.ref_id = "flow.build_test_for_symbol"
+
+    other_action = MagicMock()
+    other_action.ref_id = "flow.something_else"
+
+    assert is_test_generation([matching_action]) is True
+    assert is_test_generation([other_action, matching_action]) is True
+    assert is_test_generation([other_action]) is False
+    assert is_test_generation([]) is False
+    assert is_test_generation(None) is False
