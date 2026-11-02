@@ -283,3 +283,27 @@ async def test_get_search_commands():
             "description": "Search CLI commands",
         }
     ]
+
+
+import asyncio
+
+from will.governance.inspect_runner import get_analysis_duplicates
+
+
+# ID: 856a9a5f-808f-4d22-90e6-a7e14b01dd68
+def test_get_analysis_duplicates():
+    context = MagicMock()
+    threshold = 0.9
+
+    mock_inspect = AsyncMock(return_value=None)
+
+    with patch(
+        "body.self_healing.duplicates_service.inspect_duplicates_async",
+        mock_inspect,
+    ):
+        result = asyncio.run(get_analysis_duplicates(context, threshold=threshold))
+
+    mock_inspect.assert_awaited_once_with(context, threshold)
+    assert result["ok"] is True
+    assert result["threshold"] == threshold
+    assert result["note"] == "results emitted to logs"
