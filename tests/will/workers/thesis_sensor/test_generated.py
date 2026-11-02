@@ -42,3 +42,37 @@ async def test_ThesisSensor_run():
     daily_records.assert_awaited_once()
     sensor._measure.assert_not_awaited()
     sensor._push_evidence.assert_not_awaited()
+
+
+from datetime import date
+
+
+# ID: 7a615f71-e9ec-4e3e-b93f-55ed3080fc1e
+async def test_ThesisSensor():
+    core_context = MagicMock()
+
+    with patch("will.workers.thesis_sensor.Worker.__init__", return_value=None):
+        sensor = ThesisSensor(core_context)
+
+    sensor.post_heartbeat = AsyncMock()
+    sensor.post_report = AsyncMock()
+
+    mock_runtime = MagicMock()
+    mock_runtime.daily_records = AsyncMock(return_value=[])
+    mock_runtime.evidence_weeks = AsyncMock(return_value=[])
+
+    mock_measure = AsyncMock(return_value={"day": "2024-01-01"})
+    sensor._measure = mock_measure
+    mock_push = AsyncMock()
+    sensor._push_evidence = mock_push
+
+    with patch("body.services.thesis.runtime", mock_runtime):
+        # Monday => weekday() == 0 triggers evidence push
+        with patch("will.workers.thesis_sensor.datetime") as mock_dt:
+            mock_dt.now.return_value.date.return_value = date(2024, 1, 1)
+            await sensor.run()
+
+    sensor.post_heartbeat.assert_awaited_once()
+    mock_runtime.daily_records.assert_awaited_once()
+    mock_measure.assert_awaited_once()
+    mock_push.assert_awaited_once()
