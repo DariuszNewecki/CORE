@@ -417,8 +417,6 @@ def test_action_runs_candidate_code():
     mock_get.assert_called_once_with("some.action")
 
 
-
-
 # ID: 108ee86d-069e-4ad1-b9d1-83640fc8db5d
 def test_action_mutates_files() -> None:
     from will.governance.fix_runner import action_mutates_files
@@ -441,3 +439,24 @@ def test_action_mutates_files() -> None:
         mock_metadata.impact = "write_code"
 
         assert action_mutates_files("some_action") is True
+
+
+
+
+# ID: 695f41ee-6ddb-4097-a486-327fec2cab2a
+def test_list_registered_action_ids():
+    import will.governance.fix_runner as fix_runner
+
+    definition_a = MagicMock()
+    definition_a.action_id = "action_a"
+    definition_b = MagicMock()
+    definition_b.action_id = "action_b"
+
+    mock_registry = MagicMock()
+    mock_registry.list_all = MagicMock(return_value=[definition_a, definition_b])
+
+    with patch.object(fix_runner, "action_registry", mock_registry):
+        result = fix_runner.list_registered_action_ids()
+
+    assert result == {"action_a", "action_b"}
+    mock_registry.list_all.assert_called_once()
