@@ -361,3 +361,43 @@ def test_get_coverage_html_report() -> None:
     assert result["stderr_tail"] == []
     assert isinstance(result["summary"], str)
     assert "ADR-132 D10.10" in result["summary"]
+
+
+
+import pytest
+
+from will.governance.coverage_runner import get_coverage_report
+
+
+@pytest.mark.asyncio
+# ID: 0e8153ab-64e3-4c2a-9cd4-e904bd5c1479
+async def test_get_coverage_report():
+    context = MagicMock()
+    context.git_service.repo_path = "/repo/path"
+
+    fake_result = MagicMock()
+    fake_result.ok = True
+    fake_result.exit_code = 0
+    fake_result.status = "passed"
+    fake_result.reason = "all good"
+    fake_result.stderr = "line1\nline2"
+    fake_result.coverage = {
+        "text": "Name    Stmts   Miss\nfoo.py   10   0\nbar.py   5   2"
+    }
+
+    with patch(
+        "body.sandbox.repo_tests.run_in_sandbox",
+        new=AsyncMock(return_value=fake_result),
+    ) as mock_run:
+        out = await get_coverage_report(context, show_missing=True)
+
+    mock_run.assert_awaited_once_with("/repo/path", ["tests"], coverage=True)
+    assert out["ok"] is True
+    assert out["exit_code"] == 0
+    assert out["summary"] == "passed: all good"
+    assert out["stdout_tail"] == [
+        "Name    Stmts   Miss",
+        "foo.py   10   0",
+        "bar.py   5   2",
+    ]
+    assert out["stderr_tail"] == ["line1", "line2"]
