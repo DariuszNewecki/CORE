@@ -363,7 +363,6 @@ def test_get_coverage_html_report() -> None:
     assert "ADR-132 D10.10" in result["summary"]
 
 
-
 import pytest
 
 from will.governance.coverage_runner import get_coverage_report
@@ -401,3 +400,48 @@ async def test_get_coverage_report():
         "bar.py   5   2",
     ]
     assert out["stderr_tail"] == ["line1", "line2"]
+
+
+
+import pytest
+
+from will.governance.coverage_runner import get_coverage_check
+
+
+@pytest.mark.asyncio
+# ID: bc0d6322-96f7-4416-b9f7-3ed8aa9d13a3
+async def test_get_coverage_check():
+    context = MagicMock()
+    auditor_ctx = MagicMock()
+    auditor_ctx.load_knowledge_graph = AsyncMock(return_value=None)
+    context.auditor_context = auditor_ctx
+
+    finding = MagicMock()
+    finding.as_dict = MagicMock(
+        return_value={"file": "a.py", "rule_id": "coverage.test_coverage_required"}
+    )
+
+    run_filtered_audit = AsyncMock(
+        return_value=(
+            [finding],
+            {"coverage.test_coverage_required"},
+            {"files_scanned": 1},
+        )
+    )
+
+    with patch(
+        "will.governance.coverage_runner.run_filtered_audit",
+        run_filtered_audit,
+    ):
+        result = await get_coverage_check(context)
+
+    auditor_ctx.load_knowledge_graph.assert_awaited_once()
+    run_filtered_audit.assert_awaited_once()
+    assert result["verdict"] == "FAIL"
+    assert result["passed"] is False
+    assert result["finding_count"] == 1
+    assert result["findings"] == [
+        {"file": "a.py", "rule_id": "coverage.test_coverage_required"}
+    ]
+    assert result["executed_rule_ids"] == ["coverage.test_coverage_required"]
+    assert result["stats"] == {"files_scanned": 1}
