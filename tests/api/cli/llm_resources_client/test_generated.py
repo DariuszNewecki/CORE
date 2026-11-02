@@ -44,7 +44,6 @@ async def test_LlmResourcesClient():
     )
 
 
-
 import pytest
 
 
@@ -60,3 +59,36 @@ async def test_LlmResourcesClient_check():
 
     facade._request.assert_awaited_once_with("POST", "/v1/llm-resources/check")
     assert result == {"status": "ok", "models": ["a", "b"]}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 7aa5cfbf-694b-4ccd-8209-79a35f413478
+async def test_LlmResourcesClient_setup():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "ok"})
+    client = LlmResourcesClient(facade)
+
+    result = await client.setup(
+        api_url="http://localhost:11434",
+        embedding_model="nomic-embed-text",
+        chat_model="llama3",
+    )
+
+    assert result == {"status": "ok"}
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/llm-resources/setup",
+        json={
+            "api_url": "http://localhost:11434",
+            "embedding_model": "nomic-embed-text",
+            "chat_model": "llama3",
+            "locality": "local",
+            "embedding_api_url": "",
+            "embedding_locality": "",
+            "write": False,
+        },
+    )
