@@ -68,6 +68,8 @@ def test_ResourceSelector():
         assert escalation == [expensive_local, cheap_local]
 
         assert (
-            ResourceSelector.select_resource_for_role("missing-role", roles, resources)
+            ResourceSelector.select_resource_for_role(
+                "missing-role", roles, resources, system_operating_mode="local_only"
+            )
             is None
         )

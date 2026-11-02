@@ -17,7 +17,6 @@ Part of Mind-Body-Will architecture:
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Awaitable, Callable
 from functools import partial
 from pathlib import Path
@@ -68,9 +67,10 @@ class CognitiveOrchestrator:
         self._loaded = False
         self._mind_state_service = mind_state_service
         self._provider_factory = provider_factory
-        # ADR-052 principle #6 (#333) / ADR-090 D5: system-level operating_mode
-        # loaded from system_config at initialize(); 'local_only' fallback.
-        self._system_operating_mode: str = "local_only"
+        # ADR-052 principle #6 (#333) / ADR-090 D5: system-level operating_mode,
+        # read from the system_config row at initialize() (#1390: the row
+        # always exists, so there is no fallback).
+        self._system_operating_mode: str = ""
 
     # ID: 18a2986d-296b-4388-b2b1-8796d85b5ee2
     async def initialize(self) -> None:
@@ -90,17 +90,13 @@ class CognitiveOrchestrator:
         # only; per-role override removed (operating_mode is Resource-layer).
         system_config = await self._mind_state_service.get_system_config()
         if system_config is None:
-            # #915: on an unconfigured Mind (fresh no-LLM install) the default
-            # is the documented behaviour, so INFO; with LLMs configured a
-            # missing system_config row is worth a WARNING.
-            logger.log(
-                logging.WARNING if (self._resources or self._roles) else logging.INFO,
-                "CognitiveOrchestrator: system_config row missing — "
-                "defaulting operating_mode to '%s'",
-                self._system_operating_mode,
+            # #1390 G5: schema.sql and migration 20261102_1390 create the row;
+            # its absence is a database that skipped migrations, not a default.
+            raise RuntimeError(
+                "core.system_config has no row. Run "
+                "`core-admin database migrate --write` to bring the database current."
             )
-        else:
-            self._system_operating_mode = system_config.operating_mode
+        self._system_operating_mode = system_config.operating_mode
 
         self._loaded = True
         logger.info(

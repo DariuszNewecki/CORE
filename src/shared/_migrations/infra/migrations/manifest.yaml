@@ -83,6 +83,7 @@ migrations:
     - 20261005c_adr169_changes_and_outside_writes.sql
     - 20261012_approver_original.sql
     - 20261016_1105_remove_test_worker_rows.sql
+    - 20261102_1390_system_config_row.sql
 
   # -- per-migration verification probes (ADR-162 D3/D6/D12 §2) --------------
   # Each `verify` returns one boolean. Structural probes read the catalog;
@@ -313,6 +314,8 @@ migrations:
                  'd2fdb46c-53b3-400b-8516-ed3c35197e10', 'b244f641-2345-413f-b252-23dff374300a',
                  '0993fbea-2b08-4a90-933d-b06166e337d0', 'a98e4dd0-25db-4eb8-84a1-a00cf5c52832',
                  'a6394ac9-e816-40bc-8b1f-1790133d996a'))
+    20261102_1390_system_config_row.sql:
+      verify: select exists (select 1 from core.system_config)
 
   # -- declared baselines (ADR-162 D3/D4) ----------------------------------
   # `status` suggests the LATEST baseline whose probes all hold (read-only);

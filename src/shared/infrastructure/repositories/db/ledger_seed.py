@@ -38,6 +38,13 @@ _HEADER = """\
 """
 
 
+# The singleton rows a fresh install must start with, rendered with the ledger
+# seed (the dump is --schema-only, so nothing else carries data). Every column
+# takes its schema default. A database that predates this line gets the same
+# row from migration 20261102_1390_system_config_row.sql (#1390 G5).
+SINGLETON_ROWS = "INSERT INTO core.system_config (id) VALUES (gen_random_uuid());"
+
+
 def _quote(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
@@ -48,9 +55,10 @@ def render_ledger_seed(order: Iterable[str]) -> str:
 
     ``applied_at`` is left to its ``now()`` default — the moment the schema
     was loaded is the truthful application time; ``reconciled`` is false:
-    the rows describe what ``schema.sql`` itself already contains.
+    the rows describe what ``schema.sql`` itself already contains. The
+    ``system_config`` singleton row opens the block (#1390 G5).
     """
-    lines = [_HEADER, SEED_BEGIN]
+    lines = [_HEADER, SEED_BEGIN, SINGLETON_ROWS]
     lines.extend(
         f"INSERT INTO core._migrations (id, reconciled) VALUES ({_quote(mig)}, false);"
         for mig in order
@@ -76,7 +84,7 @@ def parse_ledger_seed(schema_text: str) -> list[str]:
     suffix = "', false);"
     for raw in schema_text[start:end].splitlines():
         line = raw.strip()
-        if not line:
+        if not line or line == SINGLETON_ROWS:
             continue
         if not (line.startswith(prefix) and line.endswith(suffix)):
             raise ValueError(f"unexpected line in ledger seed block: {line[:80]!r}")

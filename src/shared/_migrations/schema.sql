@@ -6616,6 +6616,7 @@ ALTER TABLE ONLY core.tasks
 --
 
 -- CORE-LEDGER-SEED-BEGIN
+INSERT INTO core.system_config (id) VALUES (gen_random_uuid());
 INSERT INTO core._migrations (id, reconciled) VALUES ('20260426_drop_legacy_proposals.sql', false);
 INSERT INTO core._migrations (id, reconciled) VALUES ('20260427_add_approval_authority_to_autonomous_proposals.sql', false);
 INSERT INTO core._migrations (id, reconciled) VALUES ('20260428_add_claimed_by_to_autonomous_proposals.sql', false);
@@ -6665,4 +6666,5 @@ INSERT INTO core._migrations (id, reconciled) VALUES ('20261005b_adr169_cycle_tr
 INSERT INTO core._migrations (id, reconciled) VALUES ('20261005c_adr169_changes_and_outside_writes.sql', false);
 INSERT INTO core._migrations (id, reconciled) VALUES ('20261012_approver_original.sql', false);
 INSERT INTO core._migrations (id, reconciled) VALUES ('20261016_1105_remove_test_worker_rows.sql', false);
+INSERT INTO core._migrations (id, reconciled) VALUES ('20261102_1390_system_config_row.sql', false);
 -- CORE-LEDGER-SEED-END

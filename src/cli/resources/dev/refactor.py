@@ -76,9 +76,10 @@ async def dev_refactor_cmd(
     load_dotenv()
     async with get_session() as session:
         config = await ConfigService.create(session)
-        if not await config.get_bool("LLM_ENABLED", default=False):
+        if not await config.get_bool("LLM_ENABLED"):
             console.print(
-                "[red]❌ LLM_ENABLED is False. Enable LLMs in database settings to use autonomous development.[/red]"
+                "[red]❌ LLMs are disabled (core.system_config.llm_enabled is false). "
+                "Enable them with `core-admin llm-resources setup` to use autonomous development.[/red]"
             )
             raise typer.Exit(code=1)
     workflow_type = workflow

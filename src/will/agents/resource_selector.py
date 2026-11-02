@@ -34,7 +34,8 @@ class ResourceSelector:
         roles: list[CognitiveRole],
         resources: list[LlmResource],
         assignments: list[RoleResourceAssignment] | None = None,
-        system_operating_mode: str = "local_only",
+        *,
+        system_operating_mode: str,
     ) -> LlmResource | None:
         """
         Apply Mind rules to select resource for role.
@@ -92,7 +93,8 @@ class ResourceSelector:
         roles: list[CognitiveRole],
         resources: list[LlmResource],
         assignments: list[RoleResourceAssignment] | None = None,
-        system_operating_mode: str = "local_only",
+        *,
+        system_operating_mode: str,
         high_reasoning: bool = False,
     ) -> list[LlmResource]:
         """
