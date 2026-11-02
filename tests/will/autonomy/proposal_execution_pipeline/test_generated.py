@@ -55,3 +55,18 @@ async def test_resolve_deferred_findings():
     mock_bb_service.resolve_deferred_entries_for_completed_proposal.assert_awaited_once_with(
         "prop-123"
     )
+
+
+
+from will.autonomy.proposal_execution_pipeline import capture_git_sha
+
+
+# ID: 34eb9510-319c-479e-bbf6-f5980cddfb42
+def test_capture_git_sha():
+    git_service = MagicMock()
+    git_service.get_current_commit.return_value = "abc123def456"
+
+    result = capture_git_sha(git_service, phase="pre", proposal_id="prop-1")
+
+    assert result == "abc123def456"
+    git_service.get_current_commit.assert_called_once_with()
