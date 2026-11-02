@@ -206,7 +206,6 @@ async def test_CoverageClient_coverage_gaps() -> None:
     )
 
 
-
 import pytest
 
 
@@ -223,3 +222,26 @@ async def test_CoverageClient_coverage_targets():
 
     assert result == expected
     facade._request.assert_awaited_once_with("GET", "/v1/coverage/targets")
+
+
+
+import pytest
+
+
+# ID: ad568789-7f42-45ba-a2e5-0df585ad3e40
+async def test_CoverageClient_coverage_report():
+    expected = {"files": {}, "totals": {"percent_covered": 100.0}}
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value=expected)
+
+    client = CoverageClient(facade)
+
+    result = await client.coverage_report(show_missing=False, output_format="text")
+
+    assert result == expected
+    facade._request.assert_awaited_once_with(
+        "GET",
+        "/v1/coverage/report",
+        params={"show_missing": False, "format": "text"},
+        timeout=300.0,
+    )
