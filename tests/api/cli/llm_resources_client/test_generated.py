@@ -22,7 +22,6 @@ async def test_LlmResourcesClient_author() -> None:
     assert result == {"ok": True, "id": "res-1"}
 
 
-
 import pytest
 
 
@@ -43,3 +42,21 @@ async def test_LlmResourcesClient():
         "/v1/llm-resources/author",
         json={"definition": definition, "write": True},
     )
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: c8e2be97-1469-4c9a-a91e-0e3380105025
+async def test_LlmResourcesClient_check():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "ok", "models": ["a", "b"]})
+
+    client = LlmResourcesClient(facade)
+
+    result = await client.check()
+
+    facade._request.assert_awaited_once_with("POST", "/v1/llm-resources/check")
+    assert result == {"status": "ok", "models": ["a", "b"]}
