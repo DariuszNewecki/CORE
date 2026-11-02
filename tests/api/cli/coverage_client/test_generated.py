@@ -47,3 +47,26 @@ async def test_CoverageClient() -> None:
         "/v1/coverage/runs/run-123", timeout_seconds=42.0
     )
     assert poll_result == {"status": "completed"}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 362c4e1b-2e4c-424c-b9b3-1bc1e2e83252
+async def test_CoverageClient_tests_interactive():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "ok", "tests": []})
+
+    client = CoverageClient(facade)
+
+    result = await client.tests_interactive(target_file="src/foo.py")
+
+    assert result == {"status": "ok", "tests": []}
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/tests/interactive",
+        json={"target_file": "src/foo.py"},
+        timeout=600.0,
+    )
