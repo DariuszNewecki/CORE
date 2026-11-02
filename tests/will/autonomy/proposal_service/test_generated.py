@@ -161,3 +161,139 @@ async def test_ProposalService_list_pending_approval_paginated():
     assert has_more is True
     assert cursor == "cursor-123"
     mock_repo.list_by_status_paginated.assert_awaited_once()
+
+
+# ID: 9aa76e85-1061-467d-8f88-7a7addb150d1
+async def test_ProposalService_create():
+    session = MagicMock()
+
+    with (
+        patch("will.autonomy.proposal_service.ProposalRepository") as mock_repo_cls,
+        patch("will.autonomy.proposal_service.ProposalStateManager") as mock_state_cls,
+    ):
+        mock_repository = MagicMock()
+        mock_repository.create = AsyncMock(return_value="proposal-123")
+        mock_repo_cls.return_value = mock_repository
+
+        service = ProposalService(session)
+
+        proposal = MagicMock()
+
+        result = await service.create(proposal)
+
+    assert result == "proposal-123"
+    mock_repository.create.assert_awaited_once_with(proposal)
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 84caee6c-1662-4c1c-90c0-7d8a0e156019
+async def test_ProposalService_open():
+    mock_session = MagicMock()
+
+    mock_session_cm = MagicMock()
+    mock_session_cm.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session_cm.__aexit__ = AsyncMock(return_value=None)
+
+    mock_registry = MagicMock()
+    mock_registry.session.return_value = mock_session_cm
+
+    with (
+        patch(
+            "will.autonomy.proposal_service.service_registry",
+            mock_registry,
+        ),
+        patch(
+            "will.autonomy.proposal_service.ProposalRepository",
+        ) as mock_repo_cls,
+        patch(
+            "will.autonomy.proposal_service.ProposalStateManager",
+        ) as mock_state_cls,
+    ):
+        async with ProposalService.open() as service:
+            assert isinstance(service, ProposalService)
+            assert service._session is mock_session
+            assert service._repository is mock_repo_cls.return_value
+            assert service._state_manager is mock_state_cls.return_value
+
+        mock_registry.session.assert_called_once()
+        mock_repo_cls.assert_called_once_with(mock_session)
+        mock_state_cls.assert_called_once_with(mock_session)
+        mock_session_cm.__aenter__.assert_awaited_once()
+        mock_session_cm.__aexit__.assert_awaited_once()
+
+
+# ID: c3a90bf4-a215-4854-965c-ce4d3a9d86cb
+async def test_ProposalService():
+    session = MagicMock()
+    service = ProposalService(session)
+
+    proposal = MagicMock()
+    proposal.constitutional_constraints = {"proposal_origin": "autonomous"}
+
+    service._repository = MagicMock()
+    service._repository.create = AsyncMock(return_value="prop-123")
+    service._repository.get = AsyncMock(return_value=proposal)
+    service._state_manager = MagicMock()
+    service._state_manager.mark_completed = AsyncMock()
+    service._state_manager.approve = AsyncMock()
+    service._state_manager.reject = AsyncMock()
+    session.commit = AsyncMock()
+
+    assert await service.create(proposal) == "prop-123"
+    service._repository.create.assert_awaited_once_with(proposal)
+
+    assert await service.get("prop-123") is proposal
+    service._repository.get.assert_awaited_once_with("prop-123")
+
+    await service.mark_completed("prop-123")
+    service._state_manager.mark_completed.assert_awaited_once_with("prop-123")
+
+    await service.approve("prop-123", "alice", "human")
+    service._state_manager.approve.assert_awaited_once_with(
+        "prop-123", "alice", "human", approved_by_original=None
+    )
+    session.commit.assert_awaited_once()
+
+    with patch(
+        "will.autonomy.proposal_service.revive_findings_for_rejected_proposal",
+        new=AsyncMock(return_value={"revived_count": 2}),
+    ) as mock_revive:
+        revived = await service.reject("prop-123", "bad diff")
+
+    assert revived == 2
+    service._state_manager.reject.assert_awaited_once_with("prop-123", "bad diff")
+    mock_revive.assert_awaited_once_with(
+        "prop-123", "bad diff", {"proposal_origin": "autonomous"}
+    )
+
+
+
+from will.autonomy.proposal_service import revive_findings_for_rejected_proposal
+
+
+# ID: b0bffc32-88c3-4ff3-b648-9ac7290182a6
+async def test_revive_findings_for_rejected_proposal():
+    mock_bb_service = MagicMock()
+    expected = {"revived": 2}
+    mock_bb_service.revive_findings_for_failed_proposal = AsyncMock(
+        return_value=expected
+    )
+
+    with patch(
+        "body.services.service_registry.service_registry.get_blackboard_service",
+        new=AsyncMock(return_value=mock_bb_service),
+    ):
+        result = await revive_findings_for_rejected_proposal(
+            proposal_id="prop-123",
+            reason="not enough evidence",
+            constitutional_constraints=None,
+        )
+
+    assert result == expected
+    mock_bb_service.revive_findings_for_failed_proposal.assert_awaited_once_with(
+        proposal_id="prop-123",
+        failure_reason="rejected: not enough evidence",
+    )

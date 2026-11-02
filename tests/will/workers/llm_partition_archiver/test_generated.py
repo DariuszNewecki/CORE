@@ -43,3 +43,44 @@ async def test_LlmPartitionArchiverWorker_run() -> None:
             "cutoff": "2024-01-01",
         },
     )
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: a86b962d-eb68-46f9-bf16-c1b599cd916a
+async def test_LlmPartitionArchiverWorker() -> None:
+    core_context = MagicMock()
+    worker = LlmPartitionArchiverWorker(core_context)
+
+    worker.post_heartbeat = AsyncMock()
+    worker.post_report = AsyncMock()
+    worker.post_finding = AsyncMock()
+
+    mock_result = MagicMock()
+    mock_result.ok = True
+    mock_result.data = {
+        "archived": ["llm_exchange_log_2023_01"],
+        "retention_months": 24,
+        "cutoff": "2024-01-01",
+    }
+
+    mock_executor = MagicMock()
+    mock_executor.execute = AsyncMock(return_value=mock_result)
+
+    with patch("body.atomic.executor.ActionExecutor", return_value=mock_executor):
+        await worker.run()
+
+    worker.post_heartbeat.assert_awaited_once()
+    mock_executor.execute.assert_awaited_once_with("log.archive_partitions", write=True)
+    worker.post_report.assert_awaited_once_with(
+        "log.partition_archival.complete",
+        {
+            "archived": ["llm_exchange_log_2023_01"],
+            "archived_count": 1,
+            "retention_months": 24,
+            "cutoff": "2024-01-01",
+        },
+    )
+    worker.post_finding.assert_not_awaited()

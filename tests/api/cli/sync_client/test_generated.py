@@ -83,9 +83,6 @@ async def test_SyncClient_sync_code_vectors():
     assert result == {"status": "ok", "count": 3}
 
 
-
-
-
 # ID: 358b3a40-b016-415a-9a78-77b0f52594fb
 async def test_SyncClient_sync_vectors():
     facade = MagicMock()
@@ -103,3 +100,65 @@ async def test_SyncClient_sync_vectors():
         json={"write": True, "target": "vectors", "requested_by": "tester"},
     )
     assert result == {"status": "ok", "synced": 3}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 13317954-97ed-4301-963b-fa2207734dc8
+async def test_SyncClient_sync_knowledge_graph():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True, "synced": 1})
+
+    client = SyncClient(facade)
+
+    result = await client.sync_knowledge_graph(
+        write=True,
+        target="local",
+        requested_by="tester",
+    )
+
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/sync/knowledge-graph",
+        json={"write": True, "target": "local", "requested_by": "tester"},
+    )
+    assert result == {"ok": True, "synced": 1}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 1c323f33-d4c9-405f-9fbb-414c6bb6d3a9
+async def test_SyncClient():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True})
+    facade._poll_at_path = AsyncMock(return_value={"status": "done"})
+
+    client = SyncClient(facade)
+
+    assert await client.sync_knowledge_graph() == {"ok": True}
+    facade._request.assert_awaited_with(
+        "POST",
+        "/v1/sync/knowledge-graph",
+        json={"write": False, "target": None, "requested_by": "api"},
+    )
+
+    assert await client.sync_vectors() == {"ok": True}
+
+    assert await client.sync_code_vectors() == {"ok": True}
+
+    assert await client.sync_dev_sync() == {"ok": True}
+
+    assert await client.get_sync_run("run-123") == {"ok": True}
+    facade._request.assert_awaited_with("GET", "/v1/sync/runs/run-123")
+
+    assert await client.poll_sync_run("run-456", timeout_seconds=10.0) == {
+        "status": "done"
+    }
+    facade._poll_at_path.assert_awaited_with(
+        "/v1/sync/runs/run-456", timeout_seconds=10.0
+    )

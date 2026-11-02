@@ -252,3 +252,20 @@ async def test_get_api_session():
 
         with pytest.raises(StopAsyncIteration):
             await agen.__anext__()
+
+
+
+from api.dependencies import get_finding_resolver
+
+
+# ID: 3e419e5b-b1ad-4e1f-8e8c-98c96c2a8bd9
+def test_get_finding_resolver():
+    with patch("api.dependencies.BlackboardService") as mock_service_cls:
+        mock_service = MagicMock()
+        mock_service.resolve_indeterminate_entry = MagicMock()
+        mock_service_cls.return_value = mock_service
+
+        resolver = get_finding_resolver()
+
+        mock_service_cls.assert_called_once_with()
+        assert resolver is mock_service.resolve_indeterminate_entry

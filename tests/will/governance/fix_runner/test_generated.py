@@ -378,8 +378,6 @@ async def test_run_and_persist_fix():
     assert payload["ok"] is True
 
 
-
-
 # ID: e2d34099-fdf5-41ce-8cd5-2d82bc176390
 def test_list_registered_flow_ids():
     from will.governance.fix_runner import list_registered_flow_ids
@@ -400,3 +398,141 @@ def test_list_registered_flow_ids():
 
     assert result == {"flow-alpha", "flow-beta"}
     mock_registry.list_all.assert_called_once_with()
+
+
+# ID: c3857d5a-e2a9-4e25-8b7d-ca98301b57bc
+def test_action_runs_candidate_code():
+    from will.governance.fix_runner import action_runs_candidate_code
+
+    definition = MagicMock()
+    definition.runs_candidate_code = True
+
+    with patch(
+        "body.atomic.action_registry.get",
+        return_value=definition,
+    ) as mock_get:
+        result = action_runs_candidate_code("some.action")
+
+    assert result is True
+    mock_get.assert_called_once_with("some.action")
+
+
+# ID: 108ee86d-069e-4ad1-b9d1-83640fc8db5d
+def test_action_mutates_files() -> None:
+    from will.governance.fix_runner import action_mutates_files
+
+    mock_definition = MagicMock()
+    mock_definition.executor = "some_executor"
+
+    mock_metadata = MagicMock()
+
+    with (
+        patch("shared.action_types.ActionImpact") as mock_impact,
+        patch("shared.atomic_action.get_action_metadata", return_value=mock_metadata),
+        patch(
+            "will.governance.fix_runner.action_registry.get",
+            return_value=mock_definition,
+        ),
+    ):
+        mock_impact.WRITE_CODE = "write_code"
+        mock_impact.WRITE_METADATA = "write_metadata"
+        mock_metadata.impact = "write_code"
+
+        assert action_mutates_files("some_action") is True
+
+
+# ID: 695f41ee-6ddb-4097-a486-327fec2cab2a
+def test_list_registered_action_ids():
+    import will.governance.fix_runner as fix_runner
+
+    definition_a = MagicMock()
+    definition_a.action_id = "action_a"
+    definition_b = MagicMock()
+    definition_b.action_id = "action_b"
+
+    mock_registry = MagicMock()
+    mock_registry.list_all = MagicMock(return_value=[definition_a, definition_b])
+
+    with patch.object(fix_runner, "action_registry", mock_registry):
+        result = fix_runner.list_registered_action_ids()
+
+    assert result == {"action_a", "action_b"}
+    mock_registry.list_all.assert_called_once()
+
+
+from will.governance.fix_runner import QualityGateResult
+
+
+# ID: b16ad973-21fa-4479-b70a-e21ca92163b2
+def test_QualityGateResult_as_payload():
+    result = QualityGateResult(ok=True)
+
+    with patch.object(
+        QualityGateResult,
+        "model_dump",
+        return_value={"ok": True, "status": "pass", "score": 100},
+    ) as mock_dump:
+        payload = result.as_payload()
+
+    mock_dump.assert_called_once_with()
+    assert payload == {"ok": True, "status": "pass", "score": 100}
+    assert isinstance(payload, dict)
+
+
+# ID: ae5c15c2-65a5-4342-85f5-d89feaa6516d
+def test_QualityGateResult():
+    components = {
+        "lint": {"exit_code": 0, "stdout": "", "stderr": "", "is_warning": False},
+        "tests": {
+            "exit_code": 1,
+            "stdout": "1 failed",
+            "stderr": "",
+            "is_warning": True,
+        },
+    }
+    result = QualityGateResult(ok=True, components=components)
+
+    assert result.check == "gates"
+    assert result.ok is True
+    assert result.components == components
+
+    payload = result.as_payload()
+    assert payload["check"] == "gates"
+    assert payload["ok"] is True
+    assert payload["components"] == components
+    assert isinstance(payload, dict)
+
+    default_result = QualityGateResult(ok=False)
+    assert default_result.check == "gates"
+    assert default_result.components == {}
+
+
+import pytest
+
+
+# ID: 51db0226-7244-4dfe-9394-eac6863ff9b0
+def test_FixRunResult_as_payload() -> None:
+    from will.governance import fix_runner
+
+    # Find the class that owns `as_payload` (symbol given as method on a class).
+    target_cls = None
+    for name in dir(fix_runner):
+        obj = getattr(fix_runner, name)
+        if isinstance(obj, type) and "as_payload" in getattr(obj, "__dict__", {}):
+            target_cls = obj
+            break
+
+    assert target_cls is not None, "Could not locate class defining as_payload"
+
+    # Build an instance with the simplest valid construction path.
+    try:
+        instance = target_cls()  # type: ignore[call-arg]
+    except Exception:
+        # Fall back to constructing via model_construct if it's a pydantic model.
+        instance = target_cls.model_construct()  # type: ignore[attr-defined]
+
+    payload = instance.as_payload()
+
+    assert isinstance(payload, dict)
+    # exclude_none=True means no value in the resulting dict should be None.
+    assert all(value is not None for value in payload.values())
