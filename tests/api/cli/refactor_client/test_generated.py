@@ -69,7 +69,6 @@ def test_RefactorClient_refactor_stats():
     facade._request.assert_awaited_once_with("GET", "/v1/refactor/stats", timeout=300.0)
 
 
-
 import pytest
 
 
@@ -90,3 +89,20 @@ async def test_RefactorClient_refactor_candidates():
         params={"limit": 10, "min_score": 0.75},
         timeout=300.0,
     )
+
+
+
+
+
+# ID: 06e83689-46fc-42de-ad79-90822dc53162
+def test_RefactorClient_refactor_score():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"score": 42})
+    client = RefactorClient(facade)
+
+    result = asyncio.run(client.refactor_score("src/module.py"))
+
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/refactor/score", params={"file": "src/module.py"}
+    )
+    assert result == {"score": 42}
