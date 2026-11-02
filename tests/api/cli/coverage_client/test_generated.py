@@ -148,7 +148,6 @@ async def test_CoverageClient_coverage_generate():
     assert result == {"generated": True, "target_file": "foo.py"}
 
 
-
 import pytest
 
 
@@ -165,3 +164,22 @@ async def test_CoverageClient_coverage_methods():
 
     assert result == expected
     facade._request.assert_awaited_once_with("GET", "/v1/coverage/methods")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 1a1f440b-76b3-4c6f-b8b2-fc0ebccbf94e
+async def test_CoverageClient_coverage_history() -> None:
+    facade = MagicMock()
+    expected = {"measurements": [{"value": 87.5}]}
+    facade._request = AsyncMock(return_value=expected)
+
+    client = CoverageClient(facade)
+    result = await client.coverage_history(limit=10)
+
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/coverage/history", params={"limit": 10}
+    )
+    assert result == expected
