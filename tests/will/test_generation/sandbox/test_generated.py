@@ -48,3 +48,49 @@ async def test_PytestSandboxRunner_run():
     assert result.passed is True
     assert result.error == ""
     assert result.total_tests == 1
+
+
+import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
+
+from will.test_generation.sandbox import PytestSandboxRunner
+
+
+@pytest.mark.asyncio
+# ID: cea79994-c1e6-45b7-bd03-b2b8a8ff853a
+async def test_PytestSandboxRunner():
+    file_handler = MagicMock()
+    runner = PytestSandboxRunner(file_handler, "/tmp/repo")
+
+    fake_result = MagicMock()
+    fake_result.status = "passed"
+    fake_result.ok = True
+    fake_result.passed_ids = ["test_foo_sandbox.py::test_foo"]
+    fake_result.failed_ids = []
+    fake_result.stdout = ""
+    fake_result.stderr = ""
+    fake_result.reason = ""
+
+    workspace = MagicMock()
+    workspace.get_crate_content.return_value = {"src/module.py": "x = 1\n"}
+
+    with patch(
+        "will.test_generation.sandbox.run_in_sandbox",
+        new=AsyncMock(return_value=fake_result),
+    ) as mock_run:
+        result = await runner.run(
+            "def test_foo():\n    assert True\n",
+            symbol_name="foo",
+            timeout_seconds=30,
+            workspace=workspace,
+        )
+
+    assert result.passed is True
+    assert result.error == ""
+    assert result.total_tests == 1
+    assert result.passed_tests == ["test_foo"]
+    mock_run.assert_awaited_once()
+    call_args = mock_run.await_args
+    assert call_args.args[0] == runner._repo_root
+    assert call_args.args[1] == ["test_foo_sandbox.py"]
+    assert call_args.kwargs["timeout_sec"] == 30
