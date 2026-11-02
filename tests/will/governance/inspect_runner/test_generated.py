@@ -248,3 +248,38 @@ def test_get_analysis_command_tree():
     for row in result["commands"]:
         assert "callback" not in row
     json.dumps(result)  # the route returns it as JSON
+
+
+import pytest
+
+from will.governance.inspect_runner import get_search_commands
+
+
+@pytest.mark.asyncio
+# ID: 46d680a4-d112-4399-91f1-2a0fdcaa9a8e
+async def test_get_search_commands():
+    row = MagicMock()
+    row.name = "hub_search_cmd"
+    row.module = "will.governance"
+    row.summary = "Search CLI commands"
+    row.help_text = "Fuzzy search over CLI registry"
+
+    result_mock = MagicMock()
+    result_mock.all.return_value = [row]
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=result_mock)
+
+    out = await get_search_commands(session, q="search", limit=10)
+
+    assert session.execute.await_count == 1
+    assert out["query"] == "search"
+    assert out["available"] is True
+    assert out["count"] == 1
+    assert out["results"] == [
+        {
+            "command": "hub_search_cmd",
+            "module": "will.governance",
+            "description": "Search CLI commands",
+        }
+    ]
