@@ -341,3 +341,23 @@ def test_get_coverage_targets():
     mock_repo.load_document.assert_called_once_with(
         mock_repo.root / "enforcement" / "config" / "test_coverage.yaml"
     )
+
+
+import asyncio
+
+from will.governance.coverage_runner import get_coverage_html_report
+
+
+# ID: a8bbb4de-eb13-4593-a6c2-cb297ef59b1f
+def test_get_coverage_html_report() -> None:
+    context = MagicMock()
+
+    result = asyncio.run(get_coverage_html_report(context))
+
+    assert result["ok"] is False
+    assert result["exit_code"] == -1
+    assert result["html_path"] is None
+    assert result["stdout_tail"] == []
+    assert result["stderr_tail"] == []
+    assert isinstance(result["summary"], str)
+    assert "ADR-132 D10.10" in result["summary"]
