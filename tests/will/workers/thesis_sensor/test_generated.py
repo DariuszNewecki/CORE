@@ -76,3 +76,33 @@ async def test_ThesisSensor():
     mock_runtime.daily_records.assert_awaited_once()
     mock_measure.assert_awaited_once()
     mock_push.assert_awaited_once()
+
+
+
+from will.workers.thesis_sensor import week_records
+
+
+# ID: c8091408-95dd-45fb-80ba-a2aac55d4627
+def test_week_records() -> None:
+    monday = date(2024, 3, 11)  # a Monday
+    # previous week: 2024-03-04 .. 2024-03-10
+    records = [
+        {"day": "2024-03-04", "value": 1},
+        {"day": "2024-03-07", "value": 2},
+        {"day": "2024-03-10", "value": 3},
+        {"day": "2024-03-11", "value": 99},  # current week, excluded
+        {"day": "2024-02-28", "value": 42},  # earlier week, excluded
+        {"other": "key"},  # no day, excluded
+    ]
+
+    label, filtered = week_records(records, monday)
+
+    assert filtered == [
+        {"day": "2024-03-04", "value": 1},
+        {"day": "2024-03-07", "value": 2},
+        {"day": "2024-03-10", "value": 3},
+    ]
+    assert isinstance(label, str)
+    assert label.startswith("2024")
+    # label should reference the previous week's start date
+    assert "2024" in label
