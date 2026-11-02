@@ -120,7 +120,6 @@ async def test_get_latest_coverage_report():
     result.first.assert_called_once()
 
 
-
 import pytest
 
 from will.governance.coverage_runner import (
@@ -171,3 +170,56 @@ async def test_run_and_persist_coverage_batch():
     }
 
     remediate.assert_awaited_once_with(context, write=True)
+
+
+
+from will.governance.coverage_runner import run_and_persist_coverage_generation
+
+
+# ID: 5a351c41-2169-4d75-8495-6c3aad39815d
+async def test_run_and_persist_coverage_generation(tmp_path):
+    target = tmp_path / "module.py"
+    target.write_text("x = 1\n")
+
+    context = MagicMock()
+    context.git_service.repo_path = tmp_path
+    context.cognitive_service = MagicMock()
+
+    session = MagicMock()
+    run_id = uuid4()
+
+    mock_status = AsyncMock()
+    mock_resolve = MagicMock(return_value=target)
+    mock_remediate = AsyncMock(return_value={"status": "completed"})
+
+    with (
+        patch(
+            "will.governance.coverage_runner._update_coverage_run_status", mock_status
+        ),
+        patch(
+            "will.governance.coverage_runner.resolve_contained_source_path",
+            mock_resolve,
+        ),
+        patch(
+            "will.governance.coverage_runner.remediate_file_by_symbol", mock_remediate
+        ),
+    ):
+        await run_and_persist_coverage_generation(
+            context,
+            session,
+            run_id=run_id,
+            target_file="module.py",
+            write=True,
+        )
+
+    mock_remediate.assert_awaited_once_with(context, "module.py", write=True)
+
+    calls = mock_status.await_args_list
+    assert calls[0].args == (session, run_id, "executing")
+    assert calls[0].kwargs == {"started": True}
+
+    final = calls[-1]
+    assert final.args == (session, run_id, "completed")
+    assert final.kwargs["finished"] is True
+    assert final.kwargs["error"] is None
+    assert final.kwargs["result"] == {"status": "completed"}
