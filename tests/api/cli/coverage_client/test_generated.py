@@ -183,3 +183,24 @@ async def test_CoverageClient_coverage_history() -> None:
         "GET", "/v1/coverage/history", params={"limit": 10}
     )
     assert result == expected
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 35e7a011-ba68-4baa-9366-2f215e67070d
+async def test_CoverageClient_coverage_gaps() -> None:
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"gaps": []})
+
+    client = CoverageClient(facade)
+    result = await client.coverage_gaps()
+
+    assert result == {"gaps": []}
+    facade._request.assert_awaited_once_with(
+        "GET",
+        "/v1/coverage/gaps",
+        params={"threshold": 75.0, "limit": 20},
+        timeout=300.0,
+    )
