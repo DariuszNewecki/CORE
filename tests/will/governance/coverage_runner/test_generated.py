@@ -224,7 +224,6 @@ async def test_run_and_persist_coverage_generation(tmp_path):
     assert final.kwargs["result"] == {"status": "completed"}
 
 
-
 from will.governance.coverage_runner import get_coverage_methods
 
 
@@ -246,3 +245,34 @@ def test_get_coverage_methods():
     for method in methods:
         assert isinstance(method["description"], str)
         assert method["description"]
+
+
+import json
+
+
+# ID: 48299e8c-0bb5-4bc5-9898-697512633b48
+def test_get_coverage_history():
+    from will.governance.coverage_runner import get_coverage_history
+
+    entries = [{"pct": 10}, {"pct": 20}, {"pct": 30}]
+    context = MagicMock()
+    context.git_service.repo_path = "/repo"
+
+    resolved_dir = MagicMock()
+    history_file = MagicMock()
+    history_file.exists.return_value = True
+    history_file.read_text.return_value = json.dumps({"entries": entries})
+    resolved_dir.__truediv__ = MagicMock(return_value=history_file)
+
+    resolver_instance = MagicMock()
+    resolver_instance.reports_dir = resolved_dir
+
+    with patch(
+        "shared.path_resolver.PathResolver", return_value=resolver_instance
+    ) as mock_resolver:
+        result = get_coverage_history(context, limit=2)
+
+    mock_resolver.assert_called_once_with("/repo")
+    resolved_dir.__truediv__.assert_called_once_with("coverage_history.json")
+    history_file.read_text.assert_called_once_with(encoding="utf-8")
+    assert result == {"count": 2, "history": entries[-2:]}
