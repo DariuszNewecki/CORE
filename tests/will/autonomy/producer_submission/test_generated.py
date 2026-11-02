@@ -93,3 +93,17 @@ async def test_submit_producer_change():
     proposal_mock.check_submission.assert_called_once()
     proposal_service_instance.create.assert_awaited_once_with(proposal_mock)
     session.commit.assert_awaited_once()
+
+
+import pytest
+
+from will.autonomy.producer_submission import ProducerSubmissionError
+
+
+# ID: d1ac07f0-1ab7-4b5a-aba8-b56f47df3b9f
+def test_ProducerSubmissionError():
+    message = "the submission is not acceptable"
+    with pytest.raises(ProducerSubmissionError) as exc_info:
+        raise ProducerSubmissionError(message)
+    assert str(exc_info.value) == message
+    assert isinstance(exc_info.value, ValueError)
