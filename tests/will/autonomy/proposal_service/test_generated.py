@@ -223,3 +223,51 @@ async def test_ProposalService_open():
         mock_state_cls.assert_called_once_with(mock_session)
         mock_session_cm.__aenter__.assert_awaited_once()
         mock_session_cm.__aexit__.assert_awaited_once()
+
+
+
+
+
+# ID: c3a90bf4-a215-4854-965c-ce4d3a9d86cb
+async def test_ProposalService():
+    session = MagicMock()
+    service = ProposalService(session)
+
+    proposal = MagicMock()
+    proposal.constitutional_constraints = {"proposal_origin": "autonomous"}
+
+    service._repository = MagicMock()
+    service._repository.create = AsyncMock(return_value="prop-123")
+    service._repository.get = AsyncMock(return_value=proposal)
+    service._state_manager = MagicMock()
+    service._state_manager.mark_completed = AsyncMock()
+    service._state_manager.approve = AsyncMock()
+    service._state_manager.reject = AsyncMock()
+    session.commit = AsyncMock()
+
+    assert await service.create(proposal) == "prop-123"
+    service._repository.create.assert_awaited_once_with(proposal)
+
+    assert await service.get("prop-123") is proposal
+    service._repository.get.assert_awaited_once_with("prop-123")
+
+    await service.mark_completed("prop-123")
+    service._state_manager.mark_completed.assert_awaited_once_with("prop-123")
+
+    await service.approve("prop-123", "alice", "human")
+    service._state_manager.approve.assert_awaited_once_with(
+        "prop-123", "alice", "human", approved_by_original=None
+    )
+    session.commit.assert_awaited_once()
+
+    with patch(
+        "will.autonomy.proposal_service.revive_findings_for_rejected_proposal",
+        new=AsyncMock(return_value={"revived_count": 2}),
+    ) as mock_revive:
+        revived = await service.reject("prop-123", "bad diff")
+
+    assert revived == 2
+    service._state_manager.reject.assert_awaited_once_with("prop-123", "bad diff")
+    mock_revive.assert_awaited_once_with(
+        "prop-123", "bad diff", {"proposal_origin": "autonomous"}
+    )
