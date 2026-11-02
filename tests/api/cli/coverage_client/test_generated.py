@@ -224,7 +224,6 @@ async def test_CoverageClient_coverage_targets():
     facade._request.assert_awaited_once_with("GET", "/v1/coverage/targets")
 
 
-
 import pytest
 
 
@@ -245,3 +244,19 @@ async def test_CoverageClient_coverage_report():
         params={"show_missing": False, "format": "text"},
         timeout=300.0,
     )
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: a3d1915c-e216-4867-bf75-334d99942bc7
+async def test_CoverageClient_coverage_check():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "ok", "compliant": True})
+    client = CoverageClient(facade)
+
+    result = await client.coverage_check()
+
+    assert result == {"status": "ok", "compliant": True}
+    facade._request.assert_awaited_once_with("GET", "/v1/coverage/check", timeout=300.0)
