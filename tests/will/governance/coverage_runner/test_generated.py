@@ -95,3 +95,27 @@ async def test_run_and_persist_coverage_report():
     assert payload["format"] == "text"
     assert payload["show_missing"] is True
     assert payload["ok"] is True
+
+
+
+import pytest
+
+from will.governance.coverage_runner import get_latest_coverage_report
+
+
+@pytest.mark.asyncio
+# ID: 87e6363a-080a-4a32-9f0f-7d41c716a3c1
+async def test_get_latest_coverage_report():
+    payload = {"format": "text", "coverage": 87.5}
+    row = (payload,)
+
+    session = MagicMock()
+    result = MagicMock()
+    result.first.return_value = row
+    session.execute = AsyncMock(return_value=result)
+
+    out = await get_latest_coverage_report(session)
+
+    assert out == payload
+    session.execute.assert_awaited_once()
+    result.first.assert_called_once()
