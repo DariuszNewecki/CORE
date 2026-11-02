@@ -47,3 +47,58 @@ async def test_SystemContextGatherer_gather():
     assert result["git_delta"] == {"delta": "abc"}
     assert "gathered_at" in result
     datetime.fromisoformat(result["gathered_at"])
+
+
+from unittest.mock import patch
+
+
+# ID: ff55d0ee-b55d-4d49-ae09-4ba1165c3a24
+def test_SystemContextGatherer():
+    from will.agents.strategic_auditor.context_gatherer import SystemContextGatherer
+
+    mock_ctx = MagicMock()
+    mock_ctx.git_service = MagicMock()
+    mock_ctx.git_service.repo_path = "/repo"
+    mock_ctx.git_service.get_recent_commits = MagicMock(return_value=["commit1"])
+    mock_ctx.git_service.get_diff_stat = MagicMock(return_value="stat")
+    mock_ctx.git_service.get_changed_files_log = MagicMock(return_value=["src/a.py"])
+    mock_ctx.qdrant_service = AsyncMock()
+    mock_ctx.qdrant_service.scroll_all_points = AsyncMock(return_value=[])
+
+    mock_cognitive = MagicMock()
+
+    gatherer = SystemContextGatherer(mock_ctx, mock_cognitive)
+
+    # Mock the async dimension helpers to isolate gather() orchestration
+    gatherer._gather_constitutional_health = AsyncMock(return_value=[])
+    gatherer._gather_structural_health = AsyncMock(return_value={"total_symbols": 1})
+    gatherer._gather_knowledge_gaps = AsyncMock(return_value={"no_intent": 0})
+    gatherer._gather_vector_dimensions = AsyncMock(
+        return_value=({"total_vectors": 0}, {"symbols_sampled": 0})
+    )
+
+    mock_repo = MagicMock()
+    mock_repo.list_policies.return_value = []
+
+    with patch(
+        "shared.infrastructure.intent.intent_repository.get_intent_repository",
+        return_value=mock_repo,
+    ):
+        session = AsyncMock()
+        result = __import__("asyncio").run(gatherer.gather(session))
+
+    assert isinstance(result, dict)
+    assert result["audit_findings"] == []
+    assert result["structural_health"] == {"total_symbols": 1}
+    assert result["knowledge_gaps"] == {"no_intent": 0}
+    assert result["semantic_landscape"] == {"total_vectors": 0}
+    assert result["intent_drift"] == {"symbols_sampled": 0}
+    assert result["knowledge_graph_summary"] == result["structural_health"]
+    assert result["git_delta"] == result["change_context"]
+    assert result["constitution_summary"] == {"policy_count": 0, "policy_ids": []}
+    assert "gathered_at" in result
+
+    gatherer._gather_constitutional_health.assert_awaited_once_with(session)
+    gatherer._gather_structural_health.assert_awaited_once_with(session)
+    gatherer._gather_knowledge_gaps.assert_awaited_once_with(session)
+    gatherer._gather_vector_dimensions.assert_awaited_once_with(session)
