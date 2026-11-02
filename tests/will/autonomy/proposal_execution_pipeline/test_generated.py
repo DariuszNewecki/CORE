@@ -57,7 +57,6 @@ async def test_resolve_deferred_findings():
     )
 
 
-
 from will.autonomy.proposal_execution_pipeline import capture_git_sha
 
 
@@ -70,3 +69,17 @@ def test_capture_git_sha():
 
     assert result == "abc123def456"
     git_service.get_current_commit.assert_called_once_with()
+
+
+from will.autonomy.proposal_execution_pipeline import CommitOutcome
+
+
+# ID: 3d17b98a-8997-485c-9c62-c3e8728af149
+def test_CommitOutcome():
+    assert CommitOutcome.COMMITTED.value == "committed"
+    assert CommitOutcome.NOTHING_TO_COMMIT.value == "nothing_to_commit"
+    assert CommitOutcome.REFUSED_CONTAMINATION == "refused_contamination"
+    assert CommitOutcome.FAILED.value == "failed"
+
+    assert isinstance(CommitOutcome.COMMITTED, str)
+    assert len(list(CommitOutcome)) == 4
