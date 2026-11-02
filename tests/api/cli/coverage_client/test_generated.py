@@ -71,9 +71,6 @@ async def test_CoverageClient_tests_interactive():
     )
 
 
-
-
-
 # ID: f52dd100-1940-4d0d-9094-0eea12d2a2db
 async def test_CoverageClient_poll_coverage_run():
     facade = MagicMock()
@@ -89,3 +86,21 @@ async def test_CoverageClient_poll_coverage_run():
         "/v1/coverage/runs/run-123", timeout_seconds=42.0
     )
     assert result == {"status": "complete", "run_id": "run-123"}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 226f4398-ba2c-4238-a536-5869dd4a0712
+async def test_CoverageClient_get_coverage_run():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"id": "run-123", "status": "complete"})
+
+    client = CoverageClient(facade)
+
+    result = await client.get_coverage_run("run-123")
+
+    facade._request.assert_awaited_once_with("GET", "/v1/coverage/runs/run-123")
+    assert result == {"id": "run-123", "status": "complete"}
