@@ -49,7 +49,6 @@ async def test_CoverageClient() -> None:
     assert poll_result == {"status": "completed"}
 
 
-
 import pytest
 
 
@@ -70,3 +69,23 @@ async def test_CoverageClient_tests_interactive():
         json={"target_file": "src/foo.py"},
         timeout=600.0,
     )
+
+
+
+
+
+# ID: f52dd100-1940-4d0d-9094-0eea12d2a2db
+async def test_CoverageClient_poll_coverage_run():
+    facade = MagicMock()
+    facade._poll_at_path = AsyncMock(
+        return_value={"status": "complete", "run_id": "run-123"}
+    )
+
+    client = CoverageClient(facade)
+
+    result = await client.poll_coverage_run("run-123", timeout_seconds=42.0)
+
+    facade._poll_at_path.assert_awaited_once_with(
+        "/v1/coverage/runs/run-123", timeout_seconds=42.0
+    )
+    assert result == {"status": "complete", "run_id": "run-123"}
