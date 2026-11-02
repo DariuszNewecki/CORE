@@ -400,8 +400,6 @@ def test_list_registered_flow_ids():
     mock_registry.list_all.assert_called_once_with()
 
 
-
-
 # ID: c3857d5a-e2a9-4e25-8b7d-ca98301b57bc
 def test_action_runs_candidate_code():
     from will.governance.fix_runner import action_runs_candidate_code
@@ -417,3 +415,29 @@ def test_action_runs_candidate_code():
 
     assert result is True
     mock_get.assert_called_once_with("some.action")
+
+
+
+
+# ID: 108ee86d-069e-4ad1-b9d1-83640fc8db5d
+def test_action_mutates_files() -> None:
+    from will.governance.fix_runner import action_mutates_files
+
+    mock_definition = MagicMock()
+    mock_definition.executor = "some_executor"
+
+    mock_metadata = MagicMock()
+
+    with (
+        patch("shared.action_types.ActionImpact") as mock_impact,
+        patch("shared.atomic_action.get_action_metadata", return_value=mock_metadata),
+        patch(
+            "will.governance.fix_runner.action_registry.get",
+            return_value=mock_definition,
+        ),
+    ):
+        mock_impact.WRITE_CODE = "write_code"
+        mock_impact.WRITE_METADATA = "write_metadata"
+        mock_metadata.impact = "write_code"
+
+        assert action_mutates_files("some_action") is True
