@@ -276,3 +276,40 @@ def test_get_coverage_history():
     resolved_dir.__truediv__.assert_called_once_with("coverage_history.json")
     history_file.read_text.assert_called_once_with(encoding="utf-8")
     assert result == {"count": 2, "history": entries[-2:]}
+
+
+
+import pytest
+
+from will.governance.coverage_runner import get_coverage_gaps
+
+
+@pytest.mark.asyncio
+# ID: aae3ea1f-bbf5-4165-875d-02a3f1904a12
+async def test_get_coverage_gaps():
+    mocked_context = MagicMock()
+    mocked_context.git_service.repo_path = "/repo/root"
+
+    mock_analyzer_instance = MagicMock()
+    mock_analyzer_instance.get_module_coverage = AsyncMock(
+        return_value={
+            "src/a.py": 50.0,
+            "src/b.py": 90.0,
+            "src/c.py": 60.0,
+            "src/d.py": 75.0,
+        }
+    )
+
+    with patch(
+        "will.governance.coverage_runner.CoverageAnalyzer",
+        return_value=mock_analyzer_instance,
+    ):
+        result = await get_coverage_gaps(mocked_context, threshold=75.0, limit=20)
+
+    mock_analyzer_instance.get_module_coverage.assert_awaited_once_with()
+    assert result["threshold"] == 75.0
+    assert result["count"] == 2
+    assert result["gaps"] == [
+        {"file": "src/a.py", "coverage": 50.0, "deficit": 25.0},
+        {"file": "src/c.py", "coverage": 60.0, "deficit": 15.0},
+    ]
