@@ -73,3 +73,67 @@ def test_ResponsibilityExtractor_extract():
         violation_summary=file_context["violation_summary"],
     )
     extractor._merge_compatible_clusters.assert_called_once()
+
+
+
+
+# ID: ea7f3cf6-3545-49da-8e1d-d9293b59abaa
+def test_ResponsibilityExtractor():
+    extractor = ResponsibilityExtractor()
+
+    file_context = {
+        "top_level_symbols": [
+            {"name": "MyService", "symbol_type": "class", "bases": ["BaseService"]},
+            {"name": "run", "symbol_type": "function", "is_async": False},
+        ],
+        "imports": [
+            {"module": "shared.utils"},
+            {"module": "will.core"},
+            {"module": "body.services"},
+            {"module": "mind.agents"},
+        ],
+        "file_role": {
+            "role_id": "service",
+            "layer": "application",
+            "evidence": ["naming"],
+        },
+        "file_metrics": {
+            "finding_count": 3,
+            "distinct_rule_count": 2,
+        },
+        "violation_summary": {
+            "rules": {"max_file_size": 2, "modularity": 1},
+        },
+    }
+
+    clusters = extractor.extract(file_context)
+
+    assert isinstance(clusters, list)
+    assert clusters, "Expected at least one responsibility cluster"
+
+    names = [cluster.name for cluster in clusters]
+    assert "architectural_role" in names
+    assert "dependency_surface" in names
+    assert "violation_pressure" in names
+
+    # Deterministic ordering: sorted by (name, summary)
+    sort_keys = [(c.name, c.summary) for c in clusters]
+    assert sort_keys == sorted(sort_keys)
+
+    for cluster in clusters:
+        assert isinstance(cluster.name, str) and cluster.name
+        assert isinstance(cluster.summary, str)
+        assert isinstance(cluster.evidence, list)
+        assert isinstance(cluster.symbols, list)
+
+    role_cluster = next(c for c in clusters if c.name == "architectural_role")
+    assert "service" in role_cluster.summary
+    assert "application" in role_cluster.summary
+    assert role_cluster.evidence == ["naming"]
+
+    violation_cluster = next(c for c in clusters if c.name == "violation_pressure")
+    assert any("max_file_size" in e for e in violation_cluster.evidence)
+
+    # Empty context yields no role/import/violation clusters
+    empty_clusters = extractor.extract({})
+    assert empty_clusters == []
