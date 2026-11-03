@@ -113,3 +113,42 @@ def test_canonical_signature():
 
     assert canonical_signature(None, config) == ""
     assert canonical_signature("", config) == ""
+
+
+
+
+# ID: 9db3b5a7-401e-4885-9708-ad71a0b676de
+def test_load_circuit_breaker_config():
+    from will.autonomy.circuit_breaker import load_circuit_breaker_config
+
+    fake_repo = MagicMock()
+    fake_repo.resolve_rel.return_value = (
+        "/fake/.intent/enforcement/config/circuit_breaker.yaml"
+    )
+    fake_repo.load_document.return_value = {
+        "threshold_n": 7,
+        "signature_window_chars": 150,
+        "max_lookback": 12,
+        "volatile_patterns": [
+            {
+                "name": "uuid",
+                "regex": r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+            },
+            {"name": "timestamp", "regex": r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"},
+        ],
+    }
+
+    with patch(
+        "shared.infrastructure.intent.intent_repository.get_intent_repository",
+        return_value=fake_repo,
+    ):
+        config = load_circuit_breaker_config()
+
+    fake_repo.load_document.assert_called_once_with(
+        "/fake/.intent/enforcement/config/circuit_breaker.yaml"
+    )
+    assert config.threshold_n == 7
+    assert config.signature_window_chars == 150
+    assert config.max_lookback == 12
+    assert len(config.volatile_patterns) == 2
+    assert config.volatile_patterns[0].search("123e4567-e89b-12d3-a456-426614174000")
