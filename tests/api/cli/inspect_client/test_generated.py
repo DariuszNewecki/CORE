@@ -207,7 +207,6 @@ async def test_InspectClient_analysis_test_targets() -> None:
     assert result == expected
 
 
-
 import pytest
 
 
@@ -223,3 +222,34 @@ async def test_InspectClient_analysis_command_tree() -> None:
 
     assert result == expected
     facade._request.assert_awaited_once_with("GET", "/v1/analysis/command-tree")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: c4972857-8f76-459b-8dda-7b04a999029a
+async def test_InspectClient_decisions_list():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"decisions": []})
+
+    client = InspectClient(facade)
+
+    result = await client.decisions_list(
+        session_id="sess-123",
+        agent="agent-x",
+        pattern="foo",
+        limit=10,
+    )
+
+    assert result == {"decisions": []}
+    facade._request.assert_awaited_once_with(
+        "GET",
+        "/v1/decisions",
+        params={
+            "limit": 10,
+            "session_id": "sess-123",
+            "agent": "agent-x",
+            "pattern": "foo",
+        },
+    )
