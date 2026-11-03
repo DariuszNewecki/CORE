@@ -229,3 +229,35 @@ def test_NullRemediationBlackboard() -> None:
     assert (
         asyncio.run(bb.post_failed("path.py", [{"a": 1}], "rule-x", "reason")) is None
     )
+
+
+from unittest.mock import MagicMock
+
+from will.remediation.blackboard import WorkerRemediationBlackboard
+
+
+# ID: 26162d03-d41b-4229-83ce-c791e93166d5
+async def test_WorkerRemediationBlackboard_post_failed() -> None:
+    worker = MagicMock()
+    core_context = MagicMock()
+
+    board = WorkerRemediationBlackboard(worker=worker, core_context=core_context)
+    board.post_report = AsyncMock()
+
+    findings = [{"id": "f-1"}, {"id": "f-2"}]
+    await board.post_failed(
+        file_path="src/foo.py",
+        findings=findings,
+        target_rule="rule-42",
+        reason="remediation failed",
+    )
+
+    board.post_report.assert_awaited_once_with(
+        subject="audit.remediation.failed::src/foo.py",
+        payload={
+            "file_path": "src/foo.py",
+            "rule": "rule-42",
+            "reason": "remediation failed",
+            "finding_ids": ["f-1", "f-2"],
+        },
+    )
