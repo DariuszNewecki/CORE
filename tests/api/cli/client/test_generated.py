@@ -619,7 +619,6 @@ async def test_sync_dev_sync() -> None:
         client.sync.sync_dev_sync.assert_awaited_once_with("arg1", key="value")
 
 
-
 import pytest
 
 
@@ -635,3 +634,26 @@ async def test_CoreApiClient_sync_code_vectors() -> None:
 
     assert result == expected
     client.sync.sync_code_vectors.assert_awaited_once_with("payload", key="value")
+
+
+
+
+
+# ID: c55584d2-14a3-47c6-be2c-c0642e327f97
+async def test_CoreApiClient_census_create_baseline() -> None:
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost:8000", None)
+    ) as mock_parse:
+        client = CoreApiClient(base_url="http://localhost:8000")
+
+    client.census = MagicMock()
+    client.census.census_create_baseline = AsyncMock(
+        return_value={"name": "baseline-1", "status": "created"}
+    )
+
+    result = await client.census_create_baseline("baseline-1", ref="main")
+
+    client.census.census_create_baseline.assert_awaited_once_with(
+        "baseline-1", ref="main"
+    )
+    assert result == {"name": "baseline-1", "status": "created"}
