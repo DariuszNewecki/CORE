@@ -139,8 +139,6 @@ def test_TestGenArtifactStore_write_prompt():
     mock_fh.write.assert_called_once_with(expected_path, "hello prompt")
 
 
-
-
 # ID: 8af01bab-d6a6-465b-87fa-0a9af95334d5
 def test_TestGenArtifactStore_start_session():
     from will.test_generation.artifacts import TestGenArtifactStore
@@ -153,3 +151,64 @@ def test_TestGenArtifactStore_start_session():
 
     mock_fh.ensure_dir.assert_called_once_with("work/test_generation/1234567890")
     assert result.session_dir == "work/test_generation/1234567890"
+
+
+
+
+
+# ID: 01c452d9-f67e-40df-9561-803c638fdf77
+def test_TestGenArtifactStore():
+    file_handler = MagicMock()
+    store = TestGenArtifactStore(file_handler)
+
+    with patch("will.test_generation.artifacts.time.time", return_value=1700000000):
+        paths = store.start_session()
+    assert paths.session_dir == "work/test_generation/1700000000"
+    file_handler.ensure_dir.assert_called_once_with("work/test_generation/1700000000")
+
+    session_dir = paths.session_dir
+
+    prompt_path = store.write_prompt(session_dir, "Foo", "hello")
+    assert prompt_path == f"{session_dir}/Foo_prompt.txt"
+    file_handler.write.assert_called_with(prompt_path, "hello")
+
+    response_path = store.write_response(session_dir, "Foo", "bar")
+    assert response_path == f"{session_dir}/Foo_response.txt"
+    file_handler.write.assert_called_with(response_path, "bar")
+
+    normalized_path = store.write_normalized(session_dir, "Foo", "code()", "ruff")
+    assert normalized_path == f"{session_dir}/Foo_normalized.py"
+    file_handler.write.assert_called_with(
+        normalized_path, "# Normalization: ruff\ncode()"
+    )
+
+    generated_path = store.write_generated(session_dir, "Foo", "def foo(): pass")
+    assert generated_path == f"{session_dir}/Foo_generated.py"
+    file_handler.write.assert_called_with(generated_path, "def foo(): pass")
+
+    with patch(
+        "will.test_generation.artifacts.time.strftime",
+        return_value="2024-01-01 00:00:00",
+    ):
+        validation_path = store.write_validation(session_dir, "Foo", True, "", "ruff")
+    assert validation_path == f"{session_dir}/Foo_validation.json"
+    validation_args = file_handler.write.call_args[0]
+    assert validation_args[0] == validation_path
+    assert '"symbol": "Foo"' in validation_args[1]
+    assert '"validation_passed": true' in validation_args[1]
+
+    with patch(
+        "will.test_generation.artifacts.time.strftime",
+        return_value="2024-01-01 00:00:00",
+    ):
+        sandbox_path = store.write_sandbox(session_dir, "Foo", True, "")
+    assert sandbox_path == f"{session_dir}/Foo_sandbox.json"
+    sandbox_args = file_handler.write.call_args[0]
+    assert sandbox_args[0] == sandbox_path
+    assert '"passed": true' in sandbox_args[1]
+
+    summary_path = store.write_summary(session_dir, {"total": 1})
+    assert summary_path == f"{session_dir}/SUMMARY.json"
+    summary_args = file_handler.write.call_args[0]
+    assert summary_args[0] == summary_path
+    assert '"total": 1' in summary_args[1]
