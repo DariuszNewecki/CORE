@@ -263,7 +263,6 @@ async def test_WorkerRemediationBlackboard_post_failed() -> None:
     )
 
 
-
 import pytest
 
 
@@ -288,3 +287,24 @@ async def test_WorkerRemediationBlackboard_mark_findings() -> None:
     bb.update_entry_status.assert_any_await("f-1", "resolved")
     bb.update_entry_status.assert_any_await("f-2", "resolved")
     bb.abandon_entries_and_increment_attempt_count.assert_not_awaited()
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 95752c02-b6d9-4312-8fd8-37af879212e9
+async def test_WorkerRemediationBlackboard_post_observation():
+    worker = MagicMock()
+    worker.post_observation = AsyncMock(return_value={"ok": True})
+
+    blackboard = WorkerRemediationBlackboard(worker=worker, core_context=MagicMock())
+
+    subject = "some-subject"
+    payload = {"key": "value"}
+
+    result = await blackboard.post_observation(subject, payload, status="posted")
+
+    worker.post_observation.assert_awaited_once_with(subject, payload, status="posted")
+    assert result == {"ok": True}
