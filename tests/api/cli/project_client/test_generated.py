@@ -21,3 +21,23 @@ async def test_ProjectClient_scout():
     facade._request.assert_awaited_once_with(
         "POST", "/v1/project/scout", json={"path": "/some/path", "reset": True}
     )
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: e8fd2f9f-9f75-4658-bea2-e0e0aca73757
+async def test_ProjectClient_promote():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True, "promoted": True})
+
+    client = ProjectClient(facade)
+
+    result = await client.promote("/some/machinery/path")
+
+    assert result == {"ok": True, "promoted": True}
+    facade._request.assert_awaited_once_with(
+        "POST", "/v1/project/onboard/promote", json={"path": "/some/machinery/path"}
+    )
