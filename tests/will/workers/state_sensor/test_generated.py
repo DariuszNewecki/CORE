@@ -222,3 +222,33 @@ def test_escalation_due():
 
     # Unparseable timestamp -> treated as due (fail-open).
     assert escalation_due("not-a-date", window_minutes, now) is True
+
+
+
+
+# ID: c7581065-3e22-4521-a674-66ba781f1cc6
+def test_unattributed_law_changes():
+    from will.workers.state_sensor import (
+        UNREADABLE_RANGE_PATH,
+        unattributed_law_changes,
+    )
+
+    # ID: 7bee007e-239e-4679-9e50-b4c49949db59
+    def make_change(path, persistence="committed", producer_provenance="unknown"):
+        change = MagicMock()
+        change.path = path
+        change.persistence = persistence
+        change.producer_provenance = producer_provenance
+        return change
+
+    attributed = make_change(".intent/law.py", producer_provenance="known")
+    uncommitted = make_change(".intent/law.py", persistence="uncommitted")
+    src_change = make_change("src/foo.py")
+    matched = make_change(".intent/other.py")
+    unreadable = make_change(UNREADABLE_RANGE_PATH)
+
+    changes = [attributed, uncommitted, src_change, matched, unreadable]
+
+    result = unattributed_law_changes(changes)
+
+    assert result == [matched, unreadable]
