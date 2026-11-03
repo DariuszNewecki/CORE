@@ -93,7 +93,6 @@ async def test_StateSensor_run():
     assert payload["signatures"] == "s"
 
 
-
 from will.workers.state_sensor import law_drift_subjects
 
 
@@ -109,3 +108,83 @@ def test_law_drift_subjects():
         "governance::law_drift::src/a.py": "src/a.py",
         "governance::law_drift::src/b.py": "src/b.py",
     }
+
+
+from types import SimpleNamespace
+
+
+# ID: a56a3c95-0292-416f-8539-066377ba0973
+async def test_StateSensor():
+    worker = StateSensor()
+    worker.post_heartbeat = AsyncMock()
+    worker.post_finding = AsyncMock()
+    worker.post_report = AsyncMock()
+
+    worker._core_context = SimpleNamespace(
+        git_service=SimpleNamespace(repo_path="/tmp/repo")
+    )
+
+    law = SimpleNamespace(
+        relationship="MATCH",
+        head_sha="deadbeefcafe",
+        record_digest="rec",
+        evaluated_digest="eval",
+        reason=None,
+    )
+    observation = SimpleNamespace(
+        head_sha="deadbeefcafe",
+        dirty_paths=[],
+        law_state=law,
+    )
+
+    mock_ledger = MagicMock()
+    # record_if_changed returns [] on first run -> changes is not None -> True
+    mock_ledger.record_if_changed = AsyncMock(return_value=[])
+
+    mock_blackboard = MagicMock()
+    mock_blackboard.fetch_open_findings = AsyncMock(return_value=[])
+    mock_blackboard.resolve_entries = AsyncMock()
+
+    mock_registry = MagicMock()
+    mock_registry.get_blackboard_service = AsyncMock(return_value=mock_blackboard)
+
+    worker._sync_law_drift = AsyncMock(return_value=(0, 0, 0))
+    worker._sync_stale_daemon = AsyncMock(return_value={"code_state": "CLEAN"})
+    worker._sync_law_venv = AsyncMock(return_value={"law_venv": "n/a"})
+    worker._sync_access = AsyncMock(return_value={})
+    worker._sync_ledger_signatures = AsyncMock(return_value={})
+    worker._post_unattributed = AsyncMock(return_value=0)
+
+    with (
+        patch("body.services.service_registry.service_registry", mock_registry),
+        patch(
+            "body.services.state_ledger_service.StateLedgerService",
+            return_value=mock_ledger,
+        ),
+        patch(
+            "body.services.state_ledger_service.observe_state",
+            return_value=observation,
+        ),
+        patch(
+            "shared.path_resolver.PathResolver",
+        ) as mock_path_resolver,
+        patch(
+            "will.workers.state_sensor.loaded_code_identity",
+            return_value="identity-abc",
+        ),
+    ):
+        mock_path_resolver.return_value.intent_root = "/tmp/repo/intent"
+
+        await worker.run()
+
+    worker.post_heartbeat.assert_awaited_once()
+    mock_ledger.record_if_changed.assert_awaited_once_with(observation)
+    worker.post_report.assert_awaited_once()
+
+    _, kwargs = worker.post_report.call_args
+    assert kwargs["subject"] == "state_sensor.run.complete"
+    assert kwargs["payload"]["head_sha"] == "deadbeefcafe"
+    assert kwargs["payload"]["law_relationship"] == "MATCH"
+    # changes is [] (not None) -> ledger_row_appended is True
+    assert kwargs["payload"]["ledger_row_appended"] is True
+    assert kwargs["payload"]["changes_attributed"] == 0
