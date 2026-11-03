@@ -183,7 +183,6 @@ def test_get_refactor_candidates():
     ]
 
 
-
 from will.governance.refactor_runner import get_refactor_score
 
 
@@ -216,3 +215,33 @@ def test_get_refactor_score(tmp_path: Path) -> None:
     mock_analyze.assert_called_once()
     args, _ = mock_analyze.call_args
     assert args[1] == target.resolve()
+
+
+
+
+# ID: a47aaf09-a435-4d34-8fbd-4593549aec83
+def test_get_refactor_threshold():
+    from pathlib import Path
+
+    from will.governance.refactor_runner import get_refactor_threshold
+
+    mock_loader = MagicMock()
+    mock_loader.get_enforcement_strategy.return_value = {"params": {"max_score": 42.5}}
+
+    with (
+        patch(
+            "will.governance.refactor_runner.EnforcementMappingLoader",
+            return_value=mock_loader,
+        ),
+        patch(
+            "will.governance.refactor_runner.intent_root_for",
+            return_value=Path("/tmp/intent"),
+        ) as mock_intent_root,
+    ):
+        result = get_refactor_threshold(Path("/tmp/repo"))
+
+    assert result == 42.5
+    mock_intent_root.assert_called_once_with(Path("/tmp/repo"))
+    mock_loader.get_enforcement_strategy.assert_called_once_with(
+        "modularity.refactor_score_threshold"
+    )
