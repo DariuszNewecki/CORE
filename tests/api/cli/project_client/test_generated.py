@@ -23,7 +23,6 @@ async def test_ProjectClient_scout():
     )
 
 
-
 import pytest
 
 
@@ -41,3 +40,23 @@ async def test_ProjectClient_promote():
     facade._request.assert_awaited_once_with(
         "POST", "/v1/project/onboard/promote", json={"path": "/some/machinery/path"}
     )
+
+
+import asyncio
+
+
+# ID: 47c9d8b8-1b77-4067-acdb-a27dc9239199
+def test_ProjectClient_onboard():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True, "project_id": "p-123"})
+
+    client = ProjectClient(facade)
+
+    result = asyncio.run(client.onboard("/tmp/repo", write=True, stage=False))
+
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/project/onboard",
+        json={"path": "/tmp/repo", "write": True, "stage": False},
+    )
+    assert result == {"ok": True, "project_id": "p-123"}
