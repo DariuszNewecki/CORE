@@ -199,8 +199,6 @@ async def test_NullRemediationBlackboard_post_report() -> None:
     assert result is None
 
 
-
-
 # ID: 91ac4e46-676f-4262-b370-04848027856d
 def test_NullRemediationBlackboard_worker_uuid() -> None:
     from will.remediation.blackboard import NullRemediationBlackboard
@@ -210,3 +208,24 @@ def test_NullRemediationBlackboard_worker_uuid() -> None:
     result = bb.worker_uuid
 
     assert result is None
+
+
+import asyncio
+
+
+# ID: 454cb286-9a6e-4eb1-82a8-1175eaca85c6
+def test_NullRemediationBlackboard() -> None:
+    from will.remediation.blackboard import NullRemediationBlackboard
+
+    bb = NullRemediationBlackboard()
+
+    # worker_uuid is always None (no real worker identity in CLI file-mode)
+    assert bb.worker_uuid is None
+
+    # All async methods are true no-ops and must return None
+    assert asyncio.run(bb.post_report("subj", {"k": "v"})) is None
+    assert asyncio.run(bb.post_observation("subj", {"k": "v"}, status="ok")) is None
+    assert asyncio.run(bb.mark_findings([{"a": 1}], status="done")) is None
+    assert (
+        asyncio.run(bb.post_failed("path.py", [{"a": 1}], "rule-x", "reason")) is None
+    )
