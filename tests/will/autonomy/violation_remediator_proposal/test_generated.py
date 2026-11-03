@@ -65,3 +65,103 @@ async def test_get_active_proposal_id_by_action_file():
     assert result[("act-2", None)] == "prop-1"
     assert result[("flow-9", "d.py")] == "prop-2"
     assert len(result) == 3
+
+
+import uuid
+from unittest.mock import patch
+
+import pytest
+
+from will.autonomy.violation_remediator_proposal import create_proposal
+
+
+@pytest.mark.asyncio
+# ID: 9184a782-0415-4fbf-ab4b-24170f6b2780
+async def test_create_proposal():
+    claimed_by = uuid.uuid4()
+    findings = [
+        {
+            "id": "finding-1",
+            "payload": {
+                "file_path": "src/foo.py",
+                "check_id": "some_rule",
+            },
+        },
+        {
+            "entry_id": "finding-2",
+            "payload": {
+                "file_path": "src/bar.py",
+                "rule": "other_rule",
+            },
+        },
+    ]
+
+    mock_proposal = MagicMock()
+    mock_proposal.approval_required = True
+    mock_proposal.risk = MagicMock(overall_risk="low")
+    mock_proposal.validate.return_value = (True, [])
+    mock_proposal.compute_risk = MagicMock()
+
+    mock_proposal_cls = MagicMock(return_value=mock_proposal)
+    mock_proposal_scope = MagicMock()
+    mock_proposal_action = MagicMock()
+    mock_proposal_provenance = MagicMock()
+
+    mock_mapper = MagicMock()
+    mock_mapper.to_db_model.return_value = MagicMock(name="proposal_model")
+
+    submission_result = MagicMock(name="submission_result")
+    mock_submit = AsyncMock(return_value=submission_result)
+
+    with (
+        patch(
+            "body.services.proposal_submission_service.submit_mapped_proposal",
+            mock_submit,
+        ),
+        patch(
+            "body.services.proposal_submission_service.ProposalSubmissionError",
+            Exception,
+        ),
+        patch(
+            "shared.infrastructure.database.models.autonomous_proposals.AutonomousProposal",
+            MagicMock(),
+        ),
+        patch(
+            "will.autonomy.proposal_mapper.ProposalMapper",
+            mock_mapper,
+        ),
+        patch(
+            "will.autonomy.proposal_state_manager.ProposalStateManager",
+            MagicMock(),
+        ),
+        patch(
+            "will.autonomy.violation_remediator_proposal.Proposal",
+            mock_proposal_cls,
+        ),
+        patch(
+            "will.autonomy.violation_remediator_proposal.ProposalScope",
+            mock_proposal_scope,
+        ),
+        patch(
+            "will.autonomy.violation_remediator_proposal.ProposalAction",
+            mock_proposal_action,
+        ),
+        patch(
+            "will.autonomy.violation_remediator_proposal.ProposalProvenance",
+            mock_proposal_provenance,
+        ),
+    ):
+        result = await create_proposal(
+            ref_id="rule_xyz",
+            ref_kind="action",
+            findings=findings,
+            claimed_by=claimed_by,
+        )
+
+    assert result is submission_result
+    mock_proposal.validate.assert_called_once()
+    mock_submit.assert_awaited_once()
+    call_kwargs = mock_submit.await_args.kwargs
+    assert call_kwargs["finding_ids"] == ["finding-1", "finding-2"]
+    assert call_kwargs["expected_worker_uuid"] == claimed_by
+    assert call_kwargs["approval_step"] is None
