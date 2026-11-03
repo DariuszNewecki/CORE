@@ -59,9 +59,6 @@ async def test_ProposalRepository_get() -> None:
     assert proposal is expected_proposal
 
 
-
-
-
 # ID: 54e2a8e0-9e5f-4ee2-a0ff-949d7788d74c
 async def test_ProposalRepository():
     session = MagicMock()
@@ -86,3 +83,38 @@ async def test_ProposalRepository():
     mock_to_db.assert_called_once()
     session.add.assert_called_once_with(db_model)
     session.flush.assert_awaited_once()
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: bd24db6f-4984-49f0-82cb-75502cdcbbb5
+async def test_ProposalRepository_update_fields():
+    from will.autonomy.proposal_repository import ProposalRepository
+
+    session = MagicMock()
+    session.execute = AsyncMock()
+
+    repo = ProposalRepository(session)
+
+    with patch(
+        "shared.infrastructure.database.models.autonomous_proposals.AutonomousProposal"
+    ) as mock_model:
+        mock_model.proposal_id = MagicMock()
+        mock_stmt = MagicMock()
+        mock_model.proposal_id.__eq__ = MagicMock(return_value=MagicMock())
+        # Build the update() chain by patching sqlalchemy.update
+        with patch("sqlalchemy.update") as mock_update:
+            chain = MagicMock()
+            mock_update.return_value = chain
+            chain.where.return_value = chain
+            chain.values.return_value = chain
+
+            await repo.update_fields("prop-123", {"state": "APPROVED"})
+
+            mock_update.assert_called_once_with(mock_model)
+            chain.where.assert_called_once()
+            chain.values.assert_called_once_with(state="APPROVED")
+            session.execute.assert_awaited_once_with(chain)
