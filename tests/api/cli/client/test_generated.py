@@ -505,3 +505,25 @@ async def test_CoreApiClient_daemon_start():
 
     client.daemon.daemon_start.assert_awaited_once_with("arg1", key="value")
     assert result == {"status": "started"}
+
+
+
+
+
+# ID: 9fad6583-231d-4195-a82c-9c41997d2d16
+async def test_CoreApiClient_daemon_status() -> None:
+    # Avoid real network/socket setup in __init__ by patching parse_base_url.
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost", None)
+    ):
+        client = CoreApiClient(base_url="http://localhost")
+
+    expected = {"status": "running", "pid": 1234}
+    mock_daemon_client = MagicMock()
+    mock_daemon_client.daemon_status = AsyncMock(return_value=expected)
+    client.daemon = mock_daemon_client
+
+    result = await client.daemon_status(foo="bar")
+
+    assert result == expected
+    mock_daemon_client.daemon_status.assert_awaited_once_with(foo="bar")
