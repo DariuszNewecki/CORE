@@ -73,3 +73,53 @@ def test_ResourceSelector():
             )
             is None
         )
+
+
+from unittest.mock import MagicMock
+
+from will.agents.resource_selector import ResourceSelector
+
+
+# ID: 73e9b764-f735-4d74-a0cc-3816bee72c81
+def test_ResourceSelector_select_resources_for_role():
+    role = MagicMock()
+    role.role = "engineer"
+
+    low = MagicMock()
+    low.name = "low-cost"
+    low.cost_rating = 1
+
+    mid = MagicMock()
+    mid.name = "mid-cost"
+    mid.cost_rating = 2
+
+    with (
+        patch.object(
+            ResourceSelector,
+            "_filter_by_locality",
+            side_effect=lambda resources, mode, role_name: resources,
+        ),
+        patch.object(
+            ResourceSelector,
+            "_is_qualified",
+            return_value=True,
+        ),
+        patch.object(
+            ResourceSelector,
+            "_score_resource",
+            side_effect=lambda r: r.cost_rating,
+        ),
+        patch(
+            "will.agents.resource_selector._primary_assignment",
+            return_value=None,
+        ),
+    ):
+        result = ResourceSelector.select_resources_for_role(
+            "engineer",
+            [role],
+            [mid, low],
+            assignments=None,
+            system_operating_mode="normal",
+        )
+
+    assert result == [low, mid]
