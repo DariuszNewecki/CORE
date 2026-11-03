@@ -473,3 +473,23 @@ async def test_CoreApiClient_create_proposal():
         title="My proposal", description="desc"
     )
     assert result == {"id": "prop-123", "status": "created"}
+
+
+
+
+
+# ID: 479eb767-edf3-4b1b-b299-5f8293e16e65
+async def test_CoreApiClient_daemon_stop() -> None:
+    base_url = "http://localhost:8000"
+    expected = {"status": "stopped"}
+
+    client = MagicMock(spec=CoreApiClient)
+    client.daemon = MagicMock()
+    client.daemon.daemon_stop = AsyncMock(return_value=expected)
+
+    kwargs = {"force": True}
+    bound = CoreApiClient.daemon_stop
+    result = await bound(client, **kwargs)
+
+    client.daemon.daemon_stop.assert_awaited_once_with(**kwargs)
+    assert result == expected
