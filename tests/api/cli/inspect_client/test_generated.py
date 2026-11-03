@@ -169,3 +169,22 @@ def test_InspectClient_inspect_search_capabilities():
     facade._request.assert_awaited_once_with(
         "GET", "/v1/search/capabilities", params={"q": "auth", "limit": 5}
     )
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 44aa0522-f3a5-4f57-98a2-9690d2a1ceb0
+async def test_InspectClient_inspect_components():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"components": []})
+    client = InspectClient(facade)
+
+    result = await client.inspect_components(filter_type="service")
+
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/components", params={"type": "service"}
+    )
+    assert result == {"components": []}
