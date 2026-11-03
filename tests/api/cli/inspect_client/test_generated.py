@@ -119,9 +119,6 @@ async def test_InspectClient_analysis_duplicates():
     assert result == {"duplicates": []}
 
 
-
-
-
 # ID: 84ea26cd-d1a2-438a-88bd-9b143ea91f49
 async def test_InspectClient_analysis_clusters():
     facade = MagicMock()
@@ -136,3 +133,177 @@ async def test_InspectClient_analysis_clusters():
     facade._request.assert_awaited_once_with(
         "GET", "/v1/analysis/clusters", params={"limit": 10}
     )
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 8ca6e0b0-ec5d-45b7-b32b-821c5dab014d
+async def test_InspectClient_inspect_search_commands():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"results": [{"name": "build"}]})
+    client = InspectClient(facade)
+
+    result = await client.inspect_search_commands("buil", limit=10)
+
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/search/commands", params={"q": "buil", "limit": 10}
+    )
+    assert result == {"results": [{"name": "build"}]}
+
+
+import asyncio
+
+
+# ID: 7b807695-b31a-4b94-a83c-a3ebd8f8e7de
+def test_InspectClient_inspect_search_capabilities():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"results": [{"id": "cap-1"}]})
+
+    client = InspectClient(facade)
+
+    result = asyncio.run(client.inspect_search_capabilities("auth", limit=5))
+
+    assert result == {"results": [{"id": "cap-1"}]}
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/search/capabilities", params={"q": "auth", "limit": 5}
+    )
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 44aa0522-f3a5-4f57-98a2-9690d2a1ceb0
+async def test_InspectClient_inspect_components():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"components": []})
+    client = InspectClient(facade)
+
+    result = await client.inspect_components(filter_type="service")
+
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/components", params={"type": "service"}
+    )
+    assert result == {"components": []}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: d6d3fee4-c447-4dd0-b8db-c8084454fc2a
+async def test_InspectClient_analysis_test_targets() -> None:
+    facade = AsyncMock()
+    expected = {"SIMPLE": ["a", "b"], "COMPLEX": ["c"]}
+    facade._request = AsyncMock(return_value=expected)
+
+    client = InspectClient(facade)
+
+    result = await client.analysis_test_targets()
+
+    facade._request.assert_awaited_once_with("GET", "/v1/analysis/test-targets")
+    assert result == expected
+
+
+import pytest
+
+
+# ID: 7d40a540-48ea-4765-ad5e-b718be173c7a
+async def test_InspectClient_analysis_command_tree() -> None:
+    expected = {"commands": [{"name": "build"}, {"name": "test"}]}
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value=expected)
+
+    client = InspectClient(facade)
+
+    result = await client.analysis_command_tree()
+
+    assert result == expected
+    facade._request.assert_awaited_once_with("GET", "/v1/analysis/command-tree")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: c4972857-8f76-459b-8dda-7b04a999029a
+async def test_InspectClient_decisions_list():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"decisions": []})
+
+    client = InspectClient(facade)
+
+    result = await client.decisions_list(
+        session_id="sess-123",
+        agent="agent-x",
+        pattern="foo",
+        limit=10,
+    )
+
+    assert result == {"decisions": []}
+    facade._request.assert_awaited_once_with(
+        "GET",
+        "/v1/decisions",
+        params={
+            "limit": 10,
+            "session_id": "sess-123",
+            "agent": "agent-x",
+            "pattern": "foo",
+        },
+    )
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 2749fa7c-584d-41c3-8839-3bfa7bd856e8
+async def test_InspectClient_status_drift():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"drift": []})
+
+    client = InspectClient(facade)
+    result = await client.status_drift()
+
+    assert result == {"drift": []}
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/status/drift", params={"scope": "all"}
+    )
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: b0ad9487-c569-462d-bcda-716000772aea
+async def test_InspectClient_status_db():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"connected": True, "schema": "v1"})
+
+    client = InspectClient(facade)
+
+    result = await client.status_db()
+
+    assert result == {"connected": True, "schema": "v1"}
+    facade._request.assert_awaited_once_with("GET", "/v1/status/db")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: f788161d-53a3-43d9-92e7-2be40e7ab2b6
+async def test_InspectClient():
+    from unittest.mock import AsyncMock, MagicMock
+
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True})
+
+    client = InspectClient(facade)
+
+    result = await client.status_db()
+    assert result == {"ok": True}
+    assert facade._request.await_count == 1
+    facade._request.assert_awaited_with("GET", "/v1/status/db")

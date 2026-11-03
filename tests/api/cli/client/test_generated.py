@@ -473,3 +473,233 @@ async def test_CoreApiClient_create_proposal():
         title="My proposal", description="desc"
     )
     assert result == {"id": "prop-123", "status": "created"}
+
+
+# ID: 479eb767-edf3-4b1b-b299-5f8293e16e65
+async def test_CoreApiClient_daemon_stop() -> None:
+    base_url = "http://localhost:8000"
+    expected = {"status": "stopped"}
+
+    client = MagicMock(spec=CoreApiClient)
+    client.daemon = MagicMock()
+    client.daemon.daemon_stop = AsyncMock(return_value=expected)
+
+    kwargs = {"force": True}
+    bound = CoreApiClient.daemon_stop
+    result = await bound(client, **kwargs)
+
+    client.daemon.daemon_stop.assert_awaited_once_with(**kwargs)
+    assert result == expected
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 27b6cc20-c834-4bd8-beba-aa464506c044
+async def test_CoreApiClient_daemon_start():
+    client = CoreApiClient(base_url="http://localhost:8000")
+    client.daemon.daemon_start = AsyncMock(return_value={"status": "started"})
+
+    result = await client.daemon_start("arg1", key="value")
+
+    client.daemon.daemon_start.assert_awaited_once_with("arg1", key="value")
+    assert result == {"status": "started"}
+
+
+# ID: 9fad6583-231d-4195-a82c-9c41997d2d16
+async def test_CoreApiClient_daemon_status() -> None:
+    # Avoid real network/socket setup in __init__ by patching parse_base_url.
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost", None)
+    ):
+        client = CoreApiClient(base_url="http://localhost")
+
+    expected = {"status": "running", "pid": 1234}
+    mock_daemon_client = MagicMock()
+    mock_daemon_client.daemon_status = AsyncMock(return_value=expected)
+    client.daemon = mock_daemon_client
+
+    result = await client.daemon_status(foo="bar")
+
+    assert result == expected
+    mock_daemon_client.daemon_status.assert_awaited_once_with(foo="bar")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 98d1212d-ae98-43a5-961d-8e171d806f5c
+async def test_CoreApiClient_verify() -> None:
+    expected = {"verified": True, "issues": []}
+
+    with pytest.MonkeyPatch.context() as mp:
+        fake_integrity = MagicMock()
+        fake_integrity.verify = AsyncMock(return_value=expected)
+
+        client = CoreApiClient.__new__(CoreApiClient)
+        client.integrity = fake_integrity
+
+        result = await client.verify(object_id="sym-1", deep=True)
+
+    assert result == expected
+    fake_integrity.verify.assert_awaited_once_with(object_id="sym-1", deep=True)
+
+
+# ID: e224092c-e544-48fa-80de-2f4aeece4eda
+def test_CoreApiClient_baseline():
+    import asyncio
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from api.cli.client import CoreApiClient
+
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost:8000", None)
+    ):
+        client = CoreApiClient(base_url="http://localhost:8000")
+
+    expected = {"status": "ok", "baseline_id": "abc123"}
+    client.integrity = MagicMock()
+    client.integrity.baseline = AsyncMock(return_value=expected)
+
+    result = asyncio.run(client.baseline(foo="bar"))
+
+    assert result == expected
+    client.integrity.baseline.assert_awaited_once_with(foo="bar")
+
+
+import pytest
+
+
+# ID: 2af385cf-749a-4455-8220-660afd8b57ae
+async def test_CoreApiClient_poll_sync_run() -> None:
+    client = CoreApiClient.__new__(CoreApiClient)
+    client.sync = MagicMock()
+    client.sync.poll_sync_run = AsyncMock(
+        return_value={"status": "running", "run_id": "abc"}
+    )
+
+    result = await CoreApiClient.poll_sync_run(client, "run-123", verbose=True)
+
+    assert result == {"status": "running", "run_id": "abc"}
+    client.sync.poll_sync_run.assert_awaited_once_with("run-123", verbose=True)
+
+
+import pytest
+
+
+# ID: 2c4faae0-128e-463b-b05e-bf57e0edf642
+async def test_core_api_client_get_sync_run() -> None:
+    client = CoreApiClient(base_url="http://localhost:1234")
+    expected = {"run_id": "run-42", "status": "completed"}
+    client.sync = AsyncMock()
+    client.sync.get_sync_run = AsyncMock(return_value=expected)
+
+    result = await client.get_sync_run("run-42")
+
+    assert result == expected
+    client.sync.get_sync_run.assert_awaited_once_with("run-42")
+
+
+# ID: 23f562d4-c1cd-4c83-b136-baa61baff01d
+async def test_sync_dev_sync() -> None:
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost", None)
+    ):
+        client = CoreApiClient(base_url="http://localhost:8000")
+
+        expected = {"ok": True, "synced": 3}
+        client.sync = MagicMock()
+        client.sync.sync_dev_sync = AsyncMock(return_value=expected)
+
+        result = await client.sync_dev_sync("arg1", key="value")
+
+        assert result == expected
+        client.sync.sync_dev_sync.assert_awaited_once_with("arg1", key="value")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 374ad8e7-f02e-4a2b-ae62-fa5c411fe4ba
+async def test_CoreApiClient_sync_code_vectors() -> None:
+    client = CoreApiClient(base_url="http://example.test")
+    expected = {"synced": 3, "vectors": 42}
+    client.sync = MagicMock()
+    client.sync.sync_code_vectors = AsyncMock(return_value=expected)
+
+    result = await client.sync_code_vectors("payload", key="value")
+
+    assert result == expected
+    client.sync.sync_code_vectors.assert_awaited_once_with("payload", key="value")
+
+
+# ID: c55584d2-14a3-47c6-be2c-c0642e327f97
+async def test_CoreApiClient_census_create_baseline() -> None:
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost:8000", None)
+    ) as mock_parse:
+        client = CoreApiClient(base_url="http://localhost:8000")
+
+    client.census = MagicMock()
+    client.census.census_create_baseline = AsyncMock(
+        return_value={"name": "baseline-1", "status": "created"}
+    )
+
+    result = await client.census_create_baseline("baseline-1", ref="main")
+
+    client.census.census_create_baseline.assert_awaited_once_with(
+        "baseline-1", ref="main"
+    )
+    assert result == {"name": "baseline-1", "status": "created"}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: fd1d56b1-2bd2-4134-a999-ba6eb878b8e6
+async def test_CoreApiClient_poll_census_run():
+    from api.cli.client import CoreApiClient
+
+    patches = [
+        patch("api.cli.client.parse_base_url", return_value=("http://localhost", None)),
+        patch("api.cli.client.AuditClient"),
+        patch("api.cli.client.FixClient"),
+        patch("api.cli.client.QualityClient"),
+        patch("api.cli.client.CoverageClient"),
+        patch("api.cli.client.RefactorClient"),
+        patch("api.cli.client.InspectClient"),
+        patch("api.cli.client.ProposalsClient"),
+        patch("api.cli.client.IntegrationClient"),
+        patch("api.cli.client.CensusClient"),
+        patch("api.cli.client.CognitiveRolesClient"),
+        patch("api.cli.client.SyncClient"),
+        patch("api.cli.client.DaemonClient"),
+        patch("api.cli.client.FindingsClient"),
+        patch("api.cli.client.IntegrityClient"),
+        patch("api.cli.client.LaneClient"),
+        patch("api.cli.client.LlmResourcesClient"),
+        patch("api.cli.client.SecretsClient"),
+        patch("api.cli.client.SymbolsClient"),
+        patch("api.cli.client.VectorsClient"),
+        patch("api.cli.client.ProjectClient"),
+    ]
+
+    for p in patches:
+        p.start()
+    try:
+        client = CoreApiClient(base_url="http://localhost:8000")
+    finally:
+        for p in patches:
+            p.stop()
+
+    expected = {"status": "completed", "run_id": "abc"}
+    client.census.poll_census_run = AsyncMock(return_value=expected)
+
+    result = await client.poll_census_run("run-123", verbose=True)
+
+    assert result == expected
+    client.census.poll_census_run.assert_awaited_once_with("run-123", verbose=True)

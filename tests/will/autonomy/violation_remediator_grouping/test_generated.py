@@ -44,3 +44,99 @@ def test_log_delegated():
     assert second_args[2] == "src/baz/qux.py"
     assert second_args[3] == "Needs decision"
     assert second_args[4] == "entry-456"
+
+
+from will.autonomy.violation_remediator_grouping import group_findings
+
+
+# ID: efe6d277-c428-412b-bbfe-fccc32219efa
+def test_group_findings():
+    finding_rule = {"payload": {"check_id": "rule.a", "file_path": "src/foo.py"}}
+    finding_flow = {"payload": {"check_id": "flow.b"}}
+    finding_delegate = {"payload": {"check_id": "delegate.c"}}
+    finding_unmappable = {"payload": {"rule": "unknown.d"}}
+
+    remediation_map = {
+        "rule.a": {"status": "ACTIVE", "ref_id": "REF-1", "ref_kind": "rule"},
+        "flow.b": {"status": "ACTIVE", "ref_id": "REF-2", "ref_kind": "flow"},
+        "delegate.c": {"status": "DELEGATE", "ref_id": "REF-3", "ref_kind": "delegate"},
+    }
+
+    with patch("will.autonomy.violation_remediator_grouping.logger") as mock_logger:
+        groups = group_findings(
+            [finding_rule, finding_flow, finding_delegate, finding_unmappable],
+            remediation_map,
+        )
+
+    expected_rule_key = ("REF-1", "src/foo.py")
+    expected_flow_key = ("REF-2", None)
+
+    assert groups.action_groups[expected_rule_key] == [finding_rule]
+    assert groups.action_groups[expected_flow_key] == [finding_flow]
+    assert groups.delegate == [finding_delegate]
+    assert finding_delegate["_map_entry"] == remediation_map["delegate.c"]
+    assert groups.unmappable == [finding_unmappable]
+    assert groups.ref_kinds["REF-1"] == "rule"
+    assert groups.ref_kinds["REF-2"] == "flow"
+    mock_logger.debug.assert_called_once()
+
+
+from will.autonomy.violation_remediator_grouping import FindingGroups
+
+
+# ID: 3fbff82b-f19c-4ed8-a73b-37d863f0b44a
+def test_FindingGroups():
+    groups = FindingGroups()
+
+    assert groups.action_groups == {}
+    assert groups.ref_kinds == {}
+    assert groups.unmappable == []
+    assert groups.delegate == []
+
+    groups.action_groups[("fix", None)] = [{"id": 1}]
+    groups.ref_kinds["ref-a"] = "kind-1"
+    groups.unmappable.append({"id": 2})
+    groups.delegate.append({"id": 3})
+
+    assert groups.action_groups[("fix", None)] == [{"id": 1}]
+    assert groups.ref_kinds["ref-a"] == "kind-1"
+    assert groups.unmappable == [{"id": 2}]
+    assert groups.delegate == [{"id": 3}]
+
+    # default_factory must produce independent instances per object
+    other = FindingGroups()
+    assert other.action_groups == {}
+    assert other.unmappable == []
+    assert other.delegate == []
+    assert other.action_groups is not groups.action_groups
+    assert other.unmappable is not groups.unmappable
+    assert other.delegate is not groups.delegate
+
+
+from will.autonomy.violation_remediator_grouping import rules_of
+
+
+# ID: 52a1a52e-1625-44a7-8603-cf1f378fce35
+def test_rules_of():
+    findings = [
+        {"payload": {"check_id": "rule-a"}},
+        {"payload": {"check_id": "rule-a"}},
+        {"payload": {"rule": "rule-b"}},
+        {"payload": {"check_id": "rule-c", "rule": "ignored"}},
+        {"payload": {}},
+    ]
+
+    result = rules_of(findings)
+
+    assert sorted(result) == sorted(["rule-a", "rule-b", "rule-c", "unknown"])
+    assert len(result) == len(set(result))
+
+
+from will.autonomy.violation_remediator_grouping import entry_id
+
+
+# ID: 2ee191b5-6367-4a03-81b9-4421f66bd446
+def test_entry_id():
+    assert entry_id({"id": "abc123"}) == "abc123"
+    assert entry_id({"entry_id": "xyz789"}) == "xyz789"
+    assert entry_id({"id": 42}) == "42"

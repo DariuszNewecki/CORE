@@ -89,7 +89,6 @@ async def test_RemediationBlackboard_mark_findings() -> None:
     mock_store.update_findings_status.assert_awaited_once_with(findings, "resolved")
 
 
-
 import pytest
 
 
@@ -130,3 +129,203 @@ async def test_RemediationBlackboard():
     )
 
     assert blackboard.worker_uuid == worker_id
+
+
+import pytest
+
+from will.remediation.blackboard import NullRemediationBlackboard
+
+
+# ID: 13451e7e-f43a-497b-bff5-f87d64c9fc8e
+async def test_NullRemediationBlackboard_post_failed() -> None:
+    blackboard = NullRemediationBlackboard()
+
+    result = await blackboard.post_failed(
+        file_path="src/will/example.py",
+        findings=[{"rule": "some-rule", "message": "boom"}],
+        target_rule="some-rule",
+        reason="lint failed",
+    )
+
+    assert result is None
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: dc9a314e-0abc-43e4-9381-0cfcf42e3c43
+async def test_NullRemediationBlackboard_mark_findings() -> None:
+    blackboard = NullRemediationBlackboard()
+    findings = [
+        {"id": "f1", "message": "issue one"},
+        {"id": "f2", "message": "issue two"},
+    ]
+
+    result = await blackboard.mark_findings(findings, "fixed")
+
+    assert result is None
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 53b886b2-ce5f-46a4-9bc2-a0ffde57e8c1
+async def test_NullRemediationBlackboard_post_observation() -> None:
+    blackboard = NullRemediationBlackboard()
+
+    result = await blackboard.post_observation(
+        "subject-1", {"key": "value"}, status="open"
+    )
+
+    assert result is None
+
+
+from typing import Any
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: fa63e53a-4ca2-4df8-844d-927c86e0b53e
+async def test_NullRemediationBlackboard_post_report() -> None:
+    blackboard = NullRemediationBlackboard()
+    subject = "test-subject"
+    payload: dict[str, Any] = {"key": "value"}
+
+    result = await blackboard.post_report(subject, payload)
+
+    assert result is None
+
+
+# ID: 91ac4e46-676f-4262-b370-04848027856d
+def test_NullRemediationBlackboard_worker_uuid() -> None:
+    from will.remediation.blackboard import NullRemediationBlackboard
+
+    bb = NullRemediationBlackboard()
+
+    result = bb.worker_uuid
+
+    assert result is None
+
+
+import asyncio
+
+
+# ID: 454cb286-9a6e-4eb1-82a8-1175eaca85c6
+def test_NullRemediationBlackboard() -> None:
+    from will.remediation.blackboard import NullRemediationBlackboard
+
+    bb = NullRemediationBlackboard()
+
+    # worker_uuid is always None (no real worker identity in CLI file-mode)
+    assert bb.worker_uuid is None
+
+    # All async methods are true no-ops and must return None
+    assert asyncio.run(bb.post_report("subj", {"k": "v"})) is None
+    assert asyncio.run(bb.post_observation("subj", {"k": "v"}, status="ok")) is None
+    assert asyncio.run(bb.mark_findings([{"a": 1}], status="done")) is None
+    assert (
+        asyncio.run(bb.post_failed("path.py", [{"a": 1}], "rule-x", "reason")) is None
+    )
+
+
+from unittest.mock import MagicMock
+
+from will.remediation.blackboard import WorkerRemediationBlackboard
+
+
+# ID: 26162d03-d41b-4229-83ce-c791e93166d5
+async def test_WorkerRemediationBlackboard_post_failed() -> None:
+    worker = MagicMock()
+    core_context = MagicMock()
+
+    board = WorkerRemediationBlackboard(worker=worker, core_context=core_context)
+    board.post_report = AsyncMock()
+
+    findings = [{"id": "f-1"}, {"id": "f-2"}]
+    await board.post_failed(
+        file_path="src/foo.py",
+        findings=findings,
+        target_rule="rule-42",
+        reason="remediation failed",
+    )
+
+    board.post_report.assert_awaited_once_with(
+        subject="audit.remediation.failed::src/foo.py",
+        payload={
+            "file_path": "src/foo.py",
+            "rule": "rule-42",
+            "reason": "remediation failed",
+            "finding_ids": ["f-1", "f-2"],
+        },
+    )
+
+
+import pytest
+
+
+# ID: 52c7cf78-524c-470a-b2e1-7be3b2f0c61b
+async def test_WorkerRemediationBlackboard_mark_findings() -> None:
+    worker = MagicMock()
+    core_context = MagicMock()
+
+    bb = MagicMock()
+    bb.update_entry_status = AsyncMock()
+    bb.abandon_entries_and_increment_attempt_count = AsyncMock()
+
+    core_context.registry.get_blackboard_service = AsyncMock(return_value=bb)
+
+    blackboard = WorkerRemediationBlackboard(worker, core_context)
+
+    findings = [{"id": "f-1"}, {"id": "f-2"}]
+    await blackboard.mark_findings(findings, "resolved")
+
+    core_context.registry.get_blackboard_service.assert_awaited_once()
+    assert bb.update_entry_status.await_count == 2
+    bb.update_entry_status.assert_any_await("f-1", "resolved")
+    bb.update_entry_status.assert_any_await("f-2", "resolved")
+    bb.abandon_entries_and_increment_attempt_count.assert_not_awaited()
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 95752c02-b6d9-4312-8fd8-37af879212e9
+async def test_WorkerRemediationBlackboard_post_observation():
+    worker = MagicMock()
+    worker.post_observation = AsyncMock(return_value={"ok": True})
+
+    blackboard = WorkerRemediationBlackboard(worker=worker, core_context=MagicMock())
+
+    subject = "some-subject"
+    payload = {"key": "value"}
+
+    result = await blackboard.post_observation(subject, payload, status="posted")
+
+    worker.post_observation.assert_awaited_once_with(subject, payload, status="posted")
+    assert result == {"ok": True}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 7561760d-cc5d-4340-8fd6-034c46d8258e
+async def test_WorkerRemediationBlackboard_post_report():
+    worker = MagicMock()
+    worker.post_report = AsyncMock(return_value={"status": "ok"})
+    core_context = MagicMock()
+
+    blackboard = WorkerRemediationBlackboard(worker, core_context)
+
+    subject = "remediation-subject"
+    payload = {"key": "value"}
+
+    result = await blackboard.post_report(subject, payload)
+
+    assert result == {"status": "ok"}
+    worker.post_report.assert_awaited_once_with(subject, payload)

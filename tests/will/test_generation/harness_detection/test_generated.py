@@ -27,3 +27,79 @@ def test_HarnessDetector_detect(tmp_path):
     assert result.has_pytest_postgresql_signals is True
     assert result.has_sqlalchemy_fixture_signals is True
     assert any("tests/conftest.py" in note for note in result.notes)
+
+
+import tempfile
+
+
+# ID: dcba9375-bfb0-42ff-9d19-2c9ebb8825ee
+def test_HarnessDetector() -> None:
+    repo_root = Path(tempfile.mkdtemp())
+    tests_dir = repo_root / "tests"
+    tests_dir.mkdir()
+    conftest = tests_dir / "conftest.py"
+    conftest.write_text(
+        "import pytest\n"
+        "from sqlalchemy import create_engine\n"
+        "from sqlalchemy.orm import sessionmaker, Session\n"
+        "postgresql_proc = None\n",
+        encoding="utf-8",
+    )
+
+    detector = HarnessDetector(repo_root)
+    signals = detector.detect()
+
+    assert signals.has_tests_conftest is True
+    assert signals.has_pytest_postgresql_signals is True
+    assert signals.has_sqlalchemy_fixture_signals is True
+    assert any("tests/conftest.py" in note for note in signals.notes)
+
+
+from unittest.mock import MagicMock
+
+from will.test_generation.harness_detection import HarnessSignals
+
+
+# ID: 258631e1-61ea-419e-b6fc-ab0024dbc796
+def test_HarnessSignals_has_db_harness():
+    signals = MagicMock(spec=HarnessSignals)
+    # Detach the property so attribute assignment works as a plain value.
+    signals.has_pytest_postgresql_signals = True
+    signals.has_sqlalchemy_fixture_signals = False
+    result = HarnessSignals.has_db_harness.fget(signals)
+    assert result is True
+
+    signals.has_pytest_postgresql_signals = False
+    signals.has_sqlalchemy_fixture_signals = True
+    result = HarnessSignals.has_db_harness.fget(signals)
+    assert result is True
+
+    signals.has_pytest_postgresql_signals = False
+    signals.has_sqlalchemy_fixture_signals = False
+    result = HarnessSignals.has_db_harness.fget(signals)
+    assert result is False
+
+
+
+
+# ID: a154c318-2f98-4560-9c7a-e5ce6da6db1f
+def test_HarnessSignals():
+    signals = HarnessSignals(
+        has_tests_conftest=True,
+        has_pytest_postgresql_signals=True,
+        has_sqlalchemy_fixture_signals=False,
+        notes=["found conftest"],
+    )
+    assert signals.has_tests_conftest is True
+    assert signals.has_pytest_postgresql_signals is True
+    assert signals.has_sqlalchemy_fixture_signals is False
+    assert signals.notes == ["found conftest"]
+    assert signals.has_db_harness is True
+
+    no_db = HarnessSignals(
+        has_tests_conftest=False,
+        has_pytest_postgresql_signals=False,
+        has_sqlalchemy_fixture_signals=False,
+        notes=[],
+    )
+    assert no_db.has_db_harness is False

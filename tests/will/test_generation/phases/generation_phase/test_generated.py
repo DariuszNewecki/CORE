@@ -70,3 +70,67 @@ async def test_GenerationPhase():
     assert first_call_kwargs["strategy"] is initial_strategy
     assert first_call_kwargs["context_service"] is context_service
     assert first_call_kwargs["write"] is False
+
+
+import asyncio
+
+
+# ID: 6f4c5056-574a-456a-8d00-3eba201a0916
+def test_GenerationPhase_execute():
+    test_strategist = MagicMock()
+    test_strategist.execute = AsyncMock()
+
+    failure_evaluator = MagicMock()
+    failure_evaluator.execute = AsyncMock()
+
+    test_executor = MagicMock()
+    test_executor.execute = AsyncMock(
+        return_value={
+            "validated": True,
+            "sandbox_passed": True,
+            "sandbox_ran": True,
+            "skipped": False,
+        }
+    )
+
+    phase = GenerationPhase(
+        test_strategist=test_strategist,
+        failure_evaluator=failure_evaluator,
+        test_executor=test_executor,
+    )
+
+    symbols = [
+        {"name": "foo"},
+        {"name": "bar"},
+    ]
+    initial_strategy = MagicMock()
+    context_service = MagicMock()
+
+    result = asyncio.run(
+        phase.execute(
+            file_path="src/module.py",
+            symbols=symbols,
+            initial_strategy=initial_strategy,
+            context_service=context_service,
+            write=False,
+            max_failures_per_pattern=3,
+            file_type="service",
+            complexity="medium",
+            has_db_harness=False,
+        )
+    )
+
+    assert test_executor.execute.await_count == 2
+    failure_evaluator.execute.assert_not_called()
+    test_strategist.execute.assert_not_called()
+
+    assert result["total_symbols"] == 2
+    assert result["tests_generated"] == 2
+    assert result["tests_failed"] == 0
+    assert result["tests_skipped"] == 0
+    assert result["success_rate"] == 1.0
+    assert result["strategy_switches"] == 0
+    assert result["patterns_learned"] == {}
+    assert result["validation_failures"] == 0
+    assert result["sandbox_passed"] == 2
+    assert len(result["generated_tests"]) == 2

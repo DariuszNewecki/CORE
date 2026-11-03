@@ -101,3 +101,63 @@ async def test_run_sync_audit(tmp_path):
     session.commit.assert_awaited_once()
 
     assert context.auditor_context.db_session is None
+
+
+import json
+from uuid import uuid4
+
+
+# ID: c5d92b95-12ee-4f15-acb0-7351c8bbb91b
+async def test_run_and_persist_audit():
+    from will.governance.audit_runner import run_and_persist_audit
+
+    run_id = uuid4()
+    context = MagicMock()
+
+    finding = MagicMock()
+    finding.severity.is_blocking = True
+    finding.as_dict.return_value = {"message": "boom", "severity": "blocking"}
+
+    verdict = MagicMock()
+    verdict.value = "pass"
+    results = {"findings": [finding], "verdict": verdict}
+
+    session = MagicMock()
+    session.execute = AsyncMock()
+    session.commit = AsyncMock()
+
+    with (
+        patch(
+            "will.governance.audit_runner.run_audit_workflow",
+            new=AsyncMock(return_value=results),
+        ),
+        patch(
+            "will.governance.audit_runner._record_run_observation",
+            new=AsyncMock(),
+        ) as mock_record,
+        patch(
+            "will.governance.audit_runner._sanitize_payload",
+            side_effect=lambda x: x,
+        ),
+    ):
+        out = await run_and_persist_audit(context, session, run_id=run_id)
+
+    assert out == {
+        "run_id": str(run_id),
+        "verdict": "pass",
+        "finding_count": 1,
+        "blocking_count": 1,
+        "status": "completed",
+    }
+    session.commit.assert_awaited_once()
+    mock_record.assert_awaited_once()
+
+    update_call = session.execute.await_args_list[-1]
+    params = update_call.args[1]
+    assert params["verdict"] == "pass"
+    assert params["finding_count"] == 1
+    assert params["blocking_count"] == 1
+    assert params["rid"] == run_id
+    assert json.loads(params["findings"]) == [
+        {"message": "boom", "severity": "blocking"}
+    ]

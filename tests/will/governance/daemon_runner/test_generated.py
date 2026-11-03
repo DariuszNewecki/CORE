@@ -79,3 +79,43 @@ def test_get_status():
     assert result["workers"][0]["alive"] is True
     assert result["workers"][0]["schedule_sec"] == 60
     assert result["workers"][0]["last_heartbeat"] == "2024-01-01T12:00:00"
+
+
+import pytest
+
+from will.governance.daemon_runner import stop_daemon_background
+
+
+@pytest.mark.asyncio
+# ID: e9da7c2f-f1c5-4b21-8b4c-142bbba0c322
+async def test_stop_daemon_background() -> None:
+    mock_run_systemctl = AsyncMock(return_value="ok")
+    with patch(
+        "will.governance.daemon_runner._run_systemctl",
+        mock_run_systemctl,
+    ):
+        result = await stop_daemon_background()
+
+    assert result is None
+    mock_run_systemctl.assert_awaited_once_with(("stop", "core-daemon"))
+
+
+
+import pytest
+
+from will.governance.daemon_runner import start_daemon
+
+
+@pytest.mark.asyncio
+# ID: d5fcba16-6626-4a21-9cfe-20f5b36aaf15
+async def test_start_daemon():
+    mock_result = {"returncode": 0, "stdout": "", "stderr": ""}
+
+    with patch(
+        "will.governance.daemon_runner._run_systemctl",
+        new=AsyncMock(return_value=mock_result),
+    ) as mock_run:
+        result = await start_daemon()
+
+    mock_run.assert_awaited_once_with(("start", "core-daemon"))
+    assert result == mock_result

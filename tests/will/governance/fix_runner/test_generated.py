@@ -536,3 +536,22 @@ def test_FixRunResult_as_payload() -> None:
     assert isinstance(payload, dict)
     # exclude_none=True means no value in the resulting dict should be None.
     assert all(value is not None for value in payload.values())
+
+
+from will.governance.fix_runner import FixRunResult
+
+
+# ID: 40d38681-5717-46de-9378-04d273be8f49
+def test_FixRunResult():
+    result = FixRunResult(
+        kind="atomic", ok=True, data={"fix": "applied"}, duration_sec=1.5
+    )
+
+    payload = result.as_payload()
+
+    assert payload["kind"] == "atomic"
+    assert payload["ok"] is True
+    assert payload["data"] == {"fix": "applied"}
+    assert payload["duration_sec"] == 1.5
+    assert "flow_id" not in payload
+    assert "steps" not in payload

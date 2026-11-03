@@ -200,8 +200,6 @@ def test_CensusBaselineCreateResponse():
     assert response.baseline.name == "baseline-1"
 
 
-
-
 # ID: 8f3e90d7-b505-4029-bce1-81cba7a5a72b
 def test_LintToolResult():
     result = LintToolResult(returncode=0, stdout="ok", stderr="")
@@ -209,3 +207,53 @@ def test_LintToolResult():
     assert result.stdout == "ok"
     assert result.stderr == ""
     assert LintToolResult(returncode=1, stdout="", stderr="boom").returncode == 1
+
+
+# ID: 22524e92-4d51-4b76-acab-3ed9fe5ac646
+def test_CensusBaselineItem():
+    item = CensusBaselineItem(name="baseline_a", snapshot_file="snapshots/a.json")
+
+    assert item.name == "baseline_a"
+    assert item.snapshot_file == "snapshots/a.json"
+    assert item.git_commit is None
+    assert item.created_at is None
+
+    item_full = CensusBaselineItem(
+        name="baseline_b",
+        snapshot_file="snapshots/b.json",
+        git_commit="abc123",
+        created_at="2024-01-01T00:00:00Z",
+    )
+
+    assert item_full.name == "baseline_b"
+    assert item_full.snapshot_file == "snapshots/b.json"
+    assert item_full.git_commit == "abc123"
+    assert item_full.created_at == "2024-01-01T00:00:00Z"
+
+
+from api.v1.schemas import CensusRunResponse
+
+
+# ID: 769f6267-9c9a-46f9-bfc0-f7c32c14366c
+def test_CensusRunResponse() -> None:
+    response = CensusRunResponse(
+        run_id="run-123",
+        snapshot=True,
+        baseline_name="main",
+        status="completed",
+        requested_at="2024-01-01T00:00:00Z",
+        started_at="2024-01-01T00:00:01Z",
+        finished_at="2024-01-01T00:00:02Z",
+        result={"count": 42},
+        error=None,
+    )
+
+    assert response.run_id == "run-123"
+    assert response.snapshot is True
+    assert response.baseline_name == "main"
+    assert response.status == "completed"
+    assert response.requested_at == "2024-01-01T00:00:00Z"
+    assert response.started_at == "2024-01-01T00:00:01Z"
+    assert response.finished_at == "2024-01-01T00:00:02Z"
+    assert response.result == {"count": 42}
+    assert response.error is None
