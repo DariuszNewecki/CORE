@@ -26,7 +26,7 @@ src/cli/     Typer commands; Rich rendering only here
 
 ## Facts (update when they change)
 
-- PyPI: `core-runtime` 3.0.0 (2026-10-30).
+- PyPI: `core-runtime` 3.1.0 (2026-11-03; consumer: proof run 10).
 - Latest proof run: 9 (#1053, 2026-10-30, on 3.0.0 from PyPI); gate met, no issues filed. Next run: 10.
 - Production-ready (docs/release.md): stays Beta until an independent person, not an AI
   agent, installs CORE from the README and uses it.
