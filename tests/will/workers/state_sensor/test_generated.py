@@ -188,3 +188,37 @@ async def test_StateSensor():
     # changes is [] (not None) -> ledger_row_appended is True
     assert kwargs["payload"]["ledger_row_appended"] is True
     assert kwargs["payload"]["changes_attributed"] == 0
+
+
+from datetime import UTC, datetime, timedelta
+
+from will.workers.state_sensor import escalation_due
+
+
+# ID: 29f8e7dc-f617-479c-aaf0-7b9b4fa5ecd0
+def test_escalation_due():
+    now = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+    window_minutes = 30
+
+    # Observed exactly at the window boundary -> due (>= comparison).
+    at_boundary = (now - timedelta(minutes=window_minutes)).isoformat()
+    assert escalation_due(at_boundary, window_minutes, now) is True
+
+    # Observed well past the window -> due.
+    long_ago = (now - timedelta(minutes=window_minutes + 10)).isoformat()
+    assert escalation_due(long_ago, window_minutes, now) is True
+
+    # Observed recently, inside the window -> not due.
+    recent = (now - timedelta(minutes=5)).isoformat()
+    assert escalation_due(recent, window_minutes, now) is False
+
+    # Naive timestamp is treated as UTC.
+    naive_recent = (now - timedelta(minutes=1)).replace(tzinfo=None).isoformat()
+    assert escalation_due(naive_recent, window_minutes, now) is False
+
+    # Missing timestamp -> treated as due (fail-open).
+    assert escalation_due(None, window_minutes, now) is True
+    assert escalation_due("", window_minutes, now) is True
+
+    # Unparseable timestamp -> treated as due (fail-open).
+    assert escalation_due("not-a-date", window_minutes, now) is True
