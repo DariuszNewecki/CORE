@@ -189,7 +189,6 @@ async def test_InspectClient_inspect_components():
     assert result == {"components": []}
 
 
-
 import pytest
 
 
@@ -206,3 +205,21 @@ async def test_InspectClient_analysis_test_targets() -> None:
 
     facade._request.assert_awaited_once_with("GET", "/v1/analysis/test-targets")
     assert result == expected
+
+
+
+import pytest
+
+
+# ID: 7d40a540-48ea-4765-ad5e-b718be173c7a
+async def test_InspectClient_analysis_command_tree() -> None:
+    expected = {"commands": [{"name": "build"}, {"name": "test"}]}
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value=expected)
+
+    client = InspectClient(facade)
+
+    result = await client.analysis_command_tree()
+
+    assert result == expected
+    facade._request.assert_awaited_once_with("GET", "/v1/analysis/command-tree")
