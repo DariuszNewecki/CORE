@@ -79,9 +79,6 @@ def test_TestGenArtifactStore_write_validation():
     assert "timestamp" in payload
 
 
-
-
-
 # ID: f82bbbd3-4f7c-401a-89e6-12ec0ab81aa6
 def test_TestGenArtifactStore_write_generated():
     file_handler = MagicMock()
@@ -94,3 +91,27 @@ def test_TestGenArtifactStore_write_generated():
     expected_path = "/tmp/session/foo_generated.py"
     assert result == expected_path
     file_handler.write.assert_called_once_with(expected_path, code)
+
+
+
+
+
+# ID: 67a424e0-5082-4fc9-8929-5b0343914ee7
+def test_TestGenArtifactStore_write_normalized():
+    file_handler = MagicMock()
+    store = TestGenArtifactStore(file_handler)
+
+    session_dir = "/tmp/sessions/abc123"
+    symbol = "my_symbol"
+    code = "def foo():\n    return 42\n"
+    method = "ruff-format"
+
+    result = store.write_normalized(session_dir, symbol, code, method)
+
+    expected_path = f"{session_dir}/{symbol}_normalized.py"
+    assert result == expected_path
+
+    file_handler.write.assert_called_once_with(
+        expected_path,
+        f"# Normalization: {method}\n" + code,
+    )
