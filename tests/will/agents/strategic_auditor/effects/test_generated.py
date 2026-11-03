@@ -48,3 +48,61 @@ def test_execute_approved_clusters():
     assert kwargs["workflow_type"] == "code_modification"
     assert kwargs["write"] is True
     repo.update_status.assert_awaited_once_with(child_id, "completed")
+
+
+
+
+# ID: 4268886d-d554-4ceb-9f59-938c39e9a06a
+async def test_persist_campaign():
+    from will.agents.strategic_auditor.effects import persist_campaign
+
+    campaign = MagicMock()
+    campaign.campaign_id = "camp-123"
+    campaign.system_summary = "A summary of the strategic campaign"
+    campaign.total_findings = 5
+    campaign.autonomous_task_count = 1
+    campaign.escalation_count = 1
+
+    cluster = MagicMock()
+    cluster.cluster_id = "cluster-1"
+    cluster.proposed_fix = "Fix the bug"
+    cluster.root_cause = "Root cause"
+    cluster.affected_files = ["a.py"]
+    cluster.finding_ids = ["f1"]
+    cluster.confidence = 0.9
+    cluster.estimated_impact = "high"
+    cluster.workflow_type = "auto"
+
+    escalation = MagicMock()
+    escalation.cluster_id = "cluster-2"
+    escalation.proposed_fix = "Needs amendment"
+    escalation.root_cause = "Root cause 2"
+    escalation.affected_files = ["b.py"]
+
+    campaign.clusters = [cluster]
+    campaign.escalations = [escalation]
+
+    parent_id = uuid4()
+    parent_task = MagicMock()
+    parent_task.id = parent_id
+
+    child_task_1 = MagicMock()
+    child_task_1.id = uuid4()
+    child_task_2 = MagicMock()
+    child_task_2.id = uuid4()
+
+    session = AsyncMock()
+    session.commit = AsyncMock()
+
+    mock_repo = MagicMock()
+    mock_repo.create = AsyncMock(side_effect=[parent_task, child_task_1, child_task_2])
+
+    with patch(
+        "will.agents.strategic_auditor.effects.TaskRepository",
+        return_value=mock_repo,
+    ):
+        result = await persist_campaign(session, campaign)
+
+    assert result == parent_id
+    assert mock_repo.create.await_count == 3
+    assert session.commit.await_count == 2
