@@ -636,9 +636,6 @@ async def test_CoreApiClient_sync_code_vectors() -> None:
     client.sync.sync_code_vectors.assert_awaited_once_with("payload", key="value")
 
 
-
-
-
 # ID: c55584d2-14a3-47c6-be2c-c0642e327f97
 async def test_CoreApiClient_census_create_baseline() -> None:
     with patch(
@@ -657,3 +654,52 @@ async def test_CoreApiClient_census_create_baseline() -> None:
         "baseline-1", ref="main"
     )
     assert result == {"name": "baseline-1", "status": "created"}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: fd1d56b1-2bd2-4134-a999-ba6eb878b8e6
+async def test_CoreApiClient_poll_census_run():
+    from api.cli.client import CoreApiClient
+
+    patches = [
+        patch("api.cli.client.parse_base_url", return_value=("http://localhost", None)),
+        patch("api.cli.client.AuditClient"),
+        patch("api.cli.client.FixClient"),
+        patch("api.cli.client.QualityClient"),
+        patch("api.cli.client.CoverageClient"),
+        patch("api.cli.client.RefactorClient"),
+        patch("api.cli.client.InspectClient"),
+        patch("api.cli.client.ProposalsClient"),
+        patch("api.cli.client.IntegrationClient"),
+        patch("api.cli.client.CensusClient"),
+        patch("api.cli.client.CognitiveRolesClient"),
+        patch("api.cli.client.SyncClient"),
+        patch("api.cli.client.DaemonClient"),
+        patch("api.cli.client.FindingsClient"),
+        patch("api.cli.client.IntegrityClient"),
+        patch("api.cli.client.LaneClient"),
+        patch("api.cli.client.LlmResourcesClient"),
+        patch("api.cli.client.SecretsClient"),
+        patch("api.cli.client.SymbolsClient"),
+        patch("api.cli.client.VectorsClient"),
+        patch("api.cli.client.ProjectClient"),
+    ]
+
+    for p in patches:
+        p.start()
+    try:
+        client = CoreApiClient(base_url="http://localhost:8000")
+    finally:
+        for p in patches:
+            p.stop()
+
+    expected = {"status": "completed", "run_id": "abc"}
+    client.census.poll_census_run = AsyncMock(return_value=expected)
+
+    result = await client.poll_census_run("run-123", verbose=True)
+
+    assert result == expected
+    client.census.poll_census_run.assert_awaited_once_with("run-123", verbose=True)
