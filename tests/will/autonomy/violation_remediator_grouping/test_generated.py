@@ -130,3 +130,13 @@ def test_rules_of():
 
     assert sorted(result) == sorted(["rule-a", "rule-b", "rule-c", "unknown"])
     assert len(result) == len(set(result))
+
+
+from will.autonomy.violation_remediator_grouping import entry_id
+
+
+# ID: 2ee191b5-6367-4a03-81b9-4421f66bd446
+def test_entry_id():
+    assert entry_id({"id": "abc123"}) == "abc123"
+    assert entry_id({"entry_id": "xyz789"}) == "xyz789"
+    assert entry_id({"id": 42}) == "42"
