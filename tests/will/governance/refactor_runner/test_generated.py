@@ -116,7 +116,6 @@ def test_get_refactor_stats():
     }
 
 
-
 from will.governance.refactor_runner import get_refactor_candidates
 
 
@@ -182,3 +181,38 @@ def test_get_refactor_candidates():
             "lines_of_code": 100,
         },
     ]
+
+
+
+from will.governance.refactor_runner import get_refactor_score
+
+
+# ID: 45222968-e406-4b96-9f97-7c587618526c
+def test_get_refactor_score(tmp_path: Path) -> None:
+    repo_root = tmp_path
+    target = repo_root / "some_file.py"
+    target.write_text("def foo():\n    return 1\n", encoding="utf-8")
+
+    fake_details = {
+        "total_score": 87.5,
+        "file_path": "some_file.py",
+    }
+
+    with (
+        patch("will.governance.refactor_runner.ModularityChecker") as mock_checker_cls,
+        patch(
+            "will.governance.refactor_runner._analyze_one",
+            return_value=fake_details,
+        ) as mock_analyze,
+    ):
+        mock_checker_cls.return_value = MagicMock()
+
+        result = get_refactor_score(repo_root, "some_file.py")
+
+    assert result["file"] == "some_file.py"
+    assert result["found"] is True
+    assert result["score"] == 87.5
+    assert result["details"] == fake_details
+    mock_analyze.assert_called_once()
+    args, _ = mock_analyze.call_args
+    assert args[1] == target.resolve()
