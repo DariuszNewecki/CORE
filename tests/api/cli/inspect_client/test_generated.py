@@ -273,7 +273,6 @@ async def test_InspectClient_status_drift():
     )
 
 
-
 import pytest
 
 
@@ -289,3 +288,22 @@ async def test_InspectClient_status_db():
 
     assert result == {"connected": True, "schema": "v1"}
     facade._request.assert_awaited_once_with("GET", "/v1/status/db")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: f788161d-53a3-43d9-92e7-2be40e7ab2b6
+async def test_InspectClient():
+    from unittest.mock import AsyncMock, MagicMock
+
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True})
+
+    client = InspectClient(facade)
+
+    result = await client.status_db()
+    assert result == {"ok": True}
+    assert facade._request.await_count == 1
+    facade._request.assert_awaited_with("GET", "/v1/status/db")
