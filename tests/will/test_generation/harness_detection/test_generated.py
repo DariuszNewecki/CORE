@@ -78,3 +78,28 @@ def test_HarnessSignals_has_db_harness():
     signals.has_sqlalchemy_fixture_signals = False
     result = HarnessSignals.has_db_harness.fget(signals)
     assert result is False
+
+
+
+
+# ID: a154c318-2f98-4560-9c7a-e5ce6da6db1f
+def test_HarnessSignals():
+    signals = HarnessSignals(
+        has_tests_conftest=True,
+        has_pytest_postgresql_signals=True,
+        has_sqlalchemy_fixture_signals=False,
+        notes=["found conftest"],
+    )
+    assert signals.has_tests_conftest is True
+    assert signals.has_pytest_postgresql_signals is True
+    assert signals.has_sqlalchemy_fixture_signals is False
+    assert signals.notes == ["found conftest"]
+    assert signals.has_db_harness is True
+
+    no_db = HarnessSignals(
+        has_tests_conftest=False,
+        has_pytest_postgresql_signals=False,
+        has_sqlalchemy_fixture_signals=False,
+        notes=[],
+    )
+    assert no_db.has_db_harness is False
