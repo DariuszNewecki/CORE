@@ -507,9 +507,6 @@ async def test_CoreApiClient_daemon_start():
     assert result == {"status": "started"}
 
 
-
-
-
 # ID: 9fad6583-231d-4195-a82c-9c41997d2d16
 async def test_CoreApiClient_daemon_status() -> None:
     # Avoid real network/socket setup in __init__ by patching parse_base_url.
@@ -527,3 +524,24 @@ async def test_CoreApiClient_daemon_status() -> None:
 
     assert result == expected
     mock_daemon_client.daemon_status.assert_awaited_once_with(foo="bar")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 98d1212d-ae98-43a5-961d-8e171d806f5c
+async def test_CoreApiClient_verify() -> None:
+    expected = {"verified": True, "issues": []}
+
+    with pytest.MonkeyPatch.context() as mp:
+        fake_integrity = MagicMock()
+        fake_integrity.verify = AsyncMock(return_value=expected)
+
+        client = CoreApiClient.__new__(CoreApiClient)
+        client.integrity = fake_integrity
+
+        result = await client.verify(object_id="sym-1", deep=True)
+
+    assert result == expected
+    fake_integrity.verify.assert_awaited_once_with(object_id="sym-1", deep=True)
