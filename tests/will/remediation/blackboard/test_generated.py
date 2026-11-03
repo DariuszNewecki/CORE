@@ -261,3 +261,30 @@ async def test_WorkerRemediationBlackboard_post_failed() -> None:
             "finding_ids": ["f-1", "f-2"],
         },
     )
+
+
+
+import pytest
+
+
+# ID: 52c7cf78-524c-470a-b2e1-7be3b2f0c61b
+async def test_WorkerRemediationBlackboard_mark_findings() -> None:
+    worker = MagicMock()
+    core_context = MagicMock()
+
+    bb = MagicMock()
+    bb.update_entry_status = AsyncMock()
+    bb.abandon_entries_and_increment_attempt_count = AsyncMock()
+
+    core_context.registry.get_blackboard_service = AsyncMock(return_value=bb)
+
+    blackboard = WorkerRemediationBlackboard(worker, core_context)
+
+    findings = [{"id": "f-1"}, {"id": "f-2"}]
+    await blackboard.mark_findings(findings, "resolved")
+
+    core_context.registry.get_blackboard_service.assert_awaited_once()
+    assert bb.update_entry_status.await_count == 2
+    bb.update_entry_status.assert_any_await("f-1", "resolved")
+    bb.update_entry_status.assert_any_await("f-2", "resolved")
+    bb.abandon_entries_and_increment_attempt_count.assert_not_awaited()
