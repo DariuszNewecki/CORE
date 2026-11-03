@@ -80,3 +80,44 @@ async def test_ProjectClient_generate_docs():
         "POST", "/v1/project/docs", json={"output": "docs/10_CAPABILITY_REFERENCE.md"}
     )
     assert result == {"status": "ok", "path": "docs/10_CAPABILITY_REFERENCE.md"}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 44e632fd-95e2-44ba-8b04-186c51a18900
+async def test_ProjectClient():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True})
+
+    client = ProjectClient(facade)
+
+    result = await client.generate_docs("docs/out.md")
+    assert result == {"ok": True}
+    facade._request.assert_awaited_once_with(
+        "POST", "/v1/project/docs", json={"output": "docs/out.md"}
+    )
+
+    result = await client.onboard("some/path", write=True, stage=False)
+    assert result == {"ok": True}
+    facade._request.assert_awaited_with(
+        "POST",
+        "/v1/project/onboard",
+        json={"path": "some/path", "write": True, "stage": False},
+    )
+
+    result = await client.promote("some/path")
+    assert result == {"ok": True}
+    facade._request.assert_awaited_with(
+        "POST", "/v1/project/onboard/promote", json={"path": "some/path"}
+    )
+
+    result = await client.scout("some/path", reset=True)
+    assert result == {"ok": True}
+    facade._request.assert_awaited_with(
+        "POST", "/v1/project/scout", json={"path": "some/path", "reset": True}
+    )
+
+    assert client._facade is facade
