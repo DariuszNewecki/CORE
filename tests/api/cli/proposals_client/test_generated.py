@@ -110,3 +110,22 @@ async def test_get_proposal() -> None:
 
     assert result == {"id": "prop-123", "title": "Example"}
     facade._request.assert_awaited_once_with("GET", "/v1/proposals/prop-123")
+
+
+
+import pytest
+
+
+# ID: a9ac88fa-e2d0-432f-87ca-f56f7004bd9a
+async def test_ProposalsClient_list_proposals():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"proposals": [{"id": "p1"}]})
+
+    client = ProposalsClient(facade)
+
+    result = await client.list_proposals(status="open", limit=10)
+
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/proposals", params={"limit": 10, "status": "open"}
+    )
+    assert result == {"proposals": [{"id": "p1"}]}
