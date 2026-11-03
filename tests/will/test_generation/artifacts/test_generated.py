@@ -54,9 +54,6 @@ def test_TestGenArtifactStore_write_sandbox():
     assert payload["timestamp"] == "2024-01-01 00:00:00"
 
 
-
-
-
 # ID: 44d8b26f-faa6-47d1-b167-e55378ee3d45
 def test_TestGenArtifactStore_write_validation():
     fh = MagicMock()
@@ -80,3 +77,20 @@ def test_TestGenArtifactStore_write_validation():
     assert payload["error"] == ""
     assert payload["normalization"] == "nfc"
     assert "timestamp" in payload
+
+
+
+
+
+# ID: f82bbbd3-4f7c-401a-89e6-12ec0ab81aa6
+def test_TestGenArtifactStore_write_generated():
+    file_handler = MagicMock()
+    store = TestGenArtifactStore(file_handler)
+
+    code = "def foo():\n    return 42\n"
+
+    result = store.write_generated("/tmp/session", "foo", code)
+
+    expected_path = "/tmp/session/foo_generated.py"
+    assert result == expected_path
+    file_handler.write.assert_called_once_with(expected_path, code)
