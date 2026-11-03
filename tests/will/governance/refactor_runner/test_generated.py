@@ -114,3 +114,71 @@ def test_get_refactor_stats():
         "60-80": 0,
         "80+": 1,
     }
+
+
+
+from will.governance.refactor_runner import get_refactor_candidates
+
+
+# ID: 2efa2e33-38d4-4e83-9405-5b83965c6037
+def test_get_refactor_candidates():
+    repo_root = Path("/fake/repo")
+
+    file_a = Path("/fake/repo/src/a.py")
+    file_b = Path("/fake/repo/src/b.py")
+
+    # ID: a5fb944b-b5a8-4bc6-97db-39605f47dc71
+    def analyze_side_effect(checker, file):
+        if file == file_a:
+            return {
+                "total_score": 2.0,
+                "responsibility_count": 3,
+                "lines_of_code": 100,
+            }
+        return {
+            "total_score": 5.0,
+            "responsibility_count": 4,
+            "lines_of_code": 200,
+        }
+
+    with (
+        patch(
+            "will.governance.refactor_runner.get_refactor_threshold",
+            return_value=1.5,
+        ) as mock_threshold,
+        patch(
+            "will.governance.refactor_runner.ModularityChecker",
+        ) as mock_checker_cls,
+        patch(
+            "will.governance.refactor_runner._enumerate_src_files",
+            return_value=[file_a, file_b],
+        ) as mock_enumerate,
+        patch(
+            "will.governance.refactor_runner._analyze_one",
+            side_effect=analyze_side_effect,
+        ) as mock_analyze,
+    ):
+        mock_checker_cls.return_value = MagicMock()
+
+        result = get_refactor_candidates(repo_root)
+
+    mock_threshold.assert_called_once_with(repo_root)
+    mock_enumerate.assert_called_once_with(repo_root)
+    assert mock_analyze.call_count == 2
+
+    assert result["threshold"] == 1.5
+    assert result["count"] == 2
+    assert result["candidates"] == [
+        {
+            "file": "src/b.py",
+            "score": 5.0,
+            "responsibility_count": 4,
+            "lines_of_code": 200,
+        },
+        {
+            "file": "src/a.py",
+            "score": 2.0,
+            "responsibility_count": 3,
+            "lines_of_code": 100,
+        },
+    ]
