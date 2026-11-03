@@ -197,3 +197,16 @@ async def test_NullRemediationBlackboard_post_report() -> None:
     result = await blackboard.post_report(subject, payload)
 
     assert result is None
+
+
+
+
+# ID: 91ac4e46-676f-4262-b370-04848027856d
+def test_NullRemediationBlackboard_worker_uuid() -> None:
+    from will.remediation.blackboard import NullRemediationBlackboard
+
+    bb = NullRemediationBlackboard()
+
+    result = bb.worker_uuid
+
+    assert result is None
