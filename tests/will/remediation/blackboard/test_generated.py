@@ -289,7 +289,6 @@ async def test_WorkerRemediationBlackboard_mark_findings() -> None:
     bb.abandon_entries_and_increment_attempt_count.assert_not_awaited()
 
 
-
 import pytest
 
 
@@ -308,3 +307,25 @@ async def test_WorkerRemediationBlackboard_post_observation():
 
     worker.post_observation.assert_awaited_once_with(subject, payload, status="posted")
     assert result == {"ok": True}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 7561760d-cc5d-4340-8fd6-034c46d8258e
+async def test_WorkerRemediationBlackboard_post_report():
+    worker = MagicMock()
+    worker.post_report = AsyncMock(return_value={"status": "ok"})
+    core_context = MagicMock()
+
+    blackboard = WorkerRemediationBlackboard(worker, core_context)
+
+    subject = "remediation-subject"
+    payload = {"key": "value"}
+
+    result = await blackboard.post_report(subject, payload)
+
+    assert result == {"status": "ok"}
+    worker.post_report.assert_awaited_once_with(subject, payload)
