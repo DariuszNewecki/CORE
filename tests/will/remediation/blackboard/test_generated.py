@@ -167,7 +167,6 @@ async def test_NullRemediationBlackboard_mark_findings() -> None:
     assert result is None
 
 
-
 import pytest
 
 
@@ -179,5 +178,22 @@ async def test_NullRemediationBlackboard_post_observation() -> None:
     result = await blackboard.post_observation(
         "subject-1", {"key": "value"}, status="open"
     )
+
+    assert result is None
+
+
+from typing import Any
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: fa63e53a-4ca2-4df8-844d-927c86e0b53e
+async def test_NullRemediationBlackboard_post_report() -> None:
+    blackboard = NullRemediationBlackboard()
+    subject = "test-subject"
+    payload: dict[str, Any] = {"key": "value"}
+
+    result = await blackboard.post_report(subject, payload)
 
     assert result is None
