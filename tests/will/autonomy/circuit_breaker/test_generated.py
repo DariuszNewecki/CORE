@@ -92,3 +92,24 @@ async def test_recent_consecutive_identical_count():
     assert last_proposal_id == "p3"
     assert last_failure_reason == "boom"
     session.execute.assert_awaited_once()
+
+
+import re
+
+from will.autonomy.circuit_breaker import canonical_signature
+
+
+# ID: 97411afd-785f-4832-84ca-503cc1a6d777
+def test_canonical_signature():
+    config = MagicMock()
+    config.volatile_patterns = [re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")]
+    config.signature_window_chars = 50
+
+    reason = "  Connection   failed at 2024-01-15T10:30:00  retrying  "
+    result = canonical_signature(reason, config)
+
+    assert result == "Connection failed at retrying"
+    assert len(result) <= config.signature_window_chars
+
+    assert canonical_signature(None, config) == ""
+    assert canonical_signature("", config) == ""
