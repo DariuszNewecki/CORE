@@ -52,3 +52,31 @@ def test_TestGenArtifactStore_write_sandbox():
     assert payload["passed"] is True
     assert payload["error"] == ""
     assert payload["timestamp"] == "2024-01-01 00:00:00"
+
+
+
+
+
+# ID: 44d8b26f-faa6-47d1-b167-e55378ee3d45
+def test_TestGenArtifactStore_write_validation():
+    fh = MagicMock()
+    store = TestGenArtifactStore(fh)
+
+    path = store.write_validation(
+        session_dir="/tmp/session",
+        symbol="my_symbol",
+        ok=True,
+        error="",
+        normalization="nfc",
+    )
+
+    assert path == "/tmp/session/my_symbol_validation.json"
+    fh.write.assert_called_once()
+    written_path, written_content = fh.write.call_args[0]
+    assert written_path == "/tmp/session/my_symbol_validation.json"
+    payload = json.loads(written_content)
+    assert payload["symbol"] == "my_symbol"
+    assert payload["validation_passed"] is True
+    assert payload["error"] == ""
+    assert payload["normalization"] == "nfc"
+    assert "timestamp" in payload
