@@ -94,3 +94,16 @@ async def test_PytestSandboxRunner():
     assert call_args.args[0] == runner._repo_root
     assert call_args.args[1] == ["test_foo_sandbox.py"]
     assert call_args.kwargs["timeout_sec"] == 30
+
+
+# ID: 9c6d6c4f-b0fd-49f7-be49-5b90791cd253
+def test_SandboxResult():
+    from will.test_generation.sandbox import SandboxResult
+
+    result = SandboxResult(passed=True, total_tests=3)
+
+    assert result.passed is True
+    assert result.error == ""
+    assert result.passed_tests == []
+    assert result.failed_tests == []
+    assert result.total_tests == 3
