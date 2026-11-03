@@ -602,9 +602,6 @@ async def test_core_api_client_get_sync_run() -> None:
     client.sync.get_sync_run.assert_awaited_once_with("run-42")
 
 
-
-
-
 # ID: 23f562d4-c1cd-4c83-b136-baa61baff01d
 async def test_sync_dev_sync() -> None:
     with patch(
@@ -620,3 +617,21 @@ async def test_sync_dev_sync() -> None:
 
         assert result == expected
         client.sync.sync_dev_sync.assert_awaited_once_with("arg1", key="value")
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 374ad8e7-f02e-4a2b-ae62-fa5c411fe4ba
+async def test_CoreApiClient_sync_code_vectors() -> None:
+    client = CoreApiClient(base_url="http://example.test")
+    expected = {"synced": 3, "vectors": 42}
+    client.sync = MagicMock()
+    client.sync.sync_code_vectors = AsyncMock(return_value=expected)
+
+    result = await client.sync_code_vectors("payload", key="value")
+
+    assert result == expected
+    client.sync.sync_code_vectors.assert_awaited_once_with("payload", key="value")
