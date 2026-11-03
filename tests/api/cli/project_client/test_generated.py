@@ -60,3 +60,23 @@ def test_ProjectClient_onboard():
         json={"path": "/tmp/repo", "write": True, "stage": False},
     )
     assert result == {"ok": True, "project_id": "p-123"}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: c7ff4f7f-fe95-4f94-83c8-e2dce84e3f3e
+async def test_ProjectClient_generate_docs():
+    facade = MagicMock()
+    facade._request = AsyncMock(
+        return_value={"status": "ok", "path": "docs/10_CAPABILITY_REFERENCE.md"}
+    )
+    client = ProjectClient(facade)
+
+    result = await client.generate_docs()
+
+    facade._request.assert_awaited_once_with(
+        "POST", "/v1/project/docs", json={"output": "docs/10_CAPABILITY_REFERENCE.md"}
+    )
+    assert result == {"status": "ok", "path": "docs/10_CAPABILITY_REFERENCE.md"}
