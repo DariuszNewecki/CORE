@@ -584,3 +584,20 @@ async def test_CoreApiClient_poll_sync_run() -> None:
 
     assert result == {"status": "running", "run_id": "abc"}
     client.sync.poll_sync_run.assert_awaited_once_with("run-123", verbose=True)
+
+
+
+import pytest
+
+
+# ID: 2c4faae0-128e-463b-b05e-bf57e0edf642
+async def test_core_api_client_get_sync_run() -> None:
+    client = CoreApiClient(base_url="http://localhost:1234")
+    expected = {"run_id": "run-42", "status": "completed"}
+    client.sync = AsyncMock()
+    client.sync.get_sync_run = AsyncMock(return_value=expected)
+
+    result = await client.get_sync_run("run-42")
+
+    assert result == expected
+    client.sync.get_sync_run.assert_awaited_once_with("run-42")
