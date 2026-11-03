@@ -8,6 +8,52 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [3.1.0] — 2026-11-03
+
+Minor release for proof run 10: installation changes since 3.0.0, and a new command. One database migration
+(`20261102_1390_system_config_row`): it adds the `core.system_config` row where it is missing and is a no-op
+elsewhere; writers need not be quiesced. Run `core-admin database migrate --write` after upgrading.
+
+### Added
+
+- **`core-admin llm-resources setup` and `check` (#1374, #1375):** one step to a working embedding model and chat
+  model, stored in CORE's database. `install-core.sh` runs it (Ollama by default, or `--llm-url`) and creates
+  `CORE_MASTER_KEY` in `.secrets/core.env`. Docs gain "Configure a model".
+
+### Changed
+
+- **Prompts, packs and migrations have one source, inside the package (#1387; #1402, #1403, #1404):** the root
+  `schema.sql`, `infra/migrations/` and `packs/` copies are gone; use `src/shared/_migrations/schema.sql` in a
+  checkout. A pip install reads the same files it always did. The prompts directory is the setting `prompts.root`
+  in `governance_paths.yaml`.
+- **A database without its `core.system_config` row is an error, not a silent default (#1390, #1408):** fresh
+  databases get the row from `schema.sql`; older ones from the migration above.
+- **Each stored vector names the model that made it (#1390, #1412):** the payload's `model` is the model that served
+  the embedding, `model_rev` comes from `system_config.embed_model_revision` (empty when not pinned).
+- **CORE's own law blocks `type: ignore[attr-defined]` and `[call-arg]` in `src/` (#1386, #1398);** adopters' starter
+  law is unchanged.
+
+### Fixed
+
+- **`law apply` / `law apply-merge` start without the full runtime (#1377, #1379),** so a new release's law can be
+  applied while the old law is installed.
+- **GRC catalog discovery serves only the licensed and public tiers (#1336, #1370).**
+- **Calls that failed at runtime behind type suppressions (#1398):** `/decisions/patterns`, the command tree, and the
+  remediation validation audit now work.
+- **`fix clarity` no longer fails with KeyError on REPO_PATH (#1409).**
+- **CORE's test generator rejects a candidate that fails `ruff check` (#1367).**
+
+### Removed
+
+- **Settings nothing read (#1375, #1409, #1412):** the `.env` `LLM_*` settings, `LLM_ENABLED`, `DEBUG`, `VERBOSE`,
+  `BODY`, `KEY_STORAGE_DIR`, `LOCAL_EMBEDDING_MODEL_NAME`, `EMBED_MODEL_REVISION`. Models are configured with
+  `llm-resources setup`, not `.env`.
+
+### Dependencies
+
+- **Runtime minimums raised (#1383):** sqlalchemy 2.1.6, pydantic 2.14.2, pydantic-settings 2.16.2, python-dotenv
+  1.2.4, cryptography 50.0.2, typer 0.27.3, qdrant-client 1.20.0, numpy 2.5.4, msgpack 1.2.4.
+
 ## [3.0.0] — 2026-10-30
 
 Major release: CORE 3.0, production ready. Every CORE 3.0 gate is closed (48 issues). No database migrations.
@@ -1392,7 +1438,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/DariuszNewecki/CORE/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/DariuszNewecki/CORE/compare/v2.16.1...v3.0.0
 [2.16.1]: https://github.com/DariuszNewecki/CORE/compare/v2.16.0...v2.16.1
 [2.16.0]: https://github.com/DariuszNewecki/CORE/compare/v2.15.2...v2.16.0
