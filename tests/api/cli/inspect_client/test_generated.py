@@ -119,9 +119,6 @@ async def test_InspectClient_analysis_duplicates():
     assert result == {"duplicates": []}
 
 
-
-
-
 # ID: 84ea26cd-d1a2-438a-88bd-9b143ea91f49
 async def test_InspectClient_analysis_clusters():
     facade = MagicMock()
@@ -136,3 +133,22 @@ async def test_InspectClient_analysis_clusters():
     facade._request.assert_awaited_once_with(
         "GET", "/v1/analysis/clusters", params={"limit": 10}
     )
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 8ca6e0b0-ec5d-45b7-b32b-821c5dab014d
+async def test_InspectClient_inspect_search_commands():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"results": [{"name": "build"}]})
+    client = InspectClient(facade)
+
+    result = await client.inspect_search_commands("buil", limit=10)
+
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/search/commands", params={"q": "buil", "limit": 10}
+    )
+    assert result == {"results": [{"name": "build"}]}
