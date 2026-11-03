@@ -200,8 +200,6 @@ def test_CensusBaselineCreateResponse():
     assert response.baseline.name == "baseline-1"
 
 
-
-
 # ID: 8f3e90d7-b505-4029-bce1-81cba7a5a72b
 def test_LintToolResult():
     result = LintToolResult(returncode=0, stdout="ok", stderr="")
@@ -209,3 +207,27 @@ def test_LintToolResult():
     assert result.stdout == "ok"
     assert result.stderr == ""
     assert LintToolResult(returncode=1, stdout="", stderr="boom").returncode == 1
+
+
+
+
+# ID: 22524e92-4d51-4b76-acab-3ed9fe5ac646
+def test_CensusBaselineItem():
+    item = CensusBaselineItem(name="baseline_a", snapshot_file="snapshots/a.json")
+
+    assert item.name == "baseline_a"
+    assert item.snapshot_file == "snapshots/a.json"
+    assert item.git_commit is None
+    assert item.created_at is None
+
+    item_full = CensusBaselineItem(
+        name="baseline_b",
+        snapshot_file="snapshots/b.json",
+        git_commit="abc123",
+        created_at="2024-01-01T00:00:00Z",
+    )
+
+    assert item_full.name == "baseline_b"
+    assert item_full.snapshot_file == "snapshots/b.json"
+    assert item_full.git_commit == "abc123"
+    assert item_full.created_at == "2024-01-01T00:00:00Z"
