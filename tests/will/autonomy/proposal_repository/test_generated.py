@@ -85,7 +85,6 @@ async def test_ProposalRepository():
     session.flush.assert_awaited_once()
 
 
-
 import pytest
 
 
@@ -118,3 +117,35 @@ async def test_ProposalRepository_update_fields():
             chain.where.assert_called_once()
             chain.values.assert_called_once_with(state="APPROVED")
             session.execute.assert_awaited_once_with(chain)
+
+
+
+
+
+# ID: 437217f4-10d4-4c51-9efa-939cab5ca834
+async def test_ProposalRepository_list_by_status_paginated() -> None:
+    from will.autonomy.proposal_repository import Proposal, ProposalStatus
+
+    mock_session = MagicMock()
+    mock_result = MagicMock()
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = []
+    mock_result.scalars.return_value = mock_scalars
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    repo = ProposalRepository(mock_session)
+
+    with patch(
+        "will.autonomy.proposal_repository.ProposalMapper.from_db_model",
+        return_value=MagicMock(spec=Proposal),
+    ) as mock_from_db:
+        status = ProposalStatus.PENDING
+        proposals, has_more, next_cursor = await repo.list_by_status_paginated(
+            status=status, limit=10, after_cursor=None
+        )
+
+    assert proposals == []
+    assert has_more is False
+    assert next_cursor is None
+    mock_session.execute.assert_awaited_once()
+    mock_from_db.assert_not_called()
