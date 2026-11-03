@@ -127,9 +127,6 @@ def test_TestGenArtifactStore_write_response():
     )
 
 
-
-
-
 # ID: d3d14d58-727a-4a9f-acea-c7345ec25fe3
 def test_TestGenArtifactStore_write_prompt():
     mock_fh = MagicMock()
@@ -140,3 +137,19 @@ def test_TestGenArtifactStore_write_prompt():
     expected_path = "/sessions/s1/sym_prompt.txt"
     assert result == expected_path
     mock_fh.write.assert_called_once_with(expected_path, "hello prompt")
+
+
+
+
+# ID: 8af01bab-d6a6-465b-87fa-0a9af95334d5
+def test_TestGenArtifactStore_start_session():
+    from will.test_generation.artifacts import TestGenArtifactStore
+
+    mock_fh = MagicMock()
+    store = TestGenArtifactStore(file_handler=mock_fh)
+
+    with patch("will.test_generation.artifacts.time.time", return_value=1234567890):
+        result = store.start_session()
+
+    mock_fh.ensure_dir.assert_called_once_with("work/test_generation/1234567890")
+    assert result.session_dir == "work/test_generation/1234567890"
