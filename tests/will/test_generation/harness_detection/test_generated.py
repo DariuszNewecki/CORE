@@ -53,3 +53,28 @@ def test_HarnessDetector() -> None:
     assert signals.has_pytest_postgresql_signals is True
     assert signals.has_sqlalchemy_fixture_signals is True
     assert any("tests/conftest.py" in note for note in signals.notes)
+
+
+from unittest.mock import MagicMock
+
+from will.test_generation.harness_detection import HarnessSignals
+
+
+# ID: 258631e1-61ea-419e-b6fc-ab0024dbc796
+def test_HarnessSignals_has_db_harness():
+    signals = MagicMock(spec=HarnessSignals)
+    # Detach the property so attribute assignment works as a plain value.
+    signals.has_pytest_postgresql_signals = True
+    signals.has_sqlalchemy_fixture_signals = False
+    result = HarnessSignals.has_db_harness.fget(signals)
+    assert result is True
+
+    signals.has_pytest_postgresql_signals = False
+    signals.has_sqlalchemy_fixture_signals = True
+    result = HarnessSignals.has_db_harness.fget(signals)
+    assert result is True
+
+    signals.has_pytest_postgresql_signals = False
+    signals.has_sqlalchemy_fixture_signals = False
+    result = HarnessSignals.has_db_harness.fget(signals)
+    assert result is False
