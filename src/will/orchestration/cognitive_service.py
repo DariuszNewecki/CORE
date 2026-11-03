@@ -176,24 +176,18 @@ class CognitiveService:
         client = await self.aget_client_for_role("Vectorizer")
         return await client.get_embedding(source_code)
 
-    # ID: 7c4e9a35-1f8b-4d62-a591-2e0f6b8c7a39
-    async def get_embeddings_for_code_batch(
-        self, source_texts: list[str]
-    ) -> list[list[float]]:
-        """Batch-embed a list of texts via the Vectorizer role (#461).
+    # ID: 4b8d2f6a-9c3e-4a71-b5d0-2e7f1c9a6b34
+    async def aget_vectorizer_client(self) -> LLMClient:
+        """The Vectorizer role's client. Keep it to know which model served
+        the embeddings (its ``served_model``, #1390 F5)."""
+        return await self.aget_client_for_role("Vectorizer")
 
-        Returns vectors aligned to input order. Empty input returns `[]`
-        without acquiring a client. The provider's batch entry point is
-        used when available (single round-trip for Ollama); other
-        providers fall back to the base-class default of looping
-        single-input calls. Empty input strings are NOT filtered here —
-        callers should pre-filter if they want the same `if not text:
-        return None` behaviour as the single-input path.
-        """
-        if not source_texts:
-            return []
-        client = await self.aget_client_for_role("Vectorizer")
-        return await client.get_embeddings_batch(source_texts)
+    # ID: 0e6c4a8b-3f1d-4b27-a95e-7c2d8f4b1a63
+    async def get_embed_model_revision(self) -> str | None:
+        """The embedding model revision from core.system_config, or None."""
+        self._require_ready()
+        assert self._config is not None
+        return await self._config.get("embed_model.revision")
 
     # ID: 8b9e2ff1-ec8d-4234-b96c-0a2fc1f43804
     async def search_capabilities(

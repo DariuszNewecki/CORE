@@ -21,7 +21,7 @@ from shared.infrastructure.intent.operational_config import load_operational_con
 from shared.logger import getLogger
 from shared.models.vector_models import IndexResult, VectorizableItem
 from shared.universal import get_deterministic_id
-from shared.utils.embedding_utils import Embeddable
+from shared.utils.embedding_utils import IdentifiedEmbeddable
 
 
 if TYPE_CHECKING:
@@ -48,7 +48,7 @@ class VectorIndexService:
         qdrant_service: QdrantService,
         collection_name: str,
         *,
-        embedder: Embeddable,
+        embedder: IdentifiedEmbeddable,
         vector_dim: int | None = None,
     ) -> None:
         self.qdrant = qdrant_service
@@ -60,7 +60,7 @@ class VectorIndexService:
                 "VectorIndexService requires an injected Embeddable "
                 "(use CognitiveEmbedderAdapter); no settings-based fallback exists"
             )
-        self._embedder: Embeddable = embedder
+        self._embedder: IdentifiedEmbeddable = embedder
 
         logger.info(
             "VectorIndexService initialized: collection=%s dim=%s embedder=%s",
@@ -190,8 +190,11 @@ class VectorIndexService:
 
             bulk_items.append((point_id_str, vector, payload))
 
+        model, model_rev = await self._embedder.model_identity()
         await self.qdrant.upsert_symbol_vectors_bulk(
             bulk_items,
+            model=model,
+            model_rev=model_rev,
             collection_name=self.collection_name,
             wait=True,
         )

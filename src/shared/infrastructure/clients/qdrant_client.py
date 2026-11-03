@@ -249,11 +249,16 @@ class QdrantService:
         self,
         items: list[tuple[str, list[float], dict[str, Any]]],
         *,
+        model: str,
+        model_rev: str | None,
         collection_name: str | None = None,
         wait: bool = True,
     ) -> list[str]:
         """
         Bulk validated upsert.
+
+        ``model`` and ``model_rev`` name the embedding model that made the
+        vectors; the caller's embedder knows it (#1390 F5).
 
         This is the ONLY approved batch path for VectorIndexService.
         It enforces EmbeddingPayload centrally (no schema drift, no mystery fields).
@@ -272,8 +277,8 @@ class QdrantService:
                 )
 
             try:
-                payload_data["model"] = settings.LOCAL_EMBEDDING_MODEL_NAME
-                payload_data["model_rev"] = settings.EMBED_MODEL_REVISION
+                payload_data["model"] = model
+                payload_data["model_rev"] = model_rev
                 payload_data["dim"] = self.vector_size
                 payload_data["created_at"] = now_iso()
                 payload = EmbeddingPayload(**payload_data)

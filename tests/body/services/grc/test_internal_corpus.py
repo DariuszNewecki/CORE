@@ -9,7 +9,7 @@ Covers:
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import yaml
@@ -116,22 +116,28 @@ def _make_ingester(tmp_path: Path) -> InternalCorpusIngester:
 
 
 # ID: d4cf7f02-36bc-44c9-9093-5de38f3224f6
-def test_ingester_stores_injected_embedding_model_name(tmp_path: Path) -> None:
-    """embedding_model_name is stored on the ingester and not sourced from settings."""
+async def test_provenance_names_the_model_that_served_the_embeddings(
+    tmp_path: Path,
+) -> None:
+    """#1390 F5: the provenance names the embedder's served model, not a default."""
+    text_dir = tmp_path / "text"
+    text_dir.mkdir()
+    (text_dir / "a.md").write_text("Section A text.", encoding="utf-8")
+    embedder = MagicMock()
+    embedder.get_embedding = AsyncMock(return_value=[0.1, 0.2])
+    embedder.model_identity = AsyncMock(return_value=("served-embed", None))
+    qdrant = MagicMock()
+    qdrant.drop_and_recreate_collection = AsyncMock()
+    qdrant.upsert_points = AsyncMock()
     ingester = InternalCorpusIngester(
-        qdrant_service=MagicMock(),
-        embedding_service=MagicMock(),
-        repo_root=tmp_path,
-        embedding_model_name="custom-embed-v2",
+        qdrant_service=qdrant, embedding_service=embedder, repo_root=tmp_path
     )
-    assert ingester._embedding_model_name == "custom-embed-v2"
 
+    with patch("body.infrastructure.storage.file_handler.FileHandler") as file_handler:
+        await ingester.ingest("iso_27001", text_dir, {"title": "ISO"})
 
-# ID: 89c42d49-7f2c-4f13-aff0-f9c3b719ad6e
-def test_ingester_default_embedding_model_name(tmp_path: Path) -> None:
-    """Default embedding_model_name matches the known settings default."""
-    ingester = _make_ingester(tmp_path)
-    assert ingester._embedding_model_name == "nomic-embed-text"
+    _path, content = file_handler.return_value.write_runtime_text.call_args.args
+    assert yaml.safe_load(content)["embedding_model"] == "served-embed"
 
 
 def test_chunk_sections_small_file_is_one_chunk(tmp_path: Path) -> None:

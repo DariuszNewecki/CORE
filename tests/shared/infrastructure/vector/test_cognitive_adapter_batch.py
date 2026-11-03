@@ -16,29 +16,32 @@ import pytest
 from shared.infrastructure.vector.cognitive_adapter import CognitiveEmbedderAdapter
 
 
-def _service(batch_result: list[list[float]]) -> MagicMock:
-    service = MagicMock()
-    service.get_embeddings_for_code_batch = AsyncMock(return_value=batch_result)
+def _service(batch_result: list[list[float]]) -> tuple[MagicMock, MagicMock]:
+    client = MagicMock()
+    client.get_embeddings_batch = AsyncMock(return_value=batch_result)
     # The single-text path returns one 768-dim vector, as it really does.
-    service.get_embedding_for_code = AsyncMock(return_value=[0.0] * 768)
-    return service
+    client.get_embedding = AsyncMock(return_value=[0.0] * 768)
+    service = MagicMock()
+    service.aget_vectorizer_client = AsyncMock(return_value=client)
+    return service, client
 
 
 # ID: 7ef70392-4fc3-4396-8125-6898c6e6bf69
 async def test_batch_uses_the_batch_method_and_stays_aligned() -> None:
-    service = _service([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+    service, client = _service([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
     adapter = CognitiveEmbedderAdapter(service)
 
     vectors = await adapter.get_embeddings_batch(["a", "b", "c"])
 
     assert vectors == [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]
-    service.get_embeddings_for_code_batch.assert_awaited_once_with(["a", "b", "c"])
-    service.get_embedding_for_code.assert_not_awaited()
+    service.aget_vectorizer_client.assert_awaited_once_with()
+    client.get_embeddings_batch.assert_awaited_once_with(["a", "b", "c"])
+    client.get_embedding.assert_not_awaited()
 
 
 # ID: ef1679db-65dc-47f5-874a-1c3aa9188ba5
 async def test_batch_misalignment_still_fails_loudly() -> None:
-    adapter = CognitiveEmbedderAdapter(_service([[1.0]]))
+    adapter = CognitiveEmbedderAdapter(_service([[1.0]])[0])
 
     with pytest.raises(RuntimeError, match="misalignment"):
         await adapter.get_embeddings_batch(["a", "b"])

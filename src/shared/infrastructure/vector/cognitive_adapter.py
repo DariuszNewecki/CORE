@@ -12,6 +12,8 @@ separate local embedding settings.
 
 from __future__ import annotations
 
+from typing import Any
+
 from shared.logger import getLogger
 from shared.protocols.cognitive import CognitiveProtocol
 
@@ -50,15 +52,38 @@ class CognitiveEmbedderAdapter:
             cognitive_service: Initialized CognitiveService instance
         """
         self._cognitive_service = cognitive_service
+        # One Vectorizer client per adapter: it remembers which model served
+        # the embeddings, so the vectors are labelled with that model and not
+        # with a setting that may name another one (#1390 F5).
+        self._client: Any = None
         logger.debug("CognitiveEmbedderAdapter initialized")
+
+    async def _vectorizer(self) -> Any:
+        if self._client is None:
+            self._client = await self._cognitive_service.aget_vectorizer_client()
+        return self._client
+
+    # ID: 6b2e9f4a-1c7d-4e38-8a5b-3d9f0c6e2b17
+    async def model_identity(self) -> tuple[str, str | None]:
+        """The model that served this adapter's embeddings, and its revision.
+
+        Raises RuntimeError before any embedding was served: there is no
+        model to name yet.
+        """
+        served = getattr(self._client, "served_model", None)
+        if not served:
+            raise RuntimeError(
+                "No embedding has been served yet; the embedding model is unknown."
+            )
+        return served, await self._cognitive_service.get_embed_model_revision()
 
     # ID: d494615f-51d5-4796-a62a-ddf9e3e7bda3
     async def get_embedding(self, text: str) -> list[float]:
         """
         Generate embedding using CognitiveService.
 
-        This delegates to cognitive_service.get_embedding_for_code() which
-        uses the database-configured LLM provider.
+        Uses the Vectorizer role's client (the database-configured LLM
+        provider).
 
         Args:
             text: Text to embed
@@ -70,7 +95,8 @@ class CognitiveEmbedderAdapter:
             RuntimeError: If embedding generation fails
         """
         try:
-            embedding = await self._cognitive_service.get_embedding_for_code(text)
+            client = await self._vectorizer()
+            embedding = await client.get_embedding(text) if text else None
 
             if not embedding:
                 raise RuntimeError("CognitiveService returned empty embedding")
@@ -86,7 +112,7 @@ class CognitiveEmbedderAdapter:
         """
         Batch-generate embeddings for a list of texts (#461).
 
-        Delegates to cognitive_service.get_embeddings_for_code_batch().
+        Uses the Vectorizer role's client.
         Single round-trip to the embedding endpoint when the underlying
         provider supports it (Ollama 0.4+); other providers fall back
         to looped single-input calls (correct, not faster).
@@ -103,9 +129,8 @@ class CognitiveEmbedderAdapter:
         if not texts:
             return []
         try:
-            embeddings = await self._cognitive_service.get_embeddings_for_code_batch(
-                texts
-            )
+            client = await self._vectorizer()
+            embeddings = await client.get_embeddings_batch(texts)
             if embeddings is None:
                 raise RuntimeError("CognitiveService returned None for batch embedding")
             if len(embeddings) != len(texts):
