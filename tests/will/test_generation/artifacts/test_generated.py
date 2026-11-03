@@ -114,9 +114,6 @@ def test_TestGenArtifactStore_write_normalized():
     )
 
 
-
-
-
 # ID: ab18f1ca-2bbf-4af0-b0e3-8c4033fcf1ea
 def test_TestGenArtifactStore_write_response():
     file_handler = MagicMock()
@@ -128,3 +125,18 @@ def test_TestGenArtifactStore_write_response():
     file_handler.write.assert_called_once_with(
         "/tmp/session/my_symbol_response.txt", "the response body"
     )
+
+
+
+
+
+# ID: d3d14d58-727a-4a9f-acea-c7345ec25fe3
+def test_TestGenArtifactStore_write_prompt():
+    mock_fh = MagicMock()
+    store = TestGenArtifactStore(mock_fh)
+
+    result = store.write_prompt("/sessions/s1", "sym", "hello prompt")
+
+    expected_path = "/sessions/s1/sym_prompt.txt"
+    assert result == expected_path
+    mock_fh.write.assert_called_once_with(expected_path, "hello prompt")
