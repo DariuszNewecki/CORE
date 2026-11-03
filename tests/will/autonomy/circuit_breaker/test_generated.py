@@ -115,8 +115,6 @@ def test_canonical_signature():
     assert canonical_signature("", config) == ""
 
 
-
-
 # ID: 9db3b5a7-401e-4885-9708-ad71a0b676de
 def test_load_circuit_breaker_config():
     from will.autonomy.circuit_breaker import load_circuit_breaker_config
@@ -152,3 +150,15 @@ def test_load_circuit_breaker_config():
     assert config.max_lookback == 12
     assert len(config.volatile_patterns) == 2
     assert config.volatile_patterns[0].search("123e4567-e89b-12d3-a456-426614174000")
+
+
+from will.autonomy.circuit_breaker import CircuitBreakerConfig
+
+
+# ID: 965c890d-8ca2-4a34-a97c-76801e28d82a
+def test_CircuitBreakerConfig():
+    config = CircuitBreakerConfig()
+    assert config.threshold_n == 5
+    assert config.signature_window_chars == 200
+    assert config.max_lookback == 25
+    assert config.volatile_patterns == ()
