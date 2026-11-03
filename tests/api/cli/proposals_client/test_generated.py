@@ -94,3 +94,19 @@ async def test_ProposalsClient_approve_proposal():
             "approval_authority": "admin",
         },
     )
+
+
+import pytest
+
+
+# ID: eef6a5fa-b6f0-486b-b2bf-1252ff1b7fea
+async def test_get_proposal() -> None:
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"id": "prop-123", "title": "Example"})
+
+    client = ProposalsClient(facade)
+
+    result = await client.get_proposal("prop-123")
+
+    assert result == {"id": "prop-123", "title": "Example"}
+    facade._request.assert_awaited_once_with("GET", "/v1/proposals/prop-123")
