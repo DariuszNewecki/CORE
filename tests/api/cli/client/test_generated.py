@@ -567,3 +567,20 @@ def test_CoreApiClient_baseline():
 
     assert result == expected
     client.integrity.baseline.assert_awaited_once_with(foo="bar")
+
+
+import pytest
+
+
+# ID: 2af385cf-749a-4455-8220-660afd8b57ae
+async def test_CoreApiClient_poll_sync_run() -> None:
+    client = CoreApiClient.__new__(CoreApiClient)
+    client.sync = MagicMock()
+    client.sync.poll_sync_run = AsyncMock(
+        return_value={"status": "running", "run_id": "abc"}
+    )
+
+    result = await CoreApiClient.poll_sync_run(client, "run-123", verbose=True)
+
+    assert result == {"status": "running", "run_id": "abc"}
+    client.sync.poll_sync_run.assert_awaited_once_with("run-123", verbose=True)
