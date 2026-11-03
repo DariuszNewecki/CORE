@@ -53,3 +53,46 @@ def test_CompositeAcceptanceCondition():
     passing.evaluate.assert_awaited_once_with("ok()[code]")
     failing.evaluate.assert_awaited_once_with("ok()[code]")
     assert composite._conditions == [passing, failing]
+
+
+from unittest.mock import patch
+
+from will.agents.acceptance.conditions import PytestAcceptanceCondition
+
+
+# ID: bd22d339-bf22-45c1-83c1-853a4ae3a444
+async def test_PytestAcceptanceCondition_evaluate() -> None:
+    mock_executor = MagicMock()
+    mock_executor.__class__ = type(
+        "FakeExecutor",
+        (),
+        {},
+    )
+
+    mock_result = MagicMock()
+    mock_result.ok = True
+    mock_executor.execute = AsyncMock(return_value=mock_result)
+
+    condition = PytestAcceptanceCondition(
+        executor=mock_executor,
+        source_file="src/pkg/module.py",
+        target_path="tests/test_module.py",
+        base_content="",
+    )
+
+    code = "def test_example():\n    assert True\n"
+
+    with patch(
+        "will.agents.acceptance.conditions.isinstance",
+        return_value=True,
+    ):
+        result = await condition.evaluate(code)
+
+    assert result.accepted is True
+    mock_executor.execute.assert_awaited_once()
+    call_args = mock_executor.execute.await_args
+    assert call_args.args[0] == "test.candidate_validate"
+    assert call_args.kwargs["write"] is False
+    assert call_args.kwargs["source_file"] == "src/pkg/module.py"
+    assert call_args.kwargs["target_path"] == "tests/test_module.py"
+    assert "def test_example" in call_args.kwargs["candidate_content"]
