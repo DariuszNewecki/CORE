@@ -155,3 +155,74 @@ async def test_ProposalsClient_create_proposal():
         },
     )
     assert result == {"id": "prop_123", "goal": "do the thing"}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: a5c08be3-0bcf-487e-8332-f7473f2c396d
+async def test_ProposalsClient() -> None:
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True})
+
+    client = ProposalsClient(facade)
+
+    created = await client.create_proposal(
+        goal="do a thing",
+        actions=[{"kind": "noop"}],
+        files=["a.txt"],
+    )
+    assert created == {"ok": True}
+    facade._request.assert_awaited_with(
+        "POST",
+        "/v1/proposals",
+        json={
+            "goal": "do a thing",
+            "actions": [{"kind": "noop"}],
+            "files": ["a.txt"],
+            "created_by": "cli_operator",
+            "write": True,
+        },
+    )
+
+    facade._request.reset_mock()
+    listed = await client.list_proposals(status="pending", limit=10)
+    assert listed == {"ok": True}
+    facade._request.assert_awaited_with(
+        "GET", "/v1/proposals", params={"limit": 10, "status": "pending"}
+    )
+
+    facade._request.reset_mock()
+    fetched = await client.get_proposal("prop-1")
+    assert fetched == {"ok": True}
+    facade._request.assert_awaited_with("GET", "/v1/proposals/prop-1")
+
+    facade._request.reset_mock()
+    approved = await client.approve_proposal("prop-1", "alice", "human")
+    assert approved == {"ok": True}
+    facade._request.assert_awaited_with(
+        "POST",
+        "/v1/proposals/prop-1/approve",
+        json={"approved_by": "alice", "approval_authority": "human"},
+    )
+
+    facade._request.reset_mock()
+    rejected = await client.reject_proposal("prop-1", "nope")
+    assert rejected == {"ok": True}
+    facade._request.assert_awaited_with(
+        "POST", "/v1/proposals/prop-1/reject", json={"reason": "nope"}
+    )
+
+    facade._request.reset_mock()
+    executed = await client.execute_proposal("prop-1", write=True)
+    assert executed == {"ok": True}
+    facade._request.assert_awaited_with(
+        "POST", "/v1/proposals/prop-1/execute", json={"write": True}
+    )
+
+    facade._request.reset_mock()
+    chain = await client.get_proposal_chain("prop-1")
+    assert chain == {"ok": True}
+    facade._request.assert_awaited_with("GET", "/v1/proposals/prop-1/chain")
