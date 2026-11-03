@@ -89,7 +89,6 @@ async def test_RemediationBlackboard_mark_findings() -> None:
     mock_store.update_findings_status.assert_awaited_once_with(findings, "resolved")
 
 
-
 import pytest
 
 
@@ -130,3 +129,22 @@ async def test_RemediationBlackboard():
     )
 
     assert blackboard.worker_uuid == worker_id
+
+
+import pytest
+
+from will.remediation.blackboard import NullRemediationBlackboard
+
+
+# ID: 13451e7e-f43a-497b-bff5-f87d64c9fc8e
+async def test_NullRemediationBlackboard_post_failed() -> None:
+    blackboard = NullRemediationBlackboard()
+
+    result = await blackboard.post_failed(
+        file_path="src/will/example.py",
+        findings=[{"rule": "some-rule", "message": "boom"}],
+        target_rule="some-rule",
+        reason="lint failed",
+    )
+
+    assert result is None
