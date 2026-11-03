@@ -153,9 +153,6 @@ def test_TestGenArtifactStore_start_session():
     assert result.session_dir == "work/test_generation/1234567890"
 
 
-
-
-
 # ID: 01c452d9-f67e-40df-9561-803c638fdf77
 def test_TestGenArtifactStore():
     file_handler = MagicMock()
@@ -212,3 +209,14 @@ def test_TestGenArtifactStore():
     summary_args = file_handler.write.call_args[0]
     assert summary_args[0] == summary_path
     assert '"total": 1' in summary_args[1]
+
+
+from will.test_generation.artifacts import ArtifactPaths
+
+
+# ID: 1c0bba51-2ced-4e73-a262-4ae314bfc0f2
+def test_ArtifactPaths():
+    session_dir = "/tmp/session/abc123"
+    artifact_paths = ArtifactPaths(session_dir=session_dir)
+    assert artifact_paths.session_dir == session_dir
+    assert isinstance(artifact_paths.session_dir, str)
