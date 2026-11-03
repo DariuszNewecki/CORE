@@ -475,9 +475,6 @@ async def test_CoreApiClient_create_proposal():
     assert result == {"id": "prop-123", "status": "created"}
 
 
-
-
-
 # ID: 479eb767-edf3-4b1b-b299-5f8293e16e65
 async def test_CoreApiClient_daemon_stop() -> None:
     base_url = "http://localhost:8000"
@@ -493,3 +490,18 @@ async def test_CoreApiClient_daemon_stop() -> None:
 
     client.daemon.daemon_stop.assert_awaited_once_with(**kwargs)
     assert result == expected
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 27b6cc20-c834-4bd8-beba-aa464506c044
+async def test_CoreApiClient_daemon_start():
+    client = CoreApiClient(base_url="http://localhost:8000")
+    client.daemon.daemon_start = AsyncMock(return_value={"status": "started"})
+
+    result = await client.daemon_start("arg1", key="value")
+
+    client.daemon.daemon_start.assert_awaited_once_with("arg1", key="value")
+    assert result == {"status": "started"}
