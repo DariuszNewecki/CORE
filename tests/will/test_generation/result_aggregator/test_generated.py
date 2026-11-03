@@ -40,3 +40,45 @@ def test_TestResultAggregator_format_summary_json():
         "harness_detected": True,
         "timestamp": "2024-01-01 12:00:00",
     }
+
+
+
+
+
+# ID: 2dc61f29-409c-44df-b607-7d448929f78e
+def test_TestResultAggregator_build_final_result():
+    file_path = "src/example/module.py"
+    attempts = [
+        {"validated": True, "sandbox_passed": True, "sandbox_ran": True},
+        {"validated": True, "sandbox_passed": False, "sandbox_ran": True},
+        {"validated": False, "skipped": True},
+        {"validated": False, "validation_failure": True},
+    ]
+    start_time = 1000.0
+    switches = 2
+    patterns = {"pattern_a": 3}
+
+    with patch(
+        "will.test_generation.result_aggregator.time.time",
+        return_value=1010.0,
+    ):
+        result = TestResultAggregator.build_final_result(
+            file_path=file_path,
+            attempts=attempts,
+            start_time=start_time,
+            switches=switches,
+            patterns=patterns,
+        )
+
+    assert result.file_path == file_path
+    assert result.total_symbols == 4
+    assert result.tests_generated == 2
+    assert result.tests_failed == 1
+    assert result.tests_skipped == 1
+    assert result.success_rate == 2 / 4
+    assert result.strategy_switches == switches
+    assert result.patterns_learned == patterns
+    assert result.total_duration == 10.0
+    assert result.generated_tests == attempts
+    assert result.validation_failures == 1
+    assert result.sandbox_passed == 1
