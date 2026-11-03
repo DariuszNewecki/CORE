@@ -253,3 +253,22 @@ async def test_InspectClient_decisions_list():
             "pattern": "foo",
         },
     )
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 2749fa7c-584d-41c3-8839-3bfa7bd856e8
+async def test_InspectClient_status_drift():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"drift": []})
+
+    client = InspectClient(facade)
+    result = await client.status_drift()
+
+    assert result == {"drift": []}
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/status/drift", params={"scope": "all"}
+    )
