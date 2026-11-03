@@ -111,3 +111,22 @@ def test_FindingGroups():
     assert other.action_groups is not groups.action_groups
     assert other.unmappable is not groups.unmappable
     assert other.delegate is not groups.delegate
+
+
+from will.autonomy.violation_remediator_grouping import rules_of
+
+
+# ID: 52a1a52e-1625-44a7-8603-cf1f378fce35
+def test_rules_of():
+    findings = [
+        {"payload": {"check_id": "rule-a"}},
+        {"payload": {"check_id": "rule-a"}},
+        {"payload": {"rule": "rule-b"}},
+        {"payload": {"check_id": "rule-c", "rule": "ignored"}},
+        {"payload": {}},
+    ]
+
+    result = rules_of(findings)
+
+    assert sorted(result) == sorted(["rule-a", "rule-b", "rule-c", "unknown"])
+    assert len(result) == len(set(result))
