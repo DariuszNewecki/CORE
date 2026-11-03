@@ -43,3 +43,52 @@ async def test_trip() -> None:
     assert payload["last_proposal_id"] == "prop-42"
     assert payload["last_failure_reason"] == "boom"
     assert payload["findings_delegated"] == 2
+
+
+from types import SimpleNamespace
+from unittest.mock import patch
+
+
+# ID: 2ac142f7-b91a-40a7-a403-8420041905f8
+async def test_recent_consecutive_identical_count():
+    from will.autonomy.circuit_breaker import recent_consecutive_identical_count
+
+    config = MagicMock()
+    config.max_lookback = 10
+
+    rows = [
+        SimpleNamespace(failure_reason="boom", proposal_id="p3"),
+        SimpleNamespace(failure_reason="boom", proposal_id="p2"),
+        SimpleNamespace(failure_reason="other", proposal_id="p1"),
+    ]
+
+    scalars_mock = MagicMock()
+    scalars_mock.all.return_value = rows
+    result_mock = MagicMock()
+    result_mock.scalars.return_value = scalars_mock
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=result_mock)
+
+    with patch(
+        "will.autonomy.circuit_breaker.canonical_signature",
+        side_effect=lambda reason, cfg: reason,
+    ):
+        (
+            count,
+            signature,
+            last_proposal_id,
+            last_failure_reason,
+        ) = await recent_consecutive_identical_count(
+            session,
+            ref_id="ref-1",
+            ref_kind="flow",
+            file_path=None,
+            config=config,
+        )
+
+    assert count == 2
+    assert signature == "boom"
+    assert last_proposal_id == "p3"
+    assert last_failure_reason == "boom"
+    session.execute.assert_awaited_once()
