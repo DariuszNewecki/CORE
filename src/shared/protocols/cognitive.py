@@ -34,15 +34,18 @@ class CognitiveProtocol(Protocol):
         """
         ...
 
-    # ID: 162d21e3-f4fc-4220-88a8-182f5df3d5dc
-    async def get_embeddings_for_code_batch(
-        self, source_texts: list[str]
-    ) -> list[list[float]]:
+    # ID: 7e1a4c9d-5b2f-4d68-93a0-8c6f2b1e7d45
+    async def aget_vectorizer_client(self) -> Any:
         """
-        Generate embedding vectors for several texts, aligned to input order.
+        Return the Vectorizer role's client; it names the model that served
+        its embeddings (``served_model``).
+        """
+        ...
 
-        Declared here so the batch call type-checks. Its absence led a
-        type-error clean-up (409f9d4e) to swap the batch call for the
-        single-text one, which broke every batch embedding.
+    # ID: 5d0b7c1e-8a2f-4e63-9b4d-1f7a6c3e2d90
+    async def get_embed_model_revision(self) -> str | None:
+        """
+        The governor-pinned revision of the embedding model
+        (``core.system_config.embed_model_revision``), or None when unset.
         """
         ...

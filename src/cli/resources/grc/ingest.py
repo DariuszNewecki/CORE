@@ -134,9 +134,6 @@ async def ingest(
         qdrant_service=qdrant,
         embedding_service=embedder,
         repo_root=repo_root,
-        embedding_model_name=getattr(
-            embedder, "model", settings.LOCAL_EMBEDDING_MODEL_NAME
-        ),
     )
 
     try:

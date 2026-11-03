@@ -75,6 +75,10 @@ class FallbackAwareLLMClient:
         self._resource_names = resource_names
         self._clients: dict[int, LLMClient] = {}
         self._unavailable: dict[int, str] = {}
+        # The model of the client that served the last successful call. An
+        # embedding is labelled with the model that made it, not a setting
+        # (#1390 F5); fallback can change which model that is.
+        self.served_model: str | None = None
 
     # ID: 9c2e4d6f-5a8b-4d72-9e1c-3f8b6a2d5c4e
     async def make_request_async(self, *args: Any, **kwargs: Any) -> str:
@@ -131,7 +135,9 @@ class FallbackAwareLLMClient:
                 continue
 
             try:
-                return await getattr(client, method_name)(*args, **kwargs)
+                result = await getattr(client, method_name)(*args, **kwargs)
+                self.served_model = client.model_name
+                return result
             except httpx.HTTPStatusError as e:
                 status = e.response.status_code
                 if status not in _RETRYABLE_STATUSES:

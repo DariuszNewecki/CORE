@@ -109,12 +109,10 @@ class InternalCorpusIngester:
         qdrant_service: QdrantService,
         embedding_service: Any,
         repo_root: Path,
-        embedding_model_name: str = "nomic-embed-text",
     ) -> None:
         self._qdrant = qdrant_service
         self._embedder = embedding_service
         self._repo_root = repo_root
-        self._embedding_model_name = embedding_model_name
 
     # ID: 104b5f1d-7ae6-4fa7-8eef-9f263b2ee5fc
     async def ingest(
@@ -174,7 +172,11 @@ class InternalCorpusIngester:
         logger.info("Upserted %d chunk(s) into %s", len(points), target_collection)
 
         # D3 step 5: write provenance record via FileHandler
-        self._write_provenance(framework_id, text_dir, inventory_entry, len(points))
+        # The model that served the embeddings, not a default (#1390 F5).
+        model, _rev = await self._embedder.model_identity()
+        self._write_provenance(
+            framework_id, text_dir, inventory_entry, len(points), model
+        )
         return len(points)
 
     # ID: 8711006c-2daa-41a7-ba3d-744541597b98
@@ -221,6 +223,7 @@ class InternalCorpusIngester:
         text_dir: Path,
         inventory_entry: dict[str, Any],
         chunk_count: int,
+        embedding_model: str,
     ) -> None:
         from body.infrastructure.storage.file_handler import FileHandler
 
@@ -232,9 +235,7 @@ class InternalCorpusIngester:
         provenance: dict[str, Any] = {
             "chunk_count": chunk_count,
             "collection": collection_name(framework_id),
-            "embedding_model": getattr(
-                self._embedder, "model", self._embedding_model_name
-            ),
+            "embedding_model": embedding_model,
             "framework_id": framework_id,
             "ingested_at": now_iso(),
             "text_dir": text_dir_rel,

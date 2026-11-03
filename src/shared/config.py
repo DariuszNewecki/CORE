@@ -315,8 +315,6 @@ class Settings(BaseSettings):
 
     QDRANT_COLLECTION_NAME: str = "core-code"
     LOCAL_EMBEDDING_DIM: int = 768
-    LOCAL_EMBEDDING_MODEL_NAME: str = "nomic-embed-text"
-    EMBED_MODEL_REVISION: str = "2025-09-15"
     CORE_MAX_CONCURRENT_REQUESTS: int = 2
     # SQLAlchemy engine echo (shared.infrastructure.database.session_manager).
     DATABASE_ECHO: bool = False

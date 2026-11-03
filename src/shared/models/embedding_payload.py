@@ -27,7 +27,10 @@ class EmbeddingPayload(BaseModel):
         ..., description="Fingerprint of the normalized chunk text."
     )
     model: str = Field(..., description="Name of the embedding model used.")
-    model_rev: str = Field(..., description="Pinned revision of the embedding model.")
+    model_rev: str | None = Field(
+        ...,
+        description="Pinned revision of the embedding model; None when not pinned.",
+    )
     dim: int = Field(..., description="Dimensionality of the vector.")
     created_at: str = Field(..., description="ISO 8601 timestamp of vector creation.")
 

@@ -34,6 +34,14 @@ class Embeddable(Protocol):
     async def get_embedding(self, text: str) -> list[float]: ...
 
 
+# ID: 8f3a1d6c-2b9e-4c47-a0d5-6e1b7f9c3a28
+class IdentifiedEmbeddable(Embeddable, Protocol):
+    """An embedder that can name the model that served its embeddings (#1390 F5)."""
+
+    # ID: 2c7e5b9d-4a1f-4d83-b6e0-9f3c1a8d5e72
+    async def model_identity(self) -> tuple[str, str | None]: ...
+
+
 def _chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
     """Splits text into overlapping chunks."""
     if not text:
