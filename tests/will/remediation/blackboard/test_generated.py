@@ -148,3 +148,21 @@ async def test_NullRemediationBlackboard_post_failed() -> None:
     )
 
     assert result is None
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: dc9a314e-0abc-43e4-9381-0cfcf42e3c43
+async def test_NullRemediationBlackboard_mark_findings() -> None:
+    blackboard = NullRemediationBlackboard()
+    findings = [
+        {"id": "f1", "message": "issue one"},
+        {"id": "f2", "message": "issue two"},
+    ]
+
+    result = await blackboard.mark_findings(findings, "fixed")
+
+    assert result is None
