@@ -71,3 +71,46 @@ async def test_run_and_persist_refactor_autonomous(monkeypatch):
     assert result["proposal_ids"] == [proposal_row_1[0], proposal_row_2[0]]
 
     assert session.execute.await_count == 2
+
+
+from pathlib import Path
+from unittest.mock import patch
+
+
+# ID: 9448018e-ff0f-4922-8ced-e4b70df47fee
+def test_get_refactor_stats():
+    from will.governance.refactor_runner import get_refactor_stats
+
+    fake_files = [Path("/repo/a.py"), Path("/repo/b.py"), Path("/repo/c.py")]
+    fake_details = [
+        {"total_score": 10.0},
+        {"total_score": 45.0},
+        {"total_score": 85.0},
+    ]
+
+    with (
+        patch(
+            "will.governance.refactor_runner._enumerate_src_files",
+            return_value=fake_files,
+        ),
+        patch(
+            "will.governance.refactor_runner._analyze_one",
+            side_effect=fake_details,
+        ),
+        patch(
+            "will.governance.refactor_runner.ModularityChecker",
+        ),
+    ):
+        result = get_refactor_stats(Path("/repo"))
+
+    assert result["count"] == 3
+    assert result["max"] == 85.0
+    assert result["min"] == 10.0
+    assert result["mean"] == (10.0 + 45.0 + 85.0) / 3
+    assert result["histogram"] == {
+        "0-20": 1,
+        "20-40": 0,
+        "40-60": 1,
+        "60-80": 0,
+        "80+": 1,
+    }
