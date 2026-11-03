@@ -135,7 +135,6 @@ async def test_InspectClient_analysis_clusters():
     )
 
 
-
 import pytest
 
 
@@ -152,3 +151,21 @@ async def test_InspectClient_inspect_search_commands():
         "GET", "/v1/search/commands", params={"q": "buil", "limit": 10}
     )
     assert result == {"results": [{"name": "build"}]}
+
+
+import asyncio
+
+
+# ID: 7b807695-b31a-4b94-a83c-a3ebd8f8e7de
+def test_InspectClient_inspect_search_capabilities():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"results": [{"id": "cap-1"}]})
+
+    client = InspectClient(facade)
+
+    result = asyncio.run(client.inspect_search_capabilities("auth", limit=5))
+
+    assert result == {"results": [{"id": "cap-1"}]}
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/search/capabilities", params={"q": "auth", "limit": 5}
+    )
