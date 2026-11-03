@@ -34,3 +34,18 @@ async def test_project_cognitive_roles():
     assert response.ok is True
     assert response.data == {"roles": ["role-a", "role-b"]}
     assert response.duration_sec == 0.42
+
+
+from api.v1.cognitive_role_routes import ProjectCognitiveRolesRequest
+
+
+# ID: f7f9c7a1-94fa-4cc4-8795-a33d21ce4aa6
+def test_ProjectCognitiveRolesRequest():
+    default_request = ProjectCognitiveRolesRequest()
+    assert default_request.write is False
+
+    write_request = ProjectCognitiveRolesRequest(write=True)
+    assert write_request.write is True
+
+    dumped = write_request.model_dump()
+    assert dumped == {"write": True}
