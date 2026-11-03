@@ -171,7 +171,6 @@ def test_InspectClient_inspect_search_capabilities():
     )
 
 
-
 import pytest
 
 
@@ -188,3 +187,22 @@ async def test_InspectClient_inspect_components():
         "GET", "/v1/components", params={"type": "service"}
     )
     assert result == {"components": []}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: d6d3fee4-c447-4dd0-b8db-c8084454fc2a
+async def test_InspectClient_analysis_test_targets() -> None:
+    facade = AsyncMock()
+    expected = {"SIMPLE": ["a", "b"], "COMPLEX": ["c"]}
+    facade._request = AsyncMock(return_value=expected)
+
+    client = InspectClient(facade)
+
+    result = await client.analysis_test_targets()
+
+    facade._request.assert_awaited_once_with("GET", "/v1/analysis/test-targets")
+    assert result == expected
