@@ -46,7 +46,6 @@ def test_log_delegated():
     assert second_args[4] == "entry-456"
 
 
-
 from will.autonomy.violation_remediator_grouping import group_findings
 
 
@@ -80,3 +79,35 @@ def test_group_findings():
     assert groups.ref_kinds["REF-1"] == "rule"
     assert groups.ref_kinds["REF-2"] == "flow"
     mock_logger.debug.assert_called_once()
+
+
+from will.autonomy.violation_remediator_grouping import FindingGroups
+
+
+# ID: 3fbff82b-f19c-4ed8-a73b-37d863f0b44a
+def test_FindingGroups():
+    groups = FindingGroups()
+
+    assert groups.action_groups == {}
+    assert groups.ref_kinds == {}
+    assert groups.unmappable == []
+    assert groups.delegate == []
+
+    groups.action_groups[("fix", None)] = [{"id": 1}]
+    groups.ref_kinds["ref-a"] = "kind-1"
+    groups.unmappable.append({"id": 2})
+    groups.delegate.append({"id": 3})
+
+    assert groups.action_groups[("fix", None)] == [{"id": 1}]
+    assert groups.ref_kinds["ref-a"] == "kind-1"
+    assert groups.unmappable == [{"id": 2}]
+    assert groups.delegate == [{"id": 3}]
+
+    # default_factory must produce independent instances per object
+    other = FindingGroups()
+    assert other.action_groups == {}
+    assert other.unmappable == []
+    assert other.delegate == []
+    assert other.action_groups is not groups.action_groups
+    assert other.unmappable is not groups.unmappable
+    assert other.delegate is not groups.delegate
