@@ -545,3 +545,25 @@ async def test_CoreApiClient_verify() -> None:
 
     assert result == expected
     fake_integrity.verify.assert_awaited_once_with(object_id="sym-1", deep=True)
+
+
+# ID: e224092c-e544-48fa-80de-2f4aeece4eda
+def test_CoreApiClient_baseline():
+    import asyncio
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from api.cli.client import CoreApiClient
+
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost:8000", None)
+    ):
+        client = CoreApiClient(base_url="http://localhost:8000")
+
+    expected = {"status": "ok", "baseline_id": "abc123"}
+    client.integrity = MagicMock()
+    client.integrity.baseline = AsyncMock(return_value=expected)
+
+    result = asyncio.run(client.baseline(foo="bar"))
+
+    assert result == expected
+    client.integrity.baseline.assert_awaited_once_with(foo="bar")
