@@ -87,7 +87,6 @@ async def test_QualityClient_quality_imports():
     facade._request.assert_awaited_once_with("POST", "/v1/quality/imports")
 
 
-
 import pytest
 
 
@@ -106,3 +105,18 @@ async def test_QualityClient():
     result = await client.quality_lint(fix=True)
     assert result == {"ok": True}
     facade._request.assert_awaited_with("POST", "/v1/quality/lint", json={"fix": True})
+
+
+
+
+
+# ID: 5b0e163e-0804-48a5-a56b-b96bcbbfbb6c
+async def test_QualityClient_quality_gates() -> None:
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"gates": ["a", "b"]})
+
+    client = QualityClient(facade)
+    result = await client.quality_gates()
+
+    facade._request.assert_awaited_once_with("POST", "/v1/quality/gates", json={})
+    assert result == {"gates": ["a", "b"]}
