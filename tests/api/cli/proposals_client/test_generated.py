@@ -66,3 +66,31 @@ def test_ProposalsClient_reject_proposal():
         json={"reason": "not aligned with goals"},
     )
     assert result == {"status": "rejected"}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: a981251c-f134-421b-9cb9-620e91447595
+async def test_ProposalsClient_approve_proposal():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "approved"})
+
+    client = ProposalsClient(facade)
+
+    result = await client.approve_proposal(
+        proposal_id="prop-123",
+        approved_by="alice",
+        approval_authority="admin",
+    )
+
+    assert result == {"status": "approved"}
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/proposals/prop-123/approve",
+        json={
+            "approved_by": "alice",
+            "approval_authority": "admin",
+        },
+    )
