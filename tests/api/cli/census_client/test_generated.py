@@ -74,3 +74,18 @@ def test_CensusClient_poll_census_run():
         "/v1/census/runs/r1", timeout_seconds=1800.0
     )
     assert result == {"status": "complete", "run_id": "r1"}
+
+
+
+
+# ID: 32510256-4e40-46a1-907a-e459c2a629c5
+async def test_CensusClient_get_census_run():
+    facade = AsyncMock()
+    facade._request = AsyncMock(return_value={"id": "run-123", "status": "completed"})
+
+    client = CensusClient(facade)
+
+    result = await client.get_census_run("run-123")
+
+    facade._request.assert_awaited_once_with("GET", "/v1/census/runs/run-123")
+    assert result == {"id": "run-123", "status": "completed"}
