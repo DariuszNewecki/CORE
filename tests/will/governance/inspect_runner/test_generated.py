@@ -357,3 +357,35 @@ async def test_get_refusals():
 
     mock_repo.get_recent.assert_awaited_once_with(limit=10, refusal_type=None)
     assert result == {"count": 0, "refusals": []}
+
+
+
+
+# ID: b20bc0cc-ff5b-4ac8-a811-c4bbf9f2b2da
+def test_get_decisions_patterns():
+    from will.governance.inspect_runner import get_decisions_patterns
+
+    summary = {
+        "some_pattern": {
+            "count": 3,
+            "violations": 1,
+            "success_rate": 0.66,
+            "decisions": ["d1", "d2"],
+        }
+    }
+
+    mock_repo = MagicMock()
+    mock_repo.get_pattern_summary = AsyncMock(return_value=summary)
+
+    mock_open = MagicMock()
+    mock_open.return_value.__aenter__ = AsyncMock(return_value=mock_repo)
+    mock_open.return_value.__aexit__ = AsyncMock(return_value=False)
+
+    with patch(
+        "will.governance.inspect_runner.DecisionTraceRepository.open",
+        mock_open,
+    ):
+        result = asyncio.run(get_decisions_patterns(days=7))
+
+    assert result == {"days": 7, "patterns": summary}
+    mock_repo.get_pattern_summary.assert_awaited_once_with(7)
