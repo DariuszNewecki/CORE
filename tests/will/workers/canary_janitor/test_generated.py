@@ -142,3 +142,20 @@ def test_find_stale_sandboxes(tmp_path):
     assert result[0].path == stale
     assert result[0].age_seconds > 1000
     assert result[0].size_bytes == 42
+
+
+
+from will.workers.canary_janitor import StaleSandbox
+
+
+# ID: fd318f3c-09b1-4600-808e-69f0139c63a2
+def test_StaleSandbox() -> None:
+    path = Path("/tmp/work/canary/sandbox_abc123")
+    sandbox = StaleSandbox(path=path, age_seconds=3600.0, size_bytes=1024)
+
+    assert sandbox.path == path
+    assert sandbox.age_seconds == 3600.0
+    assert sandbox.size_bytes == 1024
+
+    other = StaleSandbox(path=path, age_seconds=3600.0, size_bytes=1024)
+    assert sandbox == other
