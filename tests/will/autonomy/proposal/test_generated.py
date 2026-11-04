@@ -93,3 +93,97 @@ def test_Proposal_from_dict():
     assert proposal.constitutional_constraints == {"provenance": {"source": "test"}}
     assert proposal.provenance is not None
     mock_prov.assert_called_once_with({"source": "test"})
+
+
+from datetime import UTC, datetime
+
+
+# ID: 88ea3f45-a280-4123-8771-0ba7db6ccaca
+def test_Proposal_to_dict():
+    # Build a minimal proposal instance, bypassing __init__ to avoid
+    # unrelated construction requirements.
+    proposal = Proposal.__new__(Proposal)
+
+    proposal.proposal_id = "prop-123"
+    proposal.goal = "Improve coverage"
+
+    action = MagicMock()
+    action.action_id = "act-1"
+    action.flow_id = "flow-1"
+    action.parameters = {"k": "v"}
+    action.order = 0
+    proposal.actions = [action]
+
+    scope = MagicMock()
+    scope.files = ["a.py"]
+    scope.modules = ["mod"]
+    scope.symbols = ["sym"]
+    scope.policies = ["pol"]
+    proposal.scope = scope
+
+    risk = MagicMock()
+    risk.overall_risk = "low"
+    risk.action_risks = {"act-1": "low"}
+    risk.risk_factors = []
+    risk.mitigation = "none"
+    proposal.risk = risk
+
+    proposal.status = MagicMock()
+    proposal.status.value = "proposed"
+
+    created_at = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+    proposal.created_at = created_at
+    proposal.created_by = "tester"
+    proposal.validation_checks = ["c1"]
+    proposal.validation_results = {"c1": True}
+    proposal.execution_started_at = None
+    proposal.execution_completed_at = None
+    proposal.execution_results = {}
+    proposal.approval_required = True
+    proposal.approved_by = None
+    proposal.approved_at = None
+    proposal.approval_authority = None
+    proposal.failure_reason = None
+
+    constraints = {"max_files": 5}
+    proposal.constraints_for_storage = MagicMock(return_value=constraints)
+
+    result = proposal.to_dict()
+
+    assert result["proposal_id"] == "prop-123"
+    assert result["goal"] == "Improve coverage"
+    assert result["actions"] == [
+        {
+            "action_id": "act-1",
+            "flow_id": "flow-1",
+            "parameters": {"k": "v"},
+            "order": 0,
+        }
+    ]
+    assert result["scope"] == {
+        "files": ["a.py"],
+        "modules": ["mod"],
+        "symbols": ["sym"],
+        "policies": ["pol"],
+    }
+    assert result["risk"] == {
+        "overall_risk": "low",
+        "action_risks": {"act-1": "low"},
+        "risk_factors": [],
+        "mitigation": "none",
+    }
+    assert result["status"] == "proposed"
+    assert result["created_at"] == created_at.isoformat()
+    assert result["created_by"] == "tester"
+    assert result["validation_checks"] == ["c1"]
+    assert result["validation_results"] == {"c1": True}
+    assert result["execution_started_at"] is None
+    assert result["execution_completed_at"] is None
+    assert result["execution_results"] == {}
+    assert result["constitutional_constraints"] == constraints
+    assert result["approval_required"] is True
+    assert result["approved_by"] is None
+    assert result["approved_at"] is None
+    assert result["approval_authority"] is None
+    assert result["failure_reason"] is None
+    proposal.constraints_for_storage.assert_called_once()
