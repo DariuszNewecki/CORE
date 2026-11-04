@@ -963,3 +963,21 @@ async def test_CoreApiClient_status_db():
 
     client.inspect.status_db.assert_awaited_once_with(foo="bar")
     assert result == {"status": "ok"}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: e24df017-a3a7-43e9-851a-fea336822345
+async def test_CoreApiClient_poll_refactor_run():
+    client = CoreApiClient.__new__(CoreApiClient)
+    expected = {"status": "completed", "run_id": "abc"}
+    mock_refactor = MagicMock()
+    mock_refactor.poll_refactor_run = AsyncMock(return_value=expected)
+    client.refactor = mock_refactor
+
+    result = await client.poll_refactor_run(run_id="abc")
+
+    assert result == expected
+    mock_refactor.poll_refactor_run.assert_awaited_once_with(run_id="abc")
