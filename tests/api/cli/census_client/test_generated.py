@@ -76,8 +76,6 @@ def test_CensusClient_poll_census_run():
     assert result == {"status": "complete", "run_id": "r1"}
 
 
-
-
 # ID: 32510256-4e40-46a1-907a-e459c2a629c5
 async def test_CensusClient_get_census_run():
     facade = AsyncMock()
@@ -89,3 +87,26 @@ async def test_CensusClient_get_census_run():
 
     facade._request.assert_awaited_once_with("GET", "/v1/census/runs/run-123")
     assert result == {"id": "run-123", "status": "completed"}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: e83331aa-5c82-459a-af54-5ad9de239135
+async def test_CensusClient_census_run():
+    facade = MagicMock()
+    facade._request = AsyncMock(
+        return_value={"run_id": "abc123", "status": "dispatched"}
+    )
+
+    client = CensusClient(facade)
+
+    result = await client.census_run(snapshot=True, requested_by="tester")
+
+    assert result == {"run_id": "abc123", "status": "dispatched"}
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/census/runs",
+        json={"snapshot": True, "requested_by": "tester"},
+    )
