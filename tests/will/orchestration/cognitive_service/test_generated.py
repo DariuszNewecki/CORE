@@ -46,7 +46,6 @@ async def test_CognitiveService_reload():
     init_mock.assert_awaited_once_with(session)
 
 
-
 import pytest
 
 
@@ -66,3 +65,21 @@ async def test_CognitiveService_get_embed_model_revision():
     assert result == "rev-abc123"
     service._require_ready.assert_called_once()
     mock_config.get.assert_awaited_once_with("embed_model.revision")
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 660d6a3e-8d54-4ab7-b810-bf24c8820f4f
+async def test_CognitiveService_aget_vectorizer_client() -> None:
+    service = CognitiveService(repo_path=Path("/tmp/repo"))
+
+    expected_client = MagicMock(name="vectorizer_llm_client")
+    service.aget_client_for_role = AsyncMock(return_value=expected_client)
+
+    result = await service.aget_vectorizer_client()
+
+    service.aget_client_for_role.assert_awaited_once_with("Vectorizer")
+    assert result is expected_client
