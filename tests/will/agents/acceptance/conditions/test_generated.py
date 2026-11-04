@@ -196,3 +196,28 @@ def test_IntentGuardAcceptanceCondition():
         component_type="test",
         target_path="tests/test_foo.py",
     )
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 5aef9db7-a839-4c2b-9f38-5c96b7ed782c
+async def test_AcceptanceCondition():
+    from will.agents.acceptance.conditions import AcceptanceCondition
+
+    class _StubCondition:
+        # ID: 319645ef-effd-4e67-adf2-64620f44d88b
+        async def evaluate(self, code: str):
+            return {"passed": True, "violation_summary": ""}
+
+    stub = _StubCondition()
+    stub.evaluate = AsyncMock(return_value={"passed": True, "violation_summary": ""})
+
+    assert isinstance(stub, AcceptanceCondition)
+
+    result = await stub.evaluate("def foo():\n    return 1\n")
+
+    stub.evaluate.assert_awaited_once_with("def foo():\n    return 1\n")
+    assert result == {"passed": True, "violation_summary": ""}
