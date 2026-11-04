@@ -121,8 +121,6 @@ def test_compute_production_set():
     ]
 
 
-
-
 # ID: 6eb6ff9e-7d1e-4dac-b2e1-67643b9a370d
 def test_commit_proposal_changes():
     from will.autonomy.proposal_execution_pipeline import commit_proposal_changes
@@ -168,3 +166,25 @@ def test_commit_proposal_changes():
         author="producer-identity",
     )
     mock_producer_identity.assert_called_once_with("some-producer")
+
+
+import pytest
+
+from will.autonomy.proposal_execution_pipeline import compute_changed_files
+
+
+@pytest.mark.asyncio
+# ID: 567a42b4-0a3c-4a7d-b09a-87d62cab8a0b
+async def test_compute_changed_files():
+    git_service = MagicMock()
+    git_service.diff_file_names = AsyncMock(return_value=["a.py", "b.py"])
+
+    result = await compute_changed_files(
+        git_service=git_service,
+        pre_sha="abc123",
+        post_sha="def456",
+        proposal_id="prop-1",
+    )
+
+    assert result == ["a.py", "b.py"]
+    git_service.diff_file_names.assert_awaited_once_with("abc123", "def456")
