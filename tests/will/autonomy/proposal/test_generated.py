@@ -187,3 +187,20 @@ def test_Proposal_to_dict():
     assert result["approval_authority"] is None
     assert result["failure_reason"] is None
     proposal.constraints_for_storage.assert_called_once()
+
+
+
+
+# ID: 0229f9c5-8fcd-4308-82fc-c9c29a4c16b6
+def test_Proposal_constraints_for_storage():
+    proposal = MagicMock(spec=Proposal)
+    proposal.constitutional_constraints = {"max_risk": "low"}
+    provenance = MagicMock()
+    provenance.to_dict = MagicMock(return_value={"source": "test"})
+    proposal.provenance = provenance
+
+    result = Proposal.constraints_for_storage(proposal)
+
+    assert result == {"max_risk": "low", "provenance": {"source": "test"}}
+    provenance.to_dict.assert_called_once()
+    assert proposal.constitutional_constraints == {"max_risk": "low"}
