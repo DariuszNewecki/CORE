@@ -724,9 +724,6 @@ async def test_CoreApiClient_analysis_test_targets() -> None:
     assert result == {"targets": ["tests/test_a.py"]}
 
 
-
-
-
 # ID: dcbfe048-6cf4-4ba3-8b58-b5e043ebb7bc
 async def test_CoreApiClient_analysis_command_tree() -> None:
     with patch(
@@ -743,3 +740,35 @@ async def test_CoreApiClient_analysis_command_tree() -> None:
 
     assert result == expected
     client.inspect.analysis_command_tree.assert_awaited_once_with("root", depth=2)
+
+
+
+import pytest
+
+
+# ID: c99c6399-e76e-4570-851f-f04418e7619a
+async def test_CoreApiClient_analysis_common_knowledge() -> None:
+    expected = {"knowledge": ["a", "b"]}
+
+    mock_inspect = MagicMock()
+    mock_inspect.analysis_common_knowledge = AsyncMock(return_value=expected)
+
+    with (
+        patch(
+            "api.cli.client.parse_base_url",
+            return_value=("http://localhost:8080", None),
+        ),
+        patch("api.cli.client.InspectClient", return_value=mock_inspect),
+        patch("api.cli.client.AuditClient", return_value=MagicMock()),
+        patch("api.cli.client.FixClient", return_value=MagicMock()),
+        patch("api.cli.client.QualityClient", return_value=MagicMock()),
+        patch("api.cli.client.CoverageClient", return_value=MagicMock()),
+        patch("api.cli.client.RefactorClient", return_value=MagicMock()),
+    ):
+        client = CoreApiClient(base_url="http://localhost:8080")
+
+    with patch.object(client, "inspect", mock_inspect):
+        result = await client.analysis_common_knowledge("arg1", key="value")
+
+    assert result == expected
+    mock_inspect.analysis_common_knowledge.assert_awaited_once_with("arg1", key="value")
