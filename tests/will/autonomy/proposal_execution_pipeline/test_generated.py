@@ -83,3 +83,39 @@ def test_CommitOutcome():
 
     assert isinstance(CommitOutcome.COMMITTED, str)
     assert len(list(CommitOutcome)) == 4
+
+
+from will.autonomy.proposal_execution_pipeline import compute_production_set
+
+
+# ID: e248409a-a084-4210-8b0b-f0fa71e0ae59
+def test_compute_production_set():
+    action_results = {
+        "action_a": {
+            "data": {
+                "_sandbox_target_paths": ["src/pkg/a.py", "src/pkg/b.py"],
+                "files_produced": ["src/pkg/c.py"],
+            }
+        },
+        "action_b": {
+            "data": {
+                "_sandbox_target_paths": ["src/pkg/b.py"],
+                "files_produced": ["src/pkg/d.py", ""],
+            }
+        },
+        "action_c": {
+            "data": {
+                "_sandbox_target_paths": ["src/pkg/a.py", 123, None],
+                "files_produced": [],
+            }
+        },
+    }
+
+    result = compute_production_set(action_results)
+
+    assert result == [
+        "src/pkg/a.py",
+        "src/pkg/b.py",
+        "src/pkg/c.py",
+        "src/pkg/d.py",
+    ]
