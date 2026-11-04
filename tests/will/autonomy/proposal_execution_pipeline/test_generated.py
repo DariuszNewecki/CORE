@@ -119,3 +119,52 @@ def test_compute_production_set():
         "src/pkg/c.py",
         "src/pkg/d.py",
     ]
+
+
+
+
+# ID: 6eb6ff9e-7d1e-4dac-b2e1-67643b9a370d
+def test_commit_proposal_changes():
+    from will.autonomy.proposal_execution_pipeline import commit_proposal_changes
+
+    git_service = MagicMock()
+    action_results = {
+        "action_1": {
+            "_sandbox_target_paths": ["src/foo.py"],
+            "files_produced": ["src/bar.py"],
+        }
+    }
+
+    with (
+        patch(
+            "will.autonomy.proposal_execution_pipeline.compute_production_set",
+            return_value=["src/foo.py", "src/bar.py"],
+        ) as mock_compute,
+        patch(
+            "will.autonomy.proposal_execution_pipeline.autonomous_identity",
+            return_value="core-identity",
+        ) as mock_autonomous_identity,
+        patch(
+            "will.autonomy.proposal_execution_pipeline.producer_identity",
+            return_value="producer-identity",
+        ) as mock_producer_identity,
+    ):
+        outcome = commit_proposal_changes(
+            git_service=git_service,
+            proposal_id="abcdef0123456789deadbeef",
+            proposal_goal="do the thing",
+            action_results=action_results,
+            producer="some-producer",
+        )
+
+    from will.autonomy.proposal_execution_pipeline import CommitOutcome
+
+    assert outcome == CommitOutcome.COMMITTED
+    mock_compute.assert_called_once_with(action_results)
+    git_service.commit_paths.assert_called_once_with(
+        ["src/foo.py", "src/bar.py"],
+        "fix(abcdef0123456789): do the thing",
+        identity="core-identity",
+        author="producer-identity",
+    )
+    mock_producer_identity.assert_called_once_with("some-producer")
