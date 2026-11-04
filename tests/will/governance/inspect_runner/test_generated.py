@@ -359,8 +359,6 @@ async def test_get_refusals():
     assert result == {"count": 0, "refusals": []}
 
 
-
-
 # ID: b20bc0cc-ff5b-4ac8-a811-c4bbf9f2b2da
 def test_get_decisions_patterns():
     from will.governance.inspect_runner import get_decisions_patterns
@@ -389,3 +387,43 @@ def test_get_decisions_patterns():
 
     assert result == {"days": 7, "patterns": summary}
     mock_repo.get_pattern_summary.assert_awaited_once_with(7)
+
+
+
+import pytest
+
+
+# ID: e3fbbcc7-4cef-4bc3-a189-98aa1041d40a
+async def test_get_decisions():
+    from will.governance.inspect_runner import get_decisions
+
+    fake_trace = MagicMock()
+
+    mock_repo = MagicMock()
+    mock_repo.get_recent_paginated = AsyncMock(return_value=([fake_trace], False, None))
+
+    mock_ctx = MagicMock()
+    mock_ctx.__aenter__ = AsyncMock(return_value=mock_repo)
+    mock_ctx.__aexit__ = AsyncMock(return_value=False)
+
+    with (
+        patch(
+            "will.governance.inspect_runner.DecisionTraceRepository.open",
+            return_value=mock_ctx,
+        ),
+        patch(
+            "will.governance.inspect_runner._trace_to_dict",
+            return_value={"pattern": "do-thing"},
+        ),
+    ):
+        result = await get_decisions(limit=10)
+
+    assert result["count"] == 1
+    assert result["has_more"] is False
+    assert result["next_cursor"] is None
+    assert result["traces"] == [{"pattern": "do-thing"}]
+    mock_repo.get_recent_paginated.assert_awaited_once_with(
+        limit=10,
+        after_cursor=None,
+        agent_name=None,
+    )
