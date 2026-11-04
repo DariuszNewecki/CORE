@@ -240,3 +240,49 @@ def test_consequence_finding_ids():
     }
     result = consequence_finding_ids(constraints)
     assert result == ["f1", "f2", "f3"]
+
+
+import pytest
+
+from will.autonomy.proposal_execution_pipeline import revive_deferred_findings_for_noop
+
+
+@pytest.mark.asyncio
+# ID: 43ca4fd7-12af-4f21-afc0-735f99915b90
+async def test_revive_deferred_findings_for_noop():
+    mock_config = MagicMock()
+    mock_config.blackboard.remediation_cap_n = 3
+
+    mock_bb_service = MagicMock()
+    mock_bb_service.revive_or_delegate_findings_for_noop_proposal = AsyncMock(
+        return_value={"revived_count": 2, "delegated_count": 1}
+    )
+
+    mock_registry = MagicMock()
+    mock_registry.get_blackboard_service = AsyncMock(return_value=mock_bb_service)
+
+    with (
+        patch(
+            "shared.infrastructure.intent.operational_config.load_operational_config",
+            return_value=mock_config,
+        ),
+        patch(
+            "body.services.service_registry.service_registry",
+            mock_registry,
+        ),
+        patch(
+            "will.autonomy.proposal_execution_pipeline.service_registry",
+            mock_registry,
+            create=True,
+        ),
+    ):
+        adjudicated, revival = await revive_deferred_findings_for_noop("proposal-123")
+
+    assert adjudicated is True
+    assert revival == {"revived_count": 2, "delegated_count": 1}
+    mock_bb_service.revive_or_delegate_findings_for_noop_proposal.assert_awaited_once()
+    call_kwargs = (
+        mock_bb_service.revive_or_delegate_findings_for_noop_proposal.await_args.kwargs
+    )
+    assert call_kwargs["proposal_id"] == "proposal-123"
+    assert call_kwargs["remediation_cap_n"] == 3
