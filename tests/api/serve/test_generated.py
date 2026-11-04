@@ -95,7 +95,6 @@ def test_bind_tcp_socket():
     assert result is fake_sock
 
 
-
 from api.serve import producer_socket
 
 
@@ -108,3 +107,27 @@ def test_producer_socket(tmp_path):
     assert result is fake_socket
     mock_bind.assert_called_once()
     assert mock_bind.call_args[0][0] == sock_path
+
+
+
+from api.serve import bind_unix_socket
+
+
+# ID: ce1e445c-c2cf-4121-84a6-902b907c33cf
+def test_bind_unix_socket(tmp_path: Path) -> None:
+    sock_path = tmp_path / "api.sock"
+
+    mock_sock = MagicMock()
+    mock_socket_module = MagicMock()
+    mock_socket_module.AF_UNIX = "AF_UNIX"
+    mock_socket_module.SOCK_STREAM = "SOCK_STREAM"
+    mock_socket_module.SOMAXCONN = 128
+    mock_socket_module.socket.return_value = mock_sock
+
+    with patch("api.serve.socket", mock_socket_module):
+        result = bind_unix_socket(sock_path)
+
+    mock_socket_module.socket.assert_called_once_with("AF_UNIX", "SOCK_STREAM")
+    mock_sock.bind.assert_called_once_with(str(sock_path))
+    mock_sock.listen.assert_called_once_with(128)
+    assert result is mock_sock
