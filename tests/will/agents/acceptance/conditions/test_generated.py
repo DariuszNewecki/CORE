@@ -167,3 +167,35 @@ async def test_IntentGuardAcceptanceCondition_evaluate():
     )
     assert result.accepted is True
     assert result.violation_summary == ""
+
+
+
+
+
+# ID: 4cea1866-d702-4903-a0e9-3ec02f9992c7
+def test_IntentGuardAcceptanceCondition():
+    repo_root = Path("/tmp/repo")
+    condition = IntentGuardAcceptanceCondition(
+        repo_root=repo_root, target_path="tests/test_foo.py", component_type="test"
+    )
+
+    mock_validation = MagicMock()
+    mock_validation.is_valid = True
+    mock_validation.violations = []
+
+    mock_guard = MagicMock()
+    mock_guard.validate_generated_code = MagicMock(return_value=mock_validation)
+
+    with patch(
+        "body.governance.intent_guard.get_intent_guard", return_value=mock_guard
+    ):
+        result = asyncio.run(condition.evaluate("def test_foo():\n    assert True\n"))
+
+    assert result.accepted is True
+    assert result.violation_summary == ""
+    mock_guard.validate_generated_code.assert_called_once_with(
+        code="def test_foo():\n    assert True\n",
+        pattern_id="test_file",
+        component_type="test",
+        target_path="tests/test_foo.py",
+    )
