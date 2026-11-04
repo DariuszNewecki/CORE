@@ -60,3 +60,23 @@ async def test_FixClient_fix_modularity():
         "/v1/fix/modularity",
         json={"write": True, "params": {"min_score": 0.5, "limit": 10}},
     )
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: bddf1f95-dbb8-49a4-a20d-5492a8e01e5c
+async def test_FixClient_fix_all() -> None:
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "ok", "fixed": 3})
+    client = FixClient(facade)
+
+    result = await client.fix_all(write=True)
+
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/fix/all",
+        json={"write": True},
+    )
+    assert result == {"status": "ok", "fixed": 3}
