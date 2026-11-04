@@ -309,7 +309,6 @@ def test_get_analysis_duplicates():
     assert result["note"] == "results emitted to logs"
 
 
-
 import pytest
 
 from will.governance.inspect_runner import get_refusals_stats
@@ -335,3 +334,26 @@ async def test_get_refusals_stats():
     }
     fake_repo.get_statistics.assert_awaited_once_with(days=7)
     fake_repo.count_by_type.assert_awaited_once_with(days=7)
+
+
+import pytest
+
+from will.governance.inspect_runner import get_refusals
+
+
+@pytest.mark.asyncio
+# ID: 1cf538d5-8a5d-46d7-813f-bc39c18db0b0
+async def test_get_refusals():
+    mock_repo = MagicMock()
+    mock_repo.get_recent = AsyncMock(return_value=[])
+    mock_repo.get_by_session = AsyncMock(return_value=[])
+    mock_repo.get_by_type = AsyncMock(return_value=[])
+
+    with patch(
+        "will.governance.inspect_runner.RefusalRepository",
+        return_value=mock_repo,
+    ):
+        result = await get_refusals(limit=10)
+
+    mock_repo.get_recent.assert_awaited_once_with(limit=10, refusal_type=None)
+    assert result == {"count": 0, "refusals": []}
