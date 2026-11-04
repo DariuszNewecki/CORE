@@ -155,3 +155,17 @@ def test_find_reap_candidates(tmp_path: Path) -> None:
     assert candidate.age_days > retention_days
     mock_size.assert_called_once_with(old_entry)
     assert mock_pinned.call_count == 3
+
+
+
+from will.workers.var_tmp_janitor import ReapCandidate
+
+
+# ID: b7289fb0-0114-476b-9a8b-31cba3f9c77f
+def test_ReapCandidate() -> None:
+    path = Path("/var/tmp/stale_entry")
+    candidate = ReapCandidate(path=path, age_days=12.5, size_bytes=4096)
+
+    assert candidate.path == path
+    assert candidate.age_days == 12.5
+    assert candidate.size_bytes == 4096
