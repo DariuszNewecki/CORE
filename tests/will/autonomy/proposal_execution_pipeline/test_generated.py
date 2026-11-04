@@ -188,3 +188,42 @@ async def test_compute_changed_files():
 
     assert result == ["a.py", "b.py"]
     git_service.diff_file_names.assert_awaited_once_with("abc123", "def456")
+
+
+import pytest
+
+from will.autonomy.proposal_execution_pipeline import record_consequence
+
+
+@pytest.mark.asyncio
+# ID: 14d8aa1a-f570-443d-b297-e388e963554f
+async def test_record_consequence():
+    mock_svc = MagicMock()
+    mock_svc.record = AsyncMock(return_value=None)
+
+    with patch(
+        "will.autonomy.proposal_execution_pipeline.service_registry.get_consequence_log_service",
+        new=AsyncMock(return_value=mock_svc),
+    ):
+        result = await record_consequence(
+            proposal_id="prop-123",
+            pre_sha="abc123",
+            post_sha="def456",
+            changed_files=["a.py", "b.py"],
+            finding_ids=["f1", "f2"],
+            policies=["rule-1"],
+            declared_production=["c.py"],
+            source="execution",
+        )
+
+    assert result is True
+    mock_svc.record.assert_awaited_once_with(
+        proposal_id="prop-123",
+        pre_execution_sha="abc123",
+        post_execution_sha="def456",
+        files_changed=[{"path": "a.py"}, {"path": "b.py"}],
+        findings_resolved=["f1", "f2"],
+        authorized_by_rules=["rule-1"],
+        declared_production=["c.py"],
+        consequence_source="execution",
+    )
