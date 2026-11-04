@@ -37,3 +37,26 @@ async def test_FixClient_fix_ir():
         json={"kind": "triage"},
     )
     assert result == {"ok": True, "path": "x.yaml"}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 18c8285c-815a-41e1-a07d-dfad406e4af0
+async def test_FixClient_fix_modularity():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True, "result": "done"})
+
+    client = FixClient(facade)
+
+    result = await client.fix_modularity(
+        write=True, params={"min_score": 0.5, "limit": 10}
+    )
+
+    assert result == {"ok": True, "result": "done"}
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/fix/modularity",
+        json={"write": True, "params": {"min_score": 0.5, "limit": 10}},
+    )
