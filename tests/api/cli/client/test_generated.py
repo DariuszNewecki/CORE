@@ -890,3 +890,28 @@ async def test_CoreApiClient_refusals_list():
 
     client.inspect.refusals_list.assert_awaited_once_with(limit=10, offset=0)
     assert result == expected
+
+
+
+
+
+# ID: 5937f00e-2f54-42c1-bb00-462fed1f4090
+async def test_CoreApiClient_decisions_patterns() -> None:
+    # Arrange: build the client without touching real I/O
+    with patch(
+        "api.cli.client.parse_base_url",
+        return_value=("http://localhost", None),
+    ):
+        client = CoreApiClient(base_url="http://localhost")
+
+    # Stub the external inspect service dependency
+    expected = {"patterns": ["p1", "p2"]}
+    client.inspect = MagicMock()
+    client.inspect.decisions_patterns = AsyncMock(return_value=expected)
+
+    # Act
+    result = await client.decisions_patterns(arg1="value", flag=True)
+
+    # Assert
+    assert result == expected
+    client.inspect.decisions_patterns.assert_awaited_once_with(arg1="value", flag=True)
