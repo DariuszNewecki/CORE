@@ -461,7 +461,6 @@ async def test_get_drift_status() -> None:
     context.qdrant_service.list_collections.assert_awaited_once()
 
 
-
 import pytest
 
 from will.governance.inspect_runner import get_db_status
@@ -482,4 +481,58 @@ async def test_get_db_status():
         "connected": True,
         "core_schema_tables": 7,
     }
+    assert session.execute.await_count == 2
+
+
+import datetime
+
+import pytest
+
+from will.governance.inspect_runner import get_spend
+
+
+@pytest.mark.asyncio
+# ID: 69a6c97e-c1b9-4589-99cf-d1456c636462
+async def test_get_spend():
+    by_role_rows = [
+        ("planner", "gpt-4o", 3, 100, 50, 0.30, 0),
+        ("executor", "gpt-4o-mini", 2, 20, 10, 0.02, 1),
+    ]
+    by_day_rows = [
+        (datetime.date(2024, 1, 2), 4, 0.25, 0),
+        (datetime.date(2024, 1, 1), 1, 0.07, 1),
+    ]
+
+    role_result = MagicMock()
+    role_result.fetchall.return_value = by_role_rows
+    day_result = MagicMock()
+    day_result.fetchall.return_value = by_day_rows
+
+    session = MagicMock()
+    session.execute = AsyncMock(side_effect=[role_result, day_result])
+
+    result = await get_spend(session, days=7)
+
+    assert result["days"] == 7
+    assert result["calls"] == 5
+    assert result["unpriced"] == 1
+    assert result["usd"] == pytest.approx(0.32)
+
+    assert result["by_role_model"][0] == {
+        "role": "planner",
+        "model": "gpt-4o",
+        "calls": 3,
+        "prompt_tokens": 100,
+        "completion_tokens": 50,
+        "usd": pytest.approx(0.30),
+        "usd_per_call": pytest.approx(0.10),
+        "unpriced": 0,
+    }
+    assert result["by_role_model"][1]["usd_per_call"] == pytest.approx(0.01)
+
+    assert result["by_day"] == [
+        {"day": "2024-01-02", "calls": 4, "usd": pytest.approx(0.25), "unpriced": 0},
+        {"day": "2024-01-01", "calls": 1, "usd": pytest.approx(0.07), "unpriced": 1},
+    ]
+
     assert session.execute.await_count == 2
