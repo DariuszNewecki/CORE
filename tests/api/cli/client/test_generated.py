@@ -934,3 +934,20 @@ async def test_CoreApiClient_decisions_list():
 
     assert result == expected
     mock_inspect.decisions_list.assert_awaited_once_with(limit=10)
+
+
+
+
+
+# ID: c65e8688-8cc3-4573-b42c-9b2d60b89ae6
+def test_CoreApiClient_status_drift():
+    with patch("api.cli.client.InspectClient", MagicMock()):
+        client = CoreApiClient(base_url="http://localhost:8000")
+
+        expected = {"drift": []}
+        client.inspect.status_drift = AsyncMock(return_value=expected)
+
+        result = asyncio.run(client.status_drift(foo="bar"))
+
+        assert result == expected
+        client.inspect.status_drift.assert_awaited_once_with(foo="bar")
