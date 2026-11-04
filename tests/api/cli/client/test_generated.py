@@ -773,9 +773,6 @@ async def test_CoreApiClient_analysis_common_knowledge() -> None:
     mock_inspect.analysis_common_knowledge.assert_awaited_once_with("arg1", key="value")
 
 
-
-
-
 # ID: 471aa5c8-5e75-47be-a7ee-4ecc3fe55fac
 async def test_CoreApiClient_analysis_duplicates():
     with patch(
@@ -813,3 +810,19 @@ async def test_CoreApiClient_analysis_duplicates():
 
     assert result == expected
     client.inspect.analysis_duplicates.assert_awaited_once_with(path="src", min_lines=5)
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: fa1a08ef-4d1d-4314-b59a-6eb4390c3c6f
+async def test_CoreApiClient_analysis_clusters():
+    client = CoreApiClient(base_url="http://localhost:8000")
+    client.inspect.analysis_clusters = AsyncMock(return_value={"clusters": []})
+
+    result = await client.analysis_clusters(limit=5)
+
+    assert result == {"clusters": []}
+    client.inspect.analysis_clusters.assert_awaited_once_with(limit=5)
