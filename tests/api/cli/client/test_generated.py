@@ -936,9 +936,6 @@ async def test_CoreApiClient_decisions_list():
     mock_inspect.decisions_list.assert_awaited_once_with(limit=10)
 
 
-
-
-
 # ID: c65e8688-8cc3-4573-b42c-9b2d60b89ae6
 def test_CoreApiClient_status_drift():
     with patch("api.cli.client.InspectClient", MagicMock()):
@@ -951,3 +948,18 @@ def test_CoreApiClient_status_drift():
 
         assert result == expected
         client.inspect.status_drift.assert_awaited_once_with(foo="bar")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 13f5ecd9-dce2-45f3-ae5c-759603a62e9b
+async def test_CoreApiClient_status_db():
+    client = CoreApiClient(base_url="http://localhost:8000")
+    client.inspect.status_db = AsyncMock(return_value={"status": "ok"})
+
+    result = await client.status_db(foo="bar")
+
+    client.inspect.status_db.assert_awaited_once_with(foo="bar")
+    assert result == {"status": "ok"}
