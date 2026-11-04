@@ -307,3 +307,31 @@ def test_get_analysis_duplicates():
     assert result["ok"] is True
     assert result["threshold"] == threshold
     assert result["note"] == "results emitted to logs"
+
+
+
+import pytest
+
+from will.governance.inspect_runner import get_refusals_stats
+
+
+@pytest.mark.asyncio
+# ID: 172b682a-7017-4961-bea1-e5af615f1eb6
+async def test_get_refusals_stats():
+    fake_repo = MagicMock()
+    fake_repo.get_statistics = AsyncMock(return_value={"total": 5})
+    fake_repo.count_by_type = AsyncMock(return_value={"policy": 3, "safety": 2})
+
+    with patch(
+        "will.governance.inspect_runner.RefusalRepository",
+        return_value=fake_repo,
+    ):
+        result = await get_refusals_stats(days=7)
+
+    assert result == {
+        "days": 7,
+        "stats": {"total": 5},
+        "counts_by_type": {"policy": 3, "safety": 2},
+    }
+    fake_repo.get_statistics.assert_awaited_once_with(days=7)
+    fake_repo.count_by_type.assert_awaited_once_with(days=7)
