@@ -189,8 +189,6 @@ def test_Proposal_to_dict():
     proposal.constraints_for_storage.assert_called_once()
 
 
-
-
 # ID: 0229f9c5-8fcd-4308-82fc-c9c29a4c16b6
 def test_Proposal_constraints_for_storage():
     proposal = MagicMock(spec=Proposal)
@@ -204,3 +202,42 @@ def test_Proposal_constraints_for_storage():
     assert result == {"max_risk": "low", "provenance": {"source": "test"}}
     provenance.to_dict.assert_called_once()
     assert proposal.constitutional_constraints == {"max_risk": "low"}
+
+
+
+
+
+# ID: da1c7404-f663-40dc-9a8a-ac4cf3a63255
+def test_Proposal_compute_risk() -> None:
+    proposal = Proposal.__new__(Proposal)
+
+    action = MagicMock()
+    action.action_id = "act-1"
+    action.flow_id = None
+    proposal.actions = [action]
+
+    scope = MagicMock()
+    scope.files = ["a.py", "b.py"]
+    proposal.scope = scope
+
+    mock_registry = MagicMock()
+    mock_registry.get = MagicMock(return_value=object())
+
+    mock_risk_mapping = {"act-1": "safe"}
+
+    with (
+        patch("body.atomic.registry.action_registry", mock_registry),
+        patch(
+            "shared.infrastructure.intent.action_risk.load_action_risk",
+            return_value=mock_risk_mapping,
+        ),
+        patch("will.autonomy.proposal._resolve_impact", return_value="safe"),
+    ):
+        risk = proposal.compute_risk()
+
+    assert risk.overall_risk == "safe"
+    assert risk.action_risks == {"act-1": "safe"}
+    assert risk.risk_factors == []
+    assert risk.mitigation == []
+    assert proposal.risk is risk
+    assert proposal.approval_required == risk.requires_approval()
