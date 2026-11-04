@@ -56,8 +56,6 @@ def test_main(tmp_path):
     server_instance.run.assert_called_once_with(sockets=[tcp_sock, unix_sock])
 
 
-
-
 # ID: 6f0e07e1-cb6f-40de-92b8-d99307a9c260
 def test_build_config():
     from api.serve import build_config
@@ -74,3 +72,25 @@ def test_build_config():
             log_level="debug",
         )
         assert result is mock_config
+
+
+
+from api.serve import bind_tcp_socket
+
+
+# ID: 4cfa5b67-4743-4548-9959-801379cf764a
+def test_bind_tcp_socket():
+    fake_sock = MagicMock()
+
+    with patch("api.serve.socket.socket", return_value=fake_sock) as mock_socket:
+        result = bind_tcp_socket("127.0.0.1", 8080)
+
+    mock_socket.assert_called_once_with(
+        __import__("socket").AF_INET, __import__("socket").SOCK_STREAM
+    )
+    fake_sock.setsockopt.assert_called_once_with(
+        __import__("socket").SOL_SOCKET, __import__("socket").SO_REUSEADDR, 1
+    )
+    fake_sock.bind.assert_called_once_with(("127.0.0.1", 8080))
+    fake_sock.listen.assert_called_once_with(__import__("socket").SOMAXCONN)
+    assert result is fake_sock
