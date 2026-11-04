@@ -983,8 +983,6 @@ async def test_CoreApiClient_poll_refactor_run():
     mock_refactor.poll_refactor_run.assert_awaited_once_with(run_id="abc")
 
 
-
-
 # ID: f7613c18-83a5-445a-9e5c-b74ddb41df0c
 def test_CoreApiClient_get_refactor_run():
     from api.cli.client import CoreApiClient
@@ -1023,3 +1021,25 @@ def test_CoreApiClient_get_refactor_run():
 
     assert result == expected
     client.refactor.get_refactor_run.assert_awaited_once_with(run_id="run-123")
+
+
+import pytest
+
+
+# ID: 6ad09fa5-b1dc-4261-bcae-9811a2d45f4f
+async def test_CoreApiClient_refactor_autonomous():
+    from api.cli.client import CoreApiClient
+
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost:8000", None)
+    ):
+        obj = CoreApiClient(base_url="http://localhost:8000")
+
+    fake_result = {"status": "ok", "refactors": []}
+    obj.refactor = MagicMock()
+    obj.refactor.refactor_autonomous = AsyncMock(return_value=fake_result)
+
+    result = await obj.refactor_autonomous("repo", dry_run=True)
+
+    obj.refactor.refactor_autonomous.assert_awaited_once_with("repo", dry_run=True)
+    assert result == fake_result
