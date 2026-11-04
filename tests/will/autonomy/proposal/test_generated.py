@@ -271,9 +271,6 @@ def test_Proposal_check_submission():
     provenance.problems.assert_called_once_with()
 
 
-
-
-
 # ID: 26f0546b-a4e1-4f28-9d9b-37f08d552392
 def test_Proposal_validate():
     proposal = Proposal.__new__(Proposal)
@@ -287,3 +284,46 @@ def test_Proposal_validate():
     proposal.check_submission.assert_called_once_with()
     assert is_valid is True
     assert errors == []
+
+
+
+
+
+# ID: dd0dd37e-d284-4936-a7b4-6faab6f7e73b
+def test_Proposal() -> None:
+    from will.autonomy.proposal import ProposalAction, ProposalScope, RiskAssessment
+
+    scope = ProposalScope(files=["src/will/autonomy/proposal.py"])
+    actions = [
+        ProposalAction(action_id="act-1", parameters={}, order=0),
+    ]
+    risk = RiskAssessment(
+        overall_risk="moderate",
+        action_risks={"act-1": "moderate"},
+        risk_factors=["Contains moderate-impact actions"],
+        mitigation=["Automated pre-flight checks"],
+    )
+    provenance = MagicMock()
+    provenance.to_dict.return_value = {"anchor": "x"}
+
+    proposal = Proposal(
+        goal="Test goal",
+        actions=actions,
+        scope=scope,
+        risk=risk,
+        provenance=provenance,
+    )
+
+    assert proposal.goal == "Test goal"
+    assert proposal.actions == actions
+    assert proposal.scope is scope
+    assert proposal.risk is risk
+    assert proposal.created_by == "autonomous"
+
+    storage = proposal.constraints_for_storage()
+    assert storage["provenance"] == {"anchor": "x"}
+
+    data = proposal.to_dict()
+    assert data["goal"] == "Test goal"
+    assert data["risk"]["overall_risk"] == "moderate"
+    assert data["status"] == proposal.status.value
