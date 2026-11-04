@@ -29,9 +29,6 @@ async def test_CognitiveService_aget_client_for_role():
     )
 
 
-
-
-
 # ID: fdbd3e42-eff0-45b9-876a-d20b18e254df
 async def test_CognitiveService_reload():
     service = CognitiveService(repo_path=Path("/tmp/repo"))
@@ -47,3 +44,42 @@ async def test_CognitiveService_reload():
 
     assert service._loaded is False
     init_mock.assert_awaited_once_with(session)
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 4744184c-684b-4b79-a33b-8097dde3c662
+async def test_CognitiveService_get_embed_model_revision():
+    service = CognitiveService(repo_path=Path("/tmp/repo"))
+
+    mock_config = MagicMock()
+    mock_config.get = AsyncMock(return_value="rev-abc123")
+    service._config = mock_config
+
+    service._require_ready = MagicMock(return_value=None)
+
+    result = await service.get_embed_model_revision()
+
+    assert result == "rev-abc123"
+    service._require_ready.assert_called_once()
+    mock_config.get.assert_awaited_once_with("embed_model.revision")
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 660d6a3e-8d54-4ab7-b810-bf24c8820f4f
+async def test_CognitiveService_aget_vectorizer_client() -> None:
+    service = CognitiveService(repo_path=Path("/tmp/repo"))
+
+    expected_client = MagicMock(name="vectorizer_llm_client")
+    service.aget_client_for_role = AsyncMock(return_value=expected_client)
+
+    result = await service.aget_vectorizer_client()
+
+    service.aget_client_for_role.assert_awaited_once_with("Vectorizer")
+    assert result is expected_client

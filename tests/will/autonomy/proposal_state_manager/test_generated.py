@@ -141,3 +141,25 @@ def test_ProposalNotFoundError():
     assert isinstance(exc, Exception)
     assert exc.args == (message,)
     assert str(exc) == message
+
+
+
+
+# ID: e06de2f8-91eb-42ba-90a6-7119d35d15bc
+async def test_ProposalStateManager_mark_completed():
+    from will.autonomy.proposal_state_manager import ProposalStateManager
+
+    session = MagicMock()
+    execute_result = MagicMock()
+    execute_result.rowcount = 1
+    session.execute = AsyncMock(return_value=execute_result)
+    session.commit = AsyncMock()
+
+    manager = ProposalStateManager(session)
+
+    with patch("will.autonomy.proposal_state_manager.logger") as mock_logger:
+        await manager.mark_completed("prop-123")
+
+    session.execute.assert_awaited_once()
+    session.commit.assert_awaited_once()
+    mock_logger.info.assert_called_once()

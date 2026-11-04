@@ -144,3 +144,27 @@ def test_OnboardRequest():
     assert request.path == "/tmp/example.py"
     assert request.write is False
     assert request.stage is False
+
+
+
+
+@pytest.mark.asyncio
+# ID: 5d13334e-e3db-462c-8b62-f050fe3b71ef
+async def test_promote_onboard():
+    body = MagicMock()
+    body.path = "/tmp/target_repo"
+
+    request = MagicMock()
+    core_context = MagicMock()
+    request.app.state.core_context = core_context
+
+    with patch(
+        "cli.logic.byor.promote_staged",
+        new=AsyncMock(return_value=None),
+    ) as mock_promote:
+        result = await promote_onboard(body=body, request=request)
+
+    mock_promote.assert_awaited_once_with(
+        context=core_context, path=Path(body.path).resolve()
+    )
+    assert result == {"path": str(Path(body.path).resolve()), "promoted": True}

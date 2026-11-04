@@ -307,3 +307,339 @@ def test_get_analysis_duplicates():
     assert result["ok"] is True
     assert result["threshold"] == threshold
     assert result["note"] == "results emitted to logs"
+
+
+import pytest
+
+from will.governance.inspect_runner import get_refusals_stats
+
+
+@pytest.mark.asyncio
+# ID: 172b682a-7017-4961-bea1-e5af615f1eb6
+async def test_get_refusals_stats():
+    fake_repo = MagicMock()
+    fake_repo.get_statistics = AsyncMock(return_value={"total": 5})
+    fake_repo.count_by_type = AsyncMock(return_value={"policy": 3, "safety": 2})
+
+    with patch(
+        "will.governance.inspect_runner.RefusalRepository",
+        return_value=fake_repo,
+    ):
+        result = await get_refusals_stats(days=7)
+
+    assert result == {
+        "days": 7,
+        "stats": {"total": 5},
+        "counts_by_type": {"policy": 3, "safety": 2},
+    }
+    fake_repo.get_statistics.assert_awaited_once_with(days=7)
+    fake_repo.count_by_type.assert_awaited_once_with(days=7)
+
+
+import pytest
+
+from will.governance.inspect_runner import get_refusals
+
+
+@pytest.mark.asyncio
+# ID: 1cf538d5-8a5d-46d7-813f-bc39c18db0b0
+async def test_get_refusals():
+    mock_repo = MagicMock()
+    mock_repo.get_recent = AsyncMock(return_value=[])
+    mock_repo.get_by_session = AsyncMock(return_value=[])
+    mock_repo.get_by_type = AsyncMock(return_value=[])
+
+    with patch(
+        "will.governance.inspect_runner.RefusalRepository",
+        return_value=mock_repo,
+    ):
+        result = await get_refusals(limit=10)
+
+    mock_repo.get_recent.assert_awaited_once_with(limit=10, refusal_type=None)
+    assert result == {"count": 0, "refusals": []}
+
+
+# ID: b20bc0cc-ff5b-4ac8-a811-c4bbf9f2b2da
+def test_get_decisions_patterns():
+    from will.governance.inspect_runner import get_decisions_patterns
+
+    summary = {
+        "some_pattern": {
+            "count": 3,
+            "violations": 1,
+            "success_rate": 0.66,
+            "decisions": ["d1", "d2"],
+        }
+    }
+
+    mock_repo = MagicMock()
+    mock_repo.get_pattern_summary = AsyncMock(return_value=summary)
+
+    mock_open = MagicMock()
+    mock_open.return_value.__aenter__ = AsyncMock(return_value=mock_repo)
+    mock_open.return_value.__aexit__ = AsyncMock(return_value=False)
+
+    with patch(
+        "will.governance.inspect_runner.DecisionTraceRepository.open",
+        mock_open,
+    ):
+        result = asyncio.run(get_decisions_patterns(days=7))
+
+    assert result == {"days": 7, "patterns": summary}
+    mock_repo.get_pattern_summary.assert_awaited_once_with(7)
+
+
+import pytest
+
+
+# ID: e3fbbcc7-4cef-4bc3-a189-98aa1041d40a
+async def test_get_decisions():
+    from will.governance.inspect_runner import get_decisions
+
+    fake_trace = MagicMock()
+
+    mock_repo = MagicMock()
+    mock_repo.get_recent_paginated = AsyncMock(return_value=([fake_trace], False, None))
+
+    mock_ctx = MagicMock()
+    mock_ctx.__aenter__ = AsyncMock(return_value=mock_repo)
+    mock_ctx.__aexit__ = AsyncMock(return_value=False)
+
+    with (
+        patch(
+            "will.governance.inspect_runner.DecisionTraceRepository.open",
+            return_value=mock_ctx,
+        ),
+        patch(
+            "will.governance.inspect_runner._trace_to_dict",
+            return_value={"pattern": "do-thing"},
+        ),
+    ):
+        result = await get_decisions(limit=10)
+
+    assert result["count"] == 1
+    assert result["has_more"] is False
+    assert result["next_cursor"] is None
+    assert result["traces"] == [{"pattern": "do-thing"}]
+    mock_repo.get_recent_paginated.assert_awaited_once_with(
+        limit=10,
+        after_cursor=None,
+        agent_name=None,
+    )
+
+
+import pytest
+
+from will.governance.inspect_runner import get_drift_status
+
+
+@pytest.mark.asyncio
+# ID: 585e6d42-03e6-49a1-8c15-9724048449b0
+async def test_get_drift_status() -> None:
+    context = MagicMock()
+    context.qdrant_service = MagicMock()
+    context.qdrant_service.list_collections = AsyncMock(
+        return_value=["coll_a", "coll_b"]
+    )
+
+    drift_result = {"total_violations": 0, "drifted": []}
+    mock_run_drift = AsyncMock(return_value=drift_result)
+
+    with patch(
+        "body.introspection.drift_service.run_drift_analysis_async",
+        mock_run_drift,
+    ):
+        result = await get_drift_status(context, scope="all")
+
+    assert result["scope"] == "all"
+    assert result["symbols"] == drift_result
+    assert result["vectors"]["available"] is True
+    assert result["vectors"]["collections"] == ["coll_a", "coll_b"]
+    assert result["vectors"]["count"] == 2
+    assert result["guard"]["available"] is False
+    mock_run_drift.assert_awaited_once()
+    context.qdrant_service.list_collections.assert_awaited_once()
+
+
+import pytest
+
+from will.governance.inspect_runner import get_db_status
+
+
+@pytest.mark.asyncio
+# ID: 081ab475-0898-437a-b724-1d54b39111e6
+async def test_get_db_status():
+    session = MagicMock()
+    scalar_result = MagicMock()
+    scalar_result.scalar_one = MagicMock(return_value=7)
+    session.execute = AsyncMock(side_effect=[MagicMock(), scalar_result])
+
+    result = await get_db_status(session)
+
+    assert result == {
+        "ok": True,
+        "connected": True,
+        "core_schema_tables": 7,
+    }
+    assert session.execute.await_count == 2
+
+
+import datetime
+
+import pytest
+
+from will.governance.inspect_runner import get_spend
+
+
+@pytest.mark.asyncio
+# ID: 69a6c97e-c1b9-4589-99cf-d1456c636462
+async def test_get_spend():
+    by_role_rows = [
+        ("planner", "gpt-4o", 3, 100, 50, 0.30, 0),
+        ("executor", "gpt-4o-mini", 2, 20, 10, 0.02, 1),
+    ]
+    by_day_rows = [
+        (datetime.date(2024, 1, 2), 4, 0.25, 0),
+        (datetime.date(2024, 1, 1), 1, 0.07, 1),
+    ]
+
+    role_result = MagicMock()
+    role_result.fetchall.return_value = by_role_rows
+    day_result = MagicMock()
+    day_result.fetchall.return_value = by_day_rows
+
+    session = MagicMock()
+    session.execute = AsyncMock(side_effect=[role_result, day_result])
+
+    result = await get_spend(session, days=7)
+
+    assert result["days"] == 7
+    assert result["calls"] == 5
+    assert result["unpriced"] == 1
+    assert result["usd"] == pytest.approx(0.32)
+
+    assert result["by_role_model"][0] == {
+        "role": "planner",
+        "model": "gpt-4o",
+        "calls": 3,
+        "prompt_tokens": 100,
+        "completion_tokens": 50,
+        "usd": pytest.approx(0.30),
+        "usd_per_call": pytest.approx(0.10),
+        "unpriced": 0,
+    }
+    assert result["by_role_model"][1]["usd_per_call"] == pytest.approx(0.01)
+
+    assert result["by_day"] == [
+        {"day": "2024-01-02", "calls": 4, "usd": pytest.approx(0.25), "unpriced": 0},
+        {"day": "2024-01-01", "calls": 1, "usd": pytest.approx(0.07), "unpriced": 1},
+    ]
+
+    assert session.execute.await_count == 2
+
+
+# ID: 8f797677-d771-439d-b1be-7c6908596589
+def test_telemetry_patterns():
+    from will.governance.inspect_runner import telemetry_patterns
+
+    prefixes = ["telemetry.", "metrics."]
+    fake_config = MagicMock()
+    fake_config.blackboard.telemetry_subject_prefixes = prefixes
+
+    expected = ["telemetry.%", "metrics.%"]
+
+    with (
+        patch(
+            "shared.infrastructure.intent.operational_config.load_operational_config",
+            return_value=fake_config,
+        ),
+        patch(
+            "body.services.thesis.measure.telemetry_like_patterns",
+            return_value=expected,
+        ) as mock_patterns,
+    ):
+        result = telemetry_patterns()
+
+    assert result == expected
+    mock_patterns.assert_called_once_with(tuple(prefixes))
+
+
+import datetime as _dt
+
+from will.governance.inspect_runner import get_health
+
+
+# ID: c4da132d-b1ed-42a4-ba8a-dcb3e5d5ab5b
+def test_get_health() -> None:
+    created = _dt.datetime(2024, 1, 1, 12, 0, 0)
+
+    part_rows = [
+        [("finding", "open", 3)],
+        [("rule.foo::x", created, 120)],
+        [("proposal.stuck", 2, 60)],
+        [("pending", 1, 30)],
+        [(10, 4, 2, 1)],
+        [("rule.foo", 5, 3, 2, 1)],
+    ]
+
+    result_mocks = []
+    for rows in part_rows:
+        res = MagicMock()
+        res.fetchall = MagicMock(return_value=rows)
+        result_mocks.append(res)
+
+    exec_mock = AsyncMock(side_effect=result_mocks)
+    session = MagicMock()
+    session.execute = exec_mock
+
+    begin_nested_cm = MagicMock()
+    begin_nested_cm.__aenter__ = AsyncMock(return_value=None)
+    begin_nested_cm.__aexit__ = AsyncMock(return_value=False)
+    session.begin_nested = MagicMock(return_value=begin_nested_cm)
+
+    fake_status = {"workers": [{"name": "w1", "age_sec": 5}]}
+    get_status_mock = AsyncMock(return_value=fake_status)
+
+    with (
+        patch("will.governance.daemon_runner.get_status", get_status_mock),
+        patch(
+            "will.governance.inspect_runner.telemetry_patterns",
+            MagicMock(return_value=["audit.violation::%"]),
+        ),
+    ):
+        health = asyncio.run(get_health(session))
+
+    get_status_mock.assert_awaited_once_with(None)
+
+    assert health["workers"] == fake_status
+    assert health["blackboard"] == [
+        {"entry_type": "finding", "status": "open", "count": 3}
+    ]
+    assert health["oldest_open_finding"] == {
+        "subject": "rule.foo::x",
+        "created_at": created.isoformat(),
+        "age_sec": 120,
+    }
+    assert health["stuck"] == [
+        {"signal": "proposal.stuck", "open": 2, "oldest_age_sec": 60}
+    ]
+    assert health["proposals"] == [
+        {"status": "pending", "count": 1, "oldest_age_sec": 30}
+    ]
+    assert health["last_7_days"] == {
+        "findings_created": 10,
+        "findings_resolved": 4,
+        "findings_abandoned": 2,
+        "telemetry_excluded": 1,
+    }
+    assert health["last_7_days_by_rule"] == [
+        {
+            "rule": "rule.foo",
+            "findings_created": 5,
+            "subjects_created": 3,
+            "findings_resolved": 2,
+            "findings_abandoned": 1,
+        }
+    ]
+    assert exec_mock.await_count == 6
+    assert session.begin_nested.call_count == 6

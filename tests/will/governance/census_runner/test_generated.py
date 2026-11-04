@@ -80,8 +80,6 @@ def test_list_baselines() -> None:
     baseline_b.model_dump.assert_called_once_with(mode="json")
 
 
-
-
 # ID: 26b296e4-d01b-4d52-a8a4-6f29d46f5907
 def test_create_baseline():
     from will.governance.census_runner import create_baseline
@@ -123,3 +121,49 @@ def test_create_baseline():
     call_kwargs = mock_manager.set_baseline.call_args.kwargs
     assert call_kwargs["name"] == "my-baseline"
     assert call_kwargs["snapshot_file"] == "snapshot-001.json"
+
+
+from unittest.mock import AsyncMock
+from uuid import UUID
+
+import pytest
+
+from will.governance.census_runner import run_and_persist_census
+
+
+@pytest.mark.asyncio
+# ID: a0601f8c-161d-4b73-b95d-56b8c21a652c
+async def test_run_and_persist_census() -> None:
+    run_id = UUID("12345678-1234-5678-1234-567812345678")
+
+    context = MagicMock()
+    context.git_service.repo_path = "/tmp/repo"
+
+    session = MagicMock()
+
+    census = MagicMock()
+    census.model_dump.return_value = {"files": 3}
+
+    mock_service = MagicMock()
+    mock_service.run_census.return_value = census
+
+    with (
+        patch("will.governance.census_runner.CensusService", return_value=mock_service),
+        patch(
+            "will.governance.census_runner._update_census_run_status",
+            new=AsyncMock(),
+        ) as mock_update,
+    ):
+        await run_and_persist_census(context, session, run_id=run_id, snapshot=False)
+
+    mock_service.run_census.assert_called_once_with(repo_path="/tmp/repo")
+
+    assert mock_update.await_count == 2
+    first_call = mock_update.await_args_list[0]
+    assert first_call.args[2] == "executing"
+    assert first_call.kwargs.get("started") is True
+
+    last_call = mock_update.await_args_list[-1]
+    assert last_call.args[2] == "completed"
+    assert last_call.kwargs.get("finished") is True
+    assert last_call.kwargs.get("result") == {"files": 3}

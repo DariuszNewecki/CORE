@@ -88,3 +88,66 @@ def test_ModularityRemediationService_remediate_batch():
     develop_mock.assert_awaited_once()
     # write=False => conservation gate not evaluated.
     validator_mock.evaluate.assert_not_awaited()
+
+
+import asyncio
+
+
+# ID: ed9a1fb4-ac4f-49d6-ac76-e6bda5532c07
+def test_ModularityRemediationService(tmp_path: Path) -> None:
+    src_root = tmp_path / "src"
+    src_root.mkdir()
+    target_file = src_root / "example.py"
+    target_file.write_text("def foo():\n    return 1\n", encoding="utf-8")
+
+    context = MagicMock()
+    context.git_service.repo_path = tmp_path
+    context.file_handler.write_runtime_text = MagicMock()
+
+    mock_loader = MagicMock()
+    mock_loader.load_all_mappings.return_value = {
+        "rule_modularity": {"parameters": {"max_score": 42.0}},
+    }
+
+    mock_checker = MagicMock()
+    mock_checker.check_refactor_score.return_value = [
+        {"details": {"total_score": 88.0}},
+    ]
+
+    mock_validator = MagicMock()
+    mock_validator.evaluate = AsyncMock(return_value=MagicMock(ok=True, data={}))
+
+    with (
+        patch(
+            "will.self_healing.modularity_remediation_service.EnforcementMappingLoader",
+            return_value=mock_loader,
+        ),
+        patch(
+            "will.self_healing.modularity_remediation_service.ModularityChecker",
+            return_value=mock_checker,
+        ),
+        patch(
+            "will.self_healing.modularity_remediation_service.LogicConservationValidator",
+            return_value=mock_validator,
+        ),
+        patch(
+            "will.self_healing.modularity_remediation_service.develop_from_goal",
+            new=AsyncMock(return_value=(True, "refactored")),
+        ),
+        patch(
+            "will.self_healing.modularity_remediation_service.intent_root_for",
+            return_value=tmp_path / "intent",
+        ),
+    ):
+        service = ModularityRemediationService(context)
+        service._get_source_files = MagicMock(return_value=[target_file])
+        assert service.threshold == 42.0
+
+        results = asyncio.run(service.remediate_batch(min_score=10.0, write=False))
+
+    assert len(results) == 1
+    result = results[0]
+    assert result["file"] == "src/example.py"
+    assert result["original_score"] == 88.0
+    assert result["success"] is True
+    assert result["message"] == "refactored"
