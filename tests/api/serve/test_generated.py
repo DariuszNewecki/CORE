@@ -54,3 +54,23 @@ def test_main(tmp_path):
     mock_build_config.assert_called_once_with("api.main:app", log_level="info")
     mock_server_cls.assert_called_once_with(config)
     server_instance.run.assert_called_once_with(sockets=[tcp_sock, unix_sock])
+
+
+
+
+# ID: 6f0e07e1-cb6f-40de-92b8-d99307a9c260
+def test_build_config():
+    from api.serve import build_config
+
+    with patch("api.serve.uvicorn") as mock_uvicorn:
+        mock_config = MagicMock()
+        mock_uvicorn.Config.return_value = mock_config
+
+        result = build_config(app="api.main:app", log_level="debug")
+
+        mock_uvicorn.Config.assert_called_once_with(
+            "api.main:app",
+            http=build_config.__globals__["PeerCredH11Protocol"],
+            log_level="debug",
+        )
+        assert result is mock_config
