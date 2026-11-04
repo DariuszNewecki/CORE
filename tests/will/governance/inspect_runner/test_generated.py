@@ -536,3 +536,31 @@ async def test_get_spend():
     ]
 
     assert session.execute.await_count == 2
+
+
+
+
+# ID: 8f797677-d771-439d-b1be-7c6908596589
+def test_telemetry_patterns():
+    from will.governance.inspect_runner import telemetry_patterns
+
+    prefixes = ["telemetry.", "metrics."]
+    fake_config = MagicMock()
+    fake_config.blackboard.telemetry_subject_prefixes = prefixes
+
+    expected = ["telemetry.%", "metrics.%"]
+
+    with (
+        patch(
+            "shared.infrastructure.intent.operational_config.load_operational_config",
+            return_value=fake_config,
+        ),
+        patch(
+            "body.services.thesis.measure.telemetry_like_patterns",
+            return_value=expected,
+        ) as mock_patterns,
+    ):
+        result = telemetry_patterns()
+
+    assert result == expected
+    mock_patterns.assert_called_once_with(tuple(prefixes))
