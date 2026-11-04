@@ -981,3 +981,45 @@ async def test_CoreApiClient_poll_refactor_run():
 
     assert result == expected
     mock_refactor.poll_refactor_run.assert_awaited_once_with(run_id="abc")
+
+
+
+
+# ID: f7613c18-83a5-445a-9e5c-b74ddb41df0c
+def test_CoreApiClient_get_refactor_run():
+    from api.cli.client import CoreApiClient
+
+    with patch.multiple(
+        "api.cli.client",
+        AuditClient=MagicMock(),
+        FixClient=MagicMock(),
+        QualityClient=MagicMock(),
+        CoverageClient=MagicMock(),
+        RefactorClient=MagicMock(),
+        InspectClient=MagicMock(),
+        ProposalsClient=MagicMock(),
+        IntegrationClient=MagicMock(),
+        CensusClient=MagicMock(),
+        CognitiveRolesClient=MagicMock(),
+        SyncClient=MagicMock(),
+        DaemonClient=MagicMock(),
+        FindingsClient=MagicMock(),
+        IntegrityClient=MagicMock(),
+        LaneClient=MagicMock(),
+        LlmResourcesClient=MagicMock(),
+        SecretsClient=MagicMock(),
+        SymbolsClient=MagicMock(),
+        VectorsClient=MagicMock(),
+        ProjectClient=MagicMock(),
+        parse_base_url=MagicMock(return_value=("http://localhost", None)),
+    ):
+        client = CoreApiClient(base_url="http://localhost")
+
+    expected = {"run_id": "run-123", "status": "completed"}
+    client.refactor = MagicMock()
+    client.refactor.get_refactor_run = AsyncMock(return_value=expected)
+
+    result = asyncio.run(client.get_refactor_run(run_id="run-123"))
+
+    assert result == expected
+    client.refactor.get_refactor_run.assert_awaited_once_with(run_id="run-123")
