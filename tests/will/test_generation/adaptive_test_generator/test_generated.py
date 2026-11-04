@@ -75,3 +75,51 @@ async def test_AdaptiveTestGenerator_generate_tests_for_file():
         "/tmp/session", {"summary": "ok"}
     )
     generator._empty_fail.assert_not_called()
+
+
+# ID: 85b29739-7e6b-499b-9d6f-19b777303f35
+def test_AdaptiveTestGenerator():
+    from unittest.mock import MagicMock, patch
+
+    from will.test_generation.adaptive_test_generator import AdaptiveTestGenerator
+
+    mock_context = MagicMock()
+    mock_context.git_service.repo_path = "/tmp/repo"
+
+    mock_session = MagicMock()
+    mock_session.session_dir = "/tmp/repo/.session"
+
+    with (
+        patch(
+            "will.test_generation.adaptive_test_generator.FileService"
+        ) as mock_file_service,
+        patch(
+            "will.test_generation.adaptive_test_generator.TestGenArtifactStore"
+        ) as mock_artifact_store_cls,
+        patch(
+            "will.test_generation.adaptive_test_generator.ParsePhase"
+        ) as mock_parse_phase_cls,
+        patch(
+            "will.test_generation.adaptive_test_generator.LoadPhase"
+        ) as mock_load_phase_cls,
+        patch("will.test_generation.adaptive_test_generator.TestExecutor"),
+        patch("will.test_generation.adaptive_test_generator.PythonOutputNormalizer"),
+        patch("will.test_generation.adaptive_test_generator.GeneratedTestValidator"),
+        patch("will.test_generation.adaptive_test_generator.PytestSandboxRunner"),
+        patch("will.test_generation.adaptive_test_generator.TestPersistenceService"),
+        patch(
+            "will.test_generation.adaptive_test_generator.ConstitutionalTestPromptBuilder"
+        ),
+        patch("will.test_generation.adaptive_test_generator.GenerationPhase"),
+        patch("will.test_generation.adaptive_test_generator.TestStrategist"),
+        patch("will.test_generation.adaptive_test_generator.FailureEvaluator"),
+    ):
+        mock_artifact_store_cls.return_value.start_session.return_value = mock_session
+
+        generator = AdaptiveTestGenerator(context=mock_context)
+
+        assert generator.context is mock_context
+        assert generator.session_dir == "/tmp/repo/.session"
+        mock_artifact_store_cls.return_value.start_session.assert_called_once()
+        mock_parse_phase_cls.assert_called_once_with(mock_context)
+        mock_load_phase_cls.assert_called_once_with(mock_context)
