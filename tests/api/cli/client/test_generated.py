@@ -827,9 +827,6 @@ async def test_CoreApiClient_analysis_clusters():
     client.inspect.analysis_clusters.assert_awaited_once_with(limit=5)
 
 
-
-
-
 # ID: 74989f89-03cb-4e84-b0ba-f9d4e73fdf37
 async def test_CoreApiClient_refusals_stats():
     fake_inspect = MagicMock()
@@ -872,3 +869,24 @@ async def test_CoreApiClient_refusals_stats():
 
     assert result == expected
     fake_inspect.refusals_stats.assert_awaited_once_with(limit=10, since="2024-01-01")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 53f67299-2765-40ed-b048-fd5cfe641a59
+async def test_CoreApiClient_refusals_list():
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost:8000", None)
+    ):
+        client = CoreApiClient(base_url="http://localhost:8000")
+
+    expected = {"refusals": [], "total": 0}
+    client.inspect = MagicMock()
+    client.inspect.refusals_list = AsyncMock(return_value=expected)
+
+    result = await client.refusals_list(limit=10, offset=0)
+
+    client.inspect.refusals_list.assert_awaited_once_with(limit=10, offset=0)
+    assert result == expected
