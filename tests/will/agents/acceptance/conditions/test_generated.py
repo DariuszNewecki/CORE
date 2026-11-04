@@ -198,7 +198,6 @@ def test_IntentGuardAcceptanceCondition():
     )
 
 
-
 import pytest
 
 
@@ -221,3 +220,20 @@ async def test_AcceptanceCondition():
 
     stub.evaluate.assert_awaited_once_with("def foo():\n    return 1\n")
     assert result == {"passed": True, "violation_summary": ""}
+
+
+
+from will.agents.acceptance.conditions import AcceptanceCondition
+
+
+# ID: 36e48bb7-b2da-4e43-bb20-4d066ecb4660
+async def test_AcceptanceCondition_evaluate():
+    condition = MagicMock(spec=AcceptanceCondition)
+
+    expected = MagicMock()
+    condition.evaluate = AsyncMock(return_value=expected)
+
+    result = await condition.evaluate("print('hello')")
+
+    condition.evaluate.assert_awaited_once_with("print('hello')")
+    assert result is expected
