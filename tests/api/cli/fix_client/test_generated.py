@@ -82,9 +82,6 @@ async def test_FixClient_fix_all() -> None:
     assert result == {"status": "ok", "fixed": 3}
 
 
-
-
-
 # ID: 6be185b5-5a51-4c8b-bf05-f1f8fa61a26f
 async def test_FixClient_run_fix() -> None:
     facade = MagicMock()
@@ -99,3 +96,19 @@ async def test_FixClient_run_fix() -> None:
         json={"target_files": ["a.py"], "write": True, "params": {}},
     )
     assert result == {"ok": True, "fix_id": "docstrings"}
+
+
+import asyncio
+
+
+# ID: 9424e246-5767-4bd0-b035-2b22ee404d40
+def test_FixClient_list_actions():
+    facade = AsyncMock()
+    expected = {"actions": [{"name": "noop"}]}
+    facade._request = AsyncMock(return_value=expected)
+
+    client = FixClient(facade)
+    result = asyncio.run(client.list_actions())
+
+    assert result == expected
+    facade._request.assert_awaited_once_with("GET", "/v1/actions")
