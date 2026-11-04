@@ -428,7 +428,6 @@ async def test_get_decisions():
     )
 
 
-
 import pytest
 
 from will.governance.inspect_runner import get_drift_status
@@ -460,3 +459,27 @@ async def test_get_drift_status() -> None:
     assert result["guard"]["available"] is False
     mock_run_drift.assert_awaited_once()
     context.qdrant_service.list_collections.assert_awaited_once()
+
+
+
+import pytest
+
+from will.governance.inspect_runner import get_db_status
+
+
+@pytest.mark.asyncio
+# ID: 081ab475-0898-437a-b724-1d54b39111e6
+async def test_get_db_status():
+    session = MagicMock()
+    scalar_result = MagicMock()
+    scalar_result.scalar_one = MagicMock(return_value=7)
+    session.execute = AsyncMock(side_effect=[MagicMock(), scalar_result])
+
+    result = await get_db_status(session)
+
+    assert result == {
+        "ok": True,
+        "connected": True,
+        "core_schema_tables": 7,
+    }
+    assert session.execute.await_count == 2
