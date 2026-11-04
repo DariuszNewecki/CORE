@@ -204,9 +204,6 @@ def test_Proposal_constraints_for_storage():
     assert proposal.constitutional_constraints == {"max_risk": "low"}
 
 
-
-
-
 # ID: da1c7404-f663-40dc-9a8a-ac4cf3a63255
 def test_Proposal_compute_risk() -> None:
     proposal = Proposal.__new__(Proposal)
@@ -241,3 +238,34 @@ def test_Proposal_compute_risk() -> None:
     assert risk.mitigation == []
     assert proposal.risk is risk
     assert proposal.approval_required == risk.requires_approval()
+
+
+# ID: 8c54d354-6683-46dd-bfa6-c95da08d1107
+def test_Proposal_check_submission():
+    from unittest.mock import MagicMock
+
+    from will.autonomy.proposal import Proposal
+
+    proposal = Proposal.__new__(Proposal)
+
+    proposal.goal = "Do the thing"
+
+    action = MagicMock()
+    action.ref_kind = "action"
+    action.ref_id = "some.action"
+    action.validate_exists = MagicMock(return_value=True)
+    proposal.actions = [action]
+
+    scope = MagicMock()
+    scope.files = ["src/will/autonomy/proposal.py"]
+    proposal.scope = scope
+
+    provenance = MagicMock()
+    provenance.problems = MagicMock(return_value=[])
+    proposal.provenance = provenance
+
+    errors = Proposal.check_submission(proposal)
+
+    assert errors == []
+    action.validate_exists.assert_called_once_with()
+    provenance.problems.assert_called_once_with()
