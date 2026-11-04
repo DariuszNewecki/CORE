@@ -538,8 +538,6 @@ async def test_get_spend():
     assert session.execute.await_count == 2
 
 
-
-
 # ID: 8f797677-d771-439d-b1be-7c6908596589
 def test_telemetry_patterns():
     from will.governance.inspect_runner import telemetry_patterns
@@ -564,3 +562,84 @@ def test_telemetry_patterns():
 
     assert result == expected
     mock_patterns.assert_called_once_with(tuple(prefixes))
+
+
+import datetime as _dt
+
+from will.governance.inspect_runner import get_health
+
+
+# ID: c4da132d-b1ed-42a4-ba8a-dcb3e5d5ab5b
+def test_get_health() -> None:
+    created = _dt.datetime(2024, 1, 1, 12, 0, 0)
+
+    part_rows = [
+        [("finding", "open", 3)],
+        [("rule.foo::x", created, 120)],
+        [("proposal.stuck", 2, 60)],
+        [("pending", 1, 30)],
+        [(10, 4, 2, 1)],
+        [("rule.foo", 5, 3, 2, 1)],
+    ]
+
+    result_mocks = []
+    for rows in part_rows:
+        res = MagicMock()
+        res.fetchall = MagicMock(return_value=rows)
+        result_mocks.append(res)
+
+    exec_mock = AsyncMock(side_effect=result_mocks)
+    session = MagicMock()
+    session.execute = exec_mock
+
+    begin_nested_cm = MagicMock()
+    begin_nested_cm.__aenter__ = AsyncMock(return_value=None)
+    begin_nested_cm.__aexit__ = AsyncMock(return_value=False)
+    session.begin_nested = MagicMock(return_value=begin_nested_cm)
+
+    fake_status = {"workers": [{"name": "w1", "age_sec": 5}]}
+    get_status_mock = AsyncMock(return_value=fake_status)
+
+    with (
+        patch("will.governance.daemon_runner.get_status", get_status_mock),
+        patch(
+            "will.governance.inspect_runner.telemetry_patterns",
+            MagicMock(return_value=["audit.violation::%"]),
+        ),
+    ):
+        health = asyncio.run(get_health(session))
+
+    get_status_mock.assert_awaited_once_with(None)
+
+    assert health["workers"] == fake_status
+    assert health["blackboard"] == [
+        {"entry_type": "finding", "status": "open", "count": 3}
+    ]
+    assert health["oldest_open_finding"] == {
+        "subject": "rule.foo::x",
+        "created_at": created.isoformat(),
+        "age_sec": 120,
+    }
+    assert health["stuck"] == [
+        {"signal": "proposal.stuck", "open": 2, "oldest_age_sec": 60}
+    ]
+    assert health["proposals"] == [
+        {"status": "pending", "count": 1, "oldest_age_sec": 30}
+    ]
+    assert health["last_7_days"] == {
+        "findings_created": 10,
+        "findings_resolved": 4,
+        "findings_abandoned": 2,
+        "telemetry_excluded": 1,
+    }
+    assert health["last_7_days_by_rule"] == [
+        {
+            "rule": "rule.foo",
+            "findings_created": 5,
+            "subjects_created": 3,
+            "findings_resolved": 2,
+            "findings_abandoned": 1,
+        }
+    ]
+    assert exec_mock.await_count == 6
+    assert session.begin_nested.call_count == 6
