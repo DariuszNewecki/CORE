@@ -96,3 +96,40 @@ async def test_PytestAcceptanceCondition_evaluate() -> None:
     assert call_args.kwargs["source_file"] == "src/pkg/module.py"
     assert call_args.kwargs["target_path"] == "tests/test_module.py"
     assert "def test_example" in call_args.kwargs["candidate_content"]
+
+
+
+
+
+# ID: 829285fc-a339-4702-9416-7ee8dc56c0ac
+async def test_PytestAcceptanceCondition() -> None:
+    from shared.protocols.executor import ActionExecutorProtocol
+
+    executor = MagicMock(spec=ActionExecutorProtocol)
+    executor.execute = AsyncMock(return_value=MagicMock(ok=True, data={}))
+
+    condition = PytestAcceptanceCondition(
+        executor=executor,
+        source_file="src/pkg/mod.py",
+        target_path="tests/test_mod.py",
+        base_content="def existing():\n    return 1\n",
+    )
+
+    with patch(
+        "will.agents.acceptance.conditions.strip_leading_future_imports",
+        return_value="def test_mod():\n    assert True\n",
+    ):
+        result = await condition.evaluate(
+            "from __future__ import annotations\n\n\ndef test_mod():\n    assert True\n"
+        )
+
+    assert result.accepted is True
+    assert result.violation_summary == ""
+    executor.execute.assert_awaited_once()
+    call_args, call_kwargs = executor.execute.await_args
+    assert call_args[0] == "test.candidate_validate"
+    assert call_kwargs["write"] is False
+    assert call_kwargs["source_file"] == "src/pkg/mod.py"
+    assert call_kwargs["target_path"] == "tests/test_mod.py"
+    assert "def test_mod():" in call_kwargs["candidate_content"]
+    assert "def existing():" in call_kwargs["candidate_content"]
