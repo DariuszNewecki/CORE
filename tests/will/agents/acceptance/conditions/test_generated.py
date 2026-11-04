@@ -98,9 +98,6 @@ async def test_PytestAcceptanceCondition_evaluate() -> None:
     assert "def test_example" in call_args.kwargs["candidate_content"]
 
 
-
-
-
 # ID: 829285fc-a339-4702-9416-7ee8dc56c0ac
 async def test_PytestAcceptanceCondition() -> None:
     from shared.protocols.executor import ActionExecutorProtocol
@@ -133,3 +130,40 @@ async def test_PytestAcceptanceCondition() -> None:
     assert call_kwargs["target_path"] == "tests/test_mod.py"
     assert "def test_mod():" in call_kwargs["candidate_content"]
     assert "def existing():" in call_kwargs["candidate_content"]
+
+
+from pathlib import Path
+
+from will.agents.acceptance.conditions import IntentGuardAcceptanceCondition
+
+
+# ID: ecda5bc1-96a0-446c-8019-0080306d1b9f
+async def test_IntentGuardAcceptanceCondition_evaluate():
+    condition = IntentGuardAcceptanceCondition(
+        repo_root=Path("/tmp/repo"),
+        target_path="tests/test_example.py",
+        component_type="test",
+    )
+
+    mock_validation = MagicMock()
+    mock_validation.is_valid = True
+    mock_validation.violations = []
+
+    mock_guard = MagicMock()
+    mock_guard.validate_generated_code = MagicMock(return_value=mock_validation)
+
+    with patch(
+        "body.governance.intent_guard.get_intent_guard",
+        return_value=mock_guard,
+    ) as mock_get_guard:
+        result = await condition.evaluate("def test_foo():\n    assert True\n")
+
+    mock_get_guard.assert_called_once_with(repo_path=Path("/tmp/repo"))
+    mock_guard.validate_generated_code.assert_called_once_with(
+        code="def test_foo():\n    assert True\n",
+        pattern_id="test_file",
+        component_type="test",
+        target_path="tests/test_example.py",
+    )
+    assert result.accepted is True
+    assert result.violation_summary == ""
