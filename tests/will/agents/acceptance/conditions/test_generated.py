@@ -222,7 +222,6 @@ async def test_AcceptanceCondition():
     assert result == {"passed": True, "violation_summary": ""}
 
 
-
 from will.agents.acceptance.conditions import AcceptanceCondition
 
 
@@ -237,3 +236,23 @@ async def test_AcceptanceCondition_evaluate():
 
     condition.evaluate.assert_awaited_once_with("print('hello')")
     assert result is expected
+
+
+from will.agents.acceptance.conditions import AcceptanceResult
+
+
+# ID: 962a788f-f86b-468e-8cc2-c3fd433038db
+def test_AcceptanceResult():
+    result = AcceptanceResult(accepted=True, violation_summary="ok")
+    assert result.accepted is True
+    assert result.violation_summary == "ok"
+    assert result.violations == []
+
+    detailed = AcceptanceResult(
+        accepted=False,
+        violation_summary="missing import",
+        violations=["missing import at line 3"],
+    )
+    assert detailed.accepted is False
+    assert detailed.violation_summary == "missing import"
+    assert detailed.violations == ["missing import at line 3"]
