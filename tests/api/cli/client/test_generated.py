@@ -892,9 +892,6 @@ async def test_CoreApiClient_refusals_list():
     assert result == expected
 
 
-
-
-
 # ID: 5937f00e-2f54-42c1-bb00-462fed1f4090
 async def test_CoreApiClient_decisions_patterns() -> None:
     # Arrange: build the client without touching real I/O
@@ -915,3 +912,25 @@ async def test_CoreApiClient_decisions_patterns() -> None:
     # Assert
     assert result == expected
     client.inspect.decisions_patterns.assert_awaited_once_with(arg1="value", flag=True)
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: bdc2ff37-4972-45da-9ca3-cd5da6b25e2b
+async def test_CoreApiClient_decisions_list():
+    expected = {"decisions": [{"id": 1, "title": "test decision"}]}
+
+    with patch("api.cli.client.InspectClient", MagicMock()) as mock_inspect_cls:
+        mock_inspect = MagicMock()
+        mock_inspect.decisions_list = AsyncMock(return_value=expected)
+        mock_inspect_cls.return_value = mock_inspect
+
+        client = CoreApiClient(base_url="http://localhost:8080")
+        client.inspect = mock_inspect
+
+        result = await client.decisions_list(limit=10)
+
+    assert result == expected
+    mock_inspect.decisions_list.assert_awaited_once_with(limit=10)
