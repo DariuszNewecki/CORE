@@ -58,8 +58,6 @@ async def test_CanaryJanitorWorker_run():
     assert payload["sample"] == ["a", "b"]
 
 
-
-
 # ID: 58dc9ca3-7479-4227-99dc-b9e1e488e4c2
 def test_CanaryJanitorWorker():
     from will.workers.canary_janitor import CanaryJanitorWorker
@@ -105,3 +103,42 @@ def test_CanaryJanitorWorker():
     _, report_payload = worker.post_report.await_args.args
     assert report_payload["reaped"] == 2
     assert report_payload["reclaimed_bytes"] == 300
+
+
+import time
+
+from will.workers.canary_janitor import find_stale_sandboxes
+
+
+# ID: 5b886c1a-816f-4357-9611-cab24507f75e
+def test_find_stale_sandboxes(tmp_path):
+    canary_root = tmp_path / "canary"
+    canary_root.mkdir()
+
+    stale = canary_root / "sandbox_stale"
+    stale.mkdir()
+    fresh = canary_root / "sandbox_fresh"
+    fresh.mkdir()
+    other = canary_root / "not_a_sandbox"
+    other.mkdir()
+
+    old = time.time() - 10000
+    recent = time.time() - 10
+    for name, mtime in (
+        ("sandbox_stale", old),
+        ("sandbox_fresh", recent),
+        ("not_a_sandbox", old),
+    ):
+        import os
+
+        os.utime(canary_root / name, (mtime, mtime))
+
+    with patch("will.workers.canary_janitor._entry_size", return_value=42):
+        result = find_stale_sandboxes(
+            canary_root, now_ts=time.time(), retention_seconds=1000
+        )
+
+    assert len(result) == 1
+    assert result[0].path == stale
+    assert result[0].age_seconds > 1000
+    assert result[0].size_bytes == 42
