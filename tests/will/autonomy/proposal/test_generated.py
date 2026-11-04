@@ -269,3 +269,21 @@ def test_Proposal_check_submission():
     assert errors == []
     action.validate_exists.assert_called_once_with()
     provenance.problems.assert_called_once_with()
+
+
+
+
+
+# ID: 26f0546b-a4e1-4f28-9d9b-37f08d552392
+def test_Proposal_validate():
+    proposal = Proposal.__new__(Proposal)
+    proposal.check_submission = MagicMock(return_value=[])
+    proposal.risk = MagicMock()
+    proposal.risk.overall_risk = "low"
+    proposal.approved_by = []
+
+    is_valid, errors = Proposal.validate(proposal)
+
+    proposal.check_submission.assert_called_once_with()
+    assert is_valid is True
+    assert errors == []
