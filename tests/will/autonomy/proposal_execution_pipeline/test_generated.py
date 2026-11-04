@@ -227,3 +227,16 @@ async def test_record_consequence():
         declared_production=["c.py"],
         consequence_source="execution",
     )
+
+
+from will.autonomy.proposal_execution_pipeline import consequence_finding_ids
+
+
+# ID: 4287d9b4-44b3-4718-8b9a-650545bb1d45
+def test_consequence_finding_ids():
+    constraints = {
+        "finding_ids": ["f1", "f2"],
+        "addressed_finding_ids": ["f2", "f3"],
+    }
+    result = consequence_finding_ids(constraints)
+    assert result == ["f1", "f2", "f3"]
