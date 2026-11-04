@@ -742,7 +742,6 @@ async def test_CoreApiClient_analysis_command_tree() -> None:
     client.inspect.analysis_command_tree.assert_awaited_once_with("root", depth=2)
 
 
-
 import pytest
 
 
@@ -772,3 +771,45 @@ async def test_CoreApiClient_analysis_common_knowledge() -> None:
 
     assert result == expected
     mock_inspect.analysis_common_knowledge.assert_awaited_once_with("arg1", key="value")
+
+
+
+
+
+# ID: 471aa5c8-5e75-47be-a7ee-4ecc3fe55fac
+async def test_CoreApiClient_analysis_duplicates():
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost", None)
+    ):
+        for client_attr in (
+            "AuditClient",
+            "FixClient",
+            "QualityClient",
+            "CoverageClient",
+            "RefactorClient",
+            "InspectClient",
+            "ProposalsClient",
+            "IntegrationClient",
+            "CensusClient",
+            "CognitiveRolesClient",
+            "SyncClient",
+            "DaemonClient",
+            "FindingsClient",
+            "IntegrityClient",
+            "LaneClient",
+            "LlmResourcesClient",
+            "SecretsClient",
+            "SymbolsClient",
+            "VectorsClient",
+            "ProjectClient",
+        ):
+            with patch(f"api.cli.client.{client_attr}", MagicMock()):
+                client = CoreApiClient(base_url="http://localhost:8000")
+
+    expected = {"duplicates": [], "count": 0}
+    client.inspect.analysis_duplicates = AsyncMock(return_value=expected)
+
+    result = await client.analysis_duplicates(path="src", min_lines=5)
+
+    assert result == expected
+    client.inspect.analysis_duplicates.assert_awaited_once_with(path="src", min_lines=5)
