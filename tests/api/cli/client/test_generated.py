@@ -812,7 +812,6 @@ async def test_CoreApiClient_analysis_duplicates():
     client.inspect.analysis_duplicates.assert_awaited_once_with(path="src", min_lines=5)
 
 
-
 import pytest
 
 
@@ -826,3 +825,50 @@ async def test_CoreApiClient_analysis_clusters():
 
     assert result == {"clusters": []}
     client.inspect.analysis_clusters.assert_awaited_once_with(limit=5)
+
+
+
+
+
+# ID: 74989f89-03cb-4e84-b0ba-f9d4e73fdf37
+async def test_CoreApiClient_refusals_stats():
+    fake_inspect = MagicMock()
+    fake_clients = [
+        "AuditClient",
+        "FixClient",
+        "QualityClient",
+        "CoverageClient",
+        "RefactorClient",
+        "ProposalsClient",
+        "IntegrationClient",
+        "CensusClient",
+        "CognitiveRolesClient",
+        "SyncClient",
+        "DaemonClient",
+        "FindingsClient",
+        "IntegrityClient",
+        "LaneClient",
+        "LlmResourcesClient",
+        "SecretsClient",
+        "SymbolsClient",
+        "VectorsClient",
+        "ProjectClient",
+    ]
+
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost", "socket")
+    ):
+        with patch("api.cli.client.InspectClient", return_value=fake_inspect):
+            with patch.multiple(
+                "api.cli.client",
+                **{name: MagicMock() for name in fake_clients},
+            ):
+                client = CoreApiClient(base_url="http://localhost:8080")
+
+    expected = {"total": 5, "stats": []}
+    fake_inspect.refusals_stats = AsyncMock(return_value=expected)
+
+    result = await client.refusals_stats(limit=10, since="2024-01-01")
+
+    assert result == expected
+    fake_inspect.refusals_stats.assert_awaited_once_with(limit=10, since="2024-01-01")
