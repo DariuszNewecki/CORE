@@ -389,7 +389,6 @@ def test_get_decisions_patterns():
     mock_repo.get_pattern_summary.assert_awaited_once_with(7)
 
 
-
 import pytest
 
 
@@ -427,3 +426,37 @@ async def test_get_decisions():
         after_cursor=None,
         agent_name=None,
     )
+
+
+
+import pytest
+
+from will.governance.inspect_runner import get_drift_status
+
+
+@pytest.mark.asyncio
+# ID: 585e6d42-03e6-49a1-8c15-9724048449b0
+async def test_get_drift_status() -> None:
+    context = MagicMock()
+    context.qdrant_service = MagicMock()
+    context.qdrant_service.list_collections = AsyncMock(
+        return_value=["coll_a", "coll_b"]
+    )
+
+    drift_result = {"total_violations": 0, "drifted": []}
+    mock_run_drift = AsyncMock(return_value=drift_result)
+
+    with patch(
+        "body.introspection.drift_service.run_drift_analysis_async",
+        mock_run_drift,
+    ):
+        result = await get_drift_status(context, scope="all")
+
+    assert result["scope"] == "all"
+    assert result["symbols"] == drift_result
+    assert result["vectors"]["available"] is True
+    assert result["vectors"]["collections"] == ["coll_a", "coll_b"]
+    assert result["vectors"]["count"] == 2
+    assert result["guard"]["available"] is False
+    mock_run_drift.assert_awaited_once()
+    context.qdrant_service.list_collections.assert_awaited_once()
