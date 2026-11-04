@@ -80,3 +80,22 @@ async def test_FixClient_fix_all() -> None:
         json={"write": True},
     )
     assert result == {"status": "ok", "fixed": 3}
+
+
+
+
+
+# ID: 6be185b5-5a51-4c8b-bf05-f1f8fa61a26f
+async def test_FixClient_run_fix() -> None:
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"ok": True, "fix_id": "docstrings"})
+    client = FixClient(facade)
+
+    result = await client.run_fix("docstrings", target_files=["a.py"], write=True)
+
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/fix/run/docstrings",
+        json={"target_files": ["a.py"], "write": True, "params": {}},
+    )
+    assert result == {"ok": True, "fix_id": "docstrings"}
