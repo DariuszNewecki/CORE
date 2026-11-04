@@ -169,9 +169,6 @@ async def test_IntentGuardAcceptanceCondition_evaluate():
     assert result.violation_summary == ""
 
 
-
-
-
 # ID: 4cea1866-d702-4903-a0e9-3ec02f9992c7
 def test_IntentGuardAcceptanceCondition():
     repo_root = Path("/tmp/repo")
