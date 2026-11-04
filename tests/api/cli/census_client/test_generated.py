@@ -33,7 +33,6 @@ async def test_CensusClient_census_list_baselines():
     assert result == {"baselines": ["default", "experimental"]}
 
 
-
 import pytest
 
 
@@ -55,3 +54,23 @@ async def test_CensusClient_census_create_baseline() -> None:
         json={"snapshot_file": "snap.json"},
     )
     assert result == {"name": "my-baseline", "id": "b1"}
+
+
+import asyncio
+
+
+# ID: d67649aa-a390-4854-96e4-87c74a90348c
+def test_CensusClient_poll_census_run():
+    facade = MagicMock()
+    facade._poll_at_path = AsyncMock(
+        return_value={"status": "complete", "run_id": "r1"}
+    )
+
+    client = CensusClient(facade)
+
+    result = asyncio.run(client.poll_census_run("r1"))
+
+    facade._poll_at_path.assert_awaited_once_with(
+        "/v1/census/runs/r1", timeout_seconds=1800.0
+    )
+    assert result == {"status": "complete", "run_id": "r1"}
