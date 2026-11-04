@@ -722,3 +722,24 @@ async def test_CoreApiClient_analysis_test_targets() -> None:
 
     mock_inspect.analysis_test_targets.assert_awaited_once_with(path="src", depth=2)
     assert result == {"targets": ["tests/test_a.py"]}
+
+
+
+
+
+# ID: dcbfe048-6cf4-4ba3-8b58-b5e043ebb7bc
+async def test_CoreApiClient_analysis_command_tree() -> None:
+    with patch(
+        "api.cli.client.parse_base_url",
+        return_value=("http://localhost", "/tmp/socket"),
+    ):
+        client = CoreApiClient(base_url="http://localhost:8080")
+
+    expected = {"tree": ["a", "b"]}
+    client.inspect = MagicMock()
+    client.inspect.analysis_command_tree = AsyncMock(return_value=expected)
+
+    result = await client.analysis_command_tree("root", depth=2)
+
+    assert result == expected
+    client.inspect.analysis_command_tree.assert_awaited_once_with("root", depth=2)
