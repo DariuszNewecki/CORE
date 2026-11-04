@@ -192,3 +192,92 @@ def test_NormalizedFinding():
     assert finding.dry_run is True
     assert finding.raw_payload == {}
     assert finding.raw_context == {}
+
+
+from unittest.mock import MagicMock
+
+
+# ID: d68d4495-6360-4462-bad2-d3436cacdf0c
+def test_ReasoningBrief():
+    file_role = MagicMock()
+    file_role.role_id = "role-1"
+    file_role.layer = "domain"
+    file_role.confidence = 0.9
+    file_role.evidence = ("e1", "e2")
+
+    finding = MagicMock()
+    finding.finding_id = "f1"
+    finding.rule_id = "rule-1"
+    finding.rule_namespace = "ns"
+    finding.file_path = "src/a.py"
+    finding.line_number = 10
+    finding.message = "msg"
+    finding.severity = "high"
+
+    cluster = MagicMock()
+    cluster.name = "cluster"
+    cluster.summary = "summary"
+    cluster.evidence = ["ev"]
+    cluster.symbols = ["sym"]
+
+    strategy = MagicMock()
+    strategy.strategy_id = "s1"
+    strategy.summary = "split"
+    strategy.rationale = "because"
+    strategy.risk_level = "low"
+    strategy.preserves_contract = True
+    strategy.evidence = ["se"]
+    strategy.score = 0.8
+
+    brief = ReasoningBrief(
+        file_path="src/a.py",
+        file_role=file_role,
+        findings=[finding],
+        responsibility_clusters=[cluster],
+        candidate_strategies=[strategy],
+        recommended_strategy=strategy,
+        constraints=["c1"],
+        architectural_notes=["note"],
+    )
+
+    result = brief.to_dict()
+
+    assert result["file_path"] == "src/a.py"
+    assert result["file_role"] == {
+        "role_id": "role-1",
+        "layer": "domain",
+        "confidence": 0.9,
+        "evidence": ["e1", "e2"],
+    }
+    assert result["findings"] == [
+        {
+            "finding_id": "f1",
+            "rule_id": "rule-1",
+            "rule_namespace": "ns",
+            "file_path": "src/a.py",
+            "line_number": 10,
+            "message": "msg",
+            "severity": "high",
+        }
+    ]
+    assert result["responsibility_clusters"] == [
+        {
+            "name": "cluster",
+            "summary": "summary",
+            "evidence": ["ev"],
+            "symbols": ["sym"],
+        }
+    ]
+    expected_strategy = {
+        "strategy_id": "s1",
+        "summary": "split",
+        "rationale": "because",
+        "risk_level": "low",
+        "preserves_contract": True,
+        "evidence": ["se"],
+        "score": 0.8,
+    }
+    assert result["candidate_strategies"] == [expected_strategy]
+    assert result["recommended_strategy"] == expected_strategy
+    assert result["constraints"] == ["c1"]
+    assert result["architectural_notes"] == ["note"]
