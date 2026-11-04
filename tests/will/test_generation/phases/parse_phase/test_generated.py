@@ -24,3 +24,23 @@ async def test_ParsePhase_execute(tmp_path):
     assert result is True
     mock_logger.info.assert_called_once()
     mock_logger.error.assert_not_called()
+
+
+import asyncio
+
+
+# ID: 76b8b1ee-1a3d-4900-86a4-3fdeca113e16
+def test_ParsePhase(tmp_path):
+    file_path = "some/file.py"
+    abs_file = tmp_path / file_path
+    abs_file.parent.mkdir(parents=True, exist_ok=True)
+    abs_file.write_text("content")
+
+    context = MagicMock()
+    context.git_service.repo_path = tmp_path
+
+    phase = ParsePhase(context)
+
+    result = asyncio.run(phase.execute(file_path))
+
+    assert result is True
