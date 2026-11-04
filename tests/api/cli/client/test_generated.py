@@ -703,3 +703,22 @@ async def test_CoreApiClient_poll_census_run():
 
     assert result == expected
     client.census.poll_census_run.assert_awaited_once_with("run-123", verbose=True)
+
+
+import pytest
+
+
+# ID: b2a8272c-47f1-47f5-85e6-9ac7d96fec75
+async def test_CoreApiClient_analysis_test_targets() -> None:
+    client = CoreApiClient(base_url="http://localhost:8000")
+
+    mock_inspect = MagicMock()
+    mock_inspect.analysis_test_targets = AsyncMock(
+        return_value={"targets": ["tests/test_a.py"]}
+    )
+    client.inspect = mock_inspect
+
+    result = await client.analysis_test_targets(path="src", depth=2)
+
+    mock_inspect.analysis_test_targets.assert_awaited_once_with(path="src", depth=2)
+    assert result == {"targets": ["tests/test_a.py"]}
