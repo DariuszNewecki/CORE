@@ -1310,3 +1310,23 @@ async def test_CoreApiClient_quality_policy_coverage():
 
         assert result == expected
         mock_quality.quality_policy_coverage.assert_awaited_once_with(foo="bar")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: a1868f8d-cb92-468d-b99f-6a8d344c8a68
+async def test_CoreApiClient_coverage_history() -> None:
+    client = CoreApiClient(base_url="http://example.test")
+    expected = {"status": "ok", "history": []}
+    mock_coverage = MagicMock()
+    mock_coverage.coverage_history = AsyncMock(return_value=expected)
+    client.coverage = mock_coverage
+
+    result = await client.coverage_history(limit=10, since="2024-01-01")
+
+    assert result == expected
+    mock_coverage.coverage_history.assert_awaited_once_with(
+        limit=10, since="2024-01-01"
+    )
