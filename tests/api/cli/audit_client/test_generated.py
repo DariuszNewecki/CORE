@@ -66,7 +66,6 @@ async def test_AuditClient_audit_remediate():
     assert result == {"status": "ok", "dispatched": True}
 
 
-
 import pytest
 
 
@@ -98,3 +97,36 @@ def test_AuditClient__init__and_audit() -> None:
         },
         timeout=1800.0,
     )
+
+
+
+
+
+# ID: 6a803624-9df6-43cc-92ab-765d8106f929
+async def test_AuditClient_audit():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"verdict": "pass", "passed": True})
+    client = AuditClient(facade)
+
+    result = await client.audit(
+        rule_ids=["r1"],
+        policy_ids=["p1"],
+        files=["a.py"],
+        force_llm=True,
+        source="cli",
+    )
+
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/audit/runs",
+        json={
+            "rule_ids": ["r1"],
+            "policy_ids": ["p1"],
+            "files": ["a.py"],
+            "force_llm": True,
+            "source": "cli",
+            "wait": True,
+        },
+        timeout=1800.0,
+    )
+    assert result == {"verdict": "pass", "passed": True}
