@@ -1536,3 +1536,21 @@ async def test_CoreApiClient_list_actions():
 
     assert result == expected
     client.fix.list_actions.assert_awaited_once_with(limit=10, status="open")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 4ca88c97-7d1a-4d3f-9aab-ad49a9ab01b2
+async def test_CoreApiClient_list_fix_commands():
+    client = CoreApiClient(base_url="http://localhost:8000")
+    client.fix = MagicMock()
+    client.fix.list_fix_commands = AsyncMock(
+        return_value={"commands": ["fix_a", "fix_b"]}
+    )
+
+    result = await client.list_fix_commands(limit=2, verbose=True)
+
+    assert result == {"commands": ["fix_a", "fix_b"]}
+    client.fix.list_fix_commands.assert_awaited_once_with(limit=2, verbose=True)
