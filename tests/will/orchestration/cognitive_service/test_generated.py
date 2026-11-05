@@ -136,3 +136,18 @@ def test_CognitiveService_initialize():
         assert service._orch is mock_orch
 
     asyncio.run(_run())
+
+
+
+
+
+# ID: 3f81ffc7-b529-4685-b7cc-b83c058c1b7d
+def test_CognitiveService_qdrant_service():
+    qdrant_service = MagicMock()
+    service = CognitiveService(
+        repo_path=Path("/tmp/repo"), qdrant_service=qdrant_service
+    )
+
+    result = service.qdrant_service
+
+    assert result is qdrant_service
