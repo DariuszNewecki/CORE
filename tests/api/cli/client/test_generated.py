@@ -1061,3 +1061,27 @@ async def test_CoreApiClient_refactor_stats():
 
     assert result == {"total": 42, "by_kind": {}}
     client.refactor.refactor_stats.assert_awaited_once_with("some-arg", key="value")
+
+
+
+
+
+# ID: 917f67a3-5c94-4b33-bc51-e1ea198100d5
+async def test_CoreApiClient_refactor_candidates() -> None:
+    with (
+        patch(
+            "api.cli.client.parse_base_url",
+            return_value=("http://localhost:8000", None),
+        ),
+        patch("api.cli.client.RefactorClient") as mock_refactor_cls,
+    ):
+        mock_refactor = MagicMock()
+        mock_refactor.refactor_candidates = AsyncMock(return_value={"candidates": []})
+        mock_refactor_cls.return_value = mock_refactor
+
+        client = CoreApiClient(base_url="http://localhost:8000")
+
+        result = await client.refactor_candidates(limit=5)
+
+        assert result == {"candidates": []}
+        mock_refactor.refactor_candidates.assert_awaited_once_with(limit=5)
