@@ -1492,7 +1492,6 @@ async def test_CoreApiClient_fix_all() -> None:
     client.fix.fix_all.assert_awaited_once_with("a", key="b")
 
 
-
 import pytest
 
 
@@ -1506,3 +1505,34 @@ async def test_CoreApiClient_run_fix():
 
     client.fix.run_fix.assert_awaited_once_with("fix-123", force=True)
     assert result == {"status": "ok", "fix_id": "fix-123"}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 7300f261-c5a5-4452-b266-1d5dc452ff73
+async def test_CoreApiClient_list_actions():
+    with (
+        patch("api.cli.client.parse_base_url", return_value=("http://localhost", None)),
+        patch("api.cli.client.AuditClient", MagicMock()),
+        patch("api.cli.client.FixClient", MagicMock()),
+        patch("api.cli.client.QualityClient", MagicMock()),
+        patch("api.cli.client.CoverageClient", MagicMock()),
+        patch("api.cli.client.RefactorClient", MagicMock()),
+        patch("api.cli.client.InspectClient", MagicMock()),
+        patch("api.cli.client.ProposalsClient", MagicMock()),
+        patch("api.cli.client.IntegrationClient", MagicMock()),
+        patch("api.cli.client.CensusClient", MagicMock()),
+        patch("api.cli.client.CognitiveRolesClient", MagicMock()),
+    ):
+        client = CoreApiClient(base_url="http://example.test")
+
+    expected = {"actions": ["fix", "lint"]}
+    client.fix = MagicMock()
+    client.fix.list_actions = AsyncMock(return_value=expected)
+
+    result = await client.list_actions(limit=10, status="open")
+
+    assert result == expected
+    client.fix.list_actions.assert_awaited_once_with(limit=10, status="open")
