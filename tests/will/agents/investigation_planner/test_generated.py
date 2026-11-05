@@ -70,3 +70,43 @@ async def test_create_investigation_plan():
     cognitive_service.aget_client_for_role.assert_awaited_once_with("planner")
     model.invoke.assert_awaited_once()
     mock_parse.assert_called_once_with("inspect.layout\ninspect.path")
+
+
+
+from will.agents.investigation_planner import investigation_decisions
+
+
+# ID: e69c4739-35c7-40c5-882b-384bed41e8ae
+def test_investigation_decisions():
+    step_one = MagicMock()
+    step_one.action = "inspect.layout"
+    step_one.step = "Determine repository layout"
+    step_one.params = {"root": "/repo"}
+
+    step_two = MagicMock()
+    step_two.action = "inspect.artifact_types"
+    step_two.step = "Identify artifact types"
+    step_two.params = {"kind": "python"}
+
+    records = investigation_decisions([step_one, step_two])
+
+    assert len(records) == 2
+
+    first = records[0]
+    assert first["agent"] == "investigation_planner"
+    assert first["decision_type"] == "investigation_step_planned"
+    assert first["chosen"] == "inspect.layout"
+    assert first["rationale"] == "Determine repository layout"
+    assert first["params"] == {"root": "/repo"}
+    assert first["step_index"] == 1
+    assert "inspect.layout" not in first["alternatives"]
+    assert first["alternatives"] == sorted(first["alternatives"])
+
+    second = records[1]
+    assert second["chosen"] == "inspect.artifact_types"
+    assert second["rationale"] == "Identify artifact types"
+    assert second["params"] == {"kind": "python"}
+    assert second["step_index"] == 2
+    assert "inspect.artifact_types" not in second["alternatives"]
+
+    assert investigation_decisions([]) == []
