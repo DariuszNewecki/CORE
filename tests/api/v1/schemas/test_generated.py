@@ -439,8 +439,6 @@ def test_LaneBundleRule():
     assert rule.in_registry is True
 
 
-
-
 # ID: 61c878f3-16b9-4937-9221-bdd66f127253
 def test_ProposalResponse():
     from api.v1.schemas import ProposalActionItem, ProposalResponse
@@ -483,3 +481,27 @@ def test_ProposalResponse():
     assert proposal.approved_at == "2024-01-02T00:00:00Z"
     assert proposal.approval_authority == "council"
     assert proposal.failure_reason is None
+
+
+from api.v1.schemas import ProposalActionItem
+
+
+# ID: cde11213-6ed9-47d6-8009-ab6b84b160b2
+def test_ProposalActionItem():
+    item = ProposalActionItem(
+        action_id="act-1",
+        flow_id="flow-1",
+        parameters={"key": "value", "num": 42},
+        order=3,
+    )
+
+    assert item.action_id == "act-1"
+    assert item.flow_id == "flow-1"
+    assert item.parameters == {"key": "value", "num": 42}
+    assert item.order == 3
+
+    default_item = ProposalActionItem()
+    assert default_item.action_id is None
+    assert default_item.flow_id is None
+    assert default_item.parameters == {}
+    assert default_item.order == 0
