@@ -115,3 +115,54 @@ async def test_release_findings() -> None:
     mock_svc.release_claimed_entries.assert_awaited_once_with(
         ["a1", "b2"], claimed_by=claimed_by
     )
+
+
+from uuid import uuid4
+
+import pytest
+
+from will.remediation.finding_state import claim_unmapped_findings
+
+
+@pytest.mark.asyncio
+# ID: 5b3544c1-aba7-40db-99fa-4fca69d3a3fe
+async def test_claim_unmapped_findings():
+    claimed_by = uuid4()
+    mapped_rule_ids = {"rule-1", "rule-2"}
+    limit = 10
+
+    finding = {
+        "id": str(uuid4()),
+        "payload": {"file_path": "src/foo/bar.py"},
+    }
+
+    mock_svc = MagicMock()
+    mock_svc.claim_unmapped_violation_findings = AsyncMock(return_value=[finding])
+    mock_svc.mark_indeterminate = AsyncMock()
+
+    mock_registry = MagicMock()
+    mock_registry.get_blackboard_service = AsyncMock(return_value=mock_svc)
+
+    with (
+        patch("body.services.service_registry.service_registry", mock_registry),
+        patch(
+            "shared.infrastructure.intent.audit_namespaces.audit_violation_like_patterns",
+            return_value=["%audit%"],
+        ),
+        patch(
+            "will.audit_violation.filter.is_autonomously_remediable_target",
+            return_value=True,
+        ),
+    ):
+        result = await claim_unmapped_findings(
+            mapped_rule_ids, claimed_by=claimed_by, limit=limit
+        )
+
+    assert result == [finding]
+    mock_svc.claim_unmapped_violation_findings.assert_awaited_once_with(
+        mapped_rule_ids=mapped_rule_ids,
+        patterns=["%audit%"],
+        limit=limit,
+        claimed_by=claimed_by,
+    )
+    mock_svc.mark_indeterminate.assert_not_awaited()
