@@ -67,7 +67,6 @@ async def test_query_file_attempt_count():
     )
 
 
-
 import pytest
 
 from will.remediation.finding_state import abandon_findings
@@ -90,4 +89,29 @@ async def test_abandon_findings():
     mock_registry.get_blackboard_service.assert_awaited_once()
     mock_svc.abandon_entries_and_increment_attempt_count.assert_awaited_once_with(
         ["123", "456"]
+    )
+
+
+import uuid
+
+
+# ID: ff980a99-7892-4c27-9a6d-623415abb85d
+async def test_release_findings() -> None:
+    from will.remediation.finding_state import release_findings
+
+    claimed_by = uuid.uuid4()
+    findings = [{"id": "a1"}, {"id": "b2"}]
+
+    mock_svc = AsyncMock()
+    mock_svc.release_claimed_entries = AsyncMock(return_value=None)
+
+    mock_registry = MagicMock()
+    mock_registry.get_blackboard_service = AsyncMock(return_value=mock_svc)
+
+    with patch("body.services.service_registry.service_registry", mock_registry):
+        await release_findings(findings, claimed_by=claimed_by)
+
+    mock_registry.get_blackboard_service.assert_awaited_once()
+    mock_svc.release_claimed_entries.assert_awaited_once_with(
+        ["a1", "b2"], claimed_by=claimed_by
     )
