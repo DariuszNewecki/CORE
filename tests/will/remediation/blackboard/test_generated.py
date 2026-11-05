@@ -309,7 +309,6 @@ async def test_WorkerRemediationBlackboard_post_observation():
     assert result == {"ok": True}
 
 
-
 import pytest
 
 
@@ -329,3 +328,18 @@ async def test_WorkerRemediationBlackboard_post_report():
 
     assert result == {"status": "ok"}
     worker.post_report.assert_awaited_once_with(subject, payload)
+
+
+
+
+
+# ID: 66fa3b66-4749-4420-8e20-24a4106f3584
+def test_WorkerRemediationBlackboard_worker_uuid() -> None:
+    expected = uuid.uuid4()
+    mock_worker = MagicMock()
+    mock_worker.worker_uuid = expected
+    core_context = MagicMock()
+
+    board = WorkerRemediationBlackboard(mock_worker, core_context)
+
+    assert board.worker_uuid == expected
