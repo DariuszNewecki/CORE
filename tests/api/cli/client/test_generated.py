@@ -1330,3 +1330,24 @@ async def test_CoreApiClient_coverage_history() -> None:
     mock_coverage.coverage_history.assert_awaited_once_with(
         limit=10, since="2024-01-01"
     )
+
+
+
+
+
+# ID: a5273d46-4eb5-4936-9327-bb459098e119
+async def test_CoreApiClient_coverage_gaps():
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost", None)
+    ):
+        client = CoreApiClient(base_url="http://localhost:8000")
+
+    expected = {"gaps": [{"file": "a.py", "line": 10}]}
+
+    client.coverage = MagicMock()
+    client.coverage.coverage_gaps = AsyncMock(return_value=expected)
+
+    result = await client.coverage_gaps(project="proj", limit=5)
+
+    assert result == expected
+    client.coverage.coverage_gaps.assert_awaited_once_with(project="proj", limit=5)
