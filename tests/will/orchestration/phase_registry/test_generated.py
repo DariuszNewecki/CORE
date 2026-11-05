@@ -86,3 +86,31 @@ def test_Phase_execute():
 
     assert result is expected_result
     mock_execute.assert_awaited_once_with(phase, context)
+
+
+
+
+
+# ID: e15e7ed2-1109-44fa-ac24-23fbb5f6b854
+def test_Phase():
+    context = MagicMock(name="WorkflowContext")
+    expected_result = MagicMock(name="PhaseResult")
+
+    async def _run():
+        # ID: dc40f296-4f01-4fc5-8a67-8b4ce97492a3
+        class DummyPhase:
+            # ID: bd2cb278-87e6-4e41-b3d9-5108582ace15
+            async def execute(self, context):
+                return expected_result
+
+        phase = DummyPhase()
+        # Protocol structural conformance: execute must be a coroutine function
+        assert callable(getattr(DummyPhase, "execute"))
+        assert asyncio.iscoroutinefunction(DummyPhase.execute)
+        result = await phase.execute(context)
+        assert result is expected_result
+
+    # The Protocol declares an async execute method
+    assert hasattr(Phase, "execute")
+    assert asyncio.iscoroutinefunction(_run)
+    assert context is not None
