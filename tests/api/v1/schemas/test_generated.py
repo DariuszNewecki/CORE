@@ -736,3 +736,14 @@ def test_ActionCommandItem():
     assert minimal.model_dump()["action_id"] == "noop"
 
     assert ActionCommandItem.model_validate({"action_id": "x"}).action_id == "x"
+
+
+# ID: d08da7b9-71cb-4040-bcbf-08cde0c6793c
+def test_FixIRResponse() -> None:
+    from api.v1.schemas import FixIRResponse
+
+    response = FixIRResponse(path="/tmp/scaffold/out.py")
+
+    assert response.path == "/tmp/scaffold/out.py"
+    assert isinstance(response.path, str)
+    assert response.model_dump() == {"path": "/tmp/scaffold/out.py"}
