@@ -42,3 +42,26 @@ async def test_delegate_capped_findings():
             "attempt_count": count,
         },
     )
+
+
+import pytest
+
+from will.remediation.finding_state import query_file_attempt_count
+
+
+@pytest.mark.asyncio
+# ID: a756ec79-61aa-425d-9be4-3d588e22fb8d
+async def test_query_file_attempt_count():
+    mock_svc = AsyncMock()
+    mock_svc.query_max_attempt_count_by_file_path = AsyncMock(return_value=3)
+    mock_registry = AsyncMock()
+    mock_registry.get_blackboard_service = AsyncMock(return_value=mock_svc)
+
+    with patch("body.services.service_registry.service_registry", mock_registry):
+        result = await query_file_attempt_count("/some/file.py")
+
+    assert result == 3
+    mock_registry.get_blackboard_service.assert_awaited_once()
+    mock_svc.query_max_attempt_count_by_file_path.assert_awaited_once_with(
+        "/some/file.py"
+    )
