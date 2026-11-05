@@ -1441,9 +1441,6 @@ async def test_CoreApiClient_quality_system():
     client.quality.quality_system.assert_awaited_once_with("arg1", key="value")
 
 
-
-
-
 # ID: 4d027340-eca4-4a6c-96ed-cb1830ef1c12
 async def test_CoreApiClient_quality_tests():
     expected = {"status": "ok"}
@@ -1457,3 +1454,25 @@ async def test_CoreApiClient_quality_tests():
 
     assert result == expected
     quality_mock.quality_tests.assert_awaited_once_with("arg1", key="value")
+
+
+
+
+# ID: d20958ab-b139-4e90-a1f8-4f78d19622ff
+def test_CoreApiClient_quality_lint():
+    from api.cli.client import CoreApiClient
+
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost", None)
+    ):
+        client = CoreApiClient(base_url="http://localhost")
+
+    client.quality = MagicMock()
+    client.quality.quality_lint = AsyncMock(return_value={"ok": True})
+
+    import asyncio
+
+    result = asyncio.run(client.quality_lint("arg1", key="value"))
+
+    client.quality.quality_lint.assert_awaited_once_with("arg1", key="value")
+    assert result == {"ok": True}
