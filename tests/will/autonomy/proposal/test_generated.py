@@ -326,7 +326,6 @@ def test_Proposal() -> None:
     assert data["status"] == proposal.status.value
 
 
-
 from will.autonomy.proposal import ProposalAction
 
 
@@ -343,3 +342,19 @@ def test_ProposalAction_validate_exists() -> None:
         assert action.validate_exists() is True
 
     mock_registry.get.assert_called_once_with("sample_action")
+
+
+
+
+
+# ID: c775be4f-9490-4a26-bd6a-d5b7b1f551ac
+def test_ProposalAction_ref_kind():
+    action_obj = MagicMock(spec=ProposalAction)
+    action_obj.action_id = "action-123"
+    action_obj.flow_id = None
+    assert ProposalAction.ref_kind.__get__(action_obj, ProposalAction) == "action"
+
+    flow_obj = MagicMock(spec=ProposalAction)
+    flow_obj.action_id = None
+    flow_obj.flow_id = "flow-456"
+    assert ProposalAction.ref_kind.__get__(flow_obj, ProposalAction) == "flow"
