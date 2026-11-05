@@ -602,3 +602,35 @@ def test_ProposalSummary():
     assert minimal.execution_results is None
     assert minimal.created_by is None
     assert minimal.failure_reason is None
+
+
+from api.v1.schemas import FindingEvidence
+
+
+# ID: 7b560881-ba9c-4035-90d6-6183de54ae6c
+def test_FindingEvidence():
+    evidence_payload = {"lines": [1, 2, 3], "snippet": "def foo(): pass"}
+
+    finding = FindingEvidence(
+        entry_id="entry-123",
+        subject="src/foo.py",
+        status="open",
+        check_id="check-abc",
+        rule_id="rule-42",
+        file_path="src/foo.py",
+        severity="high",
+        evidence=evidence_payload,
+        evidence_class="CodeSnippet",
+        created_at="2024-01-01T00:00:00Z",
+    )
+
+    assert finding.entry_id == "entry-123"
+    assert finding.subject == "src/foo.py"
+    assert finding.status == "open"
+    assert finding.check_id == "check-abc"
+    assert finding.rule_id == "rule-42"
+    assert finding.file_path == "src/foo.py"
+    assert finding.severity == "high"
+    assert finding.evidence == evidence_payload
+    assert finding.evidence_class == "CodeSnippet"
+    assert finding.created_at == "2024-01-01T00:00:00Z"
