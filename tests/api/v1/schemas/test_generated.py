@@ -353,3 +353,16 @@ def test_LaneFindingListResponse() -> None:
     empty = LaneFindingListResponse(count=0, findings=[])
     assert empty.count == 0
     assert empty.findings == []
+
+
+from unittest.mock import MagicMock
+
+from api.v1.schemas import LaneBundle, LaneFindingWithBundle
+
+
+# ID: fd4a5fce-ea89-40de-a5e4-8caa9232313b
+def test_LaneFindingWithBundle():
+    bundle = MagicMock(spec=LaneBundle)
+    finding = LaneFindingWithBundle.model_construct(bundle=bundle)
+    assert isinstance(finding, LaneFindingWithBundle)
+    assert finding.bundle is bundle
