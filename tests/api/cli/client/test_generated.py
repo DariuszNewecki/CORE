@@ -1365,7 +1365,6 @@ def test_CoreApiClient_coverage_targets():
     mock_coverage.coverage_targets.assert_awaited_once_with()
 
 
-
 import pytest
 
 
@@ -1384,3 +1383,24 @@ async def test_CoreApiClient_coverage_report():
 
     client.coverage.coverage_report.assert_awaited_once_with("arg1", key="value")
     assert result == expected
+
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: e38e279b-235d-4d05-b2eb-e5326a8ce7b3
+async def test_CoreApiClient_coverage_check():
+    client = CoreApiClient(base_url="http://localhost")
+
+    expected = {"coverage": 0.95}
+    mock_instance = object.__new__(type(client.coverage))
+    mock_instance.coverage_check = AsyncMock(return_value=expected)
+    client.coverage = mock_instance
+
+    result = await client.coverage_check("argv", key="value")
+
+    assert result == expected
+    mock_instance.coverage_check.assert_awaited_once_with("argv", key="value")
