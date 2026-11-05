@@ -1110,3 +1110,30 @@ async def test_CoreApiClient_refactor_score():
     mock_refactor_instance.refactor_score.assert_awaited_once_with(
         path="src/foo.py", depth=2
     )
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: c984eb1b-52d1-404d-84fd-17e6c733b685
+async def test_CoreApiClient_refactor_threshold():
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost", None)
+    ):
+        with patch("api.cli.client.RefactorClient") as mock_refactor_cls:
+            mock_refactor_instance = MagicMock()
+            mock_refactor_instance.refactor_threshold = AsyncMock(
+                return_value={"threshold": 0.75}
+            )
+            mock_refactor_cls.return_value = mock_refactor_instance
+
+            client = CoreApiClient(base_url="http://localhost")
+            client.refactor = mock_refactor_instance
+
+            result = await client.refactor_threshold(foo="bar")
+
+            assert result == {"threshold": 0.75}
+            mock_refactor_instance.refactor_threshold.assert_awaited_once_with(
+                foo="bar"
+            )
