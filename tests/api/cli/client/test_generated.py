@@ -1159,8 +1159,6 @@ async def test_CoreApiClient_tests_interactive():
     mock_coverage.tests_interactive.assert_awaited_once_with("arg1", key="value")
 
 
-
-
 # ID: 4a293f15-e832-4f7e-aabc-b555ed9176ee
 async def test_CoreApiClient_poll_coverage_run() -> None:
     from api.cli.client import CoreApiClient
@@ -1177,3 +1175,54 @@ async def test_CoreApiClient_poll_coverage_run() -> None:
 
     client.coverage.poll_coverage_run.assert_awaited_once_with("run-123", timeout=5)
     assert result == {"status": "ok"}
+
+
+import pytest
+
+
+# ID: 8b789045-ec4d-43f1-a14e-e63a1c703a91
+async def test_CoreApiClient_get_coverage_run() -> None:
+    client_mocks = [
+        "AuditClient",
+        "FixClient",
+        "QualityClient",
+        "CoverageClient",
+        "RefactorClient",
+        "InspectClient",
+        "ProposalsClient",
+        "IntegrationClient",
+        "CensusClient",
+        "CognitiveRolesClient",
+        "SyncClient",
+        "DaemonClient",
+        "FindingsClient",
+        "IntegrityClient",
+        "LaneClient",
+        "LlmResourcesClient",
+        "SecretsClient",
+        "SymbolsClient",
+        "VectorsClient",
+        "ProjectClient",
+    ]
+
+    patchers = [patch("api.cli.client." + name, MagicMock()) for name in client_mocks]
+    patchers.append(
+        patch("api.cli.client.parse_base_url", return_value=("http://localhost", None))
+    )
+
+    active = [p.start() for p in patchers]
+    try:
+        from api.cli.client import CoreApiClient
+
+        client = CoreApiClient(base_url="http://localhost:8000")
+
+        expected = {"run_id": "abc123", "coverage": 0.87}
+        client.coverage.get_coverage_run = AsyncMock(return_value=expected)
+
+        result = await client.get_coverage_run(run_id="abc123")
+
+        assert result == expected
+        client.coverage.get_coverage_run.assert_awaited_once_with(run_id="abc123")
+    finally:
+        for p in patchers:
+            p.stop()
