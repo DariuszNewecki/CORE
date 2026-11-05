@@ -65,3 +65,29 @@ async def test_query_file_attempt_count():
     mock_svc.query_max_attempt_count_by_file_path.assert_awaited_once_with(
         "/some/file.py"
     )
+
+
+
+import pytest
+
+from will.remediation.finding_state import abandon_findings
+
+
+@pytest.mark.asyncio
+# ID: f4d4ed35-f3e9-49de-8625-90427c8f3f5b
+async def test_abandon_findings():
+    findings = [{"id": "123"}, {"id": 456}]
+
+    mock_svc = MagicMock()
+    mock_svc.abandon_entries_and_increment_attempt_count = AsyncMock()
+
+    mock_registry = MagicMock()
+    mock_registry.get_blackboard_service = AsyncMock(return_value=mock_svc)
+
+    with patch("body.services.service_registry.service_registry", mock_registry):
+        await abandon_findings(findings)
+
+    mock_registry.get_blackboard_service.assert_awaited_once()
+    mock_svc.abandon_entries_and_increment_attempt_count.assert_awaited_once_with(
+        ["123", "456"]
+    )
