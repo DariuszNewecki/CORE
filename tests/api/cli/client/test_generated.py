@@ -1137,3 +1137,23 @@ async def test_CoreApiClient_refactor_threshold():
             mock_refactor_instance.refactor_threshold.assert_awaited_once_with(
                 foo="bar"
             )
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 544cbfb6-1fe5-456f-b9ea-35928534cde4
+async def test_CoreApiClient_tests_interactive():
+    client = CoreApiClient(base_url="http://localhost:8000")
+
+    expected = {"ok": True, "result": "interactive"}
+
+    mock_coverage = MagicMock()
+    mock_coverage.tests_interactive = AsyncMock(return_value=expected)
+    client.coverage = mock_coverage
+
+    result = await client.tests_interactive("arg1", key="value")
+
+    assert result == expected
+    mock_coverage.tests_interactive.assert_awaited_once_with("arg1", key="value")
