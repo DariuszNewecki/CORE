@@ -1490,3 +1490,19 @@ async def test_CoreApiClient_fix_all() -> None:
 
     assert result == {"ok": True, "fixed": 3}
     client.fix.fix_all.assert_awaited_once_with("a", key="b")
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 92c0a2f9-e6b5-482c-a6ed-ac6c363321a9
+async def test_CoreApiClient_run_fix():
+    client = CoreApiClient(base_url="http://localhost:8000")
+    client.fix.run_fix = AsyncMock(return_value={"status": "ok", "fix_id": "fix-123"})
+
+    result = await client.run_fix("fix-123", force=True)
+
+    client.fix.run_fix.assert_awaited_once_with("fix-123", force=True)
+    assert result == {"status": "ok", "fix_id": "fix-123"}
