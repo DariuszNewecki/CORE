@@ -1063,9 +1063,6 @@ async def test_CoreApiClient_refactor_stats():
     client.refactor.refactor_stats.assert_awaited_once_with("some-arg", key="value")
 
 
-
-
-
 # ID: 917f67a3-5c94-4b33-bc51-e1ea198100d5
 async def test_CoreApiClient_refactor_candidates() -> None:
     with (
@@ -1085,3 +1082,31 @@ async def test_CoreApiClient_refactor_candidates() -> None:
 
         assert result == {"candidates": []}
         mock_refactor.refactor_candidates.assert_awaited_once_with(limit=5)
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: a5d86c74-ee04-4878-9c22-db4476916edb
+async def test_CoreApiClient_refactor_score():
+    from api.cli.client import CoreApiClient
+
+    expected_result = {"score": 0.87, "grade": "A"}
+
+    with patch("api.cli.client.RefactorClient") as mock_refactor_cls:
+        mock_refactor_instance = MagicMock()
+        mock_refactor_instance.refactor_score = AsyncMock(return_value=expected_result)
+        mock_refactor_cls.return_value = mock_refactor_instance
+
+        with patch(
+            "api.cli.client.parse_base_url", return_value=("http://localhost", None)
+        ):
+            client = CoreApiClient(base_url="http://localhost:8000")
+
+        result = await client.refactor_score(path="src/foo.py", depth=2)
+
+    assert result == expected_result
+    mock_refactor_instance.refactor_score.assert_awaited_once_with(
+        path="src/foo.py", depth=2
+    )
