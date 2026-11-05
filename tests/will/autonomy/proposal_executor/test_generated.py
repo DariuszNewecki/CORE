@@ -42,3 +42,34 @@ async def test_ProposalExecutor_execute():
     assert result == expected_result
     mock_execute.assert_awaited_once_with("prop-1", claimed_by, True)
     mock_lock.assert_called_once_with("/tmp/repo", core_context.file_handler)
+
+
+
+
+# ID: 7aba3cd9-e10a-449c-beda-58375aa27ee3
+def test_ProposalExecutor():
+    from will.autonomy.proposal_executor import ProposalExecutor
+
+    core_context = MagicMock()
+
+    with patch("will.autonomy.proposal_executor.ActionExecutor") as MockActionExecutor:
+        executor_instance = MockActionExecutor.return_value
+
+        executor = ProposalExecutor(core_context)
+
+        assert executor.core_context is core_context
+        assert executor.action_executor is executor_instance
+        MockActionExecutor.assert_called_once_with(core_context)
+
+    # Happy path: dry-run (write=False) delegates straight to _execute.
+    executor = ProposalExecutor(core_context)
+    expected = {"ok": True, "lifecycle_status": "dry_run"}
+    executor._execute = AsyncMock(return_value=expected)
+
+    import asyncio
+
+    claimed_by = MagicMock()
+    result = asyncio.run(executor.execute("proposal-1", claimed_by, write=False))
+
+    assert result == expected
+    executor._execute.assert_awaited_once_with("proposal-1", claimed_by, False)
