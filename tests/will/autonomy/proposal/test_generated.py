@@ -286,9 +286,6 @@ def test_Proposal_validate():
     assert errors == []
 
 
-
-
-
 # ID: dd0dd37e-d284-4936-a7b4-6faab6f7e73b
 def test_Proposal() -> None:
     from will.autonomy.proposal import ProposalAction, ProposalScope, RiskAssessment
@@ -327,3 +324,22 @@ def test_Proposal() -> None:
     assert data["goal"] == "Test goal"
     assert data["risk"]["overall_risk"] == "moderate"
     assert data["status"] == proposal.status.value
+
+
+
+from will.autonomy.proposal import ProposalAction
+
+
+# ID: 1a537bfe-0e18-48d6-b9e0-be15cfa55c4f
+def test_ProposalAction_validate_exists() -> None:
+    action = ProposalAction.__new__(ProposalAction)
+    action.action_id = "sample_action"
+    action.flow_id = None
+
+    mock_registry = MagicMock()
+    mock_registry.get.return_value = object()
+
+    with patch("body.atomic.registry.action_registry", mock_registry):
+        assert action.validate_exists() is True
+
+    mock_registry.get.assert_called_once_with("sample_action")
