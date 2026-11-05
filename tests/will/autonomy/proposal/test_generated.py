@@ -463,9 +463,6 @@ def test_ProposalProvenance_from_dict():
     assert result.retires == ["10", "20"]
 
 
-
-
-
 # ID: 15f3a70d-9c08-492f-af67-1431329e462c
 def test_ProposalProvenance_to_dict():
     provenance = ProposalProvenance(
@@ -487,3 +484,19 @@ def test_ProposalProvenance_to_dict():
     }
     assert isinstance(result["anchor_refs"], list)
     assert isinstance(result["retires"], list)
+
+
+
+
+
+# ID: 3e73cdcc-58d5-4010-a337-a462fed1b776
+def test_ProposalProvenance_problems() -> None:
+    provenance = MagicMock()
+    provenance.anchor_kind = "adr"
+    provenance.anchor_refs = ["ADR-133"]
+    provenance.problem_owner = "core"
+    provenance.producer = "will"
+
+    result = ProposalProvenance.problems(provenance)
+
+    assert result == []
