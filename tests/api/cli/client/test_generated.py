@@ -1404,9 +1404,6 @@ async def test_CoreApiClient_coverage_check():
     mock_instance.coverage_check.assert_awaited_once_with("argv", key="value")
 
 
-
-
-
 # ID: 4fb81155-55fe-4bec-bfc9-2131a6412afd
 async def test_CoreApiClient_quality_gates():
     with patch(
@@ -1422,3 +1419,25 @@ async def test_CoreApiClient_quality_gates():
 
     client.quality.quality_gates.assert_awaited_once_with("arg1", key="value")
     assert result == expected
+
+
+
+
+# ID: d780c8ce-a0c2-4e88-991d-155c442eb41f
+async def test_CoreApiClient_quality_system():
+    from api.cli.client import CoreApiClient
+
+    with patch(
+        "api.cli.client.parse_base_url",
+        return_value=("http://localhost:0", "/tmp/q.sock"),
+    ):
+        client = CoreApiClient(base_url="http://localhost:0")
+
+    expected = {"ok": True, "payload": {"status": "healthy"}}
+    client.quality = MagicMock()
+    client.quality.quality_system = AsyncMock(return_value=expected)
+
+    result = await client.quality_system("arg1", key="value")
+
+    assert result == expected
+    client.quality.quality_system.assert_awaited_once_with("arg1", key="value")
