@@ -1043,3 +1043,21 @@ async def test_CoreApiClient_refactor_autonomous():
 
     obj.refactor.refactor_autonomous.assert_awaited_once_with("repo", dry_run=True)
     assert result == fake_result
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: daa42747-b281-4937-a639-50ea7336ca95
+async def test_CoreApiClient_refactor_stats():
+    client = CoreApiClient.__new__(CoreApiClient)
+    client.refactor = MagicMock()
+    client.refactor.refactor_stats = AsyncMock(
+        return_value={"total": 42, "by_kind": {}}
+    )
+
+    result = await CoreApiClient.refactor_stats(client, "some-arg", key="value")
+
+    assert result == {"total": 42, "by_kind": {}}
+    client.refactor.refactor_stats.assert_awaited_once_with("some-arg", key="value")
