@@ -26,8 +26,6 @@ def test_PhaseRegistry_get():
         assert result is phase
 
 
-
-
 # ID: d1c0b18d-7f8c-40a3-b5a7-7708b7f183ea
 def test_PhaseRegistry():
     from will.orchestration.phase_registry import PhaseRegistry
@@ -67,3 +65,24 @@ def test_PhaseRegistry():
     mock_import.assert_called_once_with("some.module")
     mock_phase_class.assert_called_once_with(core_context)
     assert result is mock_phase_instance
+
+
+import asyncio
+from unittest.mock import AsyncMock
+
+from will.orchestration.phase_registry import Phase
+
+
+# ID: b4d5cbf6-6c97-4813-926d-7d7885648ac9
+def test_Phase_execute():
+    phase = MagicMock(spec=Phase)
+    context = MagicMock()
+    expected_result = MagicMock()
+
+    with patch.object(
+        Phase, "execute", new=AsyncMock(return_value=expected_result)
+    ) as mock_execute:
+        result = asyncio.run(mock_execute(phase, context))
+
+    assert result is expected_result
+    mock_execute.assert_awaited_once_with(phase, context)
