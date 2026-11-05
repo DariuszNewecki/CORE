@@ -634,3 +634,41 @@ def test_FindingEvidence():
     assert finding.evidence == evidence_payload
     assert finding.evidence_class == "CodeSnippet"
     assert finding.created_at == "2024-01-01T00:00:00Z"
+
+
+from api.v1.schemas import RemediationRunResponse
+
+
+# ID: 6d715837-be2b-4c96-ace7-b956b3652fc2
+def test_RemediationRunResponse():
+    payload = {
+        "run_id": "run-123",
+        "audit_run_id": "audit-456",
+        "mode": "auto",
+        "write": True,
+        "status": "completed",
+        "requested_by": "user-1",
+        "requested_at": "2024-01-01T00:00:00Z",
+        "started_at": "2024-01-01T00:00:01Z",
+        "finished_at": "2024-01-01T00:00:02Z",
+        "result": {"remediated": 3},
+        "error": None,
+    }
+
+    response = RemediationRunResponse(**payload)
+
+    assert response.run_id == "run-123"
+    assert response.audit_run_id == "audit-456"
+    assert response.mode == "auto"
+    assert response.write is True
+    assert response.status == "completed"
+    assert response.requested_by == "user-1"
+    assert response.requested_at == "2024-01-01T00:00:00Z"
+    assert response.started_at == "2024-01-01T00:00:01Z"
+    assert response.finished_at == "2024-01-01T00:00:02Z"
+    assert response.result == {"remediated": 3}
+    assert response.error is None
+
+    dumped = response.model_dump()
+    assert dumped["run_id"] == "run-123"
+    assert dumped["result"] == {"remediated": 3}
