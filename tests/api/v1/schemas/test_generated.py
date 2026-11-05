@@ -308,3 +308,26 @@ def test_LaneProposeResponse() -> None:
         "approval_required": True,
         "scope_files": ["src/a.py", "src/b.py"],
     }
+
+
+from api.v1.schemas import LaneClaimResponse
+
+
+# ID: ed64ecf7-5554-4d98-9eb0-139fc9447d95
+def test_LaneClaimResponse() -> None:
+    response = LaneClaimResponse(
+        finding_id="finding-123",
+        claimed_by="agent-007",
+        status="claimed",
+    )
+
+    assert response.finding_id == "finding-123"
+    assert response.claimed_by == "agent-007"
+    assert response.status == "claimed"
+
+    dumped = response.model_dump()
+    assert dumped == {
+        "finding_id": "finding-123",
+        "claimed_by": "agent-007",
+        "status": "claimed",
+    }
