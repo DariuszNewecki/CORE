@@ -270,7 +270,6 @@ async def test_ProposalService():
     )
 
 
-
 from will.autonomy.proposal_service import revive_findings_for_rejected_proposal
 
 
@@ -297,3 +296,21 @@ async def test_revive_findings_for_rejected_proposal():
         proposal_id="prop-123",
         failure_reason="rejected: not enough evidence",
     )
+
+
+
+
+
+# ID: e5e5b025-ff4a-40dd-8df5-51be1334a9f5
+async def test_ProposalService_list_pending_approval() -> None:
+    session = MagicMock()
+    service = ProposalService(session)
+
+    expected_proposals = [MagicMock(), MagicMock()]
+    service._repository = MagicMock()
+    service._repository.list_by_status = AsyncMock(return_value=expected_proposals)
+
+    result = await service.list_pending_approval(limit=5)
+
+    assert result == expected_proposals
+    service._repository.list_by_status.assert_awaited_once()
