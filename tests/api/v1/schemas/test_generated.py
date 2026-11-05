@@ -366,3 +366,37 @@ def test_LaneFindingWithBundle():
     finding = LaneFindingWithBundle.model_construct(bundle=bundle)
     assert isinstance(finding, LaneFindingWithBundle)
     assert finding.bundle is bundle
+
+
+from api.v1.schemas import LaneFindingItem
+
+
+# ID: cd8fcb74-5f77-4b46-8adf-a59d4ede7285
+def test_LaneFindingItem():
+    item = LaneFindingItem(
+        id="finding-1",
+        subject="remediation.lane.finding",
+        payload={"k": "v", "n": 1},
+    )
+
+    assert item.id == "finding-1"
+    assert item.subject == "remediation.lane.finding"
+    assert item.payload == {"k": "v", "n": 1}
+    assert item.created_at is None
+
+    item_with_time = LaneFindingItem(
+        id="finding-2",
+        subject="remediation.lane.finding",
+        payload={},
+        created_at="2024-01-01T00:00:00Z",
+    )
+    assert item_with_time.created_at == "2024-01-01T00:00:00Z"
+    assert item_with_time.payload == {}
+
+    dumped = item.model_dump()
+    assert dumped == {
+        "id": "finding-1",
+        "subject": "remediation.lane.finding",
+        "payload": {"k": "v", "n": 1},
+        "created_at": None,
+    }
