@@ -39,3 +39,28 @@ async def test_AuditClient_get_audit_remediation_run():
 
     facade._request.assert_awaited_once_with("GET", "/v1/audit/remediations/run-123")
     assert result == {"run_id": "run-123", "status": "completed"}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 04cf154e-6786-4f13-9eea-ff8f26615f68
+async def test_AuditClient_audit_remediate():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "ok", "dispatched": True})
+
+    client = AuditClient(facade)
+
+    result = await client.audit_remediate("run-123", mode="safe", write=True)
+
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/audit/remediations",
+        json={
+            "audit_run_id": "run-123",
+            "mode": "safe",
+            "write": True,
+        },
+    )
+    assert result == {"status": "ok", "dispatched": True}
