@@ -364,7 +364,6 @@ async def test_ProposalService_list_by_status():
         mock_repository.list_by_status.assert_awaited_once_with(status, 10)
 
 
-
 import pytest
 
 
@@ -391,3 +390,26 @@ async def test_ProposalService_update() -> None:
 
     service.update.assert_awaited_once_with(proposal)
     assert result is proposal
+
+
+
+
+
+# ID: 9bc4d6f3-3a93-46a4-8eae-089abc82645d
+async def test_ProposalService_get() -> None:
+    session = MagicMock()
+
+    with (
+        patch("will.autonomy.proposal_service.ProposalRepository") as mock_repo_cls,
+        patch("will.autonomy.proposal_service.ProposalStateManager"),
+    ):
+        mock_repo = MagicMock()
+        expected = object()
+        mock_repo.get = AsyncMock(return_value=expected)
+        mock_repo_cls.return_value = mock_repo
+
+        service = ProposalService(session)
+        result = await service.get("prop-123")
+
+    mock_repo.get.assert_awaited_once_with("prop-123")
+    assert result is expected
