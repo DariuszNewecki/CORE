@@ -1332,9 +1332,6 @@ async def test_CoreApiClient_coverage_history() -> None:
     )
 
 
-
-
-
 # ID: a5273d46-4eb5-4936-9327-bb459098e119
 async def test_CoreApiClient_coverage_gaps():
     with patch(
@@ -1351,3 +1348,21 @@ async def test_CoreApiClient_coverage_gaps():
 
     assert result == expected
     client.coverage.coverage_gaps.assert_awaited_once_with(project="proj", limit=5)
+
+
+
+
+
+# ID: 83eb237d-366d-46c6-a24c-3586d8289712
+def test_CoreApiClient_coverage_targets():
+    client = CoreApiClient.__new__(CoreApiClient)
+
+    expected = {"targets": []}
+    mock_coverage = MagicMock()
+    mock_coverage.coverage_targets = AsyncMock(return_value=expected)
+    client.coverage = mock_coverage
+
+    result = asyncio.run(CoreApiClient.coverage_targets(client))
+
+    assert result == expected
+    mock_coverage.coverage_targets.assert_awaited_once_with()
