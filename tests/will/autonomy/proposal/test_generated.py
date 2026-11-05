@@ -372,8 +372,6 @@ def test_ProposalAction_ref_id():
     assert action2.ref_id == "flow-456"
 
 
-
-
 # ID: 3205a492-59f2-4fb2-821d-9a40103f7d44
 def test_ProposalAction() -> None:
     from will.autonomy.proposal import ProposalAction
@@ -407,3 +405,13 @@ def test_ProposalAction() -> None:
     with patch("body.flows.registry.flow_registry", mock_flow_registry):
         assert flow.validate_exists() is True
     mock_flow_registry.get.assert_called_once_with("flow.fix_code")
+
+
+from will.autonomy.proposal import RiskAssessment
+
+
+# ID: 7ff22984-4094-4596-81a6-10399f417694
+def test_RiskAssessment_requires_approval() -> None:
+    assert RiskAssessment(overall_risk="moderate").requires_approval() is True
+    assert RiskAssessment(overall_risk="high").requires_approval() is True
+    assert RiskAssessment(overall_risk="low").requires_approval() is False
