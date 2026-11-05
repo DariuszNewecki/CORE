@@ -298,9 +298,6 @@ async def test_revive_findings_for_rejected_proposal():
     )
 
 
-
-
-
 # ID: e5e5b025-ff4a-40dd-8df5-51be1334a9f5
 async def test_ProposalService_list_pending_approval() -> None:
     session = MagicMock()
@@ -314,3 +311,34 @@ async def test_ProposalService_list_pending_approval() -> None:
 
     assert result == expected_proposals
     service._repository.list_by_status.assert_awaited_once()
+
+
+
+
+
+# ID: f4cf3b6a-a485-4566-8a95-e34eae25f60c
+async def test_ProposalService_list_by_status_paginated() -> None:
+    mock_session = MagicMock()
+    mock_status = MagicMock(name="status")
+
+    expected_proposals = [MagicMock(name="proposal1"), MagicMock(name="proposal2")]
+    expected_result = (expected_proposals, True, "cursor-abc")
+
+    with (
+        patch("will.autonomy.proposal_service.ProposalRepository") as mock_repo_cls,
+        patch("will.autonomy.proposal_service.ProposalStateManager"),
+    ):
+        mock_repo = MagicMock()
+        mock_repo.list_by_status_paginated = AsyncMock(return_value=expected_result)
+        mock_repo_cls.return_value = mock_repo
+
+        service = ProposalService(mock_session)
+
+        result = await service.list_by_status_paginated(
+            mock_status, limit=25, after_cursor="prev-cursor"
+        )
+
+    assert result == expected_result
+    mock_repo.list_by_status_paginated.assert_awaited_once_with(
+        mock_status, 25, "prev-cursor"
+    )
