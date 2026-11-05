@@ -67,7 +67,6 @@ async def test_CognitiveService_get_embed_model_revision():
     mock_config.get.assert_awaited_once_with("embed_model.revision")
 
 
-
 import pytest
 
 
@@ -83,3 +82,57 @@ async def test_CognitiveService_aget_vectorizer_client() -> None:
 
     service.aget_client_for_role.assert_awaited_once_with("Vectorizer")
     assert result is expected_client
+
+
+import asyncio
+from unittest.mock import patch
+
+
+# ID: c7a02feb-d0b9-4f91-a173-1d0c6ff179eb
+def test_CognitiveService_initialize():
+    async def _run():
+        repo_path = Path("/tmp/repo")
+        service = CognitiveService(repo_path=repo_path)
+
+        session = MagicMock()
+
+        mock_config = MagicMock()
+        mock_config.detach = MagicMock()
+
+        mock_mind_state = MagicMock()
+        mock_mind_state.detach = MagicMock()
+
+        mock_orch = MagicMock()
+        mock_orch.initialize = AsyncMock()
+
+        with (
+            patch(
+                "will.orchestration.cognitive_service.ConfigService"
+            ) as ConfigServiceCls,
+            patch(
+                "will.orchestration.cognitive_service.MindStateService"
+            ) as MindStateCls,
+            patch(
+                "will.orchestration.cognitive_service.CognitiveOrchestrator"
+            ) as OrchCls,
+        ):
+            ConfigServiceCls.create = AsyncMock(return_value=mock_config)
+            MindStateCls.return_value = mock_mind_state
+            OrchCls.return_value = mock_orch
+
+            await service.initialize(session)
+
+        ConfigServiceCls.create.assert_awaited_once_with(session)
+        MindStateCls.assert_called_once_with(session)
+        OrchCls.assert_called_once()
+        mock_orch.initialize.assert_awaited_once()
+
+        mock_config.detach.assert_called_once_with()
+        mock_mind_state.detach.assert_called_once_with()
+
+        assert service._loaded is True
+        assert service._config is mock_config
+        assert service._mind_state is mock_mind_state
+        assert service._orch is mock_orch
+
+    asyncio.run(_run())
