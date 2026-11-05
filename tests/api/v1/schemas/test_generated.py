@@ -556,3 +556,49 @@ def test_ConsequenceRecord():
     assert default_record.files_changed == []
     assert default_record.findings_resolved == []
     assert default_record.authorized_by_rules == []
+
+
+from api.v1.schemas import ProposalSummary
+
+
+# ID: 6af9bf3c-1d8a-41ff-b508-b81d059b00dd
+def test_ProposalSummary():
+    summary = ProposalSummary(
+        proposal_id="prop-123",
+        goal="Increase coverage",
+        status="approved",
+        risk={"level": "low"},
+        approval_authority="governance-board",
+        approved_by="alice",
+        approved_at="2024-01-01T00:00:00Z",
+        execution_results={"ok": True},
+        created_by="bob",
+        created_at="2023-12-31T00:00:00Z",
+        failure_reason=None,
+    )
+
+    assert summary.proposal_id == "prop-123"
+    assert summary.goal == "Increase coverage"
+    assert summary.status == "approved"
+    assert summary.risk == {"level": "low"}
+    assert summary.approval_authority == "governance-board"
+    assert summary.approved_by == "alice"
+    assert summary.approved_at == "2024-01-01T00:00:00Z"
+    assert summary.execution_results == {"ok": True}
+    assert summary.created_by == "bob"
+    assert summary.created_at == "2023-12-31T00:00:00Z"
+    assert summary.failure_reason is None
+
+    minimal = ProposalSummary(
+        proposal_id="prop-456",
+        goal="Minimal",
+        status="pending",
+        created_at="2024-01-02T00:00:00Z",
+    )
+    assert minimal.risk is None
+    assert minimal.approval_authority is None
+    assert minimal.approved_by is None
+    assert minimal.approved_at is None
+    assert minimal.execution_results is None
+    assert minimal.created_by is None
+    assert minimal.failure_reason is None
