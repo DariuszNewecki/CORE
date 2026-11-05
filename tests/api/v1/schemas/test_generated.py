@@ -505,3 +505,25 @@ def test_ProposalActionItem():
     assert default_item.flow_id is None
     assert default_item.parameters == {}
     assert default_item.order == 0
+
+
+
+from api.v1.schemas import GovernanceChainResponse
+
+
+# ID: a75a6f05-6efa-4e53-b190-52afe5253c03
+def test_GovernanceChainResponse() -> None:
+    response = GovernanceChainResponse(
+        proposal={
+            "proposal_id": "p1",
+            "title": "Test Proposal",
+            "status": "approved",
+            "goal": "Ship the feature",
+            "created_at": "2024-01-01T00:00:00+00:00",
+        }
+    )
+
+    assert response.proposal is not None
+    assert response.proposal.proposal_id == "p1"
+    assert response.findings == []
+    assert response.consequence is None
