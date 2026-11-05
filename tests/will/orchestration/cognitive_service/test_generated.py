@@ -138,9 +138,6 @@ def test_CognitiveService_initialize():
     asyncio.run(_run())
 
 
-
-
-
 # ID: 3f81ffc7-b529-4685-b7cc-b83c058c1b7d
 def test_CognitiveService_qdrant_service():
     qdrant_service = MagicMock()
@@ -151,3 +148,33 @@ def test_CognitiveService_qdrant_service():
     result = service.qdrant_service
 
     assert result is qdrant_service
+
+
+
+
+# ID: a04023a9-80b5-4ef7-b524-71aedb3b6c00
+def test_CognitiveService() -> None:
+    from will.orchestration.cognitive_service import CognitiveService
+
+    qdrant = MagicMock()
+    qdrant.search_similar = AsyncMock(return_value=[{"id": "x"}])
+    service = CognitiveService(
+        repo_path=Path("/tmp/repo"),
+        qdrant_service=qdrant,
+        session_factory=None,
+    )
+
+    async def _run() -> None:
+        # Happy path: qdrant_service property returns the injected service.
+        assert service.qdrant_service is qdrant
+
+        # empty embedding path short-circuits before any client lookup.
+        result = await service.get_embedding_for_code("")
+        assert result is None
+
+        # empty query short-circuits to empty list without touching qdrant.
+        results = await service.search_capabilities("")
+        assert results == []
+        qdrant.search_similar.assert_not_called()
+
+    asyncio.run(_run())
