@@ -1253,8 +1253,6 @@ async def test_CoreApiClient_coverage_generate_batch():
     assert result == expected
 
 
-
-
 # ID: f8e83b71-8daa-4d0d-927f-fc65f8edcf4a
 async def test_CoreApiClient_coverage_generate():
     from api.cli.client import CoreApiClient
@@ -1274,3 +1272,20 @@ async def test_CoreApiClient_coverage_generate():
         mock_coverage.coverage_generate.assert_awaited_once_with(
             "/some/path", flag=True
         )
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: d1b7e916-483c-45f7-8a5d-20d8ee9909d4
+async def test_CoreApiClient_coverage_methods():
+    client = CoreApiClient(base_url="http://localhost:8000")
+    client.coverage.coverage_methods = AsyncMock(
+        return_value={"methods": [{"name": "foo", "covered": True}]}
+    )
+
+    result = await client.coverage_methods("pkg", limit=5)
+
+    client.coverage.coverage_methods.assert_awaited_once_with("pkg", limit=5)
+    assert result == {"methods": [{"name": "foo", "covered": True}]}
