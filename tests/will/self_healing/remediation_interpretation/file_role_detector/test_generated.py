@@ -50,3 +50,40 @@ def test_FileRoleDetector_detect():
     assert result.confidence == 0.85
     assert "layer-ev" in result.evidence
     assert "merge-ev" in result.evidence
+
+
+from will.self_healing.remediation_interpretation.file_role_detector import (
+    FileRoleDetector,
+)
+
+
+# ID: addd4613-a8e2-42ba-b0af-b99f5c16d3c9
+def test_FileRoleDetector():
+    detector = FileRoleDetector()
+
+    source_code = '''
+# ID: 8ccd375d-256d-4034-97d0-3431306070ca
+class MyWorker(Worker):
+    """A sensing worker that posts findings."""
+'''
+    file_path = "src/will/workers/my_worker.py"
+
+    result = detector.detect(file_path=file_path, source_code=source_code)
+
+    assert result is not None
+    assert result.layer == "will"
+    assert result.role_id in {"worker.sensor", "worker", "worker.actor"}
+    assert result.role_id == "worker.sensor"
+    assert isinstance(result.confidence, float)
+    assert 0.0 <= result.confidence <= 1.0
+    assert isinstance(result.evidence, list)
+    assert len(result.evidence) >= 1
+
+    # Path-only inference for a plain service file.
+    service_result = detector.detect(
+        file_path="src/body/services/user_service.py",
+        source_code="",
+    )
+    assert service_result.layer == "body"
+    assert service_result.role_id == "service"
+    assert 0.0 <= service_result.confidence <= 1.0
