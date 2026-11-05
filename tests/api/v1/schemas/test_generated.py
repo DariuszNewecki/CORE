@@ -400,3 +400,24 @@ def test_LaneFindingItem():
         "payload": {"k": "v", "n": 1},
         "created_at": None,
     }
+
+
+from unittest.mock import patch
+
+
+# ID: 76fa1fe2-8333-4f9a-aabd-dcf0f2a4e2a5
+def test_LaneBundle():
+    with patch("api.v1.schemas.LaneBundleRule") as MockRule:
+        mock_rule = MockRule.return_value
+
+        bundle = LaneBundle.model_construct(rule=mock_rule)
+
+        assert bundle.rule is mock_rule
+        assert bundle.remediation is None
+
+        bundle_with_remediation = LaneBundle.model_construct(
+            rule=mock_rule,
+            remediation={"fix": "apply patch"},
+        )
+        assert bundle_with_remediation.rule is mock_rule
+        assert bundle_with_remediation.remediation == {"fix": "apply patch"}
