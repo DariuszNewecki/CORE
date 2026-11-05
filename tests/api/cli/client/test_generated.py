@@ -1421,8 +1421,6 @@ async def test_CoreApiClient_quality_gates():
     assert result == expected
 
 
-
-
 # ID: d780c8ce-a0c2-4e88-991d-155c442eb41f
 async def test_CoreApiClient_quality_system():
     from api.cli.client import CoreApiClient
@@ -1441,3 +1439,21 @@ async def test_CoreApiClient_quality_system():
 
     assert result == expected
     client.quality.quality_system.assert_awaited_once_with("arg1", key="value")
+
+
+
+
+
+# ID: 4d027340-eca4-4a6c-96ed-cb1830ef1c12
+async def test_CoreApiClient_quality_tests():
+    expected = {"status": "ok"}
+    quality_mock = MagicMock()
+    quality_mock.quality_tests = AsyncMock(return_value=expected)
+    with patch.object(CoreApiClient, "__init__", lambda self: None):
+        client = CoreApiClient.__new__(CoreApiClient)
+    client.quality = quality_mock
+
+    result = await client.quality_tests("arg1", key="value")
+
+    assert result == expected
+    quality_mock.quality_tests.assert_awaited_once_with("arg1", key="value")
