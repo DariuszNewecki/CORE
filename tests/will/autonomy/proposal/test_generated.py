@@ -417,8 +417,6 @@ def test_RiskAssessment_requires_approval() -> None:
     assert RiskAssessment(overall_risk="low").requires_approval() is False
 
 
-
-
 # ID: a49640ea-9185-4938-8aef-deb28142d61a
 def test_RiskAssessment():
     # Happy path: safe risk does not require approval
@@ -443,3 +441,25 @@ def test_RiskAssessment():
     assert high.action_risks == {"action-1": "critical"}
     assert high.risk_factors == ["destructive change"]
     assert high.mitigation == ["manual review"]
+
+
+
+
+# ID: b0469d51-af61-403d-a0ef-bc91f8fa50cc
+def test_ProposalProvenance_from_dict():
+    data = {
+        "anchor_kind": "issue",
+        "anchor_refs": [1, 2, 3],
+        "problem_owner": "team-alpha",
+        "producer": "worker-x",
+        "retires": [10, 20],
+    }
+
+    result = ProposalProvenance.from_dict(data)
+
+    assert isinstance(result, ProposalProvenance)
+    assert result.anchor_kind == "issue"
+    assert result.anchor_refs == ["1", "2", "3"]
+    assert result.problem_owner == "team-alpha"
+    assert result.producer == "worker-x"
+    assert result.retires == ["10", "20"]
