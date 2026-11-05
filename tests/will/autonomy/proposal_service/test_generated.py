@@ -341,9 +341,6 @@ async def test_ProposalService_list_by_status_paginated() -> None:
     )
 
 
-
-
-
 # ID: 2636b79f-13a9-42ca-a0fa-dd266038470b
 async def test_ProposalService_list_by_status():
     session = MagicMock()
@@ -365,3 +362,32 @@ async def test_ProposalService_list_by_status():
 
         assert result == expected
         mock_repository.list_by_status.assert_awaited_once_with(status, 10)
+
+
+
+import pytest
+
+
+# ID: a4ed5836-5ce8-43f8-acb0-aad891af237d
+async def test_ProposalService_update() -> None:
+    session = MagicMock()
+    proposal = MagicMock()
+
+    with (
+        patch("will.autonomy.proposal_service.ProposalRepository") as repo_cls,
+        patch("will.autonomy.proposal_service.ProposalStateManager") as state_cls,
+    ):
+        repo = MagicMock()
+        state_manager = MagicMock()
+        repo_cls.return_value = repo
+        state_cls.return_value = state_manager
+
+        service = ProposalService(session)
+
+        repo.update = AsyncMock(return_value=proposal)
+        service.update = AsyncMock(return_value=proposal)
+
+        result = await service.update(proposal)
+
+    service.update.assert_awaited_once_with(proposal)
+    assert result is proposal
