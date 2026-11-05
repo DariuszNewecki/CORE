@@ -486,9 +486,6 @@ def test_ProposalProvenance_to_dict():
     assert isinstance(result["retires"], list)
 
 
-
-
-
 # ID: 3e73cdcc-58d5-4010-a337-a462fed1b776
 def test_ProposalProvenance_problems() -> None:
     provenance = MagicMock()
@@ -500,3 +497,43 @@ def test_ProposalProvenance_problems() -> None:
     result = ProposalProvenance.problems(provenance)
 
     assert result == []
+
+
+
+
+# ID: c54ac342-1bbe-4fae-a55a-6f3ba5997607
+def test_ProposalProvenance() -> None:
+    provenance = ProposalProvenance(
+        anchor_kind="adr",
+        anchor_refs=["ADR-168"],
+        problem_owner="core",
+        producer="core",
+        retires=["ADR-100"],
+    )
+
+    # Happy path: well-formed provenance reports no problems.
+    assert provenance.problems() == []
+
+    # Round-trip serialisation preserves the fields.
+    data = provenance.to_dict()
+    assert data == {
+        "anchor_kind": "adr",
+        "anchor_refs": ["ADR-168"],
+        "problem_owner": "core",
+        "producer": "core",
+        "retires": ["ADR-100"],
+    }
+
+    restored = ProposalProvenance.from_dict(data)
+    assert restored == provenance
+    assert restored.problems() == []
+
+    # Default retires is empty and still valid.
+    default_retires = ProposalProvenance(
+        anchor_kind="governor_request",
+        anchor_refs=["REQ-1"],
+        problem_owner="governor",
+        producer="governor",
+    )
+    assert default_retires.retires == []
+    assert default_retires.problems() == []
