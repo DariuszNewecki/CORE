@@ -1289,3 +1289,24 @@ async def test_CoreApiClient_coverage_methods():
 
     client.coverage.coverage_methods.assert_awaited_once_with("pkg", limit=5)
     assert result == {"methods": [{"name": "foo", "covered": True}]}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 4cb27a01-efa3-420a-9910-d2b949be0f8f
+async def test_CoreApiClient_quality_policy_coverage():
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost", None)
+    ):
+        client = CoreApiClient(base_url="http://localhost:8000")
+        expected = {"coverage": 0.85, "policies": []}
+        mock_quality = MagicMock()
+        mock_quality.quality_policy_coverage = AsyncMock(return_value=expected)
+        client.quality = mock_quality
+
+        result = await client.quality_policy_coverage(foo="bar")
+
+        assert result == expected
+        mock_quality.quality_policy_coverage.assert_awaited_once_with(foo="bar")
