@@ -282,3 +282,29 @@ def test_SubmitChangeResponse():
     assert response.scope_files == ["src/api/routes.py", "src/api/v1/schemas.py"]
     assert response.step_zero == step_zero
     assert response.step_zero["risk"] == "low"
+
+
+from api.v1.schemas import LaneProposeResponse
+
+
+# ID: b0d1c291-ed1d-4e5d-b3ea-cf0db66cf1eb
+def test_LaneProposeResponse() -> None:
+    response = LaneProposeResponse(
+        proposal_id="prop-123",
+        status="pending",
+        approval_required=True,
+        scope_files=["src/a.py", "src/b.py"],
+    )
+
+    assert response.proposal_id == "prop-123"
+    assert response.status == "pending"
+    assert response.approval_required is True
+    assert response.scope_files == ["src/a.py", "src/b.py"]
+
+    dumped = response.model_dump()
+    assert dumped == {
+        "proposal_id": "prop-123",
+        "status": "pending",
+        "approval_required": True,
+        "scope_files": ["src/a.py", "src/b.py"],
+    }
