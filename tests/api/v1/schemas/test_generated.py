@@ -507,7 +507,6 @@ def test_ProposalActionItem():
     assert default_item.order == 0
 
 
-
 from api.v1.schemas import GovernanceChainResponse
 
 
@@ -527,3 +526,33 @@ def test_GovernanceChainResponse() -> None:
     assert response.proposal.proposal_id == "p1"
     assert response.findings == []
     assert response.consequence is None
+
+
+from api.v1.schemas import ConsequenceRecord
+
+
+# ID: c34bd983-ac6c-4a39-bea3-35867d4e7df2
+def test_ConsequenceRecord():
+    # happy path: construct with full data
+    record = ConsequenceRecord(
+        pre_execution_sha="abc123",
+        post_execution_sha="def456",
+        files_changed=["a.py", "b.py"],
+        findings_resolved=[{"id": 1}],
+        authorized_by_rules=[{"rule": "r1"}],
+        recorded_at="2024-01-01T00:00:00Z",
+    )
+    assert record.pre_execution_sha == "abc123"
+    assert record.post_execution_sha == "def456"
+    assert record.files_changed == ["a.py", "b.py"]
+    assert record.findings_resolved == [{"id": 1}]
+    assert record.authorized_by_rules == [{"rule": "r1"}]
+    assert record.recorded_at == "2024-01-01T00:00:00Z"
+
+    # defaults: optional SHAs default to None, lists default to empty
+    default_record = ConsequenceRecord(recorded_at="2024-01-02T00:00:00Z")
+    assert default_record.pre_execution_sha is None
+    assert default_record.post_execution_sha is None
+    assert default_record.files_changed == []
+    assert default_record.findings_resolved == []
+    assert default_record.authorized_by_rules == []
