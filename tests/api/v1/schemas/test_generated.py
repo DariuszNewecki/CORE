@@ -421,3 +421,19 @@ def test_LaneBundle():
         )
         assert bundle_with_remediation.rule is mock_rule
         assert bundle_with_remediation.remediation == {"fix": "apply patch"}
+
+
+from api.v1.schemas import LaneBundleRule
+
+
+# ID: 7b576ccb-1c71-4358-9e93-e912bb9f568c
+def test_LaneBundleRule():
+    rule = LaneBundleRule(
+        id="ADR-109",
+        rationale="Ensures lane bundle traceability",
+        in_registry=True,
+    )
+
+    assert rule.id == "ADR-109"
+    assert rule.rationale == "Ensures lane bundle traceability"
+    assert rule.in_registry is True
