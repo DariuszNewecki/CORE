@@ -1350,9 +1350,6 @@ async def test_CoreApiClient_coverage_gaps():
     client.coverage.coverage_gaps.assert_awaited_once_with(project="proj", limit=5)
 
 
-
-
-
 # ID: 83eb237d-366d-46c6-a24c-3586d8289712
 def test_CoreApiClient_coverage_targets():
     client = CoreApiClient.__new__(CoreApiClient)
@@ -1366,3 +1363,24 @@ def test_CoreApiClient_coverage_targets():
 
     assert result == expected
     mock_coverage.coverage_targets.assert_awaited_once_with()
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: ca01434a-557c-4041-9af5-72b8d7a348b9
+async def test_CoreApiClient_coverage_report():
+    from api.cli.client import CoreApiClient
+
+    client = CoreApiClient(base_url="http://localhost:8000")
+
+    expected = {"report": "ok"}
+    client.coverage = MagicMock()
+    client.coverage.coverage_report = AsyncMock(return_value=expected)
+
+    result = await client.coverage_report("arg1", key="value")
+
+    client.coverage.coverage_report.assert_awaited_once_with("arg1", key="value")
+    assert result == expected
