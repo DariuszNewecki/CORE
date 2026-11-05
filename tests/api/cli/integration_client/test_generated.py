@@ -39,3 +39,33 @@ def test_IntegrationClient_integrate() -> None:
         json={"commit_message": "feat: add thing"},
         timeout=300.0,
     )
+
+
+
+
+
+# ID: d4050d5d-e7ee-4363-bd96-3a99911029e5
+def test_IntegrationClient():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "ok"})
+
+    client = IntegrationClient(facade)
+    assert client._facade is facade
+
+    result = asyncio.run(client.integrate("my commit message"))
+    assert result == {"status": "ok"}
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/integrate",
+        json={"commit_message": "my commit message"},
+        timeout=300.0,
+    )
+
+    facade._request.reset_mock()
+    lint_result = asyncio.run(client.lint())
+    assert lint_result == {"status": "ok"}
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/lint",
+        timeout=300.0,
+    )
