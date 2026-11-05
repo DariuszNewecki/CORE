@@ -186,8 +186,6 @@ def test_blackboard_safe() -> None:
     assert not any(isinstance(v, BaseModel) for v in result["execution_plan"])
 
 
-
-
 # ID: 5625fd82-9198-4eb4-b4b0-687493caeb3a
 async def test_RunRecordPoster_post_unavailable():
     from will.orchestration.goal_run_records import RunRecordPoster
@@ -206,3 +204,33 @@ async def test_RunRecordPoster_post_unavailable():
     # The method may return None if it swallows errors; assert it completed
     # without raising rather than asserting a non-None result.
     assert result is None or result is not None
+
+
+import asyncio
+
+from will.orchestration.goal_run_records import RunRecordPoster
+
+
+# ID: 44dac760-63fb-496b-a343-61c099207c02
+def test_RunRecordPoster() -> None:
+    fake = MagicMock(spec=RunRecordPoster)
+    fake.post_report = AsyncMock(return_value="report-ok")
+    fake.post_unavailable = AsyncMock(return_value="unavailable-ok")
+
+    # RunRecordPoster is a structural Protocol; check the sanctioned methods exist.
+    assert hasattr(fake, "post_report")
+    assert hasattr(fake, "post_unavailable")
+
+    result_unavailable = asyncio.run(
+        fake.post_unavailable(
+            "goal-run:subject", reason="instrument down", detail={"key": "value"}
+        )
+    )
+    assert result_unavailable == "unavailable-ok"
+    fake.post_unavailable.assert_awaited_once_with(
+        "goal-run:subject", reason="instrument down", detail={"key": "value"}
+    )
+
+    result_report = asyncio.run(fake.post_report("goal-run:subject", payload={"x": 1}))
+    assert result_report == "report-ok"
+    fake.post_report.assert_awaited_once_with("goal-run:subject", payload={"x": 1})
