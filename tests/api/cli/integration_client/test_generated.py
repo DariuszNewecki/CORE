@@ -16,3 +16,26 @@ async def test_IntegrationClient_lint() -> None:
 
     facade._request.assert_awaited_once_with("POST", "/v1/lint", timeout=300.0)
     assert result == {"passed": True}
+
+
+import asyncio
+
+
+# ID: 61036eec-51e9-4b83-99b3-ccdc4f1c400c
+def test_IntegrationClient_integrate() -> None:
+    from api.cli.integration_client import IntegrationClient
+
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "ok", "committed": True})
+    client = IntegrationClient(facade)
+
+    expected = {"status": "ok", "committed": True}
+    result = asyncio.run(client.integrate("feat: add thing"))
+
+    assert result == expected
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/integrate",
+        json={"commit_message": "feat: add thing"},
+        timeout=300.0,
+    )
