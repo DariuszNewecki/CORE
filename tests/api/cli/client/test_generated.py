@@ -1226,3 +1226,28 @@ async def test_CoreApiClient_get_coverage_run() -> None:
     finally:
         for p in patchers:
             p.stop()
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: cd32e23b-7753-4252-84fe-e0f670b3e28a
+async def test_CoreApiClient_coverage_generate_batch():
+    # Instantiate the client under test with an explicit base_url to avoid env/IO.
+    client = CoreApiClient(base_url="http://localhost:8080")
+
+    # Replace the coverage sub-client with a mock whose async method returns a sentinel.
+    expected = {"generated": 3, "status": "ok"}
+    mock_coverage = MagicMock()
+    mock_coverage.coverage_generate_batch = AsyncMock(return_value=expected)
+    client.coverage = mock_coverage
+
+    result = await client.coverage_generate_batch(
+        project="my-proj", paths=["a.py", "b.py"]
+    )
+
+    mock_coverage.coverage_generate_batch.assert_awaited_once_with(
+        project="my-proj", paths=["a.py", "b.py"]
+    )
+    assert result == expected
