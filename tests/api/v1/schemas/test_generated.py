@@ -331,3 +331,25 @@ def test_LaneClaimResponse() -> None:
         "claimed_by": "agent-007",
         "status": "claimed",
     }
+
+
+from api.v1.schemas import LaneFindingListResponse
+
+
+# ID: 0579f2c1-55b7-499f-b2c0-27cbf309a3d1
+def test_LaneFindingListResponse() -> None:
+    from api.v1.schemas import LaneFindingItem
+
+    item = LaneFindingItem.model_construct()
+    item.__dict__["severity"] = "medium"
+
+    response = LaneFindingListResponse(count=1, findings=[item])
+
+    assert response.count == 1
+    assert len(response.findings) == 1
+    assert isinstance(response.findings[0], LaneFindingItem)
+    assert response.findings[0].severity == "medium"
+
+    empty = LaneFindingListResponse(count=0, findings=[])
+    assert empty.count == 0
+    assert empty.findings == []
