@@ -1385,8 +1385,6 @@ async def test_CoreApiClient_coverage_report():
     assert result == expected
 
 
-
-
 import pytest
 
 
@@ -1404,3 +1402,23 @@ async def test_CoreApiClient_coverage_check():
 
     assert result == expected
     mock_instance.coverage_check.assert_awaited_once_with("argv", key="value")
+
+
+
+
+
+# ID: 4fb81155-55fe-4bec-bfc9-2131a6412afd
+async def test_CoreApiClient_quality_gates():
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost:8000", None)
+    ):
+        client = CoreApiClient(base_url="http://localhost:8000")
+
+    expected = {"gates": [{"name": "gate1", "passed": True}]}
+    client.quality = MagicMock()
+    client.quality.quality_gates = AsyncMock(return_value=expected)
+
+    result = await client.quality_gates("arg1", key="value")
+
+    client.quality.quality_gates.assert_awaited_once_with("arg1", key="value")
+    assert result == expected
