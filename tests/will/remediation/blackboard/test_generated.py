@@ -330,9 +330,6 @@ async def test_WorkerRemediationBlackboard_post_report():
     worker.post_report.assert_awaited_once_with(subject, payload)
 
 
-
-
-
 # ID: 66fa3b66-4749-4420-8e20-24a4106f3584
 def test_WorkerRemediationBlackboard_worker_uuid() -> None:
     expected = uuid.uuid4()
@@ -343,3 +340,65 @@ def test_WorkerRemediationBlackboard_worker_uuid() -> None:
     board = WorkerRemediationBlackboard(mock_worker, core_context)
 
     assert board.worker_uuid == expected
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: a6185e3d-97bc-43f1-ba0a-b5aa33862eee
+async def test_WorkerRemediationBlackboard():
+    worker = MagicMock()
+    worker.worker_uuid = uuid.uuid4()
+    worker.post_report = AsyncMock(return_value="report-ok")
+    worker.post_observation = AsyncMock(return_value="obs-ok")
+
+    bb_service = MagicMock()
+    bb_service.update_entry_status = AsyncMock()
+    bb_service.abandon_entries_and_increment_attempt_count = AsyncMock()
+
+    registry = MagicMock()
+    registry.get_blackboard_service = AsyncMock(return_value=bb_service)
+    core_context = MagicMock()
+    core_context.registry = registry
+
+    blackboard = WorkerRemediationBlackboard(worker, core_context)
+
+    assert blackboard.worker_uuid is worker.worker_uuid
+
+    result = await blackboard.post_report("subject.x", {"a": 1})
+    assert result == "report-ok"
+    worker.post_report.assert_awaited_once_with("subject.x", {"a": 1})
+
+    obs = await blackboard.post_observation("subject.y", {"b": 2}, status="open")
+    assert obs == "obs-ok"
+    worker.post_observation.assert_awaited_once_with(
+        "subject.y", {"b": 2}, status="open"
+    )
+
+    findings = [{"id": "f1"}, {"id": "f2"}]
+    await blackboard.mark_findings(findings, "resolved")
+    assert bb_service.update_entry_status.await_count == 2
+    bb_service.update_entry_status.assert_any_await("f1", "resolved")
+    bb_service.update_entry_status.assert_any_await("f2", "resolved")
+
+    await blackboard.mark_findings(findings, "abandoned")
+    bb_service.abandon_entries_and_increment_attempt_count.assert_awaited_once_with(
+        ["f1", "f2"]
+    )
+
+    await blackboard.post_failed("/path/x.py", findings, "R1", "boom")
+    worker.post_report.assert_awaited_with(
+        "audit.remediation.failed::/path/x.py",
+        {
+            "file_path": "/path/x.py",
+            "rule": "R1",
+            "reason": "boom",
+            "finding_ids": ["f1", "f2"],
+        },
+    )
+
+    flat_worker = MagicMock(spec=["post_report", "post_observation"])
+    flat_blackboard = WorkerRemediationBlackboard(flat_worker, core_context)
+    assert flat_blackboard.worker_uuid is None
