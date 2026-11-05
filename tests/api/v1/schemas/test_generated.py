@@ -437,3 +437,49 @@ def test_LaneBundleRule():
     assert rule.id == "ADR-109"
     assert rule.rationale == "Ensures lane bundle traceability"
     assert rule.in_registry is True
+
+
+
+
+# ID: 61c878f3-16b9-4937-9221-bdd66f127253
+def test_ProposalResponse():
+    from api.v1.schemas import ProposalActionItem, ProposalResponse
+
+    action = ProposalActionItem(
+        action_id="act-1",
+        action_type="modify_file",
+        target="a.py",
+    )
+
+    proposal = ProposalResponse(
+        proposal_id="prop-123",
+        goal="Improve coverage",
+        actions=[action],
+        scope={"files": ["a.py"]},
+        risk={"level": "low"},
+        status="pending",
+        created_at="2024-01-01T00:00:00Z",
+        created_by="alice",
+        validation_checks={"ok": True},
+        validation_results={"passed": 3},
+        approval_required=True,
+        approved_by="bob",
+        approved_at="2024-01-02T00:00:00Z",
+        approval_authority="council",
+        failure_reason=None,
+    )
+
+    assert proposal.proposal_id == "prop-123"
+    assert proposal.goal == "Improve coverage"
+    assert proposal.actions == [action]
+    assert proposal.actions[0].action_id == "act-1"
+    assert proposal.scope == {"files": ["a.py"]}
+    assert proposal.risk == {"level": "low"}
+    assert proposal.status == "pending"
+    assert proposal.created_at == "2024-01-01T00:00:00Z"
+    assert proposal.created_by == "alice"
+    assert proposal.approval_required is True
+    assert proposal.approved_by == "bob"
+    assert proposal.approved_at == "2024-01-02T00:00:00Z"
+    assert proposal.approval_authority == "council"
+    assert proposal.failure_reason is None
