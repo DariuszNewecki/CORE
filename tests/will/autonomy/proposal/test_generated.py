@@ -357,9 +357,6 @@ def test_ProposalAction_ref_kind():
     assert ProposalAction.ref_kind.__get__(flow_obj, ProposalAction) == "flow"
 
 
-
-
-
 # ID: ad6f7e8b-cdbf-4f8a-a2ea-f01f1be6a9fc
 def test_ProposalAction_ref_id():
     action = MagicMock(spec=ProposalAction)
@@ -373,3 +370,40 @@ def test_ProposalAction_ref_id():
     action2.flow_id = "flow-456"
     action2.ref_id = ProposalAction.ref_id.__get__(action2, ProposalAction)
     assert action2.ref_id == "flow-456"
+
+
+
+
+# ID: 3205a492-59f2-4fb2-821d-9a40103f7d44
+def test_ProposalAction() -> None:
+    from will.autonomy.proposal import ProposalAction
+
+    # Happy path: action_id set, flow_id None
+    action = ProposalAction(action_id="fix.format", parameters={"x": 1}, order=3)
+
+    assert action.action_id == "fix.format"
+    assert action.flow_id is None
+    assert action.parameters == {"x": 1}
+    assert action.order == 3
+    assert action.ref_id == "fix.format"
+    assert action.ref_kind == "action"
+
+    # validate_exists should consult the action registry
+    mock_registry = MagicMock()
+    mock_registry.get.return_value = MagicMock()
+    with patch("body.atomic.registry.action_registry", mock_registry):
+        assert action.validate_exists() is True
+    mock_registry.get.assert_called_once_with("fix.format")
+
+    # Happy path: flow_id set, action_id None
+    flow = ProposalAction(flow_id="flow.fix_code")
+    assert flow.action_id is None
+    assert flow.flow_id == "flow.fix_code"
+    assert flow.ref_id == "flow.fix_code"
+    assert flow.ref_kind == "flow"
+
+    mock_flow_registry = MagicMock()
+    mock_flow_registry.get.return_value = MagicMock()
+    with patch("body.flows.registry.flow_registry", mock_flow_registry):
+        assert flow.validate_exists() is True
+    mock_flow_registry.get.assert_called_once_with("flow.fix_code")
