@@ -443,8 +443,6 @@ def test_RiskAssessment():
     assert high.mitigation == ["manual review"]
 
 
-
-
 # ID: b0469d51-af61-403d-a0ef-bc91f8fa50cc
 def test_ProposalProvenance_from_dict():
     data = {
@@ -463,3 +461,29 @@ def test_ProposalProvenance_from_dict():
     assert result.problem_owner == "team-alpha"
     assert result.producer == "worker-x"
     assert result.retires == ["10", "20"]
+
+
+
+
+
+# ID: 15f3a70d-9c08-492f-af67-1431329e462c
+def test_ProposalProvenance_to_dict():
+    provenance = ProposalProvenance(
+        anchor_kind="finding",
+        anchor_refs=("ref-1", "ref-2"),
+        problem_owner="owner-a",
+        producer="producer-b",
+        retires=("r-1", "r-2"),
+    )
+
+    result = provenance.to_dict()
+
+    assert result == {
+        "anchor_kind": "finding",
+        "anchor_refs": ["ref-1", "ref-2"],
+        "problem_owner": "owner-a",
+        "producer": "producer-b",
+        "retires": ["r-1", "r-2"],
+    }
+    assert isinstance(result["anchor_refs"], list)
+    assert isinstance(result["retires"], list)
