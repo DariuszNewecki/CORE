@@ -257,3 +257,28 @@ def test_CensusRunResponse() -> None:
     assert response.finished_at == "2024-01-01T00:00:02Z"
     assert response.result == {"count": 42}
     assert response.error is None
+
+
+# ID: 6fb0ddd6-8213-4c54-a4c0-74c1685aefaa
+def test_SubmitChangeResponse():
+    from api.v1.schemas import SubmitChangeResponse
+
+    step_zero = {
+        "summary": "Add greeting endpoint",
+        "files_reviewed": ["src/api/routes.py"],
+        "risk": "low",
+    }
+    response = SubmitChangeResponse(
+        proposal_id="prop-123",
+        status="pending_approval",
+        approval_required=True,
+        scope_files=["src/api/routes.py", "src/api/v1/schemas.py"],
+        step_zero=step_zero,
+    )
+
+    assert response.proposal_id == "prop-123"
+    assert response.status == "pending_approval"
+    assert response.approval_required is True
+    assert response.scope_files == ["src/api/routes.py", "src/api/v1/schemas.py"]
+    assert response.step_zero == step_zero
+    assert response.step_zero["risk"] == "low"
