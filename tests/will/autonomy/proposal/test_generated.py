@@ -415,3 +415,31 @@ def test_RiskAssessment_requires_approval() -> None:
     assert RiskAssessment(overall_risk="moderate").requires_approval() is True
     assert RiskAssessment(overall_risk="high").requires_approval() is True
     assert RiskAssessment(overall_risk="low").requires_approval() is False
+
+
+
+
+# ID: a49640ea-9185-4938-8aef-deb28142d61a
+def test_RiskAssessment():
+    # Happy path: safe risk does not require approval
+    safe = RiskAssessment(overall_risk="safe")
+    assert safe.overall_risk == "safe"
+    assert safe.action_risks == {}
+    assert safe.risk_factors == []
+    assert safe.mitigation == []
+    assert safe.requires_approval() is False
+
+    # Moderate and high risk require approval
+    moderate = RiskAssessment(overall_risk="moderate")
+    assert moderate.requires_approval() is True
+
+    high = RiskAssessment(
+        overall_risk="high",
+        action_risks={"action-1": "critical"},
+        risk_factors=["destructive change"],
+        mitigation=["manual review"],
+    )
+    assert high.requires_approval() is True
+    assert high.action_risks == {"action-1": "critical"}
+    assert high.risk_factors == ["destructive change"]
+    assert high.mitigation == ["manual review"]
