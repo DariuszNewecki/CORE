@@ -695,3 +695,44 @@ def test_FixCommandListResponse():
     assert isinstance(response.commands, list)
     assert len(response.commands) == 1
     assert response.commands[0].action_id == "restart_service"
+
+
+from api.v1.schemas import ActionCommandItem
+
+
+# ID: 9ab2289c-6e01-42df-a07c-ece0fd40fe4f
+def test_ActionCommandItem():
+    item = ActionCommandItem(
+        action_id="fix.imports.unused",
+        description="Remove unused imports",
+        category="cleanup",
+        policies=["policy-a", "policy-b"],
+        impact_level="low",
+        requires_db=True,
+        requires_vectors=False,
+        remediates=["unused_import"],
+    )
+
+    assert item.action_id == "fix.imports.unused"
+    assert item.description == "Remove unused imports"
+    assert item.category == "cleanup"
+    assert item.policies == ["policy-a", "policy-b"]
+    assert item.impact_level == "low"
+    assert item.requires_db is True
+    assert item.requires_vectors is False
+    assert item.remediates == ["unused_import"]
+
+    minimal = ActionCommandItem(action_id="noop")
+
+    assert minimal.action_id == "noop"
+    assert minimal.description is None
+    assert minimal.category is None
+    assert minimal.policies == []
+    assert minimal.impact_level is None
+    assert minimal.requires_db is False
+    assert minimal.requires_vectors is False
+    assert minimal.remediates == []
+
+    assert minimal.model_dump()["action_id"] == "noop"
+
+    assert ActionCommandItem.model_validate({"action_id": "x"}).action_id == "x"
