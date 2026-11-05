@@ -1251,3 +1251,26 @@ async def test_CoreApiClient_coverage_generate_batch():
         project="my-proj", paths=["a.py", "b.py"]
     )
     assert result == expected
+
+
+
+
+# ID: f8e83b71-8daa-4d0d-927f-fc65f8edcf4a
+async def test_CoreApiClient_coverage_generate():
+    from api.cli.client import CoreApiClient
+
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost", None)
+    ):
+        client = CoreApiClient(base_url="http://localhost:8080")
+
+        mock_coverage = MagicMock()
+        mock_coverage.coverage_generate = AsyncMock(return_value={"generated": True})
+        client.coverage = mock_coverage
+
+        result = await client.coverage_generate("/some/path", flag=True)
+
+        assert result == {"generated": True}
+        mock_coverage.coverage_generate.assert_awaited_once_with(
+            "/some/path", flag=True
+        )
