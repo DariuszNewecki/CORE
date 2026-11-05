@@ -21,3 +21,21 @@ async def test_FindingsClient_resolve() -> None:
         "POST", "/v1/findings/entry-123/resolve", json={"reason": "duplicate"}
     )
     assert result == {"resolved": True, "actor": "server"}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: acd31b34-8938-4b3d-aede-58eb81f4a6b2
+async def test_FindingsClient():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"status": "resolved", "actor": "server"})
+
+    client = FindingsClient(facade)
+    result = await client.resolve("entry-123", "duplicate")
+
+    facade._request.assert_awaited_once_with(
+        "POST", "/v1/findings/entry-123/resolve", json={"reason": "duplicate"}
+    )
+    assert result == {"status": "resolved", "actor": "server"}

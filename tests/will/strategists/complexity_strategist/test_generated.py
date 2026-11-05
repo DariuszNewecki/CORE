@@ -34,3 +34,27 @@ async def test_ComplexityStrategist() -> None:
     assert result.data["strategy"] == "logic_simplification"
     assert result.data["target_reduction"] == 0.3
     assert result.duration_sec >= 0
+
+
+import asyncio
+from unittest.mock import MagicMock
+
+
+# ID: ed235025-3803-47b8-be5e-ceb05dc5c90a
+def test_ComplexityStrategist_execute() -> None:
+    strategist = ComplexityStrategist()
+
+    cfg = MagicMock()
+    cfg.god_method_threshold = 50
+    cfg.extraction_threshold = 20
+
+    with patch("will.strategists.complexity_strategist._CFG_CX", cfg):
+        result = asyncio.run(strategist.execute(complexity_score=100))
+
+    assert result.component_id == strategist.component_id
+    assert result.ok is True
+    assert result.phase == strategist.phase
+    assert result.data["strategy"] == "structural_fragmentation"
+    assert "God Method" in result.data["instruction"]
+    assert result.data["target_reduction"] == 0.3
+    assert result.duration_sec >= 0.0

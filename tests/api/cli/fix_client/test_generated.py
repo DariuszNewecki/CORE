@@ -112,3 +112,92 @@ def test_FixClient_list_actions():
 
     assert result == expected
     facade._request.assert_awaited_once_with("GET", "/v1/actions")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 751778cf-8f8a-4957-aa75-a140882f6f6d
+async def test_FixClient_list_fix_commands():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"commands": [{"name": "lint"}]})
+
+    client = FixClient(facade)
+    result = await client.list_fix_commands()
+
+    facade._request.assert_awaited_once_with("GET", "/v1/fix/commands")
+    assert result == {"commands": [{"name": "lint"}]}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 882e646a-6010-457e-8ff9-0e370f168d0f
+async def test_FixClient():
+    mock_facade = MagicMock()
+    mock_facade._request = AsyncMock(
+        side_effect=[
+            {"commands": ["a"]},
+            {"actions": ["b"]},
+            {"run": "r1"},
+            {"fixed": True},
+            {"ok": True},
+            {"ir": "ir.yaml"},
+            {"status": "done"},
+            {"commands": ["a"]},
+            {"actions": ["b"]},
+            {"run": "r2"},
+            {"fixed": True},
+            {"ok": True},
+            {"ir": "ir2.yaml"},
+            {"status": "done"},
+            {"commands": ["a"]},
+            {"actions": ["b"]},
+            {"run": "r2"},
+            {"fixed": True},
+            {"ok": True},
+            {"ir": "ir2.yaml"},
+            {"status": "done"},
+        ]
+    )
+
+    client = FixClient(mock_facade)
+
+    assert await client.list_fix_commands() == {"commands": ["a"]}
+    mock_facade._request.assert_awaited_with("GET", "/v1/fix/commands")
+
+    assert await client.list_actions() == {"actions": ["b"]}
+    mock_facade._request.assert_awaited_with("GET", "/v1/actions")
+
+    result = await client.run_fix(
+        "my.fix", target_files=["x.py"], write=True, params={"limit": 1}
+    )
+    assert result == {"run": "r1"}
+    mock_facade._request.assert_awaited_with(
+        "POST",
+        "/v1/fix/run/my.fix",
+        json={"target_files": ["x.py"], "write": True, "params": {"limit": 1}},
+    )
+
+    assert await client.fix_all(write=True) == {"fixed": True}
+    mock_facade._request.assert_awaited_with(
+        "POST", "/v1/fix/all", json={"write": True}
+    )
+
+    assert await client.fix_modularity(write=False, params={"min_score": 5}) == {
+        "ok": True
+    }
+    mock_facade._request.assert_awaited_with(
+        "POST", "/v1/fix/modularity", json={"write": False, "params": {"min_score": 5}}
+    )
+
+    assert await client.fix_ir("triage") == {"ir": "ir.yaml"}
+    mock_facade._request.assert_awaited_with(
+        "POST", "/v1/fix/ir", json={"kind": "triage"}
+    )
+
+    assert await client.get_fix_run("run-123") == {"status": "done"}
+    mock_facade._request.assert_awaited_with("GET", "/v1/fix/runs/run-123")

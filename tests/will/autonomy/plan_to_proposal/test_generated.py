@@ -31,3 +31,24 @@ def test_convert_execution_plan():
     assert actions[1].action_id == "create_file"
     assert actions[1].order == 1
     assert actions[1].parameters == {"file_path": "src/beta.py"}
+
+
+from will.autonomy.plan_to_proposal import PlanConversionRefused
+
+
+# ID: adb2fa77-07d1-4edf-8f82-9806190d68a3
+def test_PlanConversionRefused():
+    message = "plan cannot be faithfully represented"
+    exc = PlanConversionRefused(message)
+
+    assert isinstance(exc, PlanConversionRefused)
+    assert str(exc) == message
+    assert isinstance(exc, Exception)
+
+    raised = False
+    try:
+        raise PlanConversionRefused(message)
+    except PlanConversionRefused as caught:
+        raised = True
+        assert str(caught) == message
+    assert raised

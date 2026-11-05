@@ -67,7 +67,6 @@ async def test_CognitiveService_get_embed_model_revision():
     mock_config.get.assert_awaited_once_with("embed_model.revision")
 
 
-
 import pytest
 
 
@@ -83,3 +82,99 @@ async def test_CognitiveService_aget_vectorizer_client() -> None:
 
     service.aget_client_for_role.assert_awaited_once_with("Vectorizer")
     assert result is expected_client
+
+
+import asyncio
+from unittest.mock import patch
+
+
+# ID: c7a02feb-d0b9-4f91-a173-1d0c6ff179eb
+def test_CognitiveService_initialize():
+    async def _run():
+        repo_path = Path("/tmp/repo")
+        service = CognitiveService(repo_path=repo_path)
+
+        session = MagicMock()
+
+        mock_config = MagicMock()
+        mock_config.detach = MagicMock()
+
+        mock_mind_state = MagicMock()
+        mock_mind_state.detach = MagicMock()
+
+        mock_orch = MagicMock()
+        mock_orch.initialize = AsyncMock()
+
+        with (
+            patch(
+                "will.orchestration.cognitive_service.ConfigService"
+            ) as ConfigServiceCls,
+            patch(
+                "will.orchestration.cognitive_service.MindStateService"
+            ) as MindStateCls,
+            patch(
+                "will.orchestration.cognitive_service.CognitiveOrchestrator"
+            ) as OrchCls,
+        ):
+            ConfigServiceCls.create = AsyncMock(return_value=mock_config)
+            MindStateCls.return_value = mock_mind_state
+            OrchCls.return_value = mock_orch
+
+            await service.initialize(session)
+
+        ConfigServiceCls.create.assert_awaited_once_with(session)
+        MindStateCls.assert_called_once_with(session)
+        OrchCls.assert_called_once()
+        mock_orch.initialize.assert_awaited_once()
+
+        mock_config.detach.assert_called_once_with()
+        mock_mind_state.detach.assert_called_once_with()
+
+        assert service._loaded is True
+        assert service._config is mock_config
+        assert service._mind_state is mock_mind_state
+        assert service._orch is mock_orch
+
+    asyncio.run(_run())
+
+
+# ID: 3f81ffc7-b529-4685-b7cc-b83c058c1b7d
+def test_CognitiveService_qdrant_service():
+    qdrant_service = MagicMock()
+    service = CognitiveService(
+        repo_path=Path("/tmp/repo"), qdrant_service=qdrant_service
+    )
+
+    result = service.qdrant_service
+
+    assert result is qdrant_service
+
+
+
+
+# ID: a04023a9-80b5-4ef7-b524-71aedb3b6c00
+def test_CognitiveService() -> None:
+    from will.orchestration.cognitive_service import CognitiveService
+
+    qdrant = MagicMock()
+    qdrant.search_similar = AsyncMock(return_value=[{"id": "x"}])
+    service = CognitiveService(
+        repo_path=Path("/tmp/repo"),
+        qdrant_service=qdrant,
+        session_factory=None,
+    )
+
+    async def _run() -> None:
+        # Happy path: qdrant_service property returns the injected service.
+        assert service.qdrant_service is qdrant
+
+        # empty embedding path short-circuits before any client lookup.
+        result = await service.get_embedding_for_code("")
+        assert result is None
+
+        # empty query short-circuits to empty list without touching qdrant.
+        results = await service.search_capabilities("")
+        assert results == []
+        qdrant.search_similar.assert_not_called()
+
+    asyncio.run(_run())

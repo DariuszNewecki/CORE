@@ -286,9 +286,6 @@ def test_Proposal_validate():
     assert errors == []
 
 
-
-
-
 # ID: dd0dd37e-d284-4936-a7b4-6faab6f7e73b
 def test_Proposal() -> None:
     from will.autonomy.proposal import ProposalAction, ProposalScope, RiskAssessment
@@ -327,3 +324,313 @@ def test_Proposal() -> None:
     assert data["goal"] == "Test goal"
     assert data["risk"]["overall_risk"] == "moderate"
     assert data["status"] == proposal.status.value
+
+
+from will.autonomy.proposal import ProposalAction
+
+
+# ID: 1a537bfe-0e18-48d6-b9e0-be15cfa55c4f
+def test_ProposalAction_validate_exists() -> None:
+    action = ProposalAction.__new__(ProposalAction)
+    action.action_id = "sample_action"
+    action.flow_id = None
+
+    mock_registry = MagicMock()
+    mock_registry.get.return_value = object()
+
+    with patch("body.atomic.registry.action_registry", mock_registry):
+        assert action.validate_exists() is True
+
+    mock_registry.get.assert_called_once_with("sample_action")
+
+
+# ID: c775be4f-9490-4a26-bd6a-d5b7b1f551ac
+def test_ProposalAction_ref_kind():
+    action_obj = MagicMock(spec=ProposalAction)
+    action_obj.action_id = "action-123"
+    action_obj.flow_id = None
+    assert ProposalAction.ref_kind.__get__(action_obj, ProposalAction) == "action"
+
+    flow_obj = MagicMock(spec=ProposalAction)
+    flow_obj.action_id = None
+    flow_obj.flow_id = "flow-456"
+    assert ProposalAction.ref_kind.__get__(flow_obj, ProposalAction) == "flow"
+
+
+# ID: ad6f7e8b-cdbf-4f8a-a2ea-f01f1be6a9fc
+def test_ProposalAction_ref_id():
+    action = MagicMock(spec=ProposalAction)
+    action.action_id = "action-123"
+    action.flow_id = "flow-456"
+    action.ref_id = ProposalAction.ref_id.__get__(action, ProposalAction)
+    assert action.ref_id == "action-123"
+
+    action2 = MagicMock(spec=ProposalAction)
+    action2.action_id = None
+    action2.flow_id = "flow-456"
+    action2.ref_id = ProposalAction.ref_id.__get__(action2, ProposalAction)
+    assert action2.ref_id == "flow-456"
+
+
+# ID: 3205a492-59f2-4fb2-821d-9a40103f7d44
+def test_ProposalAction() -> None:
+    from will.autonomy.proposal import ProposalAction
+
+    # Happy path: action_id set, flow_id None
+    action = ProposalAction(action_id="fix.format", parameters={"x": 1}, order=3)
+
+    assert action.action_id == "fix.format"
+    assert action.flow_id is None
+    assert action.parameters == {"x": 1}
+    assert action.order == 3
+    assert action.ref_id == "fix.format"
+    assert action.ref_kind == "action"
+
+    # validate_exists should consult the action registry
+    mock_registry = MagicMock()
+    mock_registry.get.return_value = MagicMock()
+    with patch("body.atomic.registry.action_registry", mock_registry):
+        assert action.validate_exists() is True
+    mock_registry.get.assert_called_once_with("fix.format")
+
+    # Happy path: flow_id set, action_id None
+    flow = ProposalAction(flow_id="flow.fix_code")
+    assert flow.action_id is None
+    assert flow.flow_id == "flow.fix_code"
+    assert flow.ref_id == "flow.fix_code"
+    assert flow.ref_kind == "flow"
+
+    mock_flow_registry = MagicMock()
+    mock_flow_registry.get.return_value = MagicMock()
+    with patch("body.flows.registry.flow_registry", mock_flow_registry):
+        assert flow.validate_exists() is True
+    mock_flow_registry.get.assert_called_once_with("flow.fix_code")
+
+
+from will.autonomy.proposal import RiskAssessment
+
+
+# ID: 7ff22984-4094-4596-81a6-10399f417694
+def test_RiskAssessment_requires_approval() -> None:
+    assert RiskAssessment(overall_risk="moderate").requires_approval() is True
+    assert RiskAssessment(overall_risk="high").requires_approval() is True
+    assert RiskAssessment(overall_risk="low").requires_approval() is False
+
+
+# ID: a49640ea-9185-4938-8aef-deb28142d61a
+def test_RiskAssessment():
+    # Happy path: safe risk does not require approval
+    safe = RiskAssessment(overall_risk="safe")
+    assert safe.overall_risk == "safe"
+    assert safe.action_risks == {}
+    assert safe.risk_factors == []
+    assert safe.mitigation == []
+    assert safe.requires_approval() is False
+
+    # Moderate and high risk require approval
+    moderate = RiskAssessment(overall_risk="moderate")
+    assert moderate.requires_approval() is True
+
+    high = RiskAssessment(
+        overall_risk="high",
+        action_risks={"action-1": "critical"},
+        risk_factors=["destructive change"],
+        mitigation=["manual review"],
+    )
+    assert high.requires_approval() is True
+    assert high.action_risks == {"action-1": "critical"}
+    assert high.risk_factors == ["destructive change"]
+    assert high.mitigation == ["manual review"]
+
+
+# ID: b0469d51-af61-403d-a0ef-bc91f8fa50cc
+def test_ProposalProvenance_from_dict():
+    data = {
+        "anchor_kind": "issue",
+        "anchor_refs": [1, 2, 3],
+        "problem_owner": "team-alpha",
+        "producer": "worker-x",
+        "retires": [10, 20],
+    }
+
+    result = ProposalProvenance.from_dict(data)
+
+    assert isinstance(result, ProposalProvenance)
+    assert result.anchor_kind == "issue"
+    assert result.anchor_refs == ["1", "2", "3"]
+    assert result.problem_owner == "team-alpha"
+    assert result.producer == "worker-x"
+    assert result.retires == ["10", "20"]
+
+
+# ID: 15f3a70d-9c08-492f-af67-1431329e462c
+def test_ProposalProvenance_to_dict():
+    provenance = ProposalProvenance(
+        anchor_kind="finding",
+        anchor_refs=("ref-1", "ref-2"),
+        problem_owner="owner-a",
+        producer="producer-b",
+        retires=("r-1", "r-2"),
+    )
+
+    result = provenance.to_dict()
+
+    assert result == {
+        "anchor_kind": "finding",
+        "anchor_refs": ["ref-1", "ref-2"],
+        "problem_owner": "owner-a",
+        "producer": "producer-b",
+        "retires": ["r-1", "r-2"],
+    }
+    assert isinstance(result["anchor_refs"], list)
+    assert isinstance(result["retires"], list)
+
+
+# ID: 3e73cdcc-58d5-4010-a337-a462fed1b776
+def test_ProposalProvenance_problems() -> None:
+    provenance = MagicMock()
+    provenance.anchor_kind = "adr"
+    provenance.anchor_refs = ["ADR-133"]
+    provenance.problem_owner = "core"
+    provenance.producer = "will"
+
+    result = ProposalProvenance.problems(provenance)
+
+    assert result == []
+
+
+# ID: c54ac342-1bbe-4fae-a55a-6f3ba5997607
+def test_ProposalProvenance() -> None:
+    provenance = ProposalProvenance(
+        anchor_kind="adr",
+        anchor_refs=["ADR-168"],
+        problem_owner="core",
+        producer="core",
+        retires=["ADR-100"],
+    )
+
+    # Happy path: well-formed provenance reports no problems.
+    assert provenance.problems() == []
+
+    # Round-trip serialisation preserves the fields.
+    data = provenance.to_dict()
+    assert data == {
+        "anchor_kind": "adr",
+        "anchor_refs": ["ADR-168"],
+        "problem_owner": "core",
+        "producer": "core",
+        "retires": ["ADR-100"],
+    }
+
+    restored = ProposalProvenance.from_dict(data)
+    assert restored == provenance
+    assert restored.problems() == []
+
+    # Default retires is empty and still valid.
+    default_retires = ProposalProvenance(
+        anchor_kind="governor_request",
+        anchor_refs=["REQ-1"],
+        problem_owner="governor",
+        producer="governor",
+    )
+    assert default_retires.retires == []
+    assert default_retires.problems() == []
+
+
+from will.autonomy.proposal import ProposalScope
+
+
+# ID: a06307ed-2454-48b4-aa60-febc15f4ce63
+def test_ProposalScope_conflicts_with() -> None:
+    scope_a = ProposalScope(
+        files=["src/a.py", "src/b.py"],
+        modules=["mod_a"],
+        symbols=["sym_a"],
+    )
+    scope_b = ProposalScope(
+        files=["src/b.py", "src/c.py"],
+        modules=["mod_b"],
+        symbols=["sym_b"],
+    )
+
+    # Overlapping files -> conflict
+    assert scope_a.conflicts_with(scope_b) is True
+    assert scope_b.conflicts_with(scope_a) is True
+
+    # No overlap -> no conflict
+    scope_c = ProposalScope(
+        files=["src/x.py"],
+        modules=["mod_x"],
+        symbols=["sym_x"],
+    )
+    assert scope_a.conflicts_with(scope_c) is False
+    assert scope_c.conflicts_with(scope_a) is False
+
+    # Overlapping modules only -> conflict
+    scope_d = ProposalScope(
+        files=["src/y.py"],
+        modules=["mod_a"],
+        symbols=["sym_y"],
+    )
+    assert scope_a.conflicts_with(scope_d) is True
+
+    # Overlapping symbols only -> conflict
+    scope_e = ProposalScope(
+        files=["src/z.py"],
+        modules=["mod_z"],
+        symbols=["sym_a"],
+    )
+    assert scope_a.conflicts_with(scope_e) is True
+
+    # Empty scopes -> no conflict
+    empty_1 = ProposalScope()
+    empty_2 = ProposalScope()
+    assert empty_1.conflicts_with(empty_2) is False
+
+
+
+
+# ID: 460e3938-324f-458f-b395-5b6679883215
+def test_ProposalScope():
+    scope_a = ProposalScope(
+        files=["src/a.py", "src/b.py"],
+        modules=["will.autonomy"],
+        symbols=["func_a"],
+        policies=["P1"],
+    )
+    scope_b = ProposalScope(
+        files=["src/c.py"],
+        modules=["will.autonomy"],
+        symbols=["func_b"],
+    )
+    scope_c = ProposalScope(
+        files=["src/x.py"],
+        modules=["will.other"],
+        symbols=["func_x"],
+    )
+
+    # Defaults are empty
+    empty = ProposalScope()
+    assert empty.files == []
+    assert empty.modules == []
+    assert empty.symbols == []
+    assert empty.policies == []
+
+    # No overlap -> no conflict
+    assert scope_a.conflicts_with(scope_c) is False
+    assert scope_c.conflicts_with(scope_a) is False
+
+    # Shared module -> conflict
+    assert scope_a.conflicts_with(scope_b) is True
+    assert scope_b.conflicts_with(scope_a) is True
+
+    # File-only overlap
+    same_file = ProposalScope(files=["src/a.py"])
+    assert scope_a.conflicts_with(same_file) is True
+
+    # Symbol-only overlap
+    same_symbol = ProposalScope(symbols=["func_a"])
+    assert scope_a.conflicts_with(same_symbol) is True
+
+    # A scope does not conflict with itself? It does (sets overlap).
+    assert scope_a.conflicts_with(scope_a) is True
