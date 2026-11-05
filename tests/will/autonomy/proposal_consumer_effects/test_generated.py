@@ -59,3 +59,55 @@ def test_apply_success_effects() -> None:
             "post_execution_sha": "abc123",
         },
     )
+
+
+from will.autonomy.proposal_consumer_effects import summarize_flow_step_failures
+
+
+# ID: fee1663c-a120-4bf9-836f-65a607a2bbc8
+def test_summarize_flow_step_failures():
+    action_results = {
+        "flow:run-1": {
+            "kind": "flow",
+            "data": {
+                "flow_id": "flow-123",
+                "steps": [
+                    {
+                        "ref_id": "step-a",
+                        "kind": "auto_heal",
+                        "required": False,
+                        "ok": False,
+                        "data": {"error": "boom"},
+                    },
+                    {
+                        "ref_id": "step-b",
+                        "kind": "noop",
+                        "required": True,
+                        "ok": False,
+                        "data": {"error": "ignored-required"},
+                    },
+                    {
+                        "ref_id": "step-c",
+                        "kind": "noop",
+                        "required": False,
+                        "ok": True,
+                        "data": {"error": "ignored-ok"},
+                    },
+                    "not-a-dict",
+                ],
+            },
+        },
+        "other:ref": {"kind": "not_flow", "data": {}},
+        "bad": "not-a-dict",
+    }
+
+    result = summarize_flow_step_failures(action_results)
+
+    assert result == [
+        {
+            "flow_id": "flow-123",
+            "step_ref_id": "step-a",
+            "step_kind": "auto_heal",
+            "step_error": "boom",
+        }
+    ]
