@@ -344,9 +344,6 @@ def test_ProposalAction_validate_exists() -> None:
     mock_registry.get.assert_called_once_with("sample_action")
 
 
-
-
-
 # ID: c775be4f-9490-4a26-bd6a-d5b7b1f551ac
 def test_ProposalAction_ref_kind():
     action_obj = MagicMock(spec=ProposalAction)
@@ -358,3 +355,21 @@ def test_ProposalAction_ref_kind():
     flow_obj.action_id = None
     flow_obj.flow_id = "flow-456"
     assert ProposalAction.ref_kind.__get__(flow_obj, ProposalAction) == "flow"
+
+
+
+
+
+# ID: ad6f7e8b-cdbf-4f8a-a2ea-f01f1be6a9fc
+def test_ProposalAction_ref_id():
+    action = MagicMock(spec=ProposalAction)
+    action.action_id = "action-123"
+    action.flow_id = "flow-456"
+    action.ref_id = ProposalAction.ref_id.__get__(action, ProposalAction)
+    assert action.ref_id == "action-123"
+
+    action2 = MagicMock(spec=ProposalAction)
+    action2.action_id = None
+    action2.flow_id = "flow-456"
+    action2.ref_id = ProposalAction.ref_id.__get__(action2, ProposalAction)
+    assert action2.ref_id == "flow-456"
