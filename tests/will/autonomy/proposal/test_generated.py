@@ -499,8 +499,6 @@ def test_ProposalProvenance_problems() -> None:
     assert result == []
 
 
-
-
 # ID: c54ac342-1bbe-4fae-a55a-6f3ba5997607
 def test_ProposalProvenance() -> None:
     provenance = ProposalProvenance(
@@ -537,3 +535,54 @@ def test_ProposalProvenance() -> None:
     )
     assert default_retires.retires == []
     assert default_retires.problems() == []
+
+
+from will.autonomy.proposal import ProposalScope
+
+
+# ID: a06307ed-2454-48b4-aa60-febc15f4ce63
+def test_ProposalScope_conflicts_with() -> None:
+    scope_a = ProposalScope(
+        files=["src/a.py", "src/b.py"],
+        modules=["mod_a"],
+        symbols=["sym_a"],
+    )
+    scope_b = ProposalScope(
+        files=["src/b.py", "src/c.py"],
+        modules=["mod_b"],
+        symbols=["sym_b"],
+    )
+
+    # Overlapping files -> conflict
+    assert scope_a.conflicts_with(scope_b) is True
+    assert scope_b.conflicts_with(scope_a) is True
+
+    # No overlap -> no conflict
+    scope_c = ProposalScope(
+        files=["src/x.py"],
+        modules=["mod_x"],
+        symbols=["sym_x"],
+    )
+    assert scope_a.conflicts_with(scope_c) is False
+    assert scope_c.conflicts_with(scope_a) is False
+
+    # Overlapping modules only -> conflict
+    scope_d = ProposalScope(
+        files=["src/y.py"],
+        modules=["mod_a"],
+        symbols=["sym_y"],
+    )
+    assert scope_a.conflicts_with(scope_d) is True
+
+    # Overlapping symbols only -> conflict
+    scope_e = ProposalScope(
+        files=["src/z.py"],
+        modules=["mod_z"],
+        symbols=["sym_a"],
+    )
+    assert scope_a.conflicts_with(scope_e) is True
+
+    # Empty scopes -> no conflict
+    empty_1 = ProposalScope()
+    empty_2 = ProposalScope()
+    assert empty_1.conflicts_with(empty_2) is False
