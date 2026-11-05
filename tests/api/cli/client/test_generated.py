@@ -1157,3 +1157,23 @@ async def test_CoreApiClient_tests_interactive():
 
     assert result == expected
     mock_coverage.tests_interactive.assert_awaited_once_with("arg1", key="value")
+
+
+
+
+# ID: 4a293f15-e832-4f7e-aabc-b555ed9176ee
+async def test_CoreApiClient_poll_coverage_run() -> None:
+    from api.cli.client import CoreApiClient
+
+    with patch(
+        "api.cli.client.parse_base_url", return_value=("http://localhost:8000", None)
+    ):
+        client = CoreApiClient(base_url="http://localhost:8000")
+
+    client.coverage = MagicMock()
+    client.coverage.poll_coverage_run = AsyncMock(return_value={"status": "ok"})
+
+    result = await client.poll_coverage_run("run-123", timeout=5)
+
+    client.coverage.poll_coverage_run.assert_awaited_once_with("run-123", timeout=5)
+    assert result == {"status": "ok"}
