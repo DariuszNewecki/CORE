@@ -586,3 +586,51 @@ def test_ProposalScope_conflicts_with() -> None:
     empty_1 = ProposalScope()
     empty_2 = ProposalScope()
     assert empty_1.conflicts_with(empty_2) is False
+
+
+
+
+# ID: 460e3938-324f-458f-b395-5b6679883215
+def test_ProposalScope():
+    scope_a = ProposalScope(
+        files=["src/a.py", "src/b.py"],
+        modules=["will.autonomy"],
+        symbols=["func_a"],
+        policies=["P1"],
+    )
+    scope_b = ProposalScope(
+        files=["src/c.py"],
+        modules=["will.autonomy"],
+        symbols=["func_b"],
+    )
+    scope_c = ProposalScope(
+        files=["src/x.py"],
+        modules=["will.other"],
+        symbols=["func_x"],
+    )
+
+    # Defaults are empty
+    empty = ProposalScope()
+    assert empty.files == []
+    assert empty.modules == []
+    assert empty.symbols == []
+    assert empty.policies == []
+
+    # No overlap -> no conflict
+    assert scope_a.conflicts_with(scope_c) is False
+    assert scope_c.conflicts_with(scope_a) is False
+
+    # Shared module -> conflict
+    assert scope_a.conflicts_with(scope_b) is True
+    assert scope_b.conflicts_with(scope_a) is True
+
+    # File-only overlap
+    same_file = ProposalScope(files=["src/a.py"])
+    assert scope_a.conflicts_with(same_file) is True
+
+    # Symbol-only overlap
+    same_symbol = ProposalScope(symbols=["func_a"])
+    assert scope_a.conflicts_with(same_symbol) is True
+
+    # A scope does not conflict with itself? It does (sets overlap).
+    assert scope_a.conflicts_with(scope_a) is True
