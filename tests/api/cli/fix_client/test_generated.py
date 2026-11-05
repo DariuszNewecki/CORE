@@ -112,3 +112,19 @@ def test_FixClient_list_actions():
 
     assert result == expected
     facade._request.assert_awaited_once_with("GET", "/v1/actions")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 751778cf-8f8a-4957-aa75-a140882f6f6d
+async def test_FixClient_list_fix_commands():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"commands": [{"name": "lint"}]})
+
+    client = FixClient(facade)
+    result = await client.list_fix_commands()
+
+    facade._request.assert_awaited_once_with("GET", "/v1/fix/commands")
+    assert result == {"commands": [{"name": "lint"}]}
