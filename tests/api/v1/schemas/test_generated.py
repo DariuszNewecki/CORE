@@ -672,3 +672,26 @@ def test_RemediationRunResponse():
     dumped = response.model_dump()
     assert dumped["run_id"] == "run-123"
     assert dumped["result"] == {"remediated": 3}
+
+
+from api.v1.schemas import FixCommandListResponse
+
+
+# ID: 04ef555f-ef3a-4779-b3b3-83e8f526c7b9
+def test_FixCommandListResponse():
+    response = FixCommandListResponse(
+        count=1,
+        commands=[
+            {
+                "action_id": "restart_service",
+                "title": "Restart Service",
+                "description": "Restarts the target service.",
+            }
+        ],
+    )
+
+    assert isinstance(response, FixCommandListResponse)
+    assert response.count == 1
+    assert isinstance(response.commands, list)
+    assert len(response.commands) == 1
+    assert response.commands[0].action_id == "restart_service"
