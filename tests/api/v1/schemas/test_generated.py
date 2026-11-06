@@ -804,3 +804,23 @@ def test_LlmResourceAuthoringResponse():
     assert response.data["dry_run"] is False
     assert response.data["resource"]["name"] == "my-resource"
     assert response.duration_sec == 0.42
+
+
+from api.v1.schemas import AsyncDispatchResponse
+
+
+# ID: 8adb8fdd-1f0e-4600-83a3-c07a23d5c0d7
+def test_AsyncDispatchResponse():
+    response = AsyncDispatchResponse(
+        run_id="run-123",
+        status="accepted",
+        href="/api/v1/runs/run-123",
+    )
+    assert response.run_id == "run-123"
+    assert response.status == "accepted"
+    assert response.href == "/api/v1/runs/run-123"
+    assert response.model_dump() == {
+        "run_id": "run-123",
+        "status": "accepted",
+        "href": "/api/v1/runs/run-123",
+    }
