@@ -33,3 +33,16 @@ def test_ValidationResult():
     failed = ValidationResult(ok=False, error="boom")
     assert failed.ok is False
     assert failed.error == "boom"
+
+
+# ID: 3fd0f44b-dfc5-4cf2-a70b-205ea8e71534
+def test_GeneratedTestValidator_validate():
+    from will.test_generation.validation import GeneratedTestValidator
+
+    validator = GeneratedTestValidator()
+    valid_code = "import pytest\n\ndef test_something():\n    assert True\n"
+
+    result = validator.validate(valid_code)
+
+    assert result.ok is True
+    assert result.error == ""

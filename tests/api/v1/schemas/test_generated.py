@@ -747,3 +747,165 @@ def test_FixIRResponse() -> None:
     assert response.path == "/tmp/scaffold/out.py"
     assert isinstance(response.path, str)
     assert response.model_dump() == {"path": "/tmp/scaffold/out.py"}
+
+
+from api.v1.schemas import FixRunResponse
+
+
+# ID: b432ce28-b401-455d-8405-35aadfa8dd10
+def test_FixRunResponse() -> None:
+    response = FixRunResponse(
+        run_id="run-123",
+        kind="apply",
+        fix_id="fix-456",
+        target_files=["src/a.py", "src/b.py"],
+        write=True,
+        status="finished",
+        requested_by="user-789",
+        requested_at="2024-01-01T00:00:00Z",
+        started_at="2024-01-01T00:00:01Z",
+        finished_at="2024-01-01T00:00:02Z",
+        result={"applied": 2},
+        error=None,
+    )
+
+    assert response.run_id == "run-123"
+    assert response.kind == "apply"
+    assert response.fix_id == "fix-456"
+    assert response.target_files == ["src/a.py", "src/b.py"]
+    assert response.write is True
+    assert response.status == "finished"
+    assert response.requested_by == "user-789"
+    assert response.requested_at == "2024-01-01T00:00:00Z"
+    assert response.started_at == "2024-01-01T00:00:01Z"
+    assert response.finished_at == "2024-01-01T00:00:02Z"
+    assert response.result == {"applied": 2}
+    assert response.error is None
+
+
+from api.v1.schemas import LlmResourceAuthoringResponse
+
+
+# ID: 75deb34f-fc9e-4baf-b6cd-a25f257e51c6
+def test_LlmResourceAuthoringResponse():
+    data = {
+        "valid": True,
+        "violations": [],
+        "dry_run": False,
+        "resource": {"name": "my-resource", "kind": "llm"},
+    }
+
+    response = LlmResourceAuthoringResponse(ok=True, data=data, duration_sec=0.42)
+
+    assert response.ok is True
+    assert response.data == data
+    assert response.data["valid"] is True
+    assert response.data["violations"] == []
+    assert response.data["dry_run"] is False
+    assert response.data["resource"]["name"] == "my-resource"
+    assert response.duration_sec == 0.42
+
+
+from api.v1.schemas import AsyncDispatchResponse
+
+
+# ID: 8adb8fdd-1f0e-4600-83a3-c07a23d5c0d7
+def test_AsyncDispatchResponse():
+    response = AsyncDispatchResponse(
+        run_id="run-123",
+        status="accepted",
+        href="/api/v1/runs/run-123",
+    )
+    assert response.run_id == "run-123"
+    assert response.status == "accepted"
+    assert response.href == "/api/v1/runs/run-123"
+    assert response.model_dump() == {
+        "run_id": "run-123",
+        "status": "accepted",
+        "href": "/api/v1/runs/run-123",
+    }
+
+
+from api.v1.schemas import AuditRunResponse
+
+
+# ID: 769f065d-fd5f-423a-be4c-30b6ff04699e
+def test_AuditRunResponse():
+    response = AuditRunResponse(
+        run_id="run-123",
+        verdict="block",
+        finding_count=2,
+        blocking_count=1,
+        started_at="2024-01-01T00:00:00Z",
+        finished_at="2024-01-01T00:05:00Z",
+        status="completed",
+        findings=[{"id": "f1", "severity": "high"}, {"id": "f2", "severity": "low"}],
+    )
+
+    assert response.run_id == "run-123"
+    assert response.verdict == "block"
+    assert response.finding_count == 2
+    assert response.blocking_count == 1
+    assert response.started_at == "2024-01-01T00:00:00Z"
+    assert response.finished_at == "2024-01-01T00:05:00Z"
+    assert response.status == "completed"
+    assert response.findings == [
+        {"id": "f1", "severity": "high"},
+        {"id": "f2", "severity": "low"},
+    ]
+    assert len(response.findings) == 2
+
+
+from api.v1.schemas import CognitiveRoleProjectionResponse
+
+
+# ID: e07d345c-3f65-4723-aa03-ca8845eaf5fe
+def test_CognitiveRoleProjectionResponse():
+    data = {
+        "in_sync": False,
+        "drift": ["role_a"],
+        "db_only_roles": ["role_b"],
+        "yaml_only_roles": ["role_c"],
+        "non_canonical": ["role_d"],
+        "dry_run": False,
+        "applied": ["role_a"],
+        "blocked": [],
+    }
+
+    response = CognitiveRoleProjectionResponse(
+        ok=True,
+        data=data,
+        duration_sec=0.123,
+    )
+
+    assert response.ok is True
+    assert response.data == data
+    assert response.duration_sec == 0.123
+    assert response.data["in_sync"] is False
+    assert response.model_dump() == {
+        "ok": True,
+        "data": data,
+        "duration_sec": 0.123,
+    }
+
+
+
+
+# ID: fc576b78-936b-4142-b824-6188017959b8
+def test_async_dispatch_response_happy_path():
+    response = AsyncDispatchResponse(
+        run_id="run-123",
+        status="accepted",
+        href="/api/v1/runs/run-123",
+    )
+
+    assert response.run_id == "run-123"
+    assert response.status == "accepted"
+    assert response.href == "/api/v1/runs/run-123"
+
+    dumped = response.model_dump()
+    assert dumped == {
+        "run_id": "run-123",
+        "status": "accepted",
+        "href": "/api/v1/runs/run-123",
+    }

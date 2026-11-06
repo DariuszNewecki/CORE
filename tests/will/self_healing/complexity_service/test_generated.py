@@ -87,3 +87,76 @@ def test_ComplexityRemediationService(tmp_path):
     mock_analyzer.execute.assert_awaited_once_with(file_path="sample.py")
     mock_strategist.execute.assert_awaited_once_with(complexity_score=5)
     mock_agent.execute_plan.assert_awaited_once_with(blueprint)
+
+
+from pathlib import Path
+from types import SimpleNamespace
+
+
+# ID: 344467d1-67c2-437c-af91-89630fd11832
+def test_ComplexityRemediationService_remediate():
+    repo_path = Path("/repo")
+    file_path = repo_path / "pkg" / "mod.py"
+    real_path_cls = Path
+
+    git_service = MagicMock()
+    git_service.repo_path = repo_path
+
+    context = SimpleNamespace(
+        path_resolver=MagicMock(),
+        git_service=git_service,
+        action_executor=MagicMock(),
+    )
+
+    read_text_mock = MagicMock(return_value="original code")
+
+    with (
+        patch("will.self_healing.complexity_service.DecisionTracer") as tracer_cls,
+        patch("will.self_healing.complexity_service.FileAnalyzer") as analyzer_cls,
+        patch(
+            "will.self_healing.complexity_service.ComplexityStrategist"
+        ) as strategist_cls,
+        patch("will.self_healing.complexity_service.LimbWorkspace") as workspace_cls,
+        patch("will.self_healing.complexity_service.ExecutionAgent") as agent_cls,
+    ):
+        tracer_cls.return_value = MagicMock()
+
+        analyzer = MagicMock()
+        analyzer.execute = AsyncMock(
+            return_value=SimpleNamespace(
+                ok=True,
+                data={},
+                metadata={"total_definitions": 3},
+            )
+        )
+        analyzer_cls.return_value = analyzer
+
+        strategist = MagicMock()
+        strategist.execute = AsyncMock(
+            return_value=SimpleNamespace(data={"strategy": "extract"})
+        )
+        strategist_cls.return_value = strategist
+
+        workspace_cls.return_value = MagicMock()
+
+        agent = MagicMock()
+        agent.execute_plan = AsyncMock(return_value=SimpleNamespace(success=True))
+        agent_cls.return_value = agent
+
+        service = ComplexityRemediationService(context)
+        service._run_reflex_loop = AsyncMock(return_value={"path": "new code"})
+        service._build_execution_blueprint = MagicMock(return_value={"plan": "x"})
+
+        # ID: fa0acd31-20e3-4d9f-a541-10adba2afbfa
+        def fake_read_text(self, *args, **kwargs):
+            return read_text_mock(self, *args, **kwargs)
+
+        with patch.object(Path, "read_text", fake_read_text):
+            result = asyncio.run(service.remediate(file_path, write=False))
+
+    assert result is True
+    analyzer.execute.assert_awaited_once()
+    strategist.execute.assert_awaited_once_with(complexity_score=3)
+    agent.execute_plan.assert_awaited_once()
+    service._run_reflex_loop.assert_awaited_once()
+    service._build_execution_blueprint.assert_called_once()

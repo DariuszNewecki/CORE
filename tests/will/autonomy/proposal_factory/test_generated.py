@@ -54,3 +54,49 @@ def test_build_assisted_lane_proposal():
     assert list(proposal.provenance.anchor_refs) == ["finding-1"]
     assert proposal.provenance.problem_owner == "core"
     assert proposal.provenance.producer == "agent-x"
+
+
+
+from will.autonomy.proposal_factory import build_general_proposal
+
+
+# ID: b9e8ae9d-5c5e-44f4-b64e-11bc0d4cfb23
+def test_build_general_proposal():
+    candidate = MagicMock()
+    candidate.finding_ids = []
+    candidate.patch = "diff --git a/x b/x"
+    candidate.patch_digest = "sha256:abc123"
+    candidate.validated_base_sha = "deadbeef"
+    candidate.production_set = ["x.py"]
+    candidate.validation_checks = ["check1"]
+    candidate.validation_results = ["result1"]
+    candidate.candidate_id = "cand-1"
+    candidate.created_at = datetime(2026, 10, 10, tzinfo=UTC)
+
+    provenance = MagicMock()
+    provenance.problems.return_value = []
+
+    result = build_general_proposal(
+        candidate,
+        goal="Fix the thing",
+        created_by="tester",
+        provenance=provenance,
+        step_zero={"report": "ok"},
+    )
+
+    assert result.goal == "Fix the thing"
+    assert result.status.name == "PENDING"
+    assert result.created_by == "tester"
+    assert result.approval_required is True
+    assert len(result.actions) == 1
+    action = result.actions[0]
+    assert action.action_id == "assisted.apply_diff"
+    assert action.parameters["patch"] == candidate.patch
+    assert action.parameters["patch_digest"] == candidate.patch_digest
+    assert action.parameters["validated_base_sha"] == candidate.validated_base_sha
+    assert action.parameters["write"] is True
+    assert result.scope.files == ["x.py"]
+    assert result.constitutional_constraints["candidate_id"] == "cand-1"
+    assert result.constitutional_constraints["step_zero"] == {"report": "ok"}
+    assert result.provenance is provenance
+    provenance.problems.assert_called_once()

@@ -99,9 +99,6 @@ def test_AuditClient__init__and_audit() -> None:
     )
 
 
-
-
-
 # ID: 6a803624-9df6-43cc-92ab-765d8106f929
 async def test_AuditClient_audit():
     facade = MagicMock()
@@ -130,3 +127,42 @@ async def test_AuditClient_audit():
         timeout=1800.0,
     )
     assert result == {"verdict": "pass", "passed": True}
+
+
+import asyncio
+
+
+# ID: 0b80a1a9-9be1-4f3a-830a-1efa3d8bf5ab
+def test_AuditClient():
+    from api.cli.audit_client import AuditClient
+
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"verdict": "pass", "run_id": "r1"})
+    facade._poll_at_path = AsyncMock(return_value={"status": "completed"})
+
+    client = AuditClient(facade)
+
+    result = asyncio.run(
+        client.audit(
+            rule_ids=["R1"],
+            policy_ids=["P1"],
+            files=["f.py"],
+            force_llm=True,
+            source="api",
+        )
+    )
+
+    assert result == {"verdict": "pass", "run_id": "r1"}
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/audit/runs",
+        json={
+            "rule_ids": ["R1"],
+            "policy_ids": ["P1"],
+            "files": ["f.py"],
+            "force_llm": True,
+            "source": "api",
+            "wait": True,
+        },
+        timeout=1800.0,
+    )

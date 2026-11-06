@@ -72,7 +72,6 @@ async def test_create_investigation_plan():
     mock_parse.assert_called_once_with("inspect.layout\ninspect.path")
 
 
-
 from will.agents.investigation_planner import investigation_decisions
 
 
@@ -110,3 +109,66 @@ def test_investigation_decisions():
     assert "inspect.artifact_types" not in second["alternatives"]
 
     assert investigation_decisions([]) == []
+
+
+from will.agents.investigation_planner import parse_and_validate_investigation_plan
+
+
+# ID: 05f6a6a8-07bd-4973-8768-69169cc200c0
+def test_parse_and_validate_investigation_plan():
+    sentinel_step = object()
+    with (
+        patch(
+            "will.agents.investigation_planner.extract_json_from_response",
+            return_value={"plan": [{"action": "read"}]},
+        ) as mock_extract,
+        patch(
+            "will.agents.investigation_planner.plan_steps",
+            return_value=[{"action": "read", "target": "x"}],
+        ) as mock_plan_steps,
+        patch(
+            "will.agents.investigation_planner.validate_investigation_plan",
+            return_value=[sentinel_step],
+        ) as mock_validate,
+    ):
+        result = parse_and_validate_investigation_plan('{"plan": [{"action": "read"}]}')
+
+    mock_extract.assert_called_once_with('{"plan": [{"action": "read"}]}')
+    mock_plan_steps.assert_called_once_with({"plan": [{"action": "read"}]})
+    mock_validate.assert_called_once_with([{"action": "read", "target": "x"}])
+    assert result == [sentinel_step]
+
+
+
+
+# ID: 0011094e-0556-4401-a0d3-fb0954a6d697
+def test_validate_investigation_plan():
+    from will.agents.investigation_planner import validate_investigation_plan
+
+    steps = [
+        {
+            "action": "inspect.layout",
+            "step": "Inspect repo layout",
+            "params": {"depth": 2},
+        },
+        {"action": "inspect.artifact_types", "step": "List artifact types"},
+        {
+            "action": "inspect.absences",
+            "step": "Detect missing signals",
+            "params": {"keys": ["a"]},
+        },
+    ]
+
+    with patch("will.agents.investigation_planner.logger") as mock_logger:
+        result = validate_investigation_plan(steps)
+
+    assert len(result) == 3
+    assert result[0].action == "inspect.layout"
+    assert result[0].step == "Inspect repo layout"
+    assert result[0].params == {"depth": 2}
+    assert result[1].action == "inspect.artifact_types"
+    assert result[1].step == "List artifact types"
+    assert result[1].params == {}
+    assert result[2].action == "inspect.absences"
+    assert result[2].params == {"keys": ["a"]}
+    mock_logger.info.assert_called_once()
