@@ -44,3 +44,80 @@ async def test_ParsePhase_execute() -> None:
     phase._planner.create_execution_plan.assert_awaited_once_with(
         "make it faster", "recon text"
     )
+
+
+import asyncio
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+
+# ID: fcc3b2ad-9da7-4a94-bfd7-b3c235834c4d
+def test_ParsePhase():
+    core_context = MagicMock()
+    core_context.git_service.repo_path = "/tmp/repo"
+    core_context.cognitive_service = MagicMock()
+    core_context.qdrant_service = MagicMock()
+
+    recon_root = Path("/tmp/repo")
+    recon_scope = {"mode": "snapshot"}
+
+    step = SimpleNamespace(action="read", step="inspect file")
+    plan = [step]
+
+    mock_planner = MagicMock()
+    mock_planner.create_execution_plan = AsyncMock(return_value=plan)
+    mock_planner.tracer = None
+
+    mock_recon = MagicMock()
+    mock_recon.execute = AsyncMock(
+        return_value=SimpleNamespace(
+            ok=True,
+            data={
+                "recon_text": "target has 2 files",
+                "recon_digest": "digest-abc",
+                "recon_raw": {"file_count": 2},
+                "unavailable": [],
+            },
+        )
+    )
+
+    with (
+        patch(
+            "will.phases.parse_phase.PlannerAgent", return_value=mock_planner
+        ) as planner_cls,
+        patch(
+            "will.phases.parse_phase.evaluation_view",
+            return_value=(recon_root, recon_scope),
+        ),
+        patch(
+            "will.phases.parse_phase.TargetReconnaissanceAnalyzer",
+            return_value=mock_recon,
+        ),
+    ):
+        phase = ParsePhase(core_context)
+
+    planner_cls.assert_called_once_with(
+        cognitive_service=core_context.cognitive_service,
+        repo_path=Path("/tmp/repo"),
+        qdrant_service=core_context.qdrant_service,
+    )
+
+    wf_context = MagicMock()
+    wf_context.goal = "make it faster"
+    wf_context.workflow_type = "implementation"
+    wf_context.results = {}
+
+    result = asyncio.run(phase.execute(wf_context))
+
+    assert result.ok is True
+    assert result.name == "parse"
+    mock_planner.create_execution_plan.assert_awaited_once_with(
+        "make it faster", "target has 2 files"
+    )
+    assert wf_context.results["parse"]["steps_count"] == 1
+    assert wf_context.results["planning"] is wf_context.results["parse"]
+    assert wf_context.results["parse"]["execution_plan"] == plan
+    assert result.data["reconnaissance"]["available"] is True
+    assert result.data["reconnaissance"]["view"] == recon_scope
+    assert result.data["decisions"] == []
