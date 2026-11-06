@@ -1586,3 +1586,21 @@ async def test_CoreApiClient_audit_remediate():
 
     client.audits.audit_remediate.assert_awaited_once_with("audit-1", dry_run=True)
     assert result == expected
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 41268dff-4a10-4b65-bd5c-4b69fb5d6e9f
+async def test_CoreApiClient_get_audit_remediation_run():
+    client = CoreApiClient(base_url="http://localhost:9999")
+
+    expected_result = {"id": "run-123", "status": "complete"}
+    client.audits = MagicMock()
+    client.audits.get_audit_remediation_run = AsyncMock(return_value=expected_result)
+
+    result = await client.get_audit_remediation_run(run_id="run-123")
+
+    assert result == expected_result
+    client.audits.get_audit_remediation_run.assert_awaited_once_with(run_id="run-123")
