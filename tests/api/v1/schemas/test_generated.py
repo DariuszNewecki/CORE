@@ -824,3 +824,33 @@ def test_AsyncDispatchResponse():
         "status": "accepted",
         "href": "/api/v1/runs/run-123",
     }
+
+
+from api.v1.schemas import AuditRunResponse
+
+
+# ID: 769f065d-fd5f-423a-be4c-30b6ff04699e
+def test_AuditRunResponse():
+    response = AuditRunResponse(
+        run_id="run-123",
+        verdict="block",
+        finding_count=2,
+        blocking_count=1,
+        started_at="2024-01-01T00:00:00Z",
+        finished_at="2024-01-01T00:05:00Z",
+        status="completed",
+        findings=[{"id": "f1", "severity": "high"}, {"id": "f2", "severity": "low"}],
+    )
+
+    assert response.run_id == "run-123"
+    assert response.verdict == "block"
+    assert response.finding_count == 2
+    assert response.blocking_count == 1
+    assert response.started_at == "2024-01-01T00:00:00Z"
+    assert response.finished_at == "2024-01-01T00:05:00Z"
+    assert response.status == "completed"
+    assert response.findings == [
+        {"id": "f1", "severity": "high"},
+        {"id": "f2", "severity": "low"},
+    ]
+    assert len(response.findings) == 2
