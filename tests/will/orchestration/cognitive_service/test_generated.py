@@ -178,7 +178,6 @@ def test_CognitiveService() -> None:
     asyncio.run(_run())
 
 
-
 import pytest
 
 
@@ -201,3 +200,26 @@ async def test_CognitiveService_search_capabilities() -> None:
     service.get_embedding_for_code.assert_awaited_once_with("find me capabilities")
     mock_qdrant.search_similar.assert_awaited_once_with(embedding, limit=5)
     assert result == expected_results
+
+
+
+
+
+# ID: fc723441-6b1b-4d42-8a44-5af84d5c3d91
+async def test_CognitiveService_get_embeddings_for_code_batch() -> None:
+    repo_path = Path("/tmp/repo")
+
+    service = CognitiveService(repo_path=repo_path)
+
+    expected = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
+
+    async def _fake_batch(source_texts):
+        return expected
+
+    service.get_embeddings_for_code_batch = _fake_batch
+
+    source_texts = ["def foo(): pass", "def bar(): pass"]
+    result = await service.get_embeddings_for_code_batch(source_texts)
+
+    assert result == expected
+    assert len(result) == len(source_texts)
