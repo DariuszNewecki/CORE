@@ -30,9 +30,6 @@ def test_persist_quarantined():
     assert result is expected_result
 
 
-
-
-
 # ID: 2c309898-6127-45f4-ba06-13ffdf62fb52
 def test_TestPersistenceService_persist():
     file_handler = MagicMock()
@@ -65,3 +62,32 @@ def test_TestPersistenceService_persist():
     assert result.path == "tests/shared/utils/test_text__my_symbol.py"
     assert result.error == ""
     assert result.tests_saved == 1
+
+
+
+
+
+# ID: 4d0fd0e2-31eb-4821-88b1-e9d87e0c53b8
+def test_TestPersistenceService():
+    mock_fh = MagicMock()
+    service = TestPersistenceService(mock_fh)
+
+    result = service.persist(
+        "src/shared/utils/text.py",
+        "my_symbol",
+        "def test_my_symbol():\n    assert True\n",
+    )
+
+    assert result.ok is True
+    assert result.tests_saved == 1
+    assert result.path == "tests/shared/utils/test_text__my_symbol.py"
+    assert result.error == ""
+
+    mock_fh.ensure_dir.assert_called_once_with("tests/shared/utils")
+    mock_fh.write.assert_called_once()
+    written_path, written_content = mock_fh.write.call_args.args
+    assert written_path == "tests/shared/utils/test_text__my_symbol.py"
+    assert "AUTO-GENERATED TEST" in written_content
+    assert "Source: src/shared/utils/text.py" in written_content
+    assert "Symbol: my_symbol" in written_content
+    assert "def test_my_symbol():" in written_content
