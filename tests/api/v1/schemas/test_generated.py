@@ -781,3 +781,26 @@ def test_FixRunResponse() -> None:
     assert response.finished_at == "2024-01-01T00:00:02Z"
     assert response.result == {"applied": 2}
     assert response.error is None
+
+
+from api.v1.schemas import LlmResourceAuthoringResponse
+
+
+# ID: 75deb34f-fc9e-4baf-b6cd-a25f257e51c6
+def test_LlmResourceAuthoringResponse():
+    data = {
+        "valid": True,
+        "violations": [],
+        "dry_run": False,
+        "resource": {"name": "my-resource", "kind": "llm"},
+    }
+
+    response = LlmResourceAuthoringResponse(ok=True, data=data, duration_sec=0.42)
+
+    assert response.ok is True
+    assert response.data == data
+    assert response.data["valid"] is True
+    assert response.data["violations"] == []
+    assert response.data["dry_run"] is False
+    assert response.data["resource"]["name"] == "my-resource"
+    assert response.duration_sec == 0.42
