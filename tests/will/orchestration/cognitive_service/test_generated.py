@@ -150,8 +150,6 @@ def test_CognitiveService_qdrant_service():
     assert result is qdrant_service
 
 
-
-
 # ID: a04023a9-80b5-4ef7-b524-71aedb3b6c00
 def test_CognitiveService() -> None:
     from will.orchestration.cognitive_service import CognitiveService
@@ -178,3 +176,28 @@ def test_CognitiveService() -> None:
         qdrant.search_similar.assert_not_called()
 
     asyncio.run(_run())
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: efacd8e0-06c1-48f0-acd5-b3339e3387f3
+async def test_CognitiveService_search_capabilities() -> None:
+    service = CognitiveService(repo_path=Path("/tmp/repo"))
+
+    embedding = [0.1, 0.2, 0.3]
+    expected_results = [{"id": "cap-1", "score": 0.99}]
+
+    service.get_embedding_for_code = AsyncMock(return_value=embedding)
+
+    mock_qdrant = MagicMock()
+    mock_qdrant.search_similar = AsyncMock(return_value=expected_results)
+    service._qdrant_service = mock_qdrant
+
+    result = await service.search_capabilities("find me capabilities", limit=5)
+
+    service.get_embedding_for_code.assert_awaited_once_with("find me capabilities")
+    mock_qdrant.search_similar.assert_awaited_once_with(embedding, limit=5)
+    assert result == expected_results
