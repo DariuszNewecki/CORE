@@ -120,7 +120,6 @@ async def test_SecretsClient():
     )
 
 
-
 import pytest
 
 
@@ -138,3 +137,20 @@ async def test_SecretsClient_rotate_secret():
         "PUT", "/v1/secrets/my-secret/rotate", json={"new_value": "new-value-123"}
     )
     assert result == {"key": "my-secret", "rotated": True}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 1d444c17-12b8-470a-8a84-93649e90471e
+async def test_SecretsClient_delete_secret():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"deleted": True, "key": "my-key"})
+
+    client = SecretsClient(facade)
+
+    result = await client.delete_secret("my-key")
+
+    assert result == {"deleted": True, "key": "my-key"}
+    facade._request.assert_awaited_once_with("DELETE", "/v1/secrets/my-key")
