@@ -747,3 +747,37 @@ def test_FixIRResponse() -> None:
     assert response.path == "/tmp/scaffold/out.py"
     assert isinstance(response.path, str)
     assert response.model_dump() == {"path": "/tmp/scaffold/out.py"}
+
+
+from api.v1.schemas import FixRunResponse
+
+
+# ID: b432ce28-b401-455d-8405-35aadfa8dd10
+def test_FixRunResponse() -> None:
+    response = FixRunResponse(
+        run_id="run-123",
+        kind="apply",
+        fix_id="fix-456",
+        target_files=["src/a.py", "src/b.py"],
+        write=True,
+        status="finished",
+        requested_by="user-789",
+        requested_at="2024-01-01T00:00:00Z",
+        started_at="2024-01-01T00:00:01Z",
+        finished_at="2024-01-01T00:00:02Z",
+        result={"applied": 2},
+        error=None,
+    )
+
+    assert response.run_id == "run-123"
+    assert response.kind == "apply"
+    assert response.fix_id == "fix-456"
+    assert response.target_files == ["src/a.py", "src/b.py"]
+    assert response.write is True
+    assert response.status == "finished"
+    assert response.requested_by == "user-789"
+    assert response.requested_at == "2024-01-01T00:00:00Z"
+    assert response.started_at == "2024-01-01T00:00:01Z"
+    assert response.finished_at == "2024-01-01T00:00:02Z"
+    assert response.result == {"applied": 2}
+    assert response.error is None
