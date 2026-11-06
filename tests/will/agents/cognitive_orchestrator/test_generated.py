@@ -91,3 +91,42 @@ async def test_CognitiveOrchestrator_initialize():
     assert len(orchestrator._roles) == 2
     assert len(orchestrator._assignments) == 1
     assert orchestrator._system_operating_mode == "full"
+
+
+
+
+
+# ID: ae609731-20fe-41af-a3eb-a956a8dfae46
+async def test_CognitiveOrchestrator() -> None:
+    repo_path = Path("/tmp/repo")
+    mind_state_service = MagicMock()
+    mind_state_service.get_llm_resources = AsyncMock(return_value=[MagicMock()])
+    mind_state_service.get_cognitive_roles = AsyncMock(return_value=[MagicMock()])
+    mind_state_service.get_role_resource_assignments = AsyncMock(
+        return_value=[MagicMock()]
+    )
+    system_config = MagicMock()
+    system_config.operating_mode = "normal"
+    mind_state_service.get_system_config = AsyncMock(return_value=system_config)
+    provider_factory = MagicMock()
+
+    orchestrator = CognitiveOrchestrator(
+        repo_path=repo_path,
+        mind_state_service=mind_state_service,
+        provider_factory=provider_factory,
+    )
+
+    await orchestrator.initialize()
+
+    assert orchestrator._loaded is True
+    assert orchestrator._system_operating_mode == "normal"
+    assert len(orchestrator._resources) == 1
+    assert len(orchestrator._roles) == 1
+    assert len(orchestrator._assignments) == 1
+    mind_state_service.get_llm_resources.assert_awaited_once()
+    mind_state_service.get_cognitive_roles.assert_awaited_once()
+    mind_state_service.get_role_resource_assignments.assert_awaited_once()
+    mind_state_service.get_system_config.assert_awaited_once()
+
+    await orchestrator.initialize()
+    mind_state_service.get_llm_resources.assert_awaited_once()
