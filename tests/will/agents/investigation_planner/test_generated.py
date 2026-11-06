@@ -111,7 +111,6 @@ def test_investigation_decisions():
     assert investigation_decisions([]) == []
 
 
-
 from will.agents.investigation_planner import parse_and_validate_investigation_plan
 
 
@@ -138,3 +137,38 @@ def test_parse_and_validate_investigation_plan():
     mock_plan_steps.assert_called_once_with({"plan": [{"action": "read"}]})
     mock_validate.assert_called_once_with([{"action": "read", "target": "x"}])
     assert result == [sentinel_step]
+
+
+
+
+# ID: 0011094e-0556-4401-a0d3-fb0954a6d697
+def test_validate_investigation_plan():
+    from will.agents.investigation_planner import validate_investigation_plan
+
+    steps = [
+        {
+            "action": "inspect.layout",
+            "step": "Inspect repo layout",
+            "params": {"depth": 2},
+        },
+        {"action": "inspect.artifact_types", "step": "List artifact types"},
+        {
+            "action": "inspect.absences",
+            "step": "Detect missing signals",
+            "params": {"keys": ["a"]},
+        },
+    ]
+
+    with patch("will.agents.investigation_planner.logger") as mock_logger:
+        result = validate_investigation_plan(steps)
+
+    assert len(result) == 3
+    assert result[0].action == "inspect.layout"
+    assert result[0].step == "Inspect repo layout"
+    assert result[0].params == {"depth": 2}
+    assert result[1].action == "inspect.artifact_types"
+    assert result[1].step == "List artifact types"
+    assert result[1].params == {}
+    assert result[2].action == "inspect.absences"
+    assert result[2].params == {"keys": ["a"]}
+    mock_logger.info.assert_called_once()
