@@ -68,7 +68,6 @@ async def test_SecretsClient_list_secrets():
     facade._request.assert_awaited_once_with("GET", "/v1/secrets")
 
 
-
 import pytest
 
 
@@ -119,3 +118,23 @@ async def test_SecretsClient():
     facade._request.assert_awaited_once_with(
         "PUT", "/v1/secrets/mykey/rotate", json={"new_value": "rotated"}
     )
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 548ba91c-4e3e-45ca-a43e-99d47c417d19
+async def test_SecretsClient_rotate_secret():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"key": "my-secret", "rotated": True})
+
+    client = SecretsClient(facade)
+
+    result = await client.rotate_secret("my-secret", "new-value-123")
+
+    facade._request.assert_awaited_once_with(
+        "PUT", "/v1/secrets/my-secret/rotate", json={"new_value": "new-value-123"}
+    )
+    assert result == {"key": "my-secret", "rotated": True}
