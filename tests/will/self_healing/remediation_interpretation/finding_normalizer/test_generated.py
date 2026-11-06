@@ -93,3 +93,38 @@ def test_FindingNormalizer():
     assert second.line_number == 10
     assert second.severity == "warning"
     assert second.dry_run is True
+
+
+
+
+
+# ID: fe3ac9ec-4358-4596-b63b-fa630940b84e
+def test_FindingNormalizer_normalize_one():
+    normalizer = FindingNormalizer()
+
+    finding = {
+        "id": "finding-123",
+        "subject": "blackboard.finding.rule-abc",
+        "payload": {
+            "rule": "no-unused-vars",
+            "rule_namespace": "lint",
+            "file_path": "src/app.py",
+            "line_number": 42,
+            "message": "unused variable x",
+            "severity": "warning",
+            "dry_run": False,
+        },
+    }
+
+    result = normalizer.normalize_one(finding)
+
+    assert result.finding_id == "finding-123"
+    assert result.subject == "blackboard.finding.rule-abc"
+    assert result.rule_id == "no-unused-vars"
+    assert result.rule_namespace == "lint"
+    assert result.file_path == "src/app.py"
+    assert result.line_number == 42
+    assert result.message == "unused variable x"
+    assert result.severity == "warning"
+    assert result.dry_run is False
+    assert result.raw_payload == finding["payload"]
