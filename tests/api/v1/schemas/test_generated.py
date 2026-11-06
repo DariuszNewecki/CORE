@@ -887,3 +887,25 @@ def test_CognitiveRoleProjectionResponse():
         "data": data,
         "duration_sec": 0.123,
     }
+
+
+
+
+# ID: fc576b78-936b-4142-b824-6188017959b8
+def test_async_dispatch_response_happy_path():
+    response = AsyncDispatchResponse(
+        run_id="run-123",
+        status="accepted",
+        href="/api/v1/runs/run-123",
+    )
+
+    assert response.run_id == "run-123"
+    assert response.status == "accepted"
+    assert response.href == "/api/v1/runs/run-123"
+
+    dumped = response.model_dump()
+    assert dumped == {
+        "run_id": "run-123",
+        "status": "accepted",
+        "href": "/api/v1/runs/run-123",
+    }
