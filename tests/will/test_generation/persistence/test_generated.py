@@ -64,9 +64,6 @@ def test_TestPersistenceService_persist():
     assert result.tests_saved == 1
 
 
-
-
-
 # ID: 4d0fd0e2-31eb-4821-88b1-e9d87e0c53b8
 def test_TestPersistenceService():
     mock_fh = MagicMock()
@@ -91,3 +88,15 @@ def test_TestPersistenceService():
     assert "Source: src/shared/utils/text.py" in written_content
     assert "Symbol: my_symbol" in written_content
     assert "def test_my_symbol():" in written_content
+
+
+from will.test_generation.persistence import PersistResult
+
+
+# ID: b486c076-351b-44ac-a437-338927449390
+def test_PersistResult():
+    result = PersistResult(ok=True)
+    assert result.ok is True
+    assert result.path == ""
+    assert result.error == ""
+    assert result.tests_saved == 0
