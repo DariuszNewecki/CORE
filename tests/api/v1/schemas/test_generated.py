@@ -854,3 +854,36 @@ def test_AuditRunResponse():
         {"id": "f2", "severity": "low"},
     ]
     assert len(response.findings) == 2
+
+
+from api.v1.schemas import CognitiveRoleProjectionResponse
+
+
+# ID: e07d345c-3f65-4723-aa03-ca8845eaf5fe
+def test_CognitiveRoleProjectionResponse():
+    data = {
+        "in_sync": False,
+        "drift": ["role_a"],
+        "db_only_roles": ["role_b"],
+        "yaml_only_roles": ["role_c"],
+        "non_canonical": ["role_d"],
+        "dry_run": False,
+        "applied": ["role_a"],
+        "blocked": [],
+    }
+
+    response = CognitiveRoleProjectionResponse(
+        ok=True,
+        data=data,
+        duration_sec=0.123,
+    )
+
+    assert response.ok is True
+    assert response.data == data
+    assert response.duration_sec == 0.123
+    assert response.data["in_sync"] is False
+    assert response.model_dump() == {
+        "ok": True,
+        "data": data,
+        "duration_sec": 0.123,
+    }
