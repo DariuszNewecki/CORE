@@ -1556,9 +1556,6 @@ async def test_CoreApiClient_list_fix_commands():
     client.fix.list_fix_commands.assert_awaited_once_with(limit=2, verbose=True)
 
 
-
-
-
 # ID: f094fd6e-5a59-423e-89d1-f1b47ade15fb
 def test_CoreApiClient_poll_audit_remediation_run():
     expected = {"run_id": "abc123", "status": "running"}
@@ -1572,4 +1569,20 @@ def test_CoreApiClient_poll_audit_remediation_run():
     result = asyncio.run(client.poll_audit_remediation_run("abc123"))
 
     mock_audit_instance.poll_audit_remediation_run.assert_awaited_once_with("abc123")
+    assert result == expected
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: c9556376-9afe-4ede-b804-7bf62df9f659
+async def test_CoreApiClient_audit_remediate():
+    client = CoreApiClient(base_url="http://localhost:8000")
+    expected = {"status": "ok", "remediation_id": "abc123"}
+    client.audits.audit_remediate = AsyncMock(return_value=expected)
+
+    result = await client.audit_remediate("audit-1", dry_run=True)
+
+    client.audits.audit_remediate.assert_awaited_once_with("audit-1", dry_run=True)
     assert result == expected
