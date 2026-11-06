@@ -202,9 +202,6 @@ async def test_CognitiveService_search_capabilities() -> None:
     assert result == expected_results
 
 
-
-
-
 # ID: fc723441-6b1b-4d42-8a44-5af84d5c3d91
 async def test_CognitiveService_get_embeddings_for_code_batch() -> None:
     repo_path = Path("/tmp/repo")
@@ -223,3 +220,27 @@ async def test_CognitiveService_get_embeddings_for_code_batch() -> None:
 
     assert result == expected
     assert len(result) == len(source_texts)
+
+
+import pytest
+
+
+# ID: bb7b67f7-ed5e-4ddc-9b7b-83cddf10d4b0
+async def test_CognitiveService_get_embedding_for_code():
+    from will.orchestration.cognitive_service import CognitiveService
+
+    service = CognitiveService(repo_path=Path("/tmp/repo"))
+
+    fake_client = MagicMock()
+    fake_client.get_embedding = AsyncMock(return_value=[0.1, 0.2, 0.3])
+
+    with patch.object(
+        service,
+        "aget_client_for_role",
+        new=AsyncMock(return_value=fake_client),
+    ) as mock_aget:
+        result = await service.get_embedding_for_code("def foo(): return 1")
+
+    assert result == [0.1, 0.2, 0.3]
+    mock_aget.assert_awaited_once_with("Vectorizer")
+    fake_client.get_embedding.assert_awaited_once_with("def foo(): return 1")
