@@ -72,7 +72,6 @@ async def test_create_investigation_plan():
     mock_parse.assert_called_once_with("inspect.layout\ninspect.path")
 
 
-
 from will.agents.investigation_planner import investigation_decisions
 
 
@@ -110,3 +109,32 @@ def test_investigation_decisions():
     assert "inspect.artifact_types" not in second["alternatives"]
 
     assert investigation_decisions([]) == []
+
+
+
+from will.agents.investigation_planner import parse_and_validate_investigation_plan
+
+
+# ID: 05f6a6a8-07bd-4973-8768-69169cc200c0
+def test_parse_and_validate_investigation_plan():
+    sentinel_step = object()
+    with (
+        patch(
+            "will.agents.investigation_planner.extract_json_from_response",
+            return_value={"plan": [{"action": "read"}]},
+        ) as mock_extract,
+        patch(
+            "will.agents.investigation_planner.plan_steps",
+            return_value=[{"action": "read", "target": "x"}],
+        ) as mock_plan_steps,
+        patch(
+            "will.agents.investigation_planner.validate_investigation_plan",
+            return_value=[sentinel_step],
+        ) as mock_validate,
+    ):
+        result = parse_and_validate_investigation_plan('{"plan": [{"action": "read"}]}')
+
+    mock_extract.assert_called_once_with('{"plan": [{"action": "read"}]}')
+    mock_plan_steps.assert_called_once_with({"plan": [{"action": "read"}]})
+    mock_validate.assert_called_once_with([{"action": "read", "target": "x"}])
+    assert result == [sentinel_step]
