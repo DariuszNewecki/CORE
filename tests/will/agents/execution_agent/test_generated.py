@@ -47,9 +47,6 @@ def test_ExecutionAgent_execute_plan():
     agent.tracer.record.assert_called_once()
 
 
-
-
-
 # ID: 27dcb9e4-9a09-417c-a3e3-6651a94aa3da
 def test_ExecutionAgent():
     executor = MagicMock()
@@ -60,3 +57,53 @@ def test_ExecutionAgent():
     assert agent.executor is executor
     assert agent.write is False
     assert agent.tracer is not None
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: f81aa73b-6434-4530-b372-2e31c57d2104
+async def test_execution_agent_execute_plan():
+    from will.agents.execution_agent import ExecutionAgent
+
+    executor = MagicMock()
+    agent = ExecutionAgent(executor=executor, write=True)
+
+    agent.tracer = MagicMock()
+
+    params = MagicMock()
+    params.model_dump = MagicMock(
+        return_value={"file_path": "a.py", "code": "print(1)"}
+    )
+
+    step = MagicMock()
+    step.action = "file.create"
+    step.description = "create file"
+    step.is_critical = True
+    step.metadata = {}
+    step.params = params
+
+    detailed_plan = MagicMock()
+    detailed_plan.step_count = 1
+    detailed_plan.steps = [step]
+    detailed_plan.goal = "do the thing"
+
+    action_result = MagicMock()
+    action_result.ok = True
+    action_result.data = {}
+
+    agent._execute_step = AsyncMock(return_value=action_result)
+
+    with patch(
+        "will.agents.execution_agent._params_to_dict",
+        return_value={"file_path": "a.py", "code": "print(1)"},
+    ):
+        result = await agent.execute_plan(detailed_plan)
+
+    agent._execute_step.assert_awaited_once_with(step, 1)
+    assert result.success is True
+    assert result.files_written == ["a.py"]
+    assert result.errors == []
+    assert result.warnings == []
+    agent.tracer.record.assert_called_once()
