@@ -1554,3 +1554,22 @@ async def test_CoreApiClient_list_fix_commands():
 
     assert result == {"commands": ["fix_a", "fix_b"]}
     client.fix.list_fix_commands.assert_awaited_once_with(limit=2, verbose=True)
+
+
+
+
+
+# ID: f094fd6e-5a59-423e-89d1-f1b47ade15fb
+def test_CoreApiClient_poll_audit_remediation_run():
+    expected = {"run_id": "abc123", "status": "running"}
+
+    client = CoreApiClient(base_url="http://localhost")
+
+    mock_audit_instance = MagicMock()
+    mock_audit_instance.poll_audit_remediation_run = AsyncMock(return_value=expected)
+    client.audits = mock_audit_instance
+
+    result = asyncio.run(client.poll_audit_remediation_run("abc123"))
+
+    mock_audit_instance.poll_audit_remediation_run.assert_awaited_once_with("abc123")
+    assert result == expected
