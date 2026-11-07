@@ -96,3 +96,163 @@ async def test_PytestAcceptanceCondition_evaluate() -> None:
     assert call_args.kwargs["source_file"] == "src/pkg/module.py"
     assert call_args.kwargs["target_path"] == "tests/test_module.py"
     assert "def test_example" in call_args.kwargs["candidate_content"]
+
+
+# ID: 829285fc-a339-4702-9416-7ee8dc56c0ac
+async def test_PytestAcceptanceCondition() -> None:
+    from shared.protocols.executor import ActionExecutorProtocol
+
+    executor = MagicMock(spec=ActionExecutorProtocol)
+    executor.execute = AsyncMock(return_value=MagicMock(ok=True, data={}))
+
+    condition = PytestAcceptanceCondition(
+        executor=executor,
+        source_file="src/pkg/mod.py",
+        target_path="tests/test_mod.py",
+        base_content="def existing():\n    return 1\n",
+    )
+
+    with patch(
+        "will.agents.acceptance.conditions.strip_leading_future_imports",
+        return_value="def test_mod():\n    assert True\n",
+    ):
+        result = await condition.evaluate(
+            "from __future__ import annotations\n\n\ndef test_mod():\n    assert True\n"
+        )
+
+    assert result.accepted is True
+    assert result.violation_summary == ""
+    executor.execute.assert_awaited_once()
+    call_args, call_kwargs = executor.execute.await_args
+    assert call_args[0] == "test.candidate_validate"
+    assert call_kwargs["write"] is False
+    assert call_kwargs["source_file"] == "src/pkg/mod.py"
+    assert call_kwargs["target_path"] == "tests/test_mod.py"
+    assert "def test_mod():" in call_kwargs["candidate_content"]
+    assert "def existing():" in call_kwargs["candidate_content"]
+
+
+from pathlib import Path
+
+from will.agents.acceptance.conditions import IntentGuardAcceptanceCondition
+
+
+# ID: ecda5bc1-96a0-446c-8019-0080306d1b9f
+async def test_IntentGuardAcceptanceCondition_evaluate():
+    condition = IntentGuardAcceptanceCondition(
+        repo_root=Path("/tmp/repo"),
+        target_path="tests/test_example.py",
+        component_type="test",
+    )
+
+    mock_validation = MagicMock()
+    mock_validation.is_valid = True
+    mock_validation.violations = []
+
+    mock_guard = MagicMock()
+    mock_guard.validate_generated_code = MagicMock(return_value=mock_validation)
+
+    with patch(
+        "body.governance.intent_guard.get_intent_guard",
+        return_value=mock_guard,
+    ) as mock_get_guard:
+        result = await condition.evaluate("def test_foo():\n    assert True\n")
+
+    mock_get_guard.assert_called_once_with(repo_path=Path("/tmp/repo"))
+    mock_guard.validate_generated_code.assert_called_once_with(
+        code="def test_foo():\n    assert True\n",
+        pattern_id="test_file",
+        component_type="test",
+        target_path="tests/test_example.py",
+    )
+    assert result.accepted is True
+    assert result.violation_summary == ""
+
+
+# ID: 4cea1866-d702-4903-a0e9-3ec02f9992c7
+def test_IntentGuardAcceptanceCondition():
+    repo_root = Path("/tmp/repo")
+    condition = IntentGuardAcceptanceCondition(
+        repo_root=repo_root, target_path="tests/test_foo.py", component_type="test"
+    )
+
+    mock_validation = MagicMock()
+    mock_validation.is_valid = True
+    mock_validation.violations = []
+
+    mock_guard = MagicMock()
+    mock_guard.validate_generated_code = MagicMock(return_value=mock_validation)
+
+    with patch(
+        "body.governance.intent_guard.get_intent_guard", return_value=mock_guard
+    ):
+        result = asyncio.run(condition.evaluate("def test_foo():\n    assert True\n"))
+
+    assert result.accepted is True
+    assert result.violation_summary == ""
+    mock_guard.validate_generated_code.assert_called_once_with(
+        code="def test_foo():\n    assert True\n",
+        pattern_id="test_file",
+        component_type="test",
+        target_path="tests/test_foo.py",
+    )
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 5aef9db7-a839-4c2b-9f38-5c96b7ed782c
+async def test_AcceptanceCondition():
+    from will.agents.acceptance.conditions import AcceptanceCondition
+
+    class _StubCondition:
+        # ID: 319645ef-effd-4e67-adf2-64620f44d88b
+        async def evaluate(self, code: str):
+            return {"passed": True, "violation_summary": ""}
+
+    stub = _StubCondition()
+    stub.evaluate = AsyncMock(return_value={"passed": True, "violation_summary": ""})
+
+    assert isinstance(stub, AcceptanceCondition)
+
+    result = await stub.evaluate("def foo():\n    return 1\n")
+
+    stub.evaluate.assert_awaited_once_with("def foo():\n    return 1\n")
+    assert result == {"passed": True, "violation_summary": ""}
+
+
+from will.agents.acceptance.conditions import AcceptanceCondition
+
+
+# ID: 36e48bb7-b2da-4e43-bb20-4d066ecb4660
+async def test_AcceptanceCondition_evaluate():
+    condition = MagicMock(spec=AcceptanceCondition)
+
+    expected = MagicMock()
+    condition.evaluate = AsyncMock(return_value=expected)
+
+    result = await condition.evaluate("print('hello')")
+
+    condition.evaluate.assert_awaited_once_with("print('hello')")
+    assert result is expected
+
+
+from will.agents.acceptance.conditions import AcceptanceResult
+
+
+# ID: 962a788f-f86b-468e-8cc2-c3fd433038db
+def test_AcceptanceResult():
+    result = AcceptanceResult(accepted=True, violation_summary="ok")
+    assert result.accepted is True
+    assert result.violation_summary == "ok"
+    assert result.violations == []
+
+    detailed = AcceptanceResult(
+        accepted=False,
+        violation_summary="missing import",
+        violations=["missing import at line 3"],
+    )
+    assert detailed.accepted is False
+    assert detailed.violation_summary == "missing import"
+    assert detailed.violations == ["missing import at line 3"]

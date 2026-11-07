@@ -187,3 +187,63 @@ def test_Decision():
     assert decision.chosen_action == "do_the_thing"
     assert decision.alternatives_considered == ["do_nothing", "do_other_thing"]
     assert decision.confidence == 0.87
+
+
+
+
+
+# ID: 58b2b0b1-9120-41f9-8980-2bf3b0bffd35
+def test_DecisionTracer():
+    mock_file_service = MagicMock()
+    mock_resolver = MagicMock()
+    mock_resolver.repo_root = MagicMock()
+
+    with (
+        patch(
+            "will.orchestration.decision_tracer.configured_repo_root",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "will.orchestration.decision_tracer.PathResolver"
+        ) as mock_path_resolver_cls,
+        patch(
+            "will.orchestration.decision_tracer.FileService",
+            return_value=mock_file_service,
+        ),
+    ):
+        mock_path_resolver_cls.return_value.reports_dir = MagicMock()
+
+        tracer = DecisionTracer(
+            path_resolver=mock_resolver,
+            session_id="sess-123",
+            file_service=mock_file_service,
+            agent_name="AgentX",
+            goal="do things",
+        )
+
+    assert tracer.session_id == "sess-123"
+    assert tracer.agent_name == "AgentX"
+    assert tracer.goal == "do things"
+    assert tracer.decisions == []
+
+    tracer.record(
+        agent="AgentX",
+        decision_type="plan",
+        rationale="because it is good",
+        chosen_action="go",
+        alternatives=["stay"],
+        context={"k": "v"},
+        confidence=0.9,
+    )
+
+    assert len(tracer.decisions) == 1
+    d = tracer.decisions[0]
+    assert d.agent == "AgentX"
+    assert d.decision_type == "plan"
+    assert d.chosen_action == "go"
+    assert d.alternatives_considered == ["stay"]
+    assert d.confidence == 0.9
+
+    explanation = tracer.explain_chain()
+    assert "AgentX" in explanation
+    assert "plan" in explanation

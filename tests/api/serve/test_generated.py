@@ -54,3 +54,150 @@ def test_main(tmp_path):
     mock_build_config.assert_called_once_with("api.main:app", log_level="info")
     mock_server_cls.assert_called_once_with(config)
     server_instance.run.assert_called_once_with(sockets=[tcp_sock, unix_sock])
+
+
+# ID: 6f0e07e1-cb6f-40de-92b8-d99307a9c260
+def test_build_config():
+    from api.serve import build_config
+
+    with patch("api.serve.uvicorn") as mock_uvicorn:
+        mock_config = MagicMock()
+        mock_uvicorn.Config.return_value = mock_config
+
+        result = build_config(app="api.main:app", log_level="debug")
+
+        mock_uvicorn.Config.assert_called_once_with(
+            "api.main:app",
+            http=build_config.__globals__["PeerCredH11Protocol"],
+            log_level="debug",
+        )
+        assert result is mock_config
+
+
+from api.serve import bind_tcp_socket
+
+
+# ID: 4cfa5b67-4743-4548-9959-801379cf764a
+def test_bind_tcp_socket():
+    fake_sock = MagicMock()
+
+    with patch("api.serve.socket.socket", return_value=fake_sock) as mock_socket:
+        result = bind_tcp_socket("127.0.0.1", 8080)
+
+    mock_socket.assert_called_once_with(
+        __import__("socket").AF_INET, __import__("socket").SOCK_STREAM
+    )
+    fake_sock.setsockopt.assert_called_once_with(
+        __import__("socket").SOL_SOCKET, __import__("socket").SO_REUSEADDR, 1
+    )
+    fake_sock.bind.assert_called_once_with(("127.0.0.1", 8080))
+    fake_sock.listen.assert_called_once_with(__import__("socket").SOMAXCONN)
+    assert result is fake_sock
+
+
+from api.serve import producer_socket
+
+
+# ID: 38f48b79-9ccb-4e80-9b0a-5b78c4118714
+def test_producer_socket(tmp_path):
+    sock_path = tmp_path / "producer.sock"
+    fake_socket = MagicMock()
+    with patch("api.serve.bind_unix_socket", return_value=fake_socket) as mock_bind:
+        result = producer_socket(sock_path)
+    assert result is fake_socket
+    mock_bind.assert_called_once()
+    assert mock_bind.call_args[0][0] == sock_path
+
+
+from api.serve import bind_unix_socket
+
+
+# ID: ce1e445c-c2cf-4121-84a6-902b907c33cf
+def test_bind_unix_socket(tmp_path: Path) -> None:
+    sock_path = tmp_path / "api.sock"
+
+    mock_sock = MagicMock()
+    mock_socket_module = MagicMock()
+    mock_socket_module.AF_UNIX = "AF_UNIX"
+    mock_socket_module.SOCK_STREAM = "SOCK_STREAM"
+    mock_socket_module.SOMAXCONN = 128
+    mock_socket_module.socket.return_value = mock_sock
+
+    with patch("api.serve.socket", mock_socket_module):
+        result = bind_unix_socket(sock_path)
+
+    mock_socket_module.socket.assert_called_once_with("AF_UNIX", "SOCK_STREAM")
+    mock_sock.bind.assert_called_once_with(str(sock_path))
+    mock_sock.listen.assert_called_once_with(128)
+    assert result is mock_sock
+
+
+from api.serve import PeerCredH11Protocol
+
+
+# ID: a3294535-d069-49a6-a77c-111924dd9174
+def test_PeerCredH11Protocol():
+    protocol = PeerCredH11Protocol.__new__(PeerCredH11Protocol)
+    original_app = MagicMock(name="original_app")
+    protocol.app = original_app
+
+    transport = MagicMock(name="transport")
+    fake_socket = object()
+    transport.get_extra_info.return_value = fake_socket
+
+    fake_peer_cred = MagicMock(name="peer_cred")
+    wrapped_app = MagicMock(name="wrapped_app")
+
+    with (
+        patch(
+            "api.serve.read_peer_cred", return_value=fake_peer_cred
+        ) as mock_read_peer_cred,
+        patch(
+            "api.serve._WithPeerCred", return_value=wrapped_app
+        ) as mock_with_peer_cred,
+        patch(
+            "uvicorn.protocols.http.h11_impl.H11Protocol.connection_made"
+        ) as mock_super_connection_made,
+    ):
+        protocol.connection_made(transport)
+
+    transport.get_extra_info.assert_called_once_with("socket")
+    mock_read_peer_cred.assert_called_once_with(fake_socket)
+    mock_with_peer_cred.assert_called_once_with(original_app, fake_peer_cred)
+    mock_super_connection_made.assert_called_once_with(transport)
+    assert protocol.app is wrapped_app
+
+
+
+
+# ID: a03d6d2c-a8cd-4efd-8863-32a38916ed18
+def test_PeerCredH11Protocol_connection_made() -> None:
+    from api.serve import PeerCredH11Protocol
+
+    app = MagicMock()
+    loop = MagicMock()
+    protocol = PeerCredH11Protocol.__new__(PeerCredH11Protocol)
+    protocol.app = app
+    protocol._loop = loop
+
+    transport = MagicMock()
+    socket_mock = MagicMock()
+    transport.get_extra_info.return_value = socket_mock
+
+    peer_cred = ("peer", "cred")
+    wrapped = MagicMock()
+
+    with (
+        patch("api.serve.read_peer_cred", return_value=peer_cred) as mock_read,
+        patch("api.serve._WithPeerCred", return_value=wrapped) as mock_with_peer_cred,
+        patch(
+            "uvicorn.protocols.http.h11_impl.H11Protocol.connection_made"
+        ) as mock_super,
+    ):
+        protocol.connection_made(transport)
+
+    transport.get_extra_info.assert_any_call("socket")
+    mock_read.assert_called_once_with(socket_mock)
+    mock_with_peer_cred.assert_called_once_with(app, peer_cred)
+    assert protocol.app is wrapped
+    mock_super.assert_called_once_with(transport)

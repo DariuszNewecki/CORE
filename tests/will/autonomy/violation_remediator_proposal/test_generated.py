@@ -165,3 +165,39 @@ async def test_create_proposal():
     assert call_kwargs["finding_ids"] == ["finding-1", "finding-2"]
     assert call_kwargs["expected_worker_uuid"] == claimed_by
     assert call_kwargs["approval_step"] is None
+
+
+import asyncio
+
+from will.autonomy.violation_remediator_proposal import check_circuit_breaker
+
+
+# ID: 22927261-c591-45ab-b73b-3f2089d4c594
+def test_check_circuit_breaker():
+    session = MagicMock()
+    session_cm = MagicMock()
+    session_cm.__aenter__ = AsyncMock(return_value=session)
+    session_cm.__aexit__ = AsyncMock(return_value=False)
+
+    async def _run():
+        with (
+            patch("body.services.service_registry.service_registry") as mock_registry,
+            patch(
+                "will.autonomy.violation_remediator_proposal.recent_consecutive_identical_count",
+                new=AsyncMock(return_value=(3, "a" * 40, "b" * 40, "c" * 40)),
+            ) as mock_count,
+        ):
+            mock_registry.session.return_value = session_cm
+
+            result = await check_circuit_breaker(
+                ref_id="ref-1",
+                ref_kind="violation",
+                file_path="src/foo.py",
+                config=MagicMock(),
+            )
+
+            assert result == (3, "a" * 40, "b" * 40, "c" * 40)
+            mock_registry.session.assert_called_once()
+            mock_count.assert_awaited_once()
+
+    asyncio.run(_run())

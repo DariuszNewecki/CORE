@@ -114,3 +114,47 @@ def test_VectorQueryRequest():
     assert boundary_request.limit == 50
     assert boundary_request.collection == "policies"
     assert boundary_request.query == "test query"
+
+
+
+import pytest
+
+from api.v1.vectors_routes import vector_rebuild
+
+
+@pytest.mark.asyncio
+# ID: 7706fe23-09f6-44f0-be07-b31c7ae3b9cb
+async def test_vector_rebuild():
+    body = MagicMock()
+    body.collection = "my_collection"
+    body.write = False
+
+    qdrant = MagicMock()
+    qdrant.list_collections = AsyncMock(return_value={"my_collection", "other"})
+
+    core_context = MagicMock()
+    core_context.qdrant_service = qdrant
+
+    request = MagicMock()
+    request.app.state.core_context = core_context
+
+    row = MagicMock()
+    row.total = 5
+    row.embedded = 3
+
+    execute_result = MagicMock()
+    execute_result.one.return_value = row
+
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=execute_result)
+
+    result = await vector_rebuild(body=body, request=request, session=session)
+
+    assert result == {
+        "collection": "my_collection",
+        "mode": "dry-run",
+        "artifacts_total": 5,
+        "artifacts_to_reset": 3,
+    }
+    qdrant.list_collections.assert_awaited_once()
+    session.execute.assert_awaited_once()

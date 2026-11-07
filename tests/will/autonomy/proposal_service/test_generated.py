@@ -270,7 +270,6 @@ async def test_ProposalService():
     )
 
 
-
 from will.autonomy.proposal_service import revive_findings_for_rejected_proposal
 
 
@@ -297,3 +296,120 @@ async def test_revive_findings_for_rejected_proposal():
         proposal_id="prop-123",
         failure_reason="rejected: not enough evidence",
     )
+
+
+# ID: e5e5b025-ff4a-40dd-8df5-51be1334a9f5
+async def test_ProposalService_list_pending_approval() -> None:
+    session = MagicMock()
+    service = ProposalService(session)
+
+    expected_proposals = [MagicMock(), MagicMock()]
+    service._repository = MagicMock()
+    service._repository.list_by_status = AsyncMock(return_value=expected_proposals)
+
+    result = await service.list_pending_approval(limit=5)
+
+    assert result == expected_proposals
+    service._repository.list_by_status.assert_awaited_once()
+
+
+# ID: f4cf3b6a-a485-4566-8a95-e34eae25f60c
+async def test_ProposalService_list_by_status_paginated() -> None:
+    mock_session = MagicMock()
+    mock_status = MagicMock(name="status")
+
+    expected_proposals = [MagicMock(name="proposal1"), MagicMock(name="proposal2")]
+    expected_result = (expected_proposals, True, "cursor-abc")
+
+    with (
+        patch("will.autonomy.proposal_service.ProposalRepository") as mock_repo_cls,
+        patch("will.autonomy.proposal_service.ProposalStateManager"),
+    ):
+        mock_repo = MagicMock()
+        mock_repo.list_by_status_paginated = AsyncMock(return_value=expected_result)
+        mock_repo_cls.return_value = mock_repo
+
+        service = ProposalService(mock_session)
+
+        result = await service.list_by_status_paginated(
+            mock_status, limit=25, after_cursor="prev-cursor"
+        )
+
+    assert result == expected_result
+    mock_repo.list_by_status_paginated.assert_awaited_once_with(
+        mock_status, 25, "prev-cursor"
+    )
+
+
+# ID: 2636b79f-13a9-42ca-a0fa-dd266038470b
+async def test_ProposalService_list_by_status():
+    session = MagicMock()
+
+    expected = [MagicMock(), MagicMock()]
+
+    with (
+        patch("will.autonomy.proposal_service.ProposalRepository") as mock_repo_cls,
+        patch("will.autonomy.proposal_service.ProposalStateManager"),
+    ):
+        mock_repository = MagicMock()
+        mock_repository.list_by_status = AsyncMock(return_value=expected)
+        mock_repo_cls.return_value = mock_repository
+
+        service = ProposalService(session)
+
+        status = MagicMock()
+        result = await service.list_by_status(status, limit=10)
+
+        assert result == expected
+        mock_repository.list_by_status.assert_awaited_once_with(status, 10)
+
+
+import pytest
+
+
+# ID: a4ed5836-5ce8-43f8-acb0-aad891af237d
+async def test_ProposalService_update() -> None:
+    session = MagicMock()
+    proposal = MagicMock()
+
+    with (
+        patch("will.autonomy.proposal_service.ProposalRepository") as repo_cls,
+        patch("will.autonomy.proposal_service.ProposalStateManager") as state_cls,
+    ):
+        repo = MagicMock()
+        state_manager = MagicMock()
+        repo_cls.return_value = repo
+        state_cls.return_value = state_manager
+
+        service = ProposalService(session)
+
+        repo.update = AsyncMock(return_value=proposal)
+        service.update = AsyncMock(return_value=proposal)
+
+        result = await service.update(proposal)
+
+    service.update.assert_awaited_once_with(proposal)
+    assert result is proposal
+
+
+
+
+
+# ID: 9bc4d6f3-3a93-46a4-8eae-089abc82645d
+async def test_ProposalService_get() -> None:
+    session = MagicMock()
+
+    with (
+        patch("will.autonomy.proposal_service.ProposalRepository") as mock_repo_cls,
+        patch("will.autonomy.proposal_service.ProposalStateManager"),
+    ):
+        mock_repo = MagicMock()
+        expected = object()
+        mock_repo.get = AsyncMock(return_value=expected)
+        mock_repo_cls.return_value = mock_repo
+
+        service = ProposalService(session)
+        result = await service.get("prop-123")
+
+    mock_repo.get.assert_awaited_once_with("prop-123")
+    assert result is expected
