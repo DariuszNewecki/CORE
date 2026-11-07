@@ -86,3 +86,16 @@ def test_TaskType():
     assert TaskType.UNKNOWN.value == "unknown"
     assert TaskType("analyze") is TaskType.ANALYZE
     assert isinstance(TaskType.FIX, str)
+
+
+import asyncio
+
+import pytest
+
+
+# ID: 6cb5c4a6-cc5c-40c3-a271-069bfa6f4920
+def test_request_interpreter_execute():
+    interpreter = RequestInterpreter.__new__(RequestInterpreter)
+
+    with pytest.raises(NotImplementedError):
+        asyncio.run(interpreter.execute(user_message="hello"))
