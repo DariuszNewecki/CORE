@@ -254,7 +254,6 @@ async def test_get_api_session():
             await agen.__anext__()
 
 
-
 from api.dependencies import get_finding_resolver
 
 
@@ -269,3 +268,15 @@ def test_get_finding_resolver():
 
         mock_service_cls.assert_called_once_with()
         assert resolver is mock_service.resolve_indeterminate_entry
+
+
+
+
+# ID: b0bd1e8d-9006-4e28-a53a-41f9c6d2c90e
+def test_caller_principal():
+    principal = CallerPrincipal(uid=1001, account="alice", role="operator")
+
+    assert principal.uid == 1001
+    assert principal.account == "alice"
+    assert principal.role == "operator"
+    assert principal.binding_error is None
