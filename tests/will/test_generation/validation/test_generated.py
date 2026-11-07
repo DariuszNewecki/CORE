@@ -46,3 +46,17 @@ def test_GeneratedTestValidator_validate():
 
     assert result.ok is True
     assert result.error == ""
+
+
+from will.test_generation.validation import ValidationResult
+
+
+# ID: d1808eac-e42f-4792-a043-4d623943b7ba
+def test_validation_result_happy_path():
+    result = ValidationResult(ok=True)
+    assert result.ok is True
+    assert result.error == ""
+
+    failed = ValidationResult(ok=False, error="boom")
+    assert failed.ok is False
+    assert failed.error == "boom"
