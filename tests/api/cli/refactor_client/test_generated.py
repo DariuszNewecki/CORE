@@ -172,9 +172,6 @@ def test_refactor_client_poll_refactor_run():
     )
 
 
-
-
-
 # ID: 0fb0349d-6316-4955-b68d-17b37da41f2c
 async def test_get_refactor_run():
     facade = MagicMock()
@@ -186,3 +183,26 @@ async def test_get_refactor_run():
 
     facade._request.assert_awaited_once_with("GET", "/v1/refactor/runs/run-123")
     assert result == {"id": "run-123", "status": "done"}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: c12af5a2-dd25-470a-af70-2644265c30c0
+async def test_refactor_client_refactor_candidates():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"candidates": []})
+
+    client = RefactorClient(facade)
+
+    result = await client.refactor_candidates(min_score=0.5, limit=10)
+
+    assert result == {"candidates": []}
+    facade._request.assert_awaited_once_with(
+        "GET",
+        "/v1/refactor/candidates",
+        params={"limit": 10, "min_score": 0.5},
+        timeout=300.0,
+    )
