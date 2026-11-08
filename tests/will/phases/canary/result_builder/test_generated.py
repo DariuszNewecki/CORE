@@ -139,9 +139,6 @@ def test_CanaryResultBuilder():
     assert result.data["advisory"] is False
 
 
-
-
-
 # ID: a78b6501-1602-4b82-ad8f-d171a5b11a2a
 def test_CanaryResultBuilderbuild_error_result():
     error = ValueError("boom")
@@ -159,4 +156,28 @@ def test_CanaryResultBuilderbuild_error_result():
     assert data["existing_tests_pass"] is False
     assert data["error"] == "boom"
     assert data["advisory"] is True
+    mock_logger.error.assert_called_once()
+
+
+
+
+
+# ID: af5b2cb3-50ba-4bb7-8131-ac1d2f7aa67c
+def test_CanaryResultBuilder_build_error_result():
+    builder = CanaryResultBuilder()
+    error = ValueError("something broke")
+    duration = 1.23
+
+    with patch("will.phases.canary.result_builder.logger") as mock_logger:
+        result = builder.build_error_result(error, duration)
+
+    assert result.name == "canary_validation"
+    assert result.ok is True
+    assert result.duration_sec == duration
+    assert result.data["syntax_valid"] is True
+    assert result.data["logic_preserved"] is True
+    assert result.data["canary_passes"] is False
+    assert result.data["existing_tests_pass"] is False
+    assert result.data["error"] == "something broke"
+    assert result.data["advisory"] is True
     mock_logger.error.assert_called_once()
