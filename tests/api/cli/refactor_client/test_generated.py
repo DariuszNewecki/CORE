@@ -207,7 +207,6 @@ async def test_refactor_client_refactor_candidates():
     )
 
 
-
 import pytest
 
 
@@ -226,3 +225,21 @@ async def test_refactor_score() -> None:
         "GET", "/v1/refactor/score", params={"file": "src/foo/bar.py"}
     )
     assert result == {"score": 42}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: b9325c1f-72a5-41f6-8795-07a8ce0c0925
+async def test_refactor_client_refactor_threshold() -> None:
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"threshold": 42})
+
+    client = RefactorClient(facade)
+
+    result = await client.refactor_threshold()
+
+    assert result == {"threshold": 42}
+    facade._request.assert_awaited_once_with("GET", "/v1/refactor/threshold")
