@@ -185,7 +185,6 @@ async def test_get_refactor_run():
     assert result == {"id": "run-123", "status": "done"}
 
 
-
 import pytest
 
 
@@ -206,3 +205,24 @@ async def test_refactor_client_refactor_candidates():
         params={"limit": 10, "min_score": 0.5},
         timeout=300.0,
     )
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 26bd039d-5f67-4360-8ac9-f10702fdc8ed
+async def test_refactor_score() -> None:
+    from api.cli.refactor_client import RefactorClient
+
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"score": 42})
+
+    client = RefactorClient(facade)
+    result = await client.refactor_score("src/foo/bar.py")
+
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/refactor/score", params={"file": "src/foo/bar.py"}
+    )
+    assert result == {"score": 42}
