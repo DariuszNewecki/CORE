@@ -889,8 +889,6 @@ def test_CognitiveRoleProjectionResponse():
     }
 
 
-
-
 # ID: fc576b78-936b-4142-b824-6188017959b8
 def test_async_dispatch_response_happy_path():
     response = AsyncDispatchResponse(
@@ -909,3 +907,15 @@ def test_async_dispatch_response_happy_path():
         "status": "accepted",
         "href": "/api/v1/runs/run-123",
     }
+
+
+
+
+# ID: 0f4cc3c3-6ff6-4503-89c2-65f793b32a14
+def test_LintToolResult_core_behavior():
+    result = LintToolResult(returncode=0, stdout="ok", stderr="")
+
+    assert result.returncode == 0
+    assert result.stdout == "ok"
+    assert result.stderr == ""
+    assert result.model_dump() == {"returncode": 0, "stdout": "ok", "stderr": ""}

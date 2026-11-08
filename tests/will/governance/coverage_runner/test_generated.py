@@ -402,7 +402,6 @@ async def test_get_coverage_report():
     assert out["stderr_tail"] == ["line1", "line2"]
 
 
-
 import pytest
 
 from will.governance.coverage_runner import get_coverage_check
@@ -445,3 +444,23 @@ async def test_get_coverage_check():
     ]
     assert result["executed_rule_ids"] == ["coverage.test_coverage_required"]
     assert result["stats"] == {"files_scanned": 1}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 254ab695-7bb6-4a72-94ef-c8c59c07b43e
+async def test_run_tests_interactive_atomic():
+    context = MagicMock()
+    context.git_service.repo_path = MagicMock()
+    context.cognitive_service = MagicMock()
+
+    with patch(
+        "will.governance.coverage_runner.remediate_batch_by_symbol",
+        new=AsyncMock(return_value={"ok": True, "processed": 3}),
+    ) as mock_batch:
+        result = await run_tests_interactive(context)
+
+    mock_batch.assert_awaited_once_with(context, write=True)
+    assert result == {"ok": True, "processed": 3}

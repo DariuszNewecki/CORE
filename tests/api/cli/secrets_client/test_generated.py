@@ -154,3 +154,50 @@ async def test_SecretsClient_delete_secret():
 
     assert result == {"deleted": True, "key": "my-key"}
     facade._request.assert_awaited_once_with("DELETE", "/v1/secrets/my-key")
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: e210beb5-1c97-4da9-8c48-67fe29b58ce0
+async def test_get_secret():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"key": "mykey", "value": "secret"})
+    client = SecretsClient(facade)
+
+    result = await client.get_secret("mykey", show=True)
+
+    facade._request.assert_awaited_once_with(
+        "GET", "/v1/secrets/mykey", params={"show": True}
+    )
+    assert result == {"key": "mykey", "value": "secret"}
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 82f5c033-d24e-4452-bda5-e92bceca3154
+async def test_set_secret() -> None:
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"key": "my-key", "ok": True})
+
+    client = SecretsClient(facade)
+
+    result = await client.set_secret(
+        "my-key", "my-value", description="desc", force=True
+    )
+
+    facade._request.assert_awaited_once_with(
+        "POST",
+        "/v1/secrets",
+        json={
+            "key": "my-key",
+            "value": "my-value",
+            "description": "desc",
+            "force": True,
+        },
+    )
+    assert result == {"key": "my-key", "ok": True}

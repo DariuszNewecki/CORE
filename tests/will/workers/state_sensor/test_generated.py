@@ -224,8 +224,6 @@ def test_escalation_due():
     assert escalation_due("not-a-date", window_minutes, now) is True
 
 
-
-
 # ID: c7581065-3e22-4521-a674-66ba781f1cc6
 def test_unattributed_law_changes():
     from will.workers.state_sensor import (
@@ -252,3 +250,21 @@ def test_unattributed_law_changes():
     result = unattributed_law_changes(changes)
 
     assert result == [matched, unreadable]
+
+
+
+
+
+# ID: d5627d54-7bef-49ff-bd0e-f4d7d988a837
+def test_law_drift_subjects__repair():
+    """Happy path: a DRIFT relationship with explicit paths maps each path to a prefixed subject."""
+    law = MagicMock()
+    law.relationship = "DRIFT"
+    law.drift_paths = ["src/a.py", "src/b.py"]
+
+    result = law_drift_subjects(law)
+
+    assert result == {
+        "governance::law_drift::src/a.py": "src/a.py",
+        "governance::law_drift::src/b.py": "src/b.py",
+    }

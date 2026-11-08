@@ -50,9 +50,6 @@ def test_suggest_and_apply_tags():
         processor.run_async.assert_awaited_once()
 
 
-
-
-
 # ID: a3fd2683-c305-4cab-973c-4727325d865b
 def test_CapabilityTaggerAgent():
     cognitive_service = MagicMock()
@@ -87,3 +84,61 @@ def test_CapabilityTaggerAgent():
     assert agent.tracer is fake_tracer
     assert agent.entry_point_patterns == []
     assert agent.tagger_client is None
+
+
+
+
+
+# ID: 0e7cf478-fcfd-4869-8e12-39cb1b5036a9
+async def test_CapabilityTaggerAgent_suggest_and_apply_tags():
+    cognitive_service = MagicMock()
+    knowledge_service = MagicMock()
+
+    with (
+        patch("will.agents.tagger_agent.PromptModel") as mock_prompt_model_cls,
+        patch("will.agents.tagger_agent.DecisionTracer"),
+        patch(
+            "will.agents.tagger_agent.ThrottledParallelProcessor"
+        ) as mock_processor_cls,
+    ):
+        mock_prompt_model = MagicMock()
+        mock_prompt_model.manifest.role = "tagger"
+        mock_prompt_model_cls.load.return_value = mock_prompt_model
+
+        agent = CapabilityTaggerAgent(
+            cognitive_service=cognitive_service,
+            knowledge_service=knowledge_service,
+        )
+
+        agent.tagger_client = MagicMock()
+
+        agent._get_existing_capabilities = AsyncMock(return_value={"cap1": {}})
+        agent._find_orphaned_symbols = MagicMock(
+            return_value=[{"key": "sym1", "file_path": "a.py"}]
+        )
+        agent._get_suggestion_for_symbol = AsyncMock(
+            return_value={"key": "sym1", "tags": ["x"]}
+        )
+
+        knowledge_service.get_graph = AsyncMock(
+            return_value={"symbols": {"sym1": {"key": "sym1", "file_path": "a.py"}}}
+        )
+
+        # Make the processor invoke the worker_fn over the items so the
+        # agent's _get_suggestion_for_symbol path is actually exercised.
+        # ID: 699ea5fa-1484-4aa9-9b0b-1aad5757bb7e
+        async def fake_run_async(items, worker_fn):
+            results = []
+            for item in items:
+                results.append(await worker_fn(item))
+            return results
+
+        mock_processor = MagicMock()
+        mock_processor.run_async = AsyncMock(side_effect=fake_run_async)
+        mock_processor_cls.return_value = mock_processor
+
+        result = await agent.suggest_and_apply_tags()
+
+        assert result == {"sym1": {"key": "sym1", "tags": ["x"]}}
+        knowledge_service.get_graph.assert_awaited_once()
+        agent._get_suggestion_for_symbol.assert_awaited_once()
