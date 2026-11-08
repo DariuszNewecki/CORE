@@ -392,9 +392,6 @@ async def test_ProposalService_update() -> None:
     assert result is proposal
 
 
-
-
-
 # ID: 9bc4d6f3-3a93-46a4-8eae-089abc82645d
 async def test_ProposalService_get() -> None:
     session = MagicMock()
@@ -413,3 +410,25 @@ async def test_ProposalService_get() -> None:
 
     mock_repo.get.assert_awaited_once_with("prop-123")
     assert result is expected
+
+
+import asyncio
+
+
+# ID: 553de8f7-93e8-4847-af85-03090cb076a2
+def test_create():
+    session = MagicMock()
+    proposal = MagicMock(name="proposal")
+
+    with (
+        patch("will.autonomy.proposal_service.ProposalRepository") as repo_cls,
+        patch("will.autonomy.proposal_service.ProposalStateManager"),
+    ):
+        repo_instance = repo_cls.return_value
+        repo_instance.create = AsyncMock(return_value="proposal-id-123")
+
+        service = ProposalService(session)
+        result = asyncio.run(service.create(proposal))
+
+    assert result == "proposal-id-123"
+    repo_instance.create.assert_awaited_once_with(proposal)
