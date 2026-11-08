@@ -123,9 +123,6 @@ async def test_RefactorClient_refactor_threshold():
     facade._request.assert_awaited_once_with("GET", "/v1/refactor/threshold")
 
 
-
-
-
 # ID: d1e226b8-908b-487d-a579-f6a2bc25339e
 def test_RefactorClient():
     facade = MagicMock()
@@ -153,4 +150,25 @@ def test_RefactorClient():
     assert asyncio.run(client.poll_refactor_run("run-1")) == {"status": "done"}
     facade._poll_at_path.assert_awaited_with(
         "/v1/refactor/runs/run-1", timeout_seconds=1800.0
+    )
+
+
+
+
+# ID: 8140f5ee-3892-43c7-beaa-6e8f66066b84
+def test_refactor_client_poll_refactor_run():
+    facade = MagicMock()
+    facade._poll_at_path = AsyncMock(
+        return_value={"status": "completed", "output": "ok"}
+    )
+
+    client = RefactorClient(facade)
+
+    result = asyncio.new_event_loop().run_until_complete(
+        client.poll_refactor_run("run-123", timeout_seconds=42.0)
+    )
+
+    assert result == {"status": "completed", "output": "ok"}
+    facade._poll_at_path.assert_awaited_once_with(
+        "/v1/refactor/runs/run-123", timeout_seconds=42.0
     )
