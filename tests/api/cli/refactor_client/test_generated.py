@@ -153,8 +153,6 @@ def test_RefactorClient():
     )
 
 
-
-
 # ID: 8140f5ee-3892-43c7-beaa-6e8f66066b84
 def test_refactor_client_poll_refactor_run():
     facade = MagicMock()
@@ -172,3 +170,19 @@ def test_refactor_client_poll_refactor_run():
     facade._poll_at_path.assert_awaited_once_with(
         "/v1/refactor/runs/run-123", timeout_seconds=42.0
     )
+
+
+
+
+
+# ID: 0fb0349d-6316-4955-b68d-17b37da41f2c
+async def test_get_refactor_run():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"id": "run-123", "status": "done"})
+
+    client = RefactorClient(facade)
+
+    result = await client.get_refactor_run("run-123")
+
+    facade._request.assert_awaited_once_with("GET", "/v1/refactor/runs/run-123")
+    assert result == {"id": "run-123", "status": "done"}
