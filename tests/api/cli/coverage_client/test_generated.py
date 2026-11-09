@@ -260,3 +260,20 @@ async def test_CoverageClient_coverage_check():
 
     assert result == {"status": "ok", "compliant": True}
     facade._request.assert_awaited_once_with("GET", "/v1/coverage/check", timeout=300.0)
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 6217dd3e-c84a-436c-b337-5ee524e824ad
+async def test_coverage_methods():
+    facade = MagicMock()
+    facade._request = AsyncMock(return_value={"methods": ["a", "b"]})
+    client = CoverageClient(facade)
+
+    result = await client.coverage_methods()
+
+    assert result == {"methods": ["a", "b"]}
+    facade._request.assert_awaited_once_with("GET", "/v1/coverage/methods")
