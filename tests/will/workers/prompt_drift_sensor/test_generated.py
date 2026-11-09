@@ -56,7 +56,6 @@ async def test_PromptDriftSensor_run() -> None:
     assert report_kwargs["payload"]["drifted"] == ["prompt_a"]
 
 
-
 import pytest
 
 
@@ -81,3 +80,33 @@ async def test_PromptDriftSensor():
     assert kwargs["subject"] == "prompt_drift_sensor.baseline"
     assert kwargs["payload"]["checked"] == 0
     assert kwargs["payload"]["drifted"] == []
+
+
+import asyncio
+
+
+# ID: c5f6e65f-b579-41e0-ad4d-1f31d8b6fccf
+def test_prompt_drift_sensor_run():
+    from will.workers.prompt_drift_sensor import PromptDriftSensor
+
+    sensor = PromptDriftSensor()
+    sensor.post_heartbeat = AsyncMock()
+    sensor.post_finding = AsyncMock()
+    sensor.post_report = AsyncMock()
+
+    governed = [{"name": "alpha", "anchors": ["ADR-1"]}]
+    sensor._load_governed_prompts = MagicMock(return_value=governed)
+    sensor._get_current_commit = MagicMock(return_value="abc123")
+    sensor._compute_hashes = MagicMock(return_value=("hash_new", {"p.md": "fh_new"}))
+    sensor._fetch_baseline = AsyncMock(
+        return_value={"hashes": {"alpha": "hash_old"}, "file_hashes": {}}
+    )
+
+    asyncio.run(sensor.run())
+
+    sensor.post_heartbeat.assert_awaited_once()
+    sensor.post_finding.assert_awaited_once()
+    _, kwargs = sensor.post_finding.call_args
+    assert kwargs["subject"] == "prompt::drift::alpha"
+    assert kwargs["payload"]["current_hash"] == "hash_new"
+    sensor.post_report.assert_awaited_once()
