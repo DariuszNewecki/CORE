@@ -66,7 +66,6 @@ async def test_DeadShimSensor_run() -> None:
     assert report_payload["resolved"] == 1
 
 
-
 import pytest
 
 
@@ -112,3 +111,59 @@ async def test_DeadShimSensor():
     blackboard_svc.fetch_open_findings.assert_awaited_once()
     worker.post_finding.assert_awaited_once()
     worker.post_report.assert_awaited_once()
+
+
+import pytest
+
+
+# ID: c3846ed2-eb92-4930-aebc-ad6b16443e80
+def test_dead_shim_sensor_run():
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from will.workers.dead_shim_sensor import DeadShimSensor
+
+    worker = DeadShimSensor()
+
+    worker.post_heartbeat = AsyncMock()
+    worker.post_finding = AsyncMock()
+    worker.post_report = AsyncMock()
+
+    symbol_svc = MagicMock()
+    symbol_svc.fetch_dead_shim_candidates = AsyncMock(
+        return_value=[
+            {
+                "symbol_path": "src/foo/bar.py::baz",
+                "module": "foo.bar",
+                "qualname": "baz",
+                "kind": "function",
+            },
+        ]
+    )
+
+    blackboard_svc = MagicMock()
+    blackboard_svc.fetch_open_findings = AsyncMock(return_value=[])
+    blackboard_svc.resolve_entries = AsyncMock()
+
+    service_registry = MagicMock()
+    service_registry.get_symbol_service = AsyncMock(return_value=symbol_svc)
+    service_registry.get_blackboard_service = AsyncMock(return_value=blackboard_svc)
+
+    with (
+        patch("body.services.service_registry.service_registry", service_registry),
+        patch(
+            "will.workers.dead_shim_sensor._published_contract_names",
+            return_value=set(),
+        ),
+    ):
+        worker.run.__wrapped__ if False else None
+        import asyncio
+
+        asyncio.run(worker.run())
+
+    worker.post_heartbeat.assert_awaited_once()
+    symbol_svc.fetch_dead_shim_candidates.assert_awaited_once()
+    blackboard_svc.fetch_open_findings.assert_awaited_once()
+    worker.post_finding.assert_awaited_once()
+    worker.post_report.assert_awaited_once()
+    blackboard_svc.resolve_entries.assert_not_awaited()
+    assert worker.post_finding.await_count == 1

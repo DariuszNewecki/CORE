@@ -432,3 +432,36 @@ def test_create():
 
     assert result == "proposal-id-123"
     repo_instance.create.assert_awaited_once_with(proposal)
+
+
+
+
+
+# ID: 045492a8-483d-49b9-918d-3c9fa264018c
+async def test_revive_findings_for_rejected_proposal_patch_unique() -> None:
+    mock_bb_service = AsyncMock()
+    mock_bb_service.revive_findings_for_failed_proposal = AsyncMock(
+        return_value={"revived": ["f1", "f2"]}
+    )
+
+    with (
+        patch(
+            "body.services.service_registry.service_registry.get_blackboard_service",
+            new=AsyncMock(return_value=mock_bb_service),
+        ),
+        patch(
+            "will.autonomy.proposal_service.proposal_lineage",
+            new=MagicMock(return_value="standard"),
+        ),
+    ):
+        result = await revive_findings_for_rejected_proposal(
+            proposal_id="prop-456",
+            reason="not aligned",
+            constitutional_constraints=None,
+        )
+
+    assert result == {"revived": ["f1", "f2"]}
+    mock_bb_service.revive_findings_for_failed_proposal.assert_awaited_once_with(
+        proposal_id="prop-456",
+        failure_reason="rejected: not aligned",
+    )
