@@ -70,9 +70,6 @@ def test_CommitAuthorshipAuditWorker_run():
     assert payload["suppressed"] == 0
 
 
-
-
-
 # ID: 6b8a9527-982f-49ae-92c1-312a8453eb3d
 async def test_CommitAuthorshipAuditWorker():
     core_context = MagicMock()
@@ -112,3 +109,59 @@ async def test_CommitAuthorshipAuditWorker():
     worker.post_report.assert_awaited_once()
     worker.post_observation.assert_not_awaited()
     consequence_svc.get_recent_for_audit.assert_awaited_once_with(lookback_days=7)
+
+
+
+
+
+# ID: 6c2bd6b6-f8f1-4d3e-aeef-a4722a542a89
+async def test_commit_authorship_audit_worker_run():
+    core_context = MagicMock()
+
+    worker = CommitAuthorshipAuditWorker(core_context)
+
+    worker.post_heartbeat = AsyncMock()
+    worker.post_report = AsyncMock()
+    worker.post_observation = AsyncMock()
+
+    blackboard_service = AsyncMock()
+    blackboard_service.fetch_active_finding_subjects_by_prefix = AsyncMock(
+        return_value=set()
+    )
+
+    consequence_svc = AsyncMock()
+    consequence_svc.get_recent_for_audit = AsyncMock(
+        return_value=[
+            {
+                "proposal_id": "prop-1",
+                "pre_execution_sha": "abc123",
+                "post_execution_sha": "def456",
+                "declared_production": ["src/foo.py"],
+            }
+        ]
+    )
+
+    git_service = AsyncMock()
+    git_service.diff_file_names_for_commit = AsyncMock(return_value=["src/foo.py"])
+
+    core_context.registry.get_consequence_log_service = AsyncMock(
+        return_value=consequence_svc
+    )
+    core_context.git_service = git_service
+
+    worker._audit_finalization_integrity = AsyncMock(return_value=(0, 0))
+    worker._audit_consequence_evidence_degraded = AsyncMock(return_value=(0, 0))
+
+    with patch(
+        "body.services.service_registry.service_registry.get_blackboard_service",
+        AsyncMock(return_value=blackboard_service),
+    ):
+        await worker.run()
+
+    worker.post_heartbeat.assert_awaited_once()
+    git_service.diff_file_names_for_commit.assert_awaited_once_with("def456")
+    worker.post_observation.assert_not_awaited()
+    worker.post_report.assert_awaited_once()
+    report_kwargs = worker.post_report.await_args.kwargs
+    assert report_kwargs["payload"]["checked"] == 1
+    assert report_kwargs["payload"]["violations_detected"] == 0
