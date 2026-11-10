@@ -295,3 +295,20 @@ async def test_coverage_history_returns_facade_response():
         "GET", "/v1/coverage/history", params={"limit": 30}
     )
     assert result == {"items": [{"id": 1}], "total": 1}
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: b51b7fb1-0ce0-4a6d-8c7f-f484b7eeb42c
+async def test_coverage_targets():
+    facade = MagicMock()
+    expected = {"targets": [{"name": "pytest", "value": 100}]}
+    facade._request = AsyncMock(return_value=expected)
+
+    client = CoverageClient(facade)
+    result = await client.coverage_targets()
+
+    facade._request.assert_awaited_once_with("GET", "/v1/coverage/targets")
+    assert result == expected
