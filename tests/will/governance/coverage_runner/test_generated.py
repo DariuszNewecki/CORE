@@ -464,3 +464,31 @@ async def test_run_tests_interactive_atomic():
 
     mock_batch.assert_awaited_once_with(context, write=True)
     assert result == {"ok": True, "processed": 3}
+
+
+
+from will.governance.coverage_runner import get_coverage_history
+
+
+# ID: 9023b0f7-7c83-484b-8883-5512524777cc
+def test_get_coverage_history_happy_path_coverage_runner():
+    context = MagicMock()
+    context.git_service.repo_path = "/fake/repo"
+
+    fake_history = [{"pct": 10}, {"pct": 20}, {"pct": 30}]
+    fake_history_file = MagicMock()
+    fake_history_file.exists.return_value = True
+    fake_history_file.read_text.return_value = '[{"pct": 10}, {"pct": 20}, {"pct": 30}]'
+
+    fake_reports_dir = MagicMock()
+    fake_reports_dir.__truediv__ = MagicMock(return_value=fake_history_file)
+
+    fake_resolver = MagicMock()
+    fake_resolver.reports_dir = fake_reports_dir
+
+    with patch("shared.path_resolver.PathResolver", return_value=fake_resolver):
+        result = get_coverage_history(context, limit=30)
+
+    assert result == {"count": 3, "history": fake_history}
+    fake_history_file.exists.assert_called_once()
+    fake_history_file.read_text.assert_called_once_with(encoding="utf-8")
