@@ -286,3 +286,22 @@ async def test_revive_deferred_findings_for_noop():
     )
     assert call_kwargs["proposal_id"] == "proposal-123"
     assert call_kwargs["remediation_cap_n"] == 3
+
+
+
+
+# ID: 96481049-b2a0-4c5f-abf9-22a7b425ff68
+def test_CommitOutcome_enum():
+    assert CommitOutcome.COMMITTED.value == "committed"
+    assert CommitOutcome.NOTHING_TO_COMMIT.value == "nothing_to_commit"
+    assert CommitOutcome.REFUSED_CONTAMINATION.value == "refused_contamination"
+    assert CommitOutcome.FAILED.value == "failed"
+
+    assert CommitOutcome("committed") is CommitOutcome.COMMITTED
+    assert CommitOutcome("nothing_to_commit") is CommitOutcome.NOTHING_TO_COMMIT
+    assert CommitOutcome("refused_contamination") is CommitOutcome.REFUSED_CONTAMINATION
+    assert CommitOutcome("failed") is CommitOutcome.FAILED
+
+    assert isinstance(CommitOutcome.COMMITTED, str)
+    assert CommitOutcome.COMMITTED == "committed"
+    assert len(list(CommitOutcome)) == 4
