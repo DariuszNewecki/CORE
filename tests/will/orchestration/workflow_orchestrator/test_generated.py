@@ -134,3 +134,18 @@ def test_WorkflowDefinition():
     assert wd.dangerous is False
     assert isinstance(wd.timeout_minutes, int)
     assert wd.timeout_minutes > 0
+
+
+
+
+# ID: 62fef642-f1a6-4249-8bb5-af9df31d7a6b
+def test_WorkflowContext_happy_path():
+    ctx = WorkflowContext(goal="ship feature", workflow_type="standard", write=True)
+
+    assert ctx.goal == "ship feature"
+    assert ctx.workflow_type == "standard"
+    assert ctx.write is True
+    assert ctx.results == {}
+
+    ctx.results["phase_one"] = {"ok": True}
+    assert ctx.results == {"phase_one": {"ok": True}}
