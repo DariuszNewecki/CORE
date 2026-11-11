@@ -1614,6 +1614,82 @@ flagged (`test_coverage_paths.py:327-329`, `test_runner_sensor.py:241`, #1210), 
 that argued for the table came from a dev checkout 360 commits behind main (#1246), so the
 table would fix nothing. Items 1 and 2 are done (#1229; #1230, #1231); item 4 stays planned.
 
+## ADR-173 — Record contract: CORE judges a resolved record against catalog rules
+
+2026-11-11 · proposed: DEC-2026-154 (decision register, 2026-11-08, Product owner; scope trace 2026-11-11: #1328, limited to its five done-points); prototype findings on #1328  
+**Why.** The only engine contract checks files (`BaseEngine.verify(file_path, params)`); nothing
+evaluates rules against an in-memory record and returns a verdict with its evidence class and the
+rules behind it (#1328). A prototype outside CORE ran 10 publication rules over plain JSON records
+in 34 scenarios and matched the existing gate in all 34, but showed five defects in the proposed
+shape (#1328, prototype findings 1–5).  
+**Decision.**
+- **D1 — The contract is on `BaseEngine`.** An engine that judges records sets
+  `supports_records = True` and implements `async evaluate_record(record, rule, params) -> RulePart`.
+  The evidence class stays the engine's declaration (ADR-113 D2); there is no separate protocol.
+  An engine without `supports_records` gives the engine-missing finding, as an unknown engine does.
+- **D2 — Aggregation.** The verdict fails when any part fails; otherwise it is undecided when any
+  part is undecided; otherwise it passes. A fail takes the strongest evidence class among the
+  failing parts (one proven failure proves the fail); a pass or an undecided takes the weakest
+  class among all parts. A weaker method is never reported as a stronger one (ADR-113 D3).
+- **D3 — Attestation never passes in 3.x.** CORE has no trusted source of approvals yet
+  (DEC-2026-136), so an attestation rule returns undecided, ATTESTED. A field in the record is not
+  an attestation: whoever supplies the record could attest for themselves.
+- **D4 — The verdict names what it judged.** `record_sha256` is the SHA-256 of the record,
+  scope included, in the RFC 8785 (JCS) canonical form. CORE serializes JCS itself (sorted keys,
+  no whitespace, ECMAScript number form), so no new dependency. The evidence class says how CORE
+  reached its verdict on these facts; it does not vouch that the record itself is true.
+- **D5 — One part per rule.** The verdict carries `parts`, one per catalog rule:
+  `rule_id`, `engine_id`, `evidence_class`, `result` (pass / fail / undecided) and its findings.
+  A finding always names its rule; there is no verdict-level `engine_id`.
+- **D6 — `evaluate(record, catalog)` is async**, like `evaluate_record` and `verify`.
+- **D7 — Scope is a named key in the record.** `scope` is null (judge everything) or a list of
+  item ids (DEC-2026-137). Out-of-scope items are still read, so references into them resolve.
+- **D8 — An empty rule set gives undecided, ATTESTED.** Nothing passes by having no rules.
+- **D9 — Rules come from a catalog under the ADR-174 contract.** Each requirement names its
+  engine (ADR-174 D8) and carries its parameters; the catalog is checked at load like any other.
+- **D10 — First engines.** `attestation_gate`, `regex_gate` (over a string field) and a schema
+  engine (JSON Schema over a field), plus the publication engine of D13. `grc_judge` comes later.
+- **D11 — Built-in engines only.** No plugin loading for record engines; #1327 stays open.
+- **D12 — CORE judges a resolved record.** The record holds one version per item, on one date,
+  with version pins applied. Resolving it and checking each item against its type schema stay
+  with the caller. The caller's earlier findings (`load_findings`, `pre_findings`: lists of
+  `{item, rule, message, blocking}`) are carried into the verdict. A carried finding counts
+  under the rule it names, as ATTESTED, because CORE did not establish it (ADR-113 D2).
+- **D13 — Per-rule result.** Any blocking finding gives fail; only non-blocking findings give
+  undecided; none gives pass. When the record names a scope, only findings on items in that
+  scope count.
+- **D14 — The publication engine is a separate built-in module.** The 10 publication rules
+  (`reference`, `role`, `composition`, `trace`, `cross_reference`, `flow`, `occurrence`, `raci`,
+  `dressing`, `authority`) live in one engine in its own module; CORE's runtime does not depend on
+  it (DEC-2026-138). Item kinds (`atom`, `model`, `molecule`, `document`) are catalog parameters,
+  not code.
+- **D15 — Its catalog lives with the module**, not under `grc-catalogs/`. Its `provenance.yaml`
+  says: authored by the project, MIT. It states no law, so it is not a GRC catalog in the ADR-116
+  sense, and it has no entry in `grc-catalogs/inventory.yaml`.
+- **D16 — "A rule fires"** means it runs and returns its own result, pass or fail. A rule
+  skipped because an earlier check failed has not fired.
+- **D17 — A later question engine fits without a change of contract.** Its verdicts map
+  conform → pass, gap → fail, auditor judgement required → undecided. A rule's parameters carry
+  the required level and the record carries the answered level on the 0–5 ladder
+  (DEC-2026-149); the part's findings carry both levels. Levels are compared, never summed, as
+  D2 already does. Nothing is built for it now.
+
+Record example (format `library-snapshot/1`):
+
+```json
+{"format": "library-snapshot/1",
+ "items": {"D-1": {"id": "D-1", "type": "document", "version": "2", "status": "approved",
+                   "owner": "QA", "value": {}, "sha256": "…", "effective": "2026-11-01",
+                   "withdrawn": null,
+                   "refs": [{"rel": "contains", "to": "M-4", "occurrence": 1, "pin": "3"}]}},
+ "known": ["D-1", "M-4"],
+ "scope": ["D-1"],
+ "load_findings": [],
+ "pre_findings": [{"item": "M-4", "rule": "role", "message": "…", "blocking": false}]}
+```
+
+Enforced by: not enforced (nothing built yet; the contract lands with #1328).
+
 ## ADR-174 — Catalog contract: format schemas, checked at load; warnings in 3.x, refusals in 4.0
 
 2026-11-11 · accepted: DEC-2026-155 (decision register, 2026-11-08, Product owner); plan on #1338  
