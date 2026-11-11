@@ -8,6 +8,24 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [3.2.0] — 2026-11-12
+
+Minor release: the catalog contract for GRC requirement catalogs. Consumer: the #1328 proof thread, which runs on
+this contract (DEC-2026-154). No database migration.
+
+### Added
+
+- **Catalog contract in warn mode (#1338, ADR-174):** catalog trees are checked against three new format schemas
+  (`catalog.schema.json`, `catalog_provenance.schema.json`, `catalog_inventory.schema.json`), shipped in
+  `.intent/META/` and in the package, so a fresh install has them. A missing `format_version` or
+  `provenance.yaml`, a `catalog.yaml` under `internal/`, or an unknown engine id produces a warning in 3.x and
+  becomes a refusal in 4.0. The four bundled catalogs comply.
+
+### Fixed
+
+- **Test generation queued duplicate requests (#1435, #1436):** the per-symbol duplicate check saw only the newest
+  500 queued requests; it now sees every one.
+
 ## [3.1.0] — 2026-11-03
 
 Minor release for proof run 10: installation changes since 3.0.0, and a new command. One database migration
@@ -1438,7 +1456,8 @@ Initial public release establishing governed self-healing as a first-class capab
 
 ---
 
-[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/DariuszNewecki/CORE/compare/v3.2.0...HEAD
+[3.2.0]: https://github.com/DariuszNewecki/CORE/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/DariuszNewecki/CORE/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/DariuszNewecki/CORE/compare/v2.16.1...v3.0.0
 [2.16.1]: https://github.com/DariuszNewecki/CORE/compare/v2.16.0...v2.16.1
