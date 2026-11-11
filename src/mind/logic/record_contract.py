@@ -304,6 +304,47 @@ def record_sha256(record: Mapping[str, Any]) -> str:
     return hashlib.sha256(canonical_json(record).encode("utf-8")).hexdigest()
 
 
+# The JSON form of a verdict. Bump the version when a field changes meaning or
+# goes away; adding a field does not bump it.
+VERDICT_FORMAT = "record-verdict/1"
+
+
+# ID: 02ef6fc7-b8b2-483d-a5c5-03c5969e65aa
+def verdict_to_dict(verdict: RecordVerdict) -> dict[str, Any]:
+    """The verdict as plain JSON data, format ``record-verdict/1``:
+    ``format``, ``outcome``, ``evidence_class``, ``record_sha256``,
+    ``rule_ids`` and ``parts`` (``rule_id``, ``engine_id``,
+    ``evidence_class``, ``result``, ``findings``: ``rule``, ``item``,
+    ``message``, ``blocking``, ``carried``, ``details``)."""
+    return {
+        "format": VERDICT_FORMAT,
+        "outcome": verdict.outcome,
+        "evidence_class": verdict.evidence_class.value,
+        "record_sha256": verdict.record_sha256,
+        "rule_ids": list(verdict.rule_ids),
+        "parts": [
+            {
+                "rule_id": part.rule_id,
+                "engine_id": part.engine_id,
+                "evidence_class": part.evidence_class.value,
+                "result": part.result,
+                "findings": [
+                    {
+                        "rule": f.rule,
+                        "item": f.item,
+                        "message": f.message,
+                        "blocking": f.blocking,
+                        "carried": f.carried,
+                        "details": dict(f.details),
+                    }
+                    for f in part.findings
+                ],
+            }
+            for part in verdict.parts
+        ],
+    }
+
+
 # ---------------------------------------------------------------------------
 # Evaluation
 # ---------------------------------------------------------------------------
@@ -330,7 +371,7 @@ def _carried(record: Mapping[str, Any]) -> list[RecordFinding]:
 def _default_engine_lookup(engine_id: str) -> Any:
     from mind.logic.engines.registry import EngineRegistry
 
-    return EngineRegistry.get(engine_id)
+    return EngineRegistry.record_engine(engine_id)
 
 
 def _missing_part(rule: RecordRule, message: str) -> RulePart:
@@ -410,6 +451,14 @@ def _settle(
     )
 
 
+# ID: 9b3e5d71-2a4c-4f86-b1d0-7e6c3a9f5b28
+def record_catalogs() -> dict[str, Any]:
+    """Every record catalog the engines ship, by catalog id (ADR-173 D15)."""
+    from mind.logic.engines.registry import EngineRegistry
+
+    return EngineRegistry.record_catalogs()
+
+
 # ID: 0a6f4e8e-3879-481e-bb90-784b0629a54a
 async def evaluate(
     record: Mapping[str, Any],
@@ -465,6 +514,7 @@ async def evaluate(
 # Re-exported for engines that build parts.
 __all__ = [
     "CARRIED_ENGINE_ID",
+    "VERDICT_FORMAT",
     "RecordFinding",
     "RecordRule",
     "RecordVerdict",
@@ -475,7 +525,9 @@ __all__ = [
     "evaluate",
     "in_scope",
     "part_result",
+    "record_catalogs",
     "record_items",
     "record_scope",
     "record_sha256",
+    "verdict_to_dict",
 ]

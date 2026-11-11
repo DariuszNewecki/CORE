@@ -192,6 +192,36 @@ class EngineRegistry:
         return frozenset(cls._engine_classes) | frozenset(PASSIVE_ALIASES)
 
     @classmethod
+    # ID: 4508f4fb-3139-417d-8a2a-e68e72d57c89
+    def record_catalogs(cls) -> dict[str, Any]:
+        """Every record catalog a discovered engine ships, by catalog id
+        (ADR-173 D15). Read from the engine classes, so CORE names no engine
+        module to find them. Needs no initialization."""
+        cls._discover_engines()
+        catalogs: dict[str, Any] = {}
+        for klass in cls._engine_classes.values():
+            hook = getattr(klass, "record_catalogs", None)
+            if callable(hook):
+                catalogs.update(hook())
+        return catalogs
+
+    @classmethod
+    # ID: d9971ee2-20ff-42c0-ba89-1d923150490d
+    def record_engine(cls, engine_id: str) -> Any:
+        """An instance of a record-capable engine (ADR-173 D1). Record
+        engines are pure and take no injected services, so this needs no
+        initialization. Raises ValueError for an unknown engine or one that
+        does not judge records; the evaluator turns that into the
+        engine-missing finding."""
+        cls._discover_engines()
+        klass = cls._engine_classes.get(engine_id)
+        if klass is None:
+            raise ValueError(f"Unsupported Governance Engine: {engine_id}")
+        if not getattr(klass, "supports_records", False):
+            raise ValueError(f"Engine {engine_id} does not judge records")
+        return klass()
+
+    @classmethod
     # ID: 69a7916b-b8f4-4509-bb2c-897eec528adf
     def get(cls, engine_id: str) -> Any:
         if cls._path_resolver is None:

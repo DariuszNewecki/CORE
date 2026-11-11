@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-115 commands.
+116 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -29,6 +29,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant. |
 | [`project`](#project) | 3 | Operations for project lifecycle: scaffolding. |
 | [`promote`](#promote) | 1 | Promotions: main's commits the governor approves to run live. |
+| [`record`](#record) | 1 | Judge a resolved record (library-snapshot/1) against a record catalog. |
 | [`refactor`](#refactor) | 4 | Refactoring analysis and suggestions |
 | [`runtime`](#runtime) | 5 | Runtime state and health of the running CORE system. |
 | [`secrets`](#secrets) | 4 | Manage encrypted secrets in the database. |
@@ -1566,6 +1567,37 @@ Propose main's newest green commit for promotion to live.
 | `--dry-run` | off | Print the proposal; change nothing on GitHub. |
 | `--repo` | `DariuszNewecki/CORE` | The GitHub repository. |
 | `--status-file` | `/var/lib/core-pipeline/status.json` | core-pipeline's status: the live commit and the last sandbox check. |
+
+---
+
+## `core-admin record` {#record}
+
+Judge a resolved record (library-snapshot/1) against a record catalog.
+
+### `core-admin record check` {#record-check}
+
+```
+core-admin record check RECORD_FILE [OPTIONS]
+```
+
+Judge a resolved record against a record catalog and print the verdict.
+
+Exit codes: 0 pass, 1 fail, 2 undecided (a human must decide), 3 the
+command could not run (unreadable record, unknown catalog, bad option).
+Stores nothing.
+
+Examples:
+    # Plain words
+    core-admin record check snapshot.json --catalog publication_rules
+
+    # Full verdict as JSON
+    core-admin record check snapshot.json --catalog publication_rules --format json
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `RECORD_FILE` | required | The record to judge: a library-snapshot/1 JSON file. |
+| `--catalog`, `-c` | required | Record catalog id, e.g. publication_rules. |
+| `--format` | `text` | `text` (default): the verdict in plain words. `json`: the full verdict, format record-verdict/1. |
 
 ---
 
