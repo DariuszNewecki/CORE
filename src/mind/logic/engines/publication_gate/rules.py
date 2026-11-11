@@ -504,7 +504,9 @@ def flow(
 def occurrence(
     record: Mapping[str, Any], rule: str, params: Mapping[str, Any]
 ) -> list[RecordFinding]:
-    """Position ids are unique; each raci points to an existing step position."""
+    """Position ids are unique; each raci item has an occurrence link, and it
+    points to an existing step position. CORE checks the link's presence
+    itself rather than relying on the caller's schema check."""
     items = record.get("items") or {}
     contains_rel = params.get("contains_rel", "contains")
     process_types = set(params.get("process_types", ["process"]))
@@ -523,6 +525,10 @@ def occurrence(
                 seen.add(pos)
         if item.get("type") != raci_type:
             continue
+        if not _refs(item, [occurrence_rel]):
+            findings.append(
+                _finding(rule, item_id, f"raci item has no {occurrence_rel} link")
+            )
         for ref in _refs(item, [occurrence_rel]):
             target = ref.get("to")
             if target not in items:

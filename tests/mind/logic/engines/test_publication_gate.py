@@ -425,6 +425,18 @@ def test_occurrence_pass_and_fail() -> None:
     ]
 
 
+async def test_occurrence_raci_without_occurrence_link_is_blocking() -> None:
+    record = _process(GOOD_FLOW, GOOD_RACI)
+    record["items"]["RC-9"] = {**_item("raci", assignment="R"), "id": "RC-9"}
+    assert _run("occurrence", record) == ["RC-9: raci item has no occurrence link"]
+    verdict = await evaluate(
+        record,
+        [RecordRule("o", "publication_gate", {"check": "occurrence"})],
+        engine_lookup=_lookup,
+    )
+    assert verdict.parts[0].result == "fail"
+
+
 def test_raci_pass_and_fail() -> None:
     assert _run("raci", _process(GOOD_FLOW, GOOD_RACI)) == []
     assert _run("raci", _process(GOOD_FLOW, {"p1": "AAR", "p3": "C"})) == [
