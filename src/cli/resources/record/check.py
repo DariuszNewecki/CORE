@@ -30,6 +30,16 @@ from . import app
 EXIT_PASS, EXIT_FAIL, EXIT_UNDECIDED, EXIT_ERROR = 0, 1, 2, 3
 _EXIT = {"pass": EXIT_PASS, "fail": EXIT_FAIL, "undecided": EXIT_UNDECIDED}
 
+# ADR-173 D4: what the evidence class does and does not claim.
+_CLAIM = {
+    "proven": "Proven against the facts in this record; it does not vouch that "
+    "they are true.",
+    "judged": "Judged by an AI reading of the facts in this record; it does not "
+    "vouch that they are true.",
+    "attested": "Not settled by CORE: a human must decide, or it rests on facts "
+    "the caller supplied; it does not vouch that they are true.",
+}
+
 
 class _UsageErrorExitsThree(TyperCommand):
     """A usage error (missing argument, unknown option) exits 3, "could not
@@ -50,6 +60,7 @@ class _UsageErrorExitsThree(TyperCommand):
 def _render_text(verdict: RecordVerdict, catalog: str, rule_count: int) -> str:
     lines = [
         f"Verdict: {verdict.outcome} ({verdict.evidence_class.value})",
+        _CLAIM[verdict.evidence_class.value],
         f"Record sha256: {verdict.record_sha256}",
         f"Catalog: {catalog} ({rule_count} rules)",
         "",

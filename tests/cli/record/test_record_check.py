@@ -30,7 +30,11 @@ def test_pass_text_exit_0() -> None:
         str(FIXTURES / "workshop_pass.json"), "--catalog", "publication_rules"
     )
     assert result.exit_code == 0, result.output
-    assert "Verdict: pass (proven)" in result.output
+    lines = result.output.splitlines()
+    assert lines[0] == "Verdict: pass (proven)"
+    assert lines[1] == (
+        "Proven against the facts in this record; it does not vouch that they are true."
+    )
     assert "Catalog: publication_rules (10 rules)" in result.output
     assert "Findings: none" in result.output
     assert result.output.count("pass       proven") == 10
@@ -85,11 +89,30 @@ def test_dressing_only_exit_2() -> None:
         str(FIXTURES / "dressing_only.json"), "--catalog", "publication_rules"
     )
     assert result.exit_code == 2, result.output
-    assert "Verdict: undecided" in result.output
+    assert "Verdict: undecided (proven)" in result.output
     assert (
         "DOC-21 (not blocking): dressing paragraph 1 uses normative word(s): shall"
         in result.output
     )
+
+
+def test_attested_verdict_says_core_did_not_settle_it(tmp_path: Path) -> None:
+    record = json.loads((FIXTURES / "workshop_pass.json").read_text(encoding="utf-8"))
+    record["pre_findings"] = [
+        {
+            "item": "DRT-21",
+            "rule": "sign_off",
+            "message": "awaits sign-off",
+            "blocking": False,
+        }
+    ]
+    path = tmp_path / "record.json"
+    path.write_text(json.dumps(record), encoding="utf-8")
+    result = _run(str(path), "--catalog", "publication_rules")
+    assert result.exit_code == 2, result.output
+    lines = result.output.splitlines()
+    assert lines[0] == "Verdict: undecided (attested)"
+    assert lines[1].startswith("Not settled by CORE: a human must decide")
 
 
 @pytest.mark.parametrize(

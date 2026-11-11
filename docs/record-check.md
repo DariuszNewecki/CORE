@@ -33,8 +33,25 @@ RFC 8785 canonical form, so the verdict names exactly what it judged), one line 
 | 2 | undecided: only non-blocking findings, or a human must decide |
 | 3 | the command could not run (unreadable record, unknown catalog, bad option) |
 
-The evidence class says how CORE reached the verdict on the facts given. It does not
-vouch that the record itself is true.
+For example, a record that passes all 10 publication rules prints:
+
+```text
+Verdict: pass (proven)
+Proven against the facts in this record; it does not vouch that they are true.
+Record sha256: a08da1db238723b8d19db4ed93fc401a1e43983bf68e63044b20505b61070813
+Catalog: publication_rules (10 rules)
+
+Rules:
+  publication.reference        pass       proven
+  ...
+  publication.authority        pass       proven
+
+Findings: none
+```
+
+The second line says what the evidence class claims: how CORE reached the verdict on
+the facts given (proven, judged by an AI reading, or not settled by CORE), never that the
+record itself is true.
 
 ## JSON output
 
