@@ -16,9 +16,13 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from shared.models.audit_models import EvidenceClass
+
+
+if TYPE_CHECKING:
+    from mind.logic.record_contract import RulePart
 
 
 # Pattern for "Line N:" or "(line N)" embedded in engine violation messages —
@@ -166,6 +170,24 @@ class BaseEngine(ABC):
     # subprocess-validated in the assisted lane — the worktree patch cannot
     # update the pre-patch DB graph, so a subprocess verdict would be stale.
     requires_knowledge_graph: ClassVar[bool] = False
+
+    # ADR-173 D1: True when this engine judges records (``evaluate_record``).
+    # An engine without it gives the engine-missing finding for a record rule.
+    supports_records: ClassVar[bool] = False
+
+    # ID: 3f3c4b12-bca6-40fb-a30a-feabf48e5487
+    async def evaluate_record(
+        self, record: Mapping[str, Any], rule: str, params: dict[str, Any]
+    ) -> RulePart:
+        """Judge a resolved record against one rule (ADR-173 D1).
+
+        Returns the rule's part. The evaluator stamps the part's evidence
+        class from this engine's declaration and derives its result from the
+        findings (D13), so an engine reports findings, not a verdict.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not judge records (supports_records is False)"
+        )
 
     @abstractmethod
     # ID: db4c48d2-4ccc-4182-bb37-29973471b8bb

@@ -21,9 +21,11 @@ the organization, not a single file, so it emits one finding per requirement.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from mind.logic.record_contract import RecordFinding, RulePart, engine_part
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
@@ -52,6 +54,7 @@ class AttestationGateEngine(BaseEngine):
     engine_id = "attestation_gate"
     evidence_class = EvidenceClass.ATTESTED  # ADR-113: cannot be settled automatically
     _always_context_level: ClassVar[bool] = True  # every check_type is context-level
+    supports_records: ClassVar[bool] = True  # ADR-173 D10
 
     # ID: f9fe367a-ed35-4dbf-a59d-f46b51c767ec
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
@@ -114,3 +117,39 @@ class AttestationGateEngine(BaseEngine):
                 },
             )
         ]
+
+    # ID: 8445dc36-f12b-4771-8cdb-4d99de053550
+    async def evaluate_record(
+        self, record: Mapping[str, Any], rule: str, params: dict[str, Any]
+    ) -> RulePart:
+        """ADR-173 D3: an attestation never passes in 3.x.
+
+        CORE has no trusted source of approvals yet (DEC-2026-136), and a field
+        in the record is not an attestation, since whoever supplies the record
+        could attest for themselves. So the part is always undecided, with one
+        non-blocking finding saying what a human must decide. A rule with no
+        prompt is a configuration error and fails.
+        """
+        prompt = params.get("prompt")
+        if not prompt:
+            finding = RecordFinding(
+                rule=rule,
+                message=(
+                    "attestation_gate rule is missing a 'prompt' param; "
+                    "cannot tell the reviewer what to attest to."
+                ),
+                blocking=True,
+                details={"finding_type": "ATTESTATION_MISCONFIGURED"},
+            )
+        else:
+            finding = RecordFinding(
+                rule=rule,
+                message=f"HUMAN ATTESTATION REQUIRED — {prompt}",
+                blocking=False,
+                details={
+                    "finding_type": "REQUIRES_ATTESTATION",
+                    "attestation_prompt": prompt,
+                    "reference": params.get("reference"),
+                },
+            )
+        return engine_part(self, rule, [finding])
