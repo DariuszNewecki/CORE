@@ -136,3 +136,68 @@ async def test_BlackboardShopManager() -> None:
     report_kwargs = worker.post_report.await_args.kwargs
     assert report_kwargs["payload"]["flagged"] == 1
     assert report_kwargs["payload"]["entries_checked"] == 3
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: f8d9f694-5fc0-46dc-afe4-2929cf16e419
+async def test_blackboard_shop_manager_run():
+    worker = BlackboardShopManager.__new__(BlackboardShopManager)
+
+    worker.post_heartbeat = AsyncMock()
+    worker.post_finding = AsyncMock()
+    worker.post_report = AsyncMock()
+    worker.post_observation = AsyncMock()
+
+    worker._sweep_resolved_stale_alerts = AsyncMock(return_value=0)
+    worker._sweep_telemetry_keep_last_n = AsyncMock(return_value=0)
+    worker._sweep_delegate_findings_ttl = AsyncMock(return_value=0)
+    worker._sweep_orphaned_claims = AsyncMock(
+        return_value={"skipped": False, "released": [], "abandoned": []}
+    )
+    worker._sweep_retired_rule_findings = AsyncMock(
+        return_value={"resolved": 0, "retired_rules": [], "skipped": False}
+    )
+    worker._fetch_stale_entries = AsyncMock(
+        return_value=[
+            {
+                "id": 42,
+                "entry_type": "type_a",
+                "subject": "some.subject",
+                "worker_uuid": "uuid-123",
+                "status": "open",
+                "age_seconds": 600,
+                "sla_seconds": 300,
+            }
+        ]
+    )
+    worker._fetch_existing_findings = AsyncMock(return_value=set())
+    worker._count_active_entries = AsyncMock(return_value=7)
+
+    await worker.run()
+
+    worker.post_heartbeat.assert_awaited_once()
+    worker._sweep_resolved_stale_alerts.assert_awaited_once()
+    worker._sweep_telemetry_keep_last_n.assert_awaited_once()
+    worker._sweep_delegate_findings_ttl.assert_awaited_once()
+    worker._sweep_orphaned_claims.assert_awaited_once()
+    worker._sweep_retired_rule_findings.assert_awaited_once()
+    worker._fetch_stale_entries.assert_awaited_once()
+    worker._fetch_existing_findings.assert_awaited_once()
+
+    worker.post_finding.assert_awaited_once()
+    call_kwargs = worker.post_finding.await_args.kwargs
+    assert call_kwargs["subject"] == "blackboard.entry_stale::42"
+    assert call_kwargs["resolution_mechanism"] == "self_resolve"
+    assert call_kwargs["payload"]["entry_id"] == "42"
+
+    worker.post_observation.assert_not_awaited()
+
+    worker.post_report.assert_awaited_once()
+    report_kwargs = worker.post_report.await_args.kwargs
+    assert report_kwargs["subject"] == "blackboard_shop_manager.run.complete"
+    assert report_kwargs["payload"]["flagged"] == 1
+    assert report_kwargs["payload"]["entries_checked"] == 7

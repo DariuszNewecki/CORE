@@ -102,3 +102,46 @@ def test_SystemContextGatherer():
     gatherer._gather_structural_health.assert_awaited_once_with(session)
     gatherer._gather_knowledge_gaps.assert_awaited_once_with(session)
     gatherer._gather_vector_dimensions.assert_awaited_once_with(session)
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: d783497b-568f-4886-8997-8750c09b133b
+async def test_gather():
+    context = MagicMock()
+    cognitive_service = MagicMock()
+    gatherer = SystemContextGatherer(context, cognitive_service)
+
+    gatherer._gather_constitutional_health = AsyncMock(return_value={"a": 1})
+    gatherer._gather_structural_health = AsyncMock(return_value={"s": 2})
+    gatherer._gather_knowledge_gaps = AsyncMock(return_value={"k": 3})
+    gatherer._gather_vector_dimensions = AsyncMock(
+        return_value=({"sem": 4}, {"drift": 5})
+    )
+    gatherer._gather_change_context = MagicMock(return_value={"c": 6})
+    gatherer._gather_constitution_summary = MagicMock(return_value={"sum": 7})
+
+    session = AsyncMock()
+
+    result = await gatherer.gather(session)
+
+    assert result["audit_findings"] == {"a": 1}
+    assert result["structural_health"] == {"s": 2}
+    assert result["knowledge_gaps"] == {"k": 3}
+    assert result["semantic_landscape"] == {"sem": 4}
+    assert result["intent_drift"] == {"drift": 5}
+    assert result["change_context"] == {"c": 6}
+    assert result["knowledge_graph_summary"] == {"s": 2}
+    assert result["constitution_summary"] == {"sum": 7}
+    assert result["git_delta"] == {"c": 6}
+    assert "gathered_at" in result
+
+    gatherer._gather_constitutional_health.assert_awaited_once_with(session)
+    gatherer._gather_structural_health.assert_awaited_once_with(session)
+    gatherer._gather_knowledge_gaps.assert_awaited_once_with(session)
+    gatherer._gather_vector_dimensions.assert_awaited_once_with(session)
+    gatherer._gather_change_context.assert_called_once()
+    gatherer._gather_constitution_summary.assert_called_once()

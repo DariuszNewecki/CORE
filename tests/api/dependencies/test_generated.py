@@ -270,8 +270,6 @@ def test_get_finding_resolver():
         assert resolver is mock_service.resolve_indeterminate_entry
 
 
-
-
 # ID: b0bd1e8d-9006-4e28-a53a-41f9c6d2c90e
 def test_caller_principal():
     principal = CallerPrincipal(uid=1001, account="alice", role="operator")
@@ -280,3 +278,21 @@ def test_caller_principal():
     assert principal.account == "alice"
     assert principal.role == "operator"
     assert principal.binding_error is None
+
+
+
+
+
+# ID: ad35687a-d206-44e6-9b6e-51a9dfce7d12
+def test_get_finding_resolver_returns_bound_resolver() -> None:
+    mock_bound = MagicMock(name="resolve_indeterminate_entry")
+    mock_instance = MagicMock(name="BlackboardServiceInstance")
+    mock_instance.resolve_indeterminate_entry = mock_bound
+
+    with patch(
+        "api.dependencies.BlackboardService", return_value=mock_instance
+    ) as MockService:
+        result = get_finding_resolver()
+
+    MockService.assert_called_once_with()
+    assert result is mock_bound
