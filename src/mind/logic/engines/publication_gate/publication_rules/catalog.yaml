@@ -1,0 +1,168 @@
+# The 10 publication rules (ADR-173 D14, D15), run by the publication_gate
+# engine over a resolved record (format library-snapshot/1).
+#
+# Item kinds, type names and relation names are parameters, not code. There
+# are four kinds; a type in no kind list gives a blocking composition finding.
+# Catalogues are not a kind: they are model types listed in catalogue_types,
+# each holding only its family.
+#
+# enforcement: blocking | reporting. A reporting rule's findings never fail
+# the record (ADR-173 D13); dressing is the only reporting rule.
+
+format_version: 1  # file format (ADR-174); not the content version
+
+catalog:
+  id: publication_rules
+  title: "Publication rules for a structured document library"
+  catalog_version: "0.1.0"
+  maintained_by: "the CORE project"
+  record_format: "library-snapshot/1"
+
+_shared:
+  kinds: &kinds
+    atom: [definition, commitment, requirement, parameter, role, step, decision,
+           raci, control, kpi, exception_tier, clause, reference, authority_level,
+           decision_class, document_type]
+    model: [policy, standard, process, role_catalogue, kpi_set, control_set,
+            authority_catalogue, exception_tier_set]
+    molecule: [decision_right, delegation, role_realisation]
+    document: [document]
+  process: &process
+    contains_rel: contains
+    process_types: [process]
+    process_members: [step, decision]
+    decision_type: decision
+    step_type: step
+    raci_type: raci
+    occurrence_rel: occurrence
+    branch_kind: branch
+    loop_kind: loop
+
+requirements:
+  - id: publication.reference
+    engine: publication_gate
+    enforcement: blocking
+    statement: Every ref points to an item in the snapshot.
+    params:
+      check: reference
+
+  - id: publication.role
+    engine: publication_gate
+    enforcement: blocking
+    statement: Every owner, and every role, editor, holder or delegate ref, points to a role.
+    params:
+      check: role
+      role_type: role
+      role_rels: [role, editor, holder, delegate]
+
+  - id: publication.composition
+    engine: publication_gate
+    enforcement: blocking
+    statement: >-
+      Every type has a kind; a model that is not a catalogue has exactly one
+      document_type ref to a document_type; contains refs respect the kinds,
+      the catalogue families and the model ranks (a model's rank is the
+      value.rank of its document_type).
+    params:
+      check: composition
+      kinds: *kinds
+      catalogue_types: [role_catalogue, kpi_set, control_set, authority_catalogue,
+                        exception_tier_set]
+      catalogue_families:
+        role_catalogue: [role]
+        kpi_set: [kpi]
+        control_set: [control]
+        authority_catalogue: [authority_level, decision_class, decision_right,
+                              delegation, role_realisation]
+        exception_tier_set: [exception_tier]
+      document_type_type: document_type
+      document_type_rel: document_type
+      contains_rel: contains
+      process_types: [process]
+      process_members: [step, decision]
+
+  - id: publication.trace
+    engine: publication_gate
+    enforcement: blocking
+    statement: >-
+      A requirement implements at least one commitment; only a requirement
+      (to a commitment) or a control (to a requirement) implements anything;
+      every addresses ref points to a clause.
+    params:
+      check: trace
+      implements_rel: implements
+      addresses_rel: addresses
+      implements:
+        requirement: commitment
+        control: requirement
+      must_implement: [requirement]
+      clause_type: clause
+
+  - id: publication.cross_reference
+    engine: publication_gate
+    enforcement: blocking
+    statement: A cites ref never points to a document; content cites the model behind it.
+    params:
+      check: cross_reference
+      cites_rel: cites
+      kinds: *kinds
+
+  - id: publication.flow
+    engine: publication_gate
+    enforcement: blocking
+    statement: The flow links inside each process are well formed.
+    params:
+      check: flow
+      <<: *process
+
+  - id: publication.occurrence
+    engine: publication_gate
+    enforcement: blocking
+    statement: >-
+      Position ids are unique within a process; each raci item points to a
+      process position that exists and holds a step.
+    params:
+      check: occurrence
+      <<: *process
+
+  - id: publication.raci
+    engine: publication_gate
+    enforcement: blocking
+    statement: Each step position has exactly one A and at least one R.
+    params:
+      check: raci
+      <<: *process
+
+  - id: publication.dressing
+    engine: publication_gate
+    enforcement: reporting
+    statement: A document's dressing paragraphs use no normative words.
+    params:
+      check: dressing
+      kinds: *kinds
+      words: [must, shall, require, requires, required, requiring, except, excepted, unless]
+
+  - id: publication.authority
+    engine: publication_gate
+    enforcement: blocking
+    statement: Authority items carry exactly the links their type needs.
+    params:
+      check: authority
+      required:
+        authority_level:
+          holder: role
+        decision_right:
+          class: decision_class
+          level: authority_level
+        delegation:
+          right: decision_right
+          delegate: role
+        role_realisation:
+          role: role
+          appointed_by: authority_level
+      optional:
+        decision_right:
+          risk_acceptance: {target: authority_level, max: 1}
+          validation: {target: authority_level, max: 1}
+        decision_class:
+          tier: {target: exception_tier, max: null}
