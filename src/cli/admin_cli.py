@@ -81,12 +81,12 @@ from cli.resources.demo import app as demo_app
 from cli.resources.dev import app as dev_app
 from cli.resources.docs import app as docs_app
 from cli.resources.grc import app as grc_app
-from cli.resources.record import app as record_app
 from cli.resources.law import app as law_app
 from cli.resources.llm_resources import app as llm_resources_app
 from cli.resources.mcp import app as mcp_app
 from cli.resources.project import app as project_app
 from cli.resources.promote import app as promote_app
+from cli.resources.record import app as record_app
 from cli.resources.runtime import app as runtime_app
 from cli.resources.secrets import app as secrets_app
 from cli.resources.symbols import app as symbols_app
