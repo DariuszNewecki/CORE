@@ -1616,7 +1616,7 @@ table would fix nothing. Items 1 and 2 are done (#1229; #1230, #1231); item 4 st
 
 ## ADR-173 — Record contract: CORE judges a resolved record against catalog rules
 
-2026-11-11 · proposed: DEC-2026-154 (decision register, 2026-11-08, Product owner; scope trace 2026-11-11: #1328, limited to its five done-points); prototype findings on #1328  
+2026-11-11 · accepted: DEC-2026-154 (decision register, 2026-11-08, Product owner; scope trace 2026-11-11: #1328, limited to its five done-points); prototype findings on #1328  
 **Why.** The only engine contract checks files (`BaseEngine.verify(file_path, params)`); nothing
 evaluates rules against an in-memory record and returns a verdict with its evidence class and the
 rules behind it (#1328). A prototype outside CORE ran 10 publication rules over plain JSON records
@@ -1654,7 +1654,9 @@ shape (#1328, prototype findings 1–5).
   with version pins applied. Resolving it and checking each item against its type schema stay
   with the caller. The caller's earlier findings (`load_findings`, `pre_findings`: lists of
   `{item, rule, message, blocking}`) are carried into the verdict. A carried finding counts
-  under the rule it names, as ATTESTED, because CORE did not establish it (ADR-113 D2).
+  under the rule it names, as ATTESTED, because CORE did not establish it (ADR-113 D2). A carried
+  finding whose rule is not in the catalog (such as load or resolution) gets its own part,
+  ATTESTED, so it is never dropped.
 - **D13 — Per-rule result.** Any blocking finding gives fail; only non-blocking findings give
   undecided; none gives pass. When the record names a scope, only findings on items in that
   scope count.
