@@ -18,6 +18,8 @@
 #   attested = irreducibly human controls (a reviewer must sign)
 # CORE reports only what it can defend; it never sells a judged opinion as proven.
 
+format_version: 1  # file format (ADR-174); not the content version
+
 catalog:
   id: eu_annex_11
   title: "EudraLex Vol. 4 Annex 11 — Computerised Systems (minimal subset)"

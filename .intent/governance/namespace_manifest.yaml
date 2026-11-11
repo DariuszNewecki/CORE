@@ -694,6 +694,12 @@ classifications:
 
   - path: .intent/META/governance_pack.schema.json
     governance_namespace: framework
+  - path: .intent/META/catalog.schema.json
+    governance_namespace: framework
+  - path: .intent/META/catalog_inventory.schema.json
+    governance_namespace: framework
+  - path: .intent/META/catalog_provenance.schema.json
+    governance_namespace: framework
   - path: .intent/enforcement/contracts/ApproveRequest.json
     governance_namespace: project::core
   - path: .intent/enforcement/contracts/CreateAuditRunRequest.json

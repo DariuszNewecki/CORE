@@ -1,0 +1,41 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.catalog_inventory.schema.json",
+    "title": "CORE GRC framework registry (inventory.yaml)",
+    "description": "The registry of catalogued frameworks at the catalog root (ADR-116 D7, ADR-174). Unknown fields are allowed; the listed ones are required.",
+    "type": "object",
+    "required": [
+        "format_version",
+        "frameworks"
+    ],
+    "properties": {
+        "format_version": {
+            "type": "integer",
+            "const": 1,
+            "description": "Format version of this file's structure (ADR-174 D1). Distinct from catalog_version, the content version."
+        },
+        "frameworks": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "tier",
+                    "status"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "tier": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}

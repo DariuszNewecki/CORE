@@ -184,6 +184,7 @@ def load_catalog(
     from body.services.grc.catalog_resolver import resolve_catalog_path
 
     path = resolve_catalog_path(name, catalog_root=catalog_root)
+    _warn_on_contract(path)
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     requirements = data.get("requirements") or []
     rules = [_build_rule(entry) for entry in requirements]
@@ -211,9 +212,23 @@ def load_catalog_meta(name: str = "nist_800_171") -> dict[str, Any]:
     from body.services.grc.catalog_resolver import resolve_catalog_path
 
     path = resolve_catalog_path(name)
+    _warn_on_contract(path)
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     meta = data.get("catalog")
     return dict(meta) if isinstance(meta, dict) else {}
+
+
+def _warn_on_contract(path: Path) -> None:
+    """Log the catalog contract's warnings for ``path`` and its catalog root
+    (ADR-174, warn mode in 3.x): the catalog still loads either way."""
+    from body.services.grc.catalog_contract import (
+        check_catalog,
+        check_catalog_root,
+        log_warnings,
+    )
+
+    # <root>/<tier>/<framework>/catalog.yaml
+    log_warnings(check_catalog_root(path.parents[2]) + check_catalog(path))
 
 
 # ID: 6b67e7de-d1e5-43bc-91c6-176c0ff15872

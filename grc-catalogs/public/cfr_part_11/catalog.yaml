@@ -14,6 +14,8 @@
 #   attested = irreducibly human controls (a reviewer must sign)
 # CORE reports only what it can defend; it never sells a judged opinion as proven.
 
+format_version: 1  # file format (ADR-174); not the content version
+
 catalog:
   id: cfr_part_11
   title: "21 CFR Part 11 — Electronic Records; Electronic Signatures (minimal subset)"
