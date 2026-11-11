@@ -5,6 +5,8 @@
 # property of every catalog, not tribal knowledge. A gap report cites the
 # framework + catalog_version it ran against.
 
+format_version: 1  # file format (ADR-174); not the content version
+
 framework: "EudraLex Vol. 4 Annex 11 — Computerised Systems"
 tier: public
 catalog: catalog.yaml

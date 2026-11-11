@@ -26,6 +26,8 @@
 # hold internally to compute. Ingesting copyrighted full text without a satisfied
 # gate is a violation.
 
+format_version: 1  # file format (ADR-174); not the content version
+
 frameworks:
   - id: nist_800_171
     title: "NIST SP 800-171 Rev. 2"

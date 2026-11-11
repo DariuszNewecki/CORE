@@ -179,6 +179,19 @@ class EngineRegistry:
         )
 
     @classmethod
+    # ID: 4b8e2f6a-9c1d-4e7b-a3f5-0d6c8b2e4a91
+    def known_engine_ids(cls) -> frozenset[str]:
+        """Every engine id a rule or catalog may name: discovered engines plus
+        passive aliases, which ``get`` resolves to ``passive_gate``.
+
+        Read by the catalog contract (ADR-174 D8) to flag an unknown id at
+        load instead of at evaluation. Needs no initialization: discovery only
+        imports engine modules.
+        """
+        cls._discover_engines()
+        return frozenset(cls._engine_classes) | frozenset(PASSIVE_ALIASES)
+
+    @classmethod
     # ID: 69a7916b-b8f4-4509-bb2c-897eec528adf
     def get(cls, engine_id: str) -> Any:
         if cls._path_resolver is None:

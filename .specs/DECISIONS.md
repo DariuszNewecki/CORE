@@ -1614,6 +1614,36 @@ flagged (`test_coverage_paths.py:327-329`, `test_runner_sensor.py:241`, #1210), 
 that argued for the table came from a dev checkout 360 commits behind main (#1246), so the
 table would fix nothing. Items 1 and 2 are done (#1229; #1230, #1231); item 4 stays planned.
 
+## ADR-174 — Catalog contract: format schemas, checked at load; warnings in 3.x, refusals in 4.0
+
+2026-11-11 · accepted: DEC-2026-155 (decision register, 2026-11-08, Product owner); plan on #1338  
+**Why.** Catalogs (ADR-116, ADR-121) had a location, tiers and a resolver, but no format.
+Loading did no validation: a requirement without `engine` raised `KeyError` mid-run,
+`provenance.yaml` was never read, and an unknown engine id failed only at evaluation.  
+**Decision.**
+- **D1 — Format schemas are self-law.** `catalog.schema.json`, `catalog_provenance.schema.json`
+  and `catalog_inventory.schema.json` live in `.intent/META/` (extends ADR-149 D2 from packs to
+  catalogs). Each requires `format_version` (now `1`), distinct from `catalog_version`, the
+  content version. The machinery floor and the starter `.intent/` carry the same three files,
+  so an installed CORE checks catalogs too.
+- **D3 — Checked in the shared load path.** `load_catalog` and `load_catalog_meta` check the
+  catalog, its provenance and the root's `inventory.yaml` against their schemas, so catalogs
+  named in `catalog_names` are checked too.
+- **D4 — Provenance is expected.** A catalog with no `provenance.yaml` beside it is flagged
+  (enforces ADR-116 D5).
+- **D7 — `internal/` holds no catalogs.** A `catalog.yaml` under `internal/` is flagged; it is
+  not loaded (ADR-116 D9, #1336).
+- **D8 — Engine ids are known at load.** Every requirement's `engine` must be in the engine
+  registry, passive aliases included.
+- **Warn mode.** In CORE 3.x each rule logs a warning naming the catalog and the rule
+  (`ADR-174 D1` … `D8`) and saying it becomes a refusal in CORE 4.0; the catalog still loads.
+  In 4.0 each warning becomes a refusal.
+- **Not decided here:** D5 (inventory/provenance drift check, ADR-116 D7) and D6 (declared tier
+  precedence). DEC-2026-155 does not cover them; each needs its own decision.
+
+Enforced by: `src/body/services/grc/catalog_contract.py` (warnings only); the four bundled
+catalogs and `inventory.yaml` give none (`tests/body/services/grc/test_catalog_contract.py`).
+
 ## Governor rulings
 
 One line each; the cause issue carries the detail.

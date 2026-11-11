@@ -1,0 +1,36 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.catalog_provenance.schema.json",
+    "title": "CORE GRC catalog provenance (provenance.yaml)",
+    "description": "Provenance and IP record beside each catalog.yaml (ADR-116 D5, ADR-174). Unknown fields are allowed; the listed ones are required.",
+    "type": "object",
+    "required": [
+        "format_version",
+        "framework",
+        "tier",
+        "catalog",
+        "source"
+    ],
+    "properties": {
+        "format_version": {
+            "type": "integer",
+            "const": 1,
+            "description": "Format version of this file's structure (ADR-174 D1). Distinct from catalog_version, the content version."
+        },
+        "framework": {
+            "type": "string",
+            "minLength": 1
+        },
+        "tier": {
+            "type": "string",
+            "minLength": 1
+        },
+        "catalog": {
+            "type": "string",
+            "minLength": 1
+        },
+        "source": {
+            "type": "object"
+        }
+    }
+}

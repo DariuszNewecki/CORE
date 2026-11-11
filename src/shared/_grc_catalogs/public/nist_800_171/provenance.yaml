@@ -5,6 +5,8 @@
 # a checkable property of every catalog, not tribal knowledge. A gap report
 # cites the framework + catalog_version it ran against.
 
+format_version: 1  # file format (ADR-174); not the content version
+
 framework: "NIST SP 800-171 Rev. 2"
 tier: public
 catalog: catalog.yaml

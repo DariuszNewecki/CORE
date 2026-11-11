@@ -1,0 +1,51 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.catalog.schema.json",
+    "title": "CORE GRC requirements catalog (catalog.yaml)",
+    "description": "Format of a requirements catalog CORE loads (ADR-116, ADR-174). Unknown fields are allowed; the listed ones are required.",
+    "type": "object",
+    "required": [
+        "format_version",
+        "catalog",
+        "requirements"
+    ],
+    "properties": {
+        "format_version": {
+            "type": "integer",
+            "const": 1,
+            "description": "Format version of this file's structure (ADR-174 D1). Distinct from catalog_version, the content version."
+        },
+        "catalog": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            }
+        },
+        "requirements": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "engine"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "engine": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                }
+            }
+        }
+    }
+}

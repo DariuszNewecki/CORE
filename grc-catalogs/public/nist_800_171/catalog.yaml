@@ -13,6 +13,8 @@
 #   attested = irreducibly human controls (a reviewer must sign)
 # CORE reports only what it can defend; it never sells a judged opinion as proven.
 
+format_version: 1  # file format (ADR-174); not the content version
+
 catalog:
   id: nist_800_171
   title: "NIST SP 800-171 Rev. 2 — minimal demo subset"

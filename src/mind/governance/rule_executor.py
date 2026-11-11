@@ -444,3 +444,16 @@ async def execute_rule(
         findings.append(content_not_evaluated_finding(rule, content_not_evaluated))
 
     return findings
+
+
+# ID: e3a7c9d1-5b2f-4e8a-9c6d-7f1b4a0e2d58
+def known_engine_ids() -> frozenset[str]:
+    """Engine ids a rule or catalog may name, passive aliases included.
+
+    The governed route for body/ to read the engine registry without
+    importing mind.logic.engines (architecture.body.no_rule_evaluation);
+    used by the catalog contract (ADR-174 D8).
+    """
+    from mind.logic.engines.registry import EngineRegistry
+
+    return EngineRegistry.known_engine_ids()
