@@ -81,6 +81,7 @@ from cli.resources.demo import app as demo_app
 from cli.resources.dev import app as dev_app
 from cli.resources.docs import app as docs_app
 from cli.resources.grc import app as grc_app
+from cli.resources.record import app as record_app
 from cli.resources.law import app as law_app
 from cli.resources.llm_resources import app as llm_resources_app
 from cli.resources.mcp import app as mcp_app
@@ -143,6 +144,7 @@ def _register_groups(app_instance: typer.Typer) -> None:
     app_instance.add_typer(coherence_app, name="coherence")
     app_instance.add_typer(project_app, name="project")
     app_instance.add_typer(grc_app, name="grc")
+    app_instance.add_typer(record_app, name="record")
     app_instance.add_typer(dev_app, name="dev")
     app_instance.add_typer(demo_app, name="demo")
     app_instance.add_typer(docs_app, name="docs")

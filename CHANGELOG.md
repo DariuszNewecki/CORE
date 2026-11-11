@@ -8,6 +8,13 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+### Added
+
+- **`core-admin record check <record.json> --catalog <id>` (#1328, ADR-173):** judges a
+  resolved record against a record catalog and prints the verdict, as plain words or as
+  JSON (`record-verdict/1`). Exit codes: 0 pass, 1 fail, 2 undecided, 3 could not run.
+  Stores nothing. See "Check a record against a catalog" in the docs.
+
 ## [3.2.0] — 2026-11-12
 
 Minor release: the catalog contract for GRC requirement catalogs. Consumer: the #1328 proof thread, which runs on

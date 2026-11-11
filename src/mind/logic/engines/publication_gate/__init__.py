@@ -43,6 +43,12 @@ class PublicationGateEngine(BaseEngine):
     evidence_class = EvidenceClass.PROVEN  # ADR-113: deterministic structure checks
     supports_records: ClassVar[bool] = True
 
+    @classmethod
+    # ID: cdf9465e-5be4-4133-9d51-b6f90d3a6926
+    def record_catalogs(cls) -> dict[str, Path]:
+        """The publication catalog, by its id."""
+        return {"publication_rules": catalog_path()}
+
     # ID: 5252a5e3-456e-428a-9948-161d36d18eee
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
         """Files are not this engine's input: reported as not evaluated."""

@@ -1,0 +1,169 @@
+{
+  "format": "library-snapshot/1",
+  "items": {
+    "ROLE-21": {
+      "type": "role",
+      "version": "1",
+      "status": "approved",
+      "owner": "ROLE-21",
+      "value": {
+        "name": "Treasurer",
+        "mandate": "Keeps the shared budget.",
+        "authority": "Signs off spending."
+      },
+      "sha256": "00",
+      "effective": "2027-03-15",
+      "withdrawn": null,
+      "refs": [],
+      "id": "ROLE-21"
+    },
+    "ROLE-22": {
+      "type": "role",
+      "version": "1",
+      "status": "approved",
+      "owner": "ROLE-21",
+      "value": {
+        "name": "Workshop lead",
+        "mandate": "Runs the tool room.",
+        "authority": "Orders consumables."
+      },
+      "sha256": "00",
+      "effective": "2027-03-15",
+      "withdrawn": null,
+      "refs": [],
+      "id": "ROLE-22"
+    },
+    "AUT-21": {
+      "type": "authority_level",
+      "version": "1",
+      "status": "approved",
+      "owner": "ROLE-21",
+      "value": {
+        "name": "Board",
+        "rank": 1,
+        "mandate": "Final say on money."
+      },
+      "sha256": "00",
+      "effective": "2027-03-15",
+      "withdrawn": null,
+      "refs": [
+        {
+          "rel": "holder",
+          "to": "ROLE-21",
+          "occurrence": null,
+          "pin": null
+        }
+      ],
+      "id": "AUT-21"
+    },
+    "DCL-21": {
+      "type": "decision_class",
+      "version": "1",
+      "status": "approved",
+      "owner": "ROLE-21",
+      "value": {
+        "name": "Tool purchases"
+      },
+      "sha256": "00",
+      "effective": "2027-03-15",
+      "withdrawn": null,
+      "refs": [],
+      "id": "DCL-21"
+    },
+    "DRT-21": {
+      "type": "decision_right",
+      "version": "1",
+      "status": "approved",
+      "owner": "ROLE-21",
+      "value": {
+        "note": "Buying a tool is decided at board level."
+      },
+      "sha256": "00",
+      "effective": "2027-03-15",
+      "withdrawn": null,
+      "refs": [
+        {
+          "rel": "class",
+          "to": "DCL-21",
+          "occurrence": null,
+          "pin": null
+        },
+        {
+          "rel": "level",
+          "to": "AUT-21",
+          "occurrence": null,
+          "pin": null
+        }
+      ],
+      "id": "DRT-21"
+    },
+    "DLG-21": {
+      "type": "delegation",
+      "version": "1",
+      "status": "approved",
+      "owner": "ROLE-21",
+      "value": {
+        "scope": "Tools under 200 per item."
+      },
+      "sha256": "00",
+      "effective": "2027-03-15",
+      "withdrawn": null,
+      "refs": [
+        {
+          "rel": "right",
+          "to": "DRT-21",
+          "occurrence": null,
+          "pin": null
+        },
+        {
+          "rel": "delegate",
+          "to": "ROLE-22",
+          "occurrence": null,
+          "pin": null
+        }
+      ],
+      "id": "DLG-21"
+    },
+    "RRL-21": {
+      "type": "role_realisation",
+      "version": "1",
+      "status": "approved",
+      "owner": "ROLE-21",
+      "value": {
+        "party_kind": "team",
+        "party": "Tool-room crew",
+        "scope": "Weekday opening hours."
+      },
+      "sha256": "00",
+      "effective": "2027-03-15",
+      "withdrawn": null,
+      "refs": [
+        {
+          "rel": "role",
+          "to": "ROLE-22",
+          "occurrence": null,
+          "pin": null
+        },
+        {
+          "rel": "appointed_by",
+          "to": "AUT-21",
+          "occurrence": null,
+          "pin": null
+        }
+      ],
+      "id": "RRL-21"
+    }
+  },
+  "known": [
+    "AUT-21",
+    "DCL-21",
+    "DLG-21",
+    "DRT-21",
+    "ROLE-21",
+    "ROLE-22",
+    "RRL-21"
+  ],
+  "scope": null,
+  "load_findings": [],
+  "pre_findings": []
+}

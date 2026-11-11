@@ -175,6 +175,13 @@ class BaseEngine(ABC):
     # An engine without it gives the engine-missing finding for a record rule.
     supports_records: ClassVar[bool] = False
 
+    @classmethod
+    # ID: d109b0f0-5c3d-4680-8b2a-995238abb47a
+    def record_catalogs(cls) -> dict[str, Path]:
+        """Record catalogs this engine ships beside its module, by catalog id
+        (ADR-173 D15). Empty by default."""
+        return {}
+
     # ID: 3f3c4b12-bca6-40fb-a30a-feabf48e5487
     async def evaluate_record(
         self, record: Mapping[str, Any], rule: str, params: dict[str, Any]
