@@ -1,0 +1,22 @@
+# Provenance of the publication rules catalog (ADR-173 D15, ADR-174 D4).
+#
+# Not a GRC catalog in the ADR-116 sense: it states no law. It lives with the
+# publication_gate engine, not under grc-catalogs/, and has no entry in
+# grc-catalogs/inventory.yaml.
+
+format_version: 1  # file format (ADR-174); not the content version
+
+framework: "Publication rules for a structured document library"
+tier: module
+catalog: catalog.yaml
+
+source:
+  authored_by: "the CORE project"
+  license: "MIT"
+  document: "ADR-173 (record contract), rules written in the project's own words"
+
+ip_status: project-authored-mit
+text_reproduced: false
+derivation: >-
+  Authored by the project and published under the MIT licence with CORE
+  (DEC-2026-138). No third-party text.
