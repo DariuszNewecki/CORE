@@ -1638,8 +1638,10 @@ Loading did no validation: a requirement without `engine` raised `KeyError` mid-
 - **Warn mode.** In CORE 3.x each rule logs a warning naming the catalog and the rule
   (`ADR-174 D1` … `D8`) and saying it becomes a refusal in CORE 4.0; the catalog still loads.
   In 4.0 each warning becomes a refusal.
-- **Not decided here:** D5 (inventory/provenance drift check, ADR-116 D7) and D6 (declared tier
-  precedence). DEC-2026-155 does not cover them; each needs its own decision.
+- **D5 is not part of the load contract:** the inventory/provenance drift check is an audit
+  finding under ADR-116 D7.
+- **D6 (declared tier order) is deferred to 4.0** with the refusals, because it needs a new
+  place to declare tiers.
 
 Enforced by: `src/body/services/grc/catalog_contract.py` (warnings only); the four bundled
 catalogs and `inventory.yaml` give none (`tests/body/services/grc/test_catalog_contract.py`).
