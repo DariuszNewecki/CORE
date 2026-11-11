@@ -148,107 +148,172 @@ def role(
 def composition(
     record: Mapping[str, Any], rule: str, params: Mapping[str, Any]
 ) -> list[RecordFinding]:
-    """Models name one document type; contains refs respect the kinds."""
+    """Every type has a kind; models name one document type; contains refs
+    respect the kinds, the catalogue families and the model ranks.
+
+    A model's rank is ``value.rank`` of the document_type item its
+    document_type ref points to (rank 1 is the top), never its own value.
+    Catalogue types (``catalogue_types``) are models that need no
+    document_type ref, have no rank, hold only their family and may sit in
+    any model.
+    """
     items = record.get("items") or {}
     kind_of = _kind_of(params)
     doc_type = params.get("document_type_type", "document_type")
     doc_type_rel = params.get("document_type_rel", "document_type")
     contains_rel = params.get("contains_rel", "contains")
-    process_types = set(params.get("process_types", ["process"]))
-    process_members = set(params.get("process_members", ["step", "decision"]))
+    catalogues = {str(t) for t in params.get("catalogue_types") or ()}
     families = {
-        str(k): set(v or ())
+        str(k): {str(t) for t in v or ()}
         for k, v in (params.get("catalogue_families") or {}).items()
     }
+    process_types = set(params.get("process_types", ["process"]))
+    process_members = set(params.get("process_members", ["step", "decision"]))
+    shape = _Shape(items, kind_of, catalogues, doc_type, doc_type_rel)
     findings = []
     for item_id, item in _items(record):
-        kind = kind_of.get(str(item.get("type")))
+        item_type = str(item.get("type"))
+        kind = kind_of.get(item_type)
+        if kind is None:
+            findings.append(_finding(rule, item_id, f"type {item_type} has no kind"))
+            continue
         # a. a model that is not a catalogue has exactly one document_type ref
-        if kind == "model":
-            refs = _refs(item, [doc_type_rel])
-            if len(refs) != 1:
-                findings.append(
-                    _finding(
-                        rule,
-                        item_id,
-                        f"a model needs exactly one {doc_type_rel} ref, has {len(refs)}",
-                    )
-                )
-            for ref in refs:
-                target = ref.get("to")
-                if target in items and items[target].get("type") != doc_type:
-                    findings.append(
-                        _finding(
-                            rule,
-                            item_id,
-                            f"{doc_type_rel} ref to {target} is a "
-                            f"{items[target].get('type')}, not a {doc_type}",
-                        )
-                    )
+        if kind == "model" and item_type not in catalogues:
+            findings += _document_type_findings(
+                rule, item_id, item, items, doc_type, doc_type_rel
+            )
         # b. what may contain what
         for ref in _refs(item, [contains_rel]):
             target = ref.get("to")
-            if target not in items:
-                continue
-            child = items[target]
+            if (
+                target not in items
+                or kind_of.get(str(items[target].get("type"))) is None
+            ):
+                continue  # missing: left to reference; no kind: reported on the child
             message = _containment(
-                item, kind, child, kind_of, families, process_types, process_members
+                item, items[target], shape, families, process_types, process_members
             )
-            if message is None:
-                continue
-            blocking = not message.startswith("kind unknown")
+            if message is not None:
+                findings.append(
+                    _finding(rule, item_id, f"contains {target}: {message}")
+                )
+    return findings
+
+
+def _document_type_findings(
+    rule: str,
+    item_id: str,
+    item: Item,
+    items: Mapping[Any, Any],
+    doc_type: str,
+    doc_type_rel: str,
+) -> list[RecordFinding]:
+    refs = _refs(item, [doc_type_rel])
+    findings = []
+    if len(refs) != 1:
+        findings.append(
+            _finding(
+                rule,
+                item_id,
+                f"a model needs exactly one {doc_type_rel} ref, has {len(refs)}",
+            )
+        )
+    for ref in refs:
+        target = ref.get("to")
+        if target in items and items[target].get("type") != doc_type:
             findings.append(
-                _finding(rule, item_id, f"contains {target}: {message}", blocking)
+                _finding(
+                    rule,
+                    item_id,
+                    f"{doc_type_rel} ref to {target} is a "
+                    f"{items[target].get('type')}, not a {doc_type}",
+                )
             )
     return findings
 
 
+class _Shape:
+    """Kind, catalogue and rank lookups for the containment check."""
+
+    def __init__(
+        self,
+        items: Mapping[Any, Any],
+        kind_of: Mapping[str, str],
+        catalogues: set[str],
+        doc_type: str,
+        doc_type_rel: str,
+    ) -> None:
+        self.items, self.kind_of, self.catalogues = items, kind_of, catalogues
+        self.doc_type, self.doc_type_rel = doc_type, doc_type_rel
+
+    # ID: 8be24aa6-05ad-418b-9cdb-399404a918dd
+    def kind(self, item: Item) -> str | None:
+        return self.kind_of.get(str(item.get("type")))
+
+    # ID: 6accc763-2799-4f6e-b507-c07795917478
+    def is_catalogue(self, item: Item) -> bool:
+        return str(item.get("type")) in self.catalogues
+
+    # ID: 53365ab5-443b-4ad9-82b9-cd4461fec907
+    def rank(self, model: Item) -> tuple[int | None, str | None]:
+        """(rank, problem). The rank is the linked document_type's value.rank.
+        (None, None) when it cannot be read because the ref is missing,
+        repeated or broken: composition (a) and reference report those."""
+        refs = _refs(model, [self.doc_type_rel])
+        if len(refs) != 1 or refs[0].get("to") not in self.items:
+            return None, None
+        target = refs[0].get("to")
+        linked = self.items[target]
+        if linked.get("type") != self.doc_type:
+            return None, None
+        rank = _value(linked).get("rank")
+        if isinstance(rank, int) and not isinstance(rank, bool):
+            return rank, None
+        return None, f"{self.doc_type} {target} has no numeric value.rank"
+
+
 def _containment(
     parent: Item,
-    parent_kind: str | None,
     child: Item,
-    kind_of: Mapping[str, str],
+    shape: _Shape,
     families: Mapping[str, set[str]],
     process_types: set[str],
     process_members: set[str],
 ) -> str | None:
-    """Why ``parent`` may not contain ``child``, or None when it may. A
-    combination the catalog's kinds cannot place gives "kind unknown", which
-    the caller reports as non-blocking (undecided, not fail)."""
-    child_type = str(child.get("type"))
-    child_kind = kind_of.get(child_type)
-    parent_type = str(parent.get("type"))
+    """Why ``parent`` may not contain ``child``, or None when it may. Both
+    have a kind."""
+    child_type, parent_type = str(child.get("type")), str(parent.get("type"))
+    child_kind, parent_kind = shape.kind(child), shape.kind(parent)
     if child_kind == "document":
         return "a document is never contained"
-    if parent_kind == "catalogue":
-        family = families.get(parent_type)
-        if family is None:
-            return f"kind unknown: no family listed for catalogue type {parent_type}"
-        return (
-            None
-            if child_type in family
-            else f"{child_type} is not in the {parent_type} family"
-        )
+    if shape.is_catalogue(parent):
+        family = families.get(parent_type, set())
+        if child_type in family:
+            return None
+        return f"{child_type} is not in the {parent_type} family {sorted(family)}"
     if parent_type in process_types:
-        return (
-            None
-            if child_type in process_members
-            else f"a {parent_type} holds only {sorted(process_members)}, not {child_type}"
-        )
-    if child_kind in {"atom", "molecule", "catalogue"}:
+        if child_type in process_members:
+            return None
+        return f"a {parent_type} holds only {sorted(process_members)}, not {child_type}"
+    if child_kind in {"atom", "molecule"}:
         return None
-    if child_kind is None or parent_kind is None:
-        missing = child_type if child_kind is None else parent_type
-        return f"kind unknown: the catalog gives no kind for type {missing}"
-    if parent_kind == "document" and child_kind == "model":
+    if child_kind == "model" and parent_kind == "document":
         return None
-    if parent_kind == "model" and child_kind == "model":
-        parent_rank, child_rank = _value(parent).get("rank"), _value(child).get("rank")
-        if not isinstance(parent_rank, int) or not isinstance(child_rank, int):
-            return "kind unknown: a model without a numeric value.rank"
+    if shape.is_catalogue(child) and parent_kind == "model":
+        return None
+    if child_kind == "model" and parent_kind == "model":
+        parent_rank, parent_problem = shape.rank(parent)
+        child_rank, child_problem = shape.rank(child)
+        if parent_problem or child_problem:
+            return parent_problem or child_problem
+        if parent_rank is None or child_rank is None:
+            return None  # reported by composition (a) or reference
         if child_rank > parent_rank:
             return None
-        return f"a model holds a model only of a greater rank number ({child_rank} <= {parent_rank})"
+        return (
+            "a model holds a model only of a greater rank number "
+            f"({child_rank} <= {parent_rank})"
+        )
     return f"a {parent_kind} may not hold a {child_kind}"
 
 

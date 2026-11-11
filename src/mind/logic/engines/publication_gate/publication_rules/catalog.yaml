@@ -1,12 +1,10 @@
 # The 10 publication rules (ADR-173 D14, D15), run by the publication_gate
 # engine over a resolved record (format library-snapshot/1).
 #
-# Item kinds, type names and relation names are parameters, not code. The
-# kinds below are left empty where the rule texts do not say which kind a
-# type is; they are open questions on the pull request that adds this file
-# and must be filled by a decision, not a guess. Until they are filled,
-# composition reports a contains ref it cannot place as undecided, and
-# cross_reference and dressing find no documents.
+# Item kinds, type names and relation names are parameters, not code. There
+# are four kinds; a type in no kind list gives a blocking composition finding.
+# Catalogues are not a kind: they are model types listed in catalogue_types,
+# each holding only its family.
 #
 # enforcement: blocking | reporting. A reporting rule's findings never fail
 # the record (ADR-173 D13); dressing is the only reporting rule.
@@ -22,11 +20,13 @@ catalog:
 
 _shared:
   kinds: &kinds
-    atom: []        # open
-    molecule: []    # open
-    model: []       # open
-    document: []    # open
-    catalogue: []   # open
+    atom: [definition, commitment, requirement, parameter, role, step, decision,
+           raci, control, kpi, exception_tier, clause, reference, authority_level,
+           decision_class, document_type]
+    model: [policy, standard, process, role_catalogue, kpi_set, control_set,
+            authority_catalogue, exception_tier_set]
+    molecule: [decision_right, delegation, role_realisation]
+    document: [document]
   process: &process
     contains_rel: contains
     process_types: [process]
@@ -59,12 +59,22 @@ requirements:
     engine: publication_gate
     enforcement: blocking
     statement: >-
-      A model that is not a catalogue has exactly one document_type ref to a
-      document_type; contains refs respect the item kinds and model ranks.
+      Every type has a kind; a model that is not a catalogue has exactly one
+      document_type ref to a document_type; contains refs respect the kinds,
+      the catalogue families and the model ranks (a model's rank is the
+      value.rank of its document_type).
     params:
       check: composition
       kinds: *kinds
-      catalogue_families: {}   # open: catalogue type -> its family of types
+      catalogue_types: [role_catalogue, kpi_set, control_set, authority_catalogue,
+                        exception_tier_set]
+      catalogue_families:
+        role_catalogue: [role]
+        kpi_set: [kpi]
+        control_set: [control]
+        authority_catalogue: [authority_level, decision_class, decision_right,
+                              delegation, role_realisation]
+        exception_tier_set: [exception_tier]
       document_type_type: document_type
       document_type_rel: document_type
       contains_rel: contains

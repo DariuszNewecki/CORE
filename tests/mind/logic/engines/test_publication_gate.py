@@ -68,13 +68,15 @@ def _run(rule: str, record: dict, params: dict | None = None) -> list[str]:
     return [f.message for f in R.RULES[rule](record, rule, params or {})]
 
 
-KINDS = {
-    "atom": ["term"],
-    "molecule": ["block"],
-    "model": ["procedure", "process", "work_note"],
-    "document": ["document"],
-    "catalogue": ["glossary"],
-}
+def _catalog_params(check: str) -> dict[str, Any]:
+    (rule,) = [
+        r for r in load_record_catalog(catalog_path()) if r.params.get("check") == check
+    ]
+    return dict(rule.params)
+
+
+COMPOSITION = _catalog_params("composition")
+KINDS = COMPOSITION["kinds"]
 
 
 # --------------------------------------------------------------------------
@@ -83,11 +85,11 @@ KINDS = {
 
 
 def test_reference_pass_and_both_kinds_of_missing() -> None:
-    ok = _record({"T-1": _item("term", [_ref("uses", "ROLE-1")])})
+    ok = _record({"T-1": _item("definition", [_ref("uses", "ROLE-1")])})
     assert _run("reference", ok) == []
 
     bad = _record(
-        {"T-1": _item("term", [_ref("uses", "T-9"), _ref("uses", "T-8")])},
+        {"T-1": _item("definition", [_ref("uses", "T-9"), _ref("uses", "T-8")])},
         known=["T-9"],
     )
     assert _run("reference", bad) == [
@@ -102,19 +104,24 @@ def test_reference_pass_and_both_kinds_of_missing() -> None:
 
 
 def test_role_pass_and_fail() -> None:
-    ok = _record({"T-1": _item("term", [_ref("editor", "ROLE-1")])})
+    ok = _record({"T-1": _item("definition", [_ref("editor", "ROLE-1")])})
     assert _run("role", ok) == []
 
-    bad = _record({"T-1": _item("term", [_ref("editor", "T-2")]), "T-2": _item("term")})
+    bad = _record(
+        {
+            "T-1": _item("definition", [_ref("editor", "T-2")]),
+            "T-2": _item("definition"),
+        }
+    )
     bad["items"]["T-2"]["owner"] = "T-1"
     assert _run("role", bad) == [
-        "T-1: editor ref to T-2 is a term, not a role",
-        "T-2: owner T-1 is a term, not a role",
+        "T-1: editor ref to T-2 is a definition, not a role",
+        "T-2: owner T-1 is a definition, not a role",
     ]
 
 
 def test_role_skips_a_missing_target() -> None:
-    record = _record({"T-1": _item("term", [_ref("holder", "ROLE-9")])})
+    record = _record({"T-1": _item("definition", [_ref("holder", "ROLE-9")])})
     assert _run("role", record) == []
 
 
@@ -124,32 +131,36 @@ def test_role_skips_a_missing_target() -> None:
 
 
 def _composition(items: dict) -> list[str]:
-    params = {
-        "kinds": KINDS,
-        "catalogue_families": {"glossary": ["term"]},
+    return _run("composition", _record(items), COMPOSITION)
+
+
+def _doc_types() -> dict[str, dict]:
+    return {
+        "DT-1": _item("document_type", rank=1),
+        "DT-2": _item("document_type", rank=2),
     }
-    return _run("composition", _record(items), params)
 
 
 def test_composition_pass() -> None:
     assert (
         _composition(
             {
-                "DT-1": _item("document_type"),
+                **_doc_types(),
                 "DOC-1": _item("document", [_ref("contains", "P-1")]),
                 "P-1": _item(
-                    "procedure",
+                    "policy",
                     [
                         _ref("document_type", "DT-1"),
-                        _ref("contains", "W-1"),
-                        _ref("contains", "T-1"),
-                        _ref("contains", "G-1"),
+                        _ref("contains", "S-1"),
+                        _ref("contains", "DEF-1"),
+                        _ref("contains", "DR-1"),
+                        _ref("contains", "RC-1"),
                     ],
-                    rank=1,
                 ),
-                "W-1": _item("work_note", [_ref("document_type", "DT-1")], rank=2),
-                "T-1": _item("term"),
-                "G-1": _item("glossary", [_ref("contains", "T-1")]),
+                "S-1": _item("standard", [_ref("document_type", "DT-2")]),
+                "DEF-1": _item("definition"),
+                "DR-1": _item("decision_right"),
+                "RC-1": _item("role_catalogue", [_ref("contains", "ROLE-1")]),
             }
         )
         == []
@@ -157,56 +168,121 @@ def test_composition_pass() -> None:
 
 
 def test_composition_model_needs_exactly_one_document_type() -> None:
-    assert _composition({"P-1": _item("procedure", rank=1), "T-1": _item("term")}) == [
+    assert _composition({"P-1": _item("policy")}) == [
         "P-1: a model needs exactly one document_type ref, has 0"
     ]
     assert _composition(
         {
-            "P-1": _item("procedure", [_ref("document_type", "T-1")], rank=1),
-            "T-1": _item("term"),
+            "P-1": _item("policy", [_ref("document_type", "D-1")]),
+            "D-1": _item("definition"),
         }
-    ) == ["P-1: document_type ref to T-1 is a term, not a document_type"]
+    ) == ["P-1: document_type ref to D-1 is a definition, not a document_type"]
+
+
+def test_composition_catalogue_needs_no_document_type_and_holds_only_its_family() -> (
+    None
+):
+    assert _composition({"KS-1": _item("kpi_set")}) == []
+    found = _composition(
+        {
+            "KS-1": _item(
+                "kpi_set", [_ref("contains", "K-1"), _ref("contains", "C-1")]
+            ),
+            "K-1": _item("kpi"),
+            "C-1": _item("control"),
+        }
+    )
+    assert found == ["KS-1: contains C-1: control is not in the kpi_set family ['kpi']"]
 
 
 def test_composition_containment_breaks() -> None:
     found = _composition(
         {
-            "DT-1": _item("document_type"),
+            **_doc_types(),
             "DOC-1": _item("document"),
             "DOC-2": _item("document", [_ref("contains", "DOC-1")]),
-            "G-1": _item("glossary", [_ref("contains", "B-1")]),
-            "B-1": _item("block"),
             "PR-1": _item(
                 "process",
-                [_ref("document_type", "DT-1"), _ref("contains", "B-1")],
-                rank=1,
+                [_ref("document_type", "DT-1"), _ref("contains", "DR-1")],
             ),
-            "P-1": _item(
-                "procedure",
-                [_ref("document_type", "DT-1"), _ref("contains", "W-1")],
-                rank=2,
-            ),
-            "W-1": _item("work_note", [_ref("document_type", "DT-1")], rank=2),
+            "DR-1": _item("decision_right"),
+            "DEF-1": _item("definition", [_ref("contains", "S-1")]),
+            "S-1": _item("standard", [_ref("document_type", "DT-2")]),
         }
     )
     assert found == [
+        "DEF-1: contains S-1: a atom may not hold a model",
         "DOC-2: contains DOC-1: a document is never contained",
-        "G-1: contains B-1: block is not in the glossary family",
-        "P-1: contains W-1: a model holds a model only of a greater rank number (2 <= 2)",
-        "PR-1: contains B-1: a process holds only ['decision', 'step'], not block",
+        "PR-1: contains DR-1: a process holds only ['decision', 'step'], not decision_right",
     ]
 
 
-async def test_composition_unknown_kind_is_undecided_not_fail() -> None:
+def test_composition_rank_comes_from_the_document_type_not_the_model() -> None:
+    # Own value.rank says the child is below the parent (9 > 1); the document
+    # types say it is above (1 < 2). The document types decide.
+    misleading = {
+        **_doc_types(),
+        "P-1": _item(
+            "policy", [_ref("document_type", "DT-2"), _ref("contains", "S-1")], rank=1
+        ),
+        "S-1": _item("standard", [_ref("document_type", "DT-1")], rank=9),
+    }
+    assert _composition(misleading) == [
+        "P-1: contains S-1: a model holds a model only of a greater rank number (1 <= 2)"
+    ]
+    # And the other way round: own ranks say no (1 <= 9), document types say yes.
+    flipped = {
+        **_doc_types(),
+        "P-1": _item(
+            "policy", [_ref("document_type", "DT-1"), _ref("contains", "S-1")], rank=9
+        ),
+        "S-1": _item("standard", [_ref("document_type", "DT-2")], rank=1),
+    }
+    assert _composition(flipped) == []
+
+
+def test_composition_equal_rank_and_rankless_document_type() -> None:
+    same = {
+        **_doc_types(),
+        "P-1": _item(
+            "policy", [_ref("document_type", "DT-1"), _ref("contains", "S-1")]
+        ),
+        "S-1": _item("standard", [_ref("document_type", "DT-1")]),
+    }
+    assert _composition(same) == [
+        "P-1: contains S-1: a model holds a model only of a greater rank number (1 <= 1)"
+    ]
+    rankless = {
+        "DT-1": _item("document_type", rank=1),
+        "DT-3": _item("document_type"),
+        "P-1": _item(
+            "policy", [_ref("document_type", "DT-1"), _ref("contains", "S-1")]
+        ),
+        "S-1": _item("standard", [_ref("document_type", "DT-3")]),
+    }
+    assert _composition(rankless) == [
+        "P-1: contains S-1: document_type DT-3 has no numeric value.rank"
+    ]
+
+
+async def test_composition_unknown_type_is_one_blocking_finding() -> None:
     record = _record(
-        {"X-1": _item("folder", [_ref("contains", "X-2")]), "X-2": _item("folder")}
+        {
+            "X-1": _item("folder", [_ref("contains", "DEF-1")]),
+            "DEF-1": _item("definition"),
+            "S-1": _item("standard", [_ref("contains", "X-1")]),
+        }
     )
+    record["items"]["S-1"]["refs"].append(_ref("document_type", "DT-1"))
+    record["items"]["DT-1"] = {**_item("document_type", rank=1), "id": "DT-1"}
+    found = _run("composition", record, COMPOSITION)
+    assert found == ["X-1: type folder has no kind"]
     verdict = await evaluate(
         record,
-        [RecordRule("c", "publication_gate", {"check": "composition", "kinds": KINDS})],
+        [RecordRule("c", "publication_gate", COMPOSITION)],
         engine_lookup=_lookup,
     )
-    assert verdict.parts[0].result == "undecided"
+    assert verdict.parts[0].result == "fail"
 
 
 # --------------------------------------------------------------------------
@@ -260,11 +336,11 @@ def test_trace_missing_target_is_left_to_reference() -> None:
 def test_cross_reference_pass_and_fail() -> None:
     params = {"kinds": KINDS}
     ok = _record(
-        {"P-1": _item("procedure"), "T-1": _item("term", [_ref("cites", "P-1")])}
+        {"P-1": _item("policy"), "T-1": _item("definition", [_ref("cites", "P-1")])}
     )
     assert _run("cross_reference", ok, params) == []
     bad = _record(
-        {"D-1": _item("document"), "T-1": _item("term", [_ref("cites", "D-1")])}
+        {"D-1": _item("document"), "T-1": _item("definition", [_ref("cites", "D-1")])}
     )
     assert _run("cross_reference", bad, params) == [
         "T-1: cites ref to D-1 points to a document; cite the model behind it"
@@ -383,12 +459,7 @@ async def test_dressing_alone_is_undecided_never_fail() -> None:
         r for r in load_record_catalog(catalog_path()) if r.rule_id.endswith("dressing")
     ]
     assert dressing_rule.blocking is False
-    rule = RecordRule(
-        dressing_rule.rule_id,
-        dressing_rule.engine,
-        {**dressing_rule.params, "kinds": KINDS},
-        dressing_rule.blocking,
-    )
+    rule = dressing_rule  # the catalog's own params and enforcement
     record = _record({"D-1": _item("document", dressing=["You shall smile."])})
     verdict = await evaluate(record, [rule], engine_lookup=_lookup)
     assert verdict.outcome == "undecided"
