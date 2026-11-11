@@ -8,17 +8,10 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
-### Added
-
-- **`core-admin record check <record.json> --catalog <id>` (#1328, ADR-173):** judges a
-  resolved record against a record catalog and prints the verdict, as plain words or as
-  JSON (`record-verdict/1`). Exit codes: 0 pass, 1 fail, 2 undecided, 3 could not run.
-  Stores nothing. See "Check a record against a catalog" in the docs.
-
 ## [3.2.0] — 2026-11-12
 
-Minor release: the catalog contract for GRC requirement catalogs. Consumer: the #1328 proof thread, which runs on
-this contract (DEC-2026-154). No database migration.
+Minor release: the catalog contract for GRC requirement catalogs, and the record contract with its first engine and
+command. Consumer: the #1328 proof thread, which runs on both (DEC-2026-154). No database migration.
 
 ### Added
 
@@ -27,6 +20,18 @@ this contract (DEC-2026-154). No database migration.
   `.intent/META/` and in the package, so a fresh install has them. A missing `format_version` or
   `provenance.yaml`, a `catalog.yaml` under `internal/`, or an unknown engine id produces a warning in 3.x and
   becomes a refusal in 4.0. The four bundled catalogs comply.
+- **Record contract (#1441, ADR-173):** engines can judge a resolved record instead of a file
+  (`supports_records`, `evaluate_record`); `evaluate(record, rules)` returns one part per rule, an aggregated
+  verdict (fail, then undecided, then pass) with an honest evidence class, and `record_sha256` over the record's
+  RFC 8785 canonical form. `attestation_gate` (always undecided in 3.x), `regex_gate` and the new `schema_gate`
+  judge records; file audits are unchanged.
+- **Publication engine and its catalog (#1442, ADR-173 D14-D16):** `publication_gate` runs 10 publication rules
+  (reference, role, composition, trace, cross_reference, flow, occurrence, raci, dressing, authority) over a
+  `library-snapshot/1` record. Its catalog `publication_rules` ships beside the engine, meets the ADR-174 contract
+  and sets item kinds, catalogue families and relation names as parameters.
+- **`core-admin record check <record.json> --catalog <id>` (#1443, #1328):** judges a resolved record against a
+  record catalog and prints the verdict, as plain words or as JSON (`record-verdict/1`). Exit codes: 0 pass,
+  1 fail, 2 undecided, 3 could not run. Stores nothing. See "Check a record against a catalog" in the docs.
 
 ### Fixed
 
