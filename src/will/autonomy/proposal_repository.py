@@ -12,6 +12,7 @@ CONSTITUTIONAL FIX (V2.3):
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Any
 
 from sqlalchemy import or_, select
@@ -97,6 +98,47 @@ class ProposalRepository:
         )
         result = await self._session.execute(stmt)
         return [ProposalMapper.from_db_model(p) for p in result.scalars().all()]
+
+    # ID: 6f0b2c1e-8d4a-4b7e-9c3f-2a5d1e7b9c40
+    async def flow_targets(
+        self,
+        flow_id: str,
+        statuses: Iterable[ProposalStatus],
+        param_keys: tuple[str, str],
+    ) -> set[tuple[str, str]]:
+        """Every (param_a, param_b) pair named by an action of ``flow_id`` in a
+        proposal whose status is in ``statuses``.
+
+        No row limit and no row lock: a dedup check must see every proposal in
+        flight. ``list_by_status`` returns only the newest ``list_limit`` rows
+        and skips locked ones, so a caller that dedups on it misses the rest.
+        """
+        from sqlalchemy import column, func, true
+        from sqlalchemy.dialects.postgresql import JSONB
+
+        from shared.infrastructure.database.models.autonomous_proposals import (
+            AutonomousProposal,
+        )
+
+        action = func.jsonb_array_elements(AutonomousProposal.actions).table_valued(
+            column("value", JSONB)
+        )
+        value = action.c.value
+        key_a, key_b = param_keys
+        param_a = value["parameters"][key_a].astext
+        param_b = value["parameters"][key_b].astext
+        stmt = (
+            select(param_a, param_b)
+            .select_from(AutonomousProposal)
+            .join(action, true())
+            .where(AutonomousProposal.status.in_([s.value for s in statuses]))
+            .where(value["flow_id"].astext == flow_id)
+            .where(param_a.is_not(None))
+            .where(param_b.is_not(None))
+            .distinct()
+        )
+        result = await self._session.execute(stmt)
+        return {(a, b) for a, b in result.all()}
 
     # ID: 1e309abf-d835-4f39-a9d9-03d9eedf4474
     async def list_by_status_paginated(

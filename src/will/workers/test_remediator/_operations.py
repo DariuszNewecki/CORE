@@ -309,17 +309,11 @@ async def _get_active_symbol_proposals() -> set[tuple[str, str]]:
     try:
         async with service_registry.session() as session:
             repo = ProposalRepository(session)
-            for status in _ACTIVE_STATUSES:
-                proposals = await repo.list_by_status(status, limit=500)
-                for proposal in proposals:
-                    for action in proposal.actions:
-                        if action.flow_id != _TARGET_FLOW_ID_SYMBOL:
-                            continue
-                        params = action.parameters or {}
-                        sf = params.get("source_file")
-                        sn = params.get("symbol_name")
-                        if sf and sn:
-                            active.add((sf, sn))
+            active = await repo.flow_targets(
+                _TARGET_FLOW_ID_SYMBOL,
+                _ACTIVE_STATUSES,
+                ("source_file", "symbol_name"),
+            )
     except Exception as e:
         logger.warning(
             "TestRemediatorWorker: could not load active symbol proposals (%s). "
