@@ -32,3 +32,48 @@ def test_authority():
 
     assert findings == []
     assert isinstance(findings, list)
+
+
+from unittest.mock import MagicMock
+
+
+# ID: cfaeea5a-9dc1-4981-b7ff-b4e03b353269
+def test_dressing():
+    module = importlib.import_module("mind.logic.engines.publication_gate.rules")
+
+    # Patch internal helpers whose exact shapes are not guaranteed by the source.
+    record = {
+        "items": {
+            "doc-1": {
+                "type": "policy",
+                "dressing": [
+                    "This section explains the background.",
+                    "Members must register before the deadline.",
+                    "Failure to comply requires review unless waived.",
+                ],
+            },
+            "doc-2": {
+                "type": "note",
+                "dressing": ["This must be ignored because type is not document."],
+            },
+        }
+    }
+    params = {"kind_of": {"policy": "document", "note": "other"}}
+
+    fake_finding = MagicMock()
+    module._items = lambda rec: list(rec["items"].items())
+    module._kind_of = lambda p: dict(p.get("kind_of", {}))
+    module._value = lambda item: item
+    module._finding = lambda rule, item_id, message: MagicMock(
+        rule=rule, item_id=item_id, message=message
+    )
+
+    findings = module.dressing(record, "R001", params)
+
+    assert len(findings) == 2
+    for finding in findings:
+        assert finding.rule == "R001"
+        assert finding.item_id == "doc-1"
+    messages = [f.message for f in findings]
+    assert "dressing paragraph 2 uses normative word(s): must" in messages
+    assert "dressing paragraph 3 uses normative word(s): requires, unless" in messages
