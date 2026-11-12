@@ -156,3 +156,33 @@ def test_EngineRegistry():
         EngineRegistry._llm_client = saved_llm
         EngineRegistry._embedding_client = saved_emb
         EngineRegistry._discovered = saved_discovered
+
+
+
+
+
+# ID: ef1d5572-6ec7-43d6-b2bc-be7c20711fc1
+def test_EngineRegistry_record_engine():
+    engine_id = "test_engine"
+
+    # ID: e210cacb-a16c-492a-be9d-d22124e010df
+    class FakeRecordEngine:
+        supports_records = True
+
+        def __init__(self):
+            self.initialized = True
+
+    with (
+        patch.object(EngineRegistry, "_discover_engines", MagicMock()) as mock_discover,
+        patch.object(
+            EngineRegistry,
+            "_engine_classes",
+            {engine_id: FakeRecordEngine},
+            create=True,
+        ),
+    ):
+        result = EngineRegistry.record_engine(engine_id)
+
+    mock_discover.assert_called_once()
+    assert isinstance(result, FakeRecordEngine)
+    assert result.initialized is True
