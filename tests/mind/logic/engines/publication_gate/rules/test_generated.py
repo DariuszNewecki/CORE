@@ -274,9 +274,6 @@ def test_trace():
         pytest.skip(f"trace unavailable: {exc}")
 
 
-
-
-
 # ID: 7b499423-053e-4eb6-93f1-d41596675561
 def test_role() -> None:
     module_path = "mind.logic.engines.publication_gate.rules"
@@ -308,3 +305,30 @@ def test_role() -> None:
     messages = [getattr(f, "message", str(f)) for f in findings]
     assert any("r1" in m for m in messages)
     assert any("r2" in m for m in messages)
+
+
+
+
+# ID: 4531c1e5-4eb6-4bfb-a9f9-2fd98f03faa6
+def test_reference():
+    fake_items = MagicMock(return_value=[])
+    fake_refs = MagicMock(return_value=[])
+    fake_finding = MagicMock(return_value="finding")
+
+    import importlib
+
+    module = importlib.import_module("mind.logic.engines.publication_gate.rules")
+
+    with (
+        patch.object(module, "_items", fake_items),
+        patch.object(module, "_refs", fake_refs),
+        patch.object(module, "_finding", fake_finding),
+    ):
+        reference = getattr(module, "reference")
+        record = {"items": {}, "known": []}
+        findings = reference(record, "ref_rule", {})
+
+    assert findings == []
+    fake_items.assert_called_once_with(record)
+    fake_refs.assert_not_called()
+    fake_finding.assert_not_called()
