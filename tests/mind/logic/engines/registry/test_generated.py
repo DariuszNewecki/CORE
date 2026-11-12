@@ -156,3 +156,59 @@ def test_EngineRegistry():
         EngineRegistry._llm_client = saved_llm
         EngineRegistry._embedding_client = saved_emb
         EngineRegistry._discovered = saved_discovered
+
+
+# ID: ef1d5572-6ec7-43d6-b2bc-be7c20711fc1
+def test_EngineRegistry_record_engine():
+    engine_id = "test_engine"
+
+    # ID: e210cacb-a16c-492a-be9d-d22124e010df
+    class FakeRecordEngine:
+        supports_records = True
+
+        def __init__(self):
+            self.initialized = True
+
+    with (
+        patch.object(EngineRegistry, "_discover_engines", MagicMock()) as mock_discover,
+        patch.object(
+            EngineRegistry,
+            "_engine_classes",
+            {engine_id: FakeRecordEngine},
+            create=True,
+        ),
+    ):
+        result = EngineRegistry.record_engine(engine_id)
+
+    mock_discover.assert_called_once()
+    assert isinstance(result, FakeRecordEngine)
+    assert result.initialized is True
+
+
+
+
+
+# ID: 03abc70e-4f84-470f-b939-13b00a49750f
+def test_EngineRegistry_record_catalogs() -> None:
+    engine_a = MagicMock()
+    engine_a.record_catalogs = MagicMock(return_value={"cat_a": {"id": "cat_a"}})
+    engine_b = MagicMock()
+    engine_b.record_catalogs = MagicMock(return_value={"cat_b": {"id": "cat_b"}})
+
+    with (
+        patch.object(
+            EngineRegistry,
+            "_discover_engines",
+            MagicMock(return_value=None),
+        ) as mock_discover,
+        patch.object(
+            EngineRegistry,
+            "_engine_classes",
+            {"engine_a": engine_a, "engine_b": engine_b},
+            create=True,
+        ),
+    ):
+        result = EngineRegistry.record_catalogs()
+
+    mock_discover.assert_called_once_with()
+    assert result == {"cat_a": {"id": "cat_a"}, "cat_b": {"id": "cat_b"}}

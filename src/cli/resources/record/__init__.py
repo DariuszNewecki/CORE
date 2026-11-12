@@ -1,3 +1,4 @@
+# src/cli/resources/record/__init__.py
 """Record commands: judge a resolved record against a record catalog (ADR-173)."""
 
 from __future__ import annotations
