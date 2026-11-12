@@ -38,7 +38,7 @@ from unittest.mock import MagicMock
 
 
 # ID: cfaeea5a-9dc1-4981-b7ff-b4e03b353269
-def test_dressing():
+def test_dressing(monkeypatch):
     module = importlib.import_module("mind.logic.engines.publication_gate.rules")
 
     # Patch internal helpers whose exact shapes are not guaranteed by the source.
@@ -61,11 +61,15 @@ def test_dressing():
     params = {"kind_of": {"policy": "document", "note": "other"}}
 
     fake_finding = MagicMock()
-    module._items = lambda rec: list(rec["items"].items())
-    module._kind_of = lambda p: dict(p.get("kind_of", {}))
-    module._value = lambda item: item
-    module._finding = lambda rule, item_id, message: MagicMock(
-        rule=rule, item_id=item_id, message=message
+    monkeypatch.setattr(module, "_items", lambda rec: list(rec["items"].items()))
+    monkeypatch.setattr(module, "_kind_of", lambda p: dict(p.get("kind_of", {})))
+    monkeypatch.setattr(module, "_value", lambda item: item)
+    monkeypatch.setattr(
+        module,
+        "_finding",
+        lambda rule, item_id, message: MagicMock(
+            rule=rule, item_id=item_id, message=message
+        ),
     )
 
     findings = module.dressing(record, "R001", params)
