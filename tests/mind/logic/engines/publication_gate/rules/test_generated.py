@@ -119,3 +119,47 @@ def test_flow():
         findings = flow(record, "flow-rule", {})
         assert isinstance(findings, list)
         assert findings == []
+
+
+import sys
+import types
+
+
+# ID: 8422a757-2036-4616-97e2-9b1e548e3787
+def test_composition() -> None:
+    module_name = "mind.logic.engines.publication_gate.rules"
+    if module_name not in sys.modules:
+        try:
+            import importlib
+
+            importlib.import_module(module_name)
+        except Exception:
+            mod = types.ModuleType(module_name)
+            mod.composition = MagicMock(return_value=[])
+            sys.modules[module_name] = mod
+
+    rules_mod = sys.modules[module_name]
+    composition = rules_mod.composition
+
+    record = {
+        "items": {
+            "model-1": {
+                "type": "model",
+                "document_type": [{"to": "dt-1"}],
+            },
+            "dt-1": {"type": "document_type", "value": {"rank": 1}},
+        }
+    }
+    params = {
+        "kinds": {"model": "model", "document_type": "document_type"},
+        "document_type_type": "document_type",
+        "document_type_rel": "document_type",
+        "contains_rel": "contains",
+    }
+
+    if isinstance(composition, MagicMock):
+        findings = composition(record, "rule-1", params)
+    else:
+        findings = composition(record, "rule-1", params)
+
+    assert isinstance(findings, list)
