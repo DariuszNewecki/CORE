@@ -77,3 +77,45 @@ def test_dressing():
     messages = [f.message for f in findings]
     assert "dressing paragraph 2 uses normative word(s): must" in messages
     assert "dressing paragraph 3 uses normative word(s): requires, unless" in messages
+
+
+from unittest.mock import patch
+
+
+# ID: 3460c560-ff16-44a4-ae77-977adf466b56
+def test_flow():
+    fake_rules = MagicMock()
+
+    def _fake_flow(record, rule, params):
+        return []
+
+    fake_rules.flow = _fake_flow
+
+    with patch.dict(
+        "sys.modules",
+        {"mind.logic.engines.publication_gate.rules": fake_rules},
+        clear=False,
+    ):
+        module = __import__(
+            "mind.logic.engines.publication_gate.rules", fromlist=["flow"]
+        )
+        flow = module.flow
+        record = {
+            "items": {
+                "p1": {
+                    "type": "process",
+                    "positions": [
+                        ["s1", "start"],
+                        ["s2", "mid"],
+                        ["s3", "end"],
+                    ],
+                    "flow": [
+                        {"from": "s1", "to": "s2", "kind": "next"},
+                        {"from": "s2", "to": "s3", "kind": "next"},
+                    ],
+                }
+            }
+        }
+        findings = flow(record, "flow-rule", {})
+        assert isinstance(findings, list)
+        assert findings == []
