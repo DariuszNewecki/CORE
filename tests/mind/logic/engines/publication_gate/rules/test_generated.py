@@ -241,7 +241,6 @@ def test_cross_reference():
     assert "doc:1" in finding["message"]
 
 
-
 import pytest
 
 
@@ -273,3 +272,39 @@ def test_trace():
         assert findings == []
     except Exception as exc:
         pytest.skip(f"trace unavailable: {exc}")
+
+
+
+
+
+# ID: 7b499423-053e-4eb6-93f1-d41596675561
+def test_role() -> None:
+    module_path = "mind.logic.engines.publication_gate.rules"
+    try:
+        import importlib
+
+        module = importlib.import_module(module_path)
+    except ImportError:
+        pytest.skip(f"module {module_path} is not importable in this environment")
+
+    role = module.role
+
+    record = {
+        "items": {
+            "n1": {
+                "type": "note",
+                "owner": "r1",
+                "refs": [{"rel": "role", "to": "r2"}],
+            },
+            "r1": {"type": "person"},
+            "r2": {"type": "team"},
+        }
+    }
+
+    findings = role(record, "ownership_role", {})
+
+    assert isinstance(findings, list)
+    assert len(findings) == 2
+    messages = [getattr(f, "message", str(f)) for f in findings]
+    assert any("r1" in m for m in messages)
+    assert any("r2" in m for m in messages)
