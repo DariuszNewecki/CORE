@@ -152,3 +152,11 @@ async def test_BaseEngine_verify():
     # Assert
     engine.verify.assert_awaited_once_with(file_path, params)
     assert result is not None
+
+
+
+
+# ID: d6238b51-ad6a-46a5-9746-c17831e14178
+def test_BaseEngine_record_catalogs():
+    result = BaseEngine.record_catalogs()
+    assert result == {}
