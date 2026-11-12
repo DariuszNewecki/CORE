@@ -20,3 +20,44 @@ def test_record_catalogs():
 
     mock_record_catalogs.assert_called_once_with()
     assert result == fake_catalogs
+
+
+import importlib
+
+
+# ID: eb3f8d14-7289-492f-b762-63e1752c7637
+def test_canonical_json() -> None:
+    # Resolve the module robustly regardless of package layout.
+    try:
+        module = importlib.import_module("mind.logic.record_contract")
+    except ModuleNotFoundError:
+        module = importlib.import_module("src.mind.logic.record_contract")
+    canonical_json = getattr(module, "canonical_json")
+
+    # Scalars
+    assert canonical_json(None) == "null"
+    assert canonical_json(True) == "true"
+    assert canonical_json(False) == "false"
+    assert canonical_json(42) == "42"
+    assert canonical_json("hi") == '"hi"'
+
+    # Arrays preserve order
+    assert canonical_json([1, 2, 3]) == "[1,2,3]"
+    assert canonical_json([1, "a", True, None]) == '[1,"a",true,null]'
+
+    # Object keys are sorted, no whitespace
+    assert canonical_json({"b": 1, "a": 2, "c": 3}) == '{"a":2,"b":1,"c":3}'
+    assert (
+        canonical_json({"z": [1, 2], "a": {"y": True, "x": None}})
+        == '{"a":{"x":null,"y":true},"z":[1,2]}'
+    )
+
+    # Nested/order independence: equal objects give identical text
+    left = {"one": 1, "two": [2, {"three": 3}]}
+    right = {"two": [2, {"three": 3}], "one": 1}
+    assert canonical_json(left) == canonical_json(right)
+
+    # Happy path guard for tuple handling and unsupported type rejection
+    assert canonical_json((1, 2)) == "[1,2]"
+    with pytest.raises(TypeError):
+        canonical_json({"bad": object()})
