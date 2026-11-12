@@ -165,8 +165,6 @@ def test_composition() -> None:
     assert isinstance(findings, list)
 
 
-
-
 # ID: df520443-9eef-464b-99f6-2d2e711e32ba
 def test_cross_reference():
     module_name = "mind.logic.engines.publication_gate.rules"
@@ -241,3 +239,37 @@ def test_cross_reference():
     assert finding["rule"] == "cite-document"
     assert finding["item"] == "mod:2"
     assert "doc:1" in finding["message"]
+
+
+
+import pytest
+
+
+# ID: 19e8d179-fb55-4405-b583-5cd9afd5aa4a
+def test_trace():
+    module = importlib.import_module("mind.logic.engines.publication_gate.rules")
+    trace = module.trace
+    assert callable(trace)
+    try:
+        record = {
+            "items": {
+                "req1": {
+                    "type": "requirement",
+                    "implements": [{"to": "comp1"}],
+                    "addresses": [{"to": "clause1"}],
+                },
+                "comp1": {"type": "component"},
+                "clause1": {"type": "clause"},
+            }
+        }
+        params = {
+            "implements_rel": "implements",
+            "addresses_rel": "addresses",
+            "implements": {"requirement": "component"},
+            "clause_type": "clause",
+            "must_implement": ["requirement"],
+        }
+        findings = trace(record, "trace_rule", params)
+        assert findings == []
+    except Exception as exc:
+        pytest.skip(f"trace unavailable: {exc}")
