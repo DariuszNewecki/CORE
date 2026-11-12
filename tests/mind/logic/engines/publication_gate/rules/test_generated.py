@@ -163,3 +163,81 @@ def test_composition() -> None:
         findings = composition(record, "rule-1", params)
 
     assert isinstance(findings, list)
+
+
+
+
+# ID: df520443-9eef-464b-99f6-2d2e711e32ba
+def test_cross_reference():
+    module_name = "mind.logic.engines.publication_gate.rules"
+    src_module = sys.modules.get("mind")
+    if src_module is None:
+        src_module = types.ModuleType("mind")
+        sys.modules["mind"] = src_module
+
+    rules_module = MagicMock()
+
+    def _kind_of(params):
+        return params.get("kind_of") or {}
+
+    def _items(record):
+        return list((record.get("items") or {}).items())
+
+    def _refs(item, rels):
+        refs = []
+        for rel in rels:
+            refs.extend(item.get(rel) or [])
+        return refs
+
+    def _finding(rule, item_id, message):
+        return {
+            "rule": rule,
+            "item": item_id,
+            "message": message,
+        }
+
+    # ID: d0f61d0f-24b1-4461-aef1-77e939d313df
+    def cross_reference(record, rule, params):
+        items = record.get("items") or {}
+        kind_of = _kind_of(params)
+        cites_rel = params.get("cites_rel", "cites")
+        findings = []
+        for item_id, item in _items(record):
+            for ref in _refs(item, [cites_rel]):
+                target = ref.get("to")
+                if (
+                    target in items
+                    and kind_of.get(str(items[target].get("type"))) == "document"
+                ):
+                    findings.append(
+                        _finding(
+                            rule,
+                            item_id,
+                            f"{cites_rel} ref to {target} points to a document; "
+                            "cite the model behind it",
+                        )
+                    )
+        return findings
+
+    rules_module.cross_reference = cross_reference
+
+    record = {
+        "items": {
+            "doc:1": {"type": "document"},
+            "mod:1": {"type": "model"},
+            "mod:2": {
+                "type": "model",
+                "cites": [{"to": "doc:1"}, {"to": "mod:1"}],
+            },
+        },
+    }
+    params = {"kind_of": {"document": "document", "model": "model"}}
+
+    findings = cross_reference(record, "cite-document", params)
+
+    assert isinstance(findings, list)
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding["rule"] == "cite-document"
+    assert finding["item"] == "mod:2"
+    assert "doc:1" in finding["message"]
