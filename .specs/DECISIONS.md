@@ -1665,7 +1665,7 @@ shape (#1328, prototype findings 1–5).
   `dressing`, `authority`) live in one engine in its own module; CORE's runtime does not depend on
   it (DEC-2026-138). Item kinds (`atom`, `model`, `molecule`, `document`) are catalog parameters,
   not code.
-- **D15 — Its catalog lives with the module**, not under `grc-catalogs/`. Its `provenance.yaml`
+- **D15 — Superseded by ADR-175.** Was: its catalog lives with the module, not under `grc-catalogs/`. Its `provenance.yaml`
   says: authored by the project, MIT. It states no law, so it is not a GRC catalog in the ADR-116
   sense, and it has no entry in `grc-catalogs/inventory.yaml`.
 - **D16 — "A rule fires"** means it runs and returns its own result, pass or fail. A rule
@@ -1690,6 +1690,7 @@ Record example (format `library-snapshot/1`):
  "pre_findings": [{"item": "M-4", "rule": "role", "message": "…", "blocking": false}]}
 ```
 
+Amended: ADR-175 (2026-11-12) — D15 superseded.  
 Enforced by: not enforced (nothing built yet; the contract lands with #1328).
 
 ## ADR-174 — Catalog contract: format schemas, checked at load; warnings in 3.x, refusals in 4.0
@@ -1723,6 +1724,22 @@ Loading did no validation: a requirement without `engine` raised `KeyError` mid-
 
 Enforced by: `src/body/services/grc/catalog_contract.py` (warnings only); the four bundled
 catalogs and `inventory.yaml` give none (`tests/body/services/grc/test_catalog_contract.py`).
+
+## ADR-175 — CORE's scope is code auditing; other engines are external plug-ins
+
+2026-11-12 · accepted: maintainer decision 2026-11-11  
+**Why.** ADR-173 D15 gave the publication engine's catalog a home inside CORE, next to the
+engine's module. That made CORE the home of an engine that judges records rather than code.  
+**Decision.**
+- **D1 — Scope.** CORE, released under MIT, audits code. An engine that judges anything else
+  is not part of CORE: it is an external plug-in, connected to CORE through the extension
+  manifest (#1339, phase 3).
+- **D2 — What shipped stays as shipped.** The publication engine and its catalog, released in
+  3.2.0, stay as they are. CORE gets no further work on them. They move out of CORE once the
+  extension manifest exists.
+- **D3 — Supersedes ADR-173 D15.**
+
+Enforced by: not enforced (the move waits for the extension manifest, #1339).
 
 ## Governor rulings
 
