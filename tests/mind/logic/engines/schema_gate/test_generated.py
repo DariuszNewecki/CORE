@@ -50,3 +50,26 @@ async def test_SchemaGateEngine_evaluate_record():
     # schema mismatch is a blocking finding per evaluate_record contract
     assert all(f.blocking for f in findings)
     assert findings[0].item == "item-1"
+
+
+import asyncio
+from pathlib import Path
+
+
+# ID: 801d1fa7-839d-48c0-a87a-8c7f4552f768
+def test_SchemaGateEngine_verify() -> None:
+    # Arrange: no external I/O needed; verify() only builds an EngineResult.
+    engine = SchemaGateEngine()
+    file_path = Path("/tmp/some_record_file.json")
+    params: dict = {"any": "param"}
+
+    # Act
+    result = asyncio.run(engine.verify(file_path, params))
+
+    # Assert happy path: file is not evaluated — neither pass nor fail
+    assert result.ok is True
+    assert result.violations == []
+    assert result.engine_id == engine.engine_id
+    assert "schema_gate" in result.message
+    assert "file not evaluated" in result.message
+    assert result.extra
