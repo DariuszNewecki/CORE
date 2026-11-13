@@ -73,3 +73,24 @@ def test_SchemaGateEngine_verify() -> None:
     assert "schema_gate" in result.message
     assert "file not evaluated" in result.message
     assert result.extra
+
+
+
+
+
+# ID: 3eeb6279-1ec1-4577-b9f1-191bd9e30c7e
+def test_SchemaGateEngine():
+    engine = SchemaGateEngine()
+
+    schema = {
+        "type": "object",
+        "properties": {"value": {"type": "integer"}},
+        "required": ["value"],
+    }
+    params = {"schema": schema, "field": "value"}
+    record = {"item1": {"value": 1}, "item2": {"value": 2}}
+
+    part = asyncio.run(engine.evaluate_record(record, "rule-1", params))
+
+    assert part is not None
+    assert list(part.findings) == []
