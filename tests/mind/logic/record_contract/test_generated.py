@@ -202,3 +202,26 @@ def test_aggregate():
 
     assert result == "pass"
     assert evidence_class == EvidenceClass.ATTESTED
+
+
+
+from mind.logic.record_contract import in_scope
+
+
+# ID: 36ecd3bb-532e-452e-a754-b322c4d6a0ad
+def test_in_scope():
+    finding = MagicMock()
+    finding.item = "alpha"
+
+    # No scope -> always in scope
+    assert in_scope(finding, None) is True
+
+    # Scope contains the item -> counts
+    assert in_scope(finding, frozenset({"alpha", "beta"})) is True
+
+    # Scope excludes the item -> does not count
+    assert in_scope(finding, frozenset({"beta", "gamma"})) is False
+
+    # Record-wide finding (no item) -> always counts regardless of scope
+    finding.item = None
+    assert in_scope(finding, frozenset({"beta"})) is True
