@@ -158,3 +158,25 @@ def test_record_items():
 
     assert record_items({"items": None}) == []
     assert record_items({}) == []
+
+
+
+from mind.logic.record_contract import engine_part
+
+
+# ID: 0d00f645-d705-482f-b84b-85b9402f02a1
+def test_engine_part():
+    engine = MagicMock()
+    engine.engine_id = "engine-42"
+    type(engine).evidence_class = "test-evidence"
+
+    finding_one = MagicMock()
+    finding_two = MagicMock()
+
+    result = engine_part(engine, "rule-1", [finding_one, finding_two])
+
+    assert result.rule_id == "rule-1"
+    assert result.engine_id == "engine-42"
+    assert result.evidence_class == "test-evidence"
+    assert result.findings == (finding_one, finding_two)
+    assert result.result is not None
