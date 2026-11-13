@@ -263,3 +263,26 @@ def test_part_result():
     assert part_result([non_blocking, non_blocking]) == "undecided"
     assert part_result([blocking]) == "fail"
     assert part_result([non_blocking, blocking]) == "fail"
+
+
+from mind.logic.record_contract import RecordRule
+
+
+# ID: 2c331824-c3a1-443c-bc52-67592796a7b2
+def test_RecordRule():
+    rule = RecordRule(rule_id="req-001", engine="some_engine")
+
+    assert rule.rule_id == "req-001"
+    assert rule.engine == "some_engine"
+    assert rule.params == {}
+    assert rule.blocking is True
+
+    rule_with_params = RecordRule(
+        rule_id="req-002",
+        engine="other_engine",
+        params={"threshold": 5},
+        blocking=False,
+    )
+
+    assert rule_with_params.params == {"threshold": 5}
+    assert rule_with_params.blocking is False
