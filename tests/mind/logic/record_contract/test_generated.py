@@ -348,3 +348,40 @@ def test_RulePart() -> None:
     assert part.evidence_class == "static"
     assert part.result == "pass"
     assert part.findings == ()
+
+
+from mind.logic.record_contract import RecordFinding
+
+
+# ID: 2aa3c459-c7fe-4554-8f9a-664674ac9b4c
+def test_RecordFinding():
+    finding = RecordFinding(
+        rule="RULE-X",
+        message="something went wrong",
+        blocking=True,
+    )
+
+    assert finding.rule == "RULE-X"
+    assert finding.message == "something went wrong"
+    assert finding.blocking is True
+    assert finding.item is None
+    assert finding.carried is False
+    assert finding.details == {}
+
+    detailed = RecordFinding(
+        rule="RULE-Y",
+        message="item-level issue",
+        blocking=False,
+        item="item-1",
+        carried=True,
+        details={"severity": "low"},
+    )
+
+    assert detailed.item == "item-1"
+    assert detailed.carried is True
+    assert detailed.details == {"severity": "low"}
+
+    # default_factory must produce independent mappings per instance
+    first = RecordFinding(rule="R", message="m", blocking=False)
+    second = RecordFinding(rule="R", message="m", blocking=False)
+    assert first.details is not second.details
