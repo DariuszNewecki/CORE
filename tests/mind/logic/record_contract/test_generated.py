@@ -126,3 +126,35 @@ async def test_evaluate():
     mock_carried.assert_called_once_with(record)
     mock_aggregate.assert_called_once()
     assert result.outcome == "pass"
+
+
+from mind.logic.record_contract import record_items
+
+
+# ID: 535611be-023a-4546-b041-211c5975eaa5
+def test_record_items():
+    record = {
+        "items": {
+            "b": {"type": "defect", "value": 2},
+            "a": {"type": "requirement", "value": 1},
+            "c": {"type": "defect", "value": 3},
+            "d": "not-a-mapping",
+        }
+    }
+
+    result = record_items(record)
+
+    assert result == [
+        ("a", {"type": "requirement", "value": 1}),
+        ("b", {"type": "defect", "value": 2}),
+        ("c", {"type": "defect", "value": 3}),
+    ]
+
+    filtered = record_items(record, item_types=["defect"])
+    assert filtered == [
+        ("b", {"type": "defect", "value": 2}),
+        ("c", {"type": "defect", "value": 3}),
+    ]
+
+    assert record_items({"items": None}) == []
+    assert record_items({}) == []
