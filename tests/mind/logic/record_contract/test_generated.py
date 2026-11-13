@@ -61,3 +61,27 @@ def test_canonical_json() -> None:
     assert canonical_json((1, 2)) == "[1,2]"
     with pytest.raises(TypeError):
         canonical_json({"bad": object()})
+
+
+import hashlib
+from unittest.mock import patch
+
+
+# ID: 7e12b131-1a5b-4482-bbc4-984362b7e960
+def test_record_sha256():
+    from mind.logic.record_contract import record_sha256
+
+    record = {"scope": "example", "value": 42}
+    canonical = '{"scope":"example","value":42}'
+    expected = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    with patch(
+        "mind.logic.record_contract.canonical_json",
+        return_value=canonical,
+    ) as mock_canonical:
+        result = record_sha256(record)
+
+    mock_canonical.assert_called_once_with(record)
+    assert result == expected
+    assert isinstance(result, str)
+    assert len(result) == 64
