@@ -204,7 +204,6 @@ def test_aggregate():
     assert evidence_class == EvidenceClass.ATTESTED
 
 
-
 from mind.logic.record_contract import in_scope
 
 
@@ -225,3 +224,24 @@ def test_in_scope():
     # Record-wide finding (no item) -> always counts regardless of scope
     finding.item = None
     assert in_scope(finding, frozenset({"beta"})) is True
+
+
+from mind.logic.record_contract import record_scope
+
+
+# ID: 09efd7f5-2519-4cb2-9759-d144bbae53dc
+def test_record_scope():
+    # No scope key present -> judge everything
+    assert record_scope({}) is None
+
+    # Explicit None scope -> judge everything
+    assert record_scope({"scope": None}) is None
+
+    # Scope present as a list -> frozenset of str ids
+    result = record_scope({"scope": ["a", "b", "b"]})
+    assert isinstance(result, frozenset)
+    assert result == frozenset({"a", "b"})
+
+    # Scope with mixed int/str items -> coerced to str
+    coerced = record_scope({"scope": [1, 2, "x"]})
+    assert coerced == frozenset({"1", "2", "x"})
