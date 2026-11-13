@@ -308,7 +308,6 @@ def test_RecordVerdict_rule_ids():
     assert isinstance(result, tuple)
 
 
-
 from mind.logic.record_contract import RecordVerdict
 
 
@@ -330,3 +329,22 @@ def test_RecordVerdict() -> None:
     assert verdict.record_sha256 == "a" * 64
     assert verdict.parts == (part_a, part_b)
     assert verdict.rule_ids == ("rule-alpha", "rule-beta")
+
+
+from mind.logic.record_contract import RulePart
+
+
+# ID: 4482d57a-4900-4d10-859b-73e86c55867f
+def test_RulePart() -> None:
+    part = RulePart(
+        rule_id="rule-001",
+        engine_id="engine-alpha",
+        evidence_class="static",
+        result="pass",
+    )
+
+    assert part.rule_id == "rule-001"
+    assert part.engine_id == "engine-alpha"
+    assert part.evidence_class == "static"
+    assert part.result == "pass"
+    assert part.findings == ()
