@@ -85,3 +85,44 @@ def test_record_sha256():
     assert result == expected
     assert isinstance(result, str)
     assert len(result) == 64
+
+
+from unittest.mock import AsyncMock, MagicMock
+
+import mind.logic.record_contract as record_contract
+from mind.logic.record_contract import evaluate
+
+
+# ID: c26a0303-ba4f-45ff-b177-766803726683
+async def test_evaluate():
+    record = {"engine": "test-engine", "scope": "unit"}
+
+    fake_verdict = MagicMock()
+    fake_lookup = MagicMock(
+        return_value=MagicMock(evaluate_record=AsyncMock(return_value=fake_verdict))
+    )
+
+    rule = MagicMock()
+    rule.rule_id = "rule-1"
+
+    with (
+        patch.object(record_contract, "_rule_part", new=AsyncMock()) as mock_rule_part,
+        patch.object(record_contract, "_carried", return_value=[]) as mock_carried,
+        patch.object(record_contract, "record_scope", return_value="unit"),
+        patch.object(record_contract, "_settle", side_effect=lambda p, m, s: p),
+        patch.object(
+            record_contract, "aggregate", return_value=("pass", MagicMock())
+        ) as mock_aggregate,
+        patch.object(record_contract, "record_sha256", return_value="deadbeef"),
+        patch.object(record_contract, "RecordVerdict") as mock_verdict_cls,
+    ):
+        part = MagicMock()
+        mock_rule_part.return_value = part
+        mock_verdict_cls.return_value = MagicMock(outcome="pass", parts=(part,))
+
+        result = await evaluate(record, [rule], engine_lookup=fake_lookup)
+
+    mock_rule_part.assert_awaited_once()
+    mock_carried.assert_called_once_with(record)
+    mock_aggregate.assert_called_once()
+    assert result.outcome == "pass"
