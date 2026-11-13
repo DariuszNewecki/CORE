@@ -186,3 +186,35 @@ async def test_ProposalRepository_list_by_status():
     mock_scalars.all.assert_called_once()
     mock_mapper.from_db_model.assert_called_once_with(mock_proposal_model)
     assert proposals == [sentinel_proposal]
+
+
+
+import pytest
+
+
+@pytest.mark.asyncio
+# ID: 09ec1920-69d1-4e1d-a0a6-7032a740f7c9
+async def test_ProposalRepository_flow_targets():
+    session = MagicMock()
+
+    result_mock = MagicMock()
+    result_mock.all.return_value = [
+        ("alpha", "beta"),
+        ("gamma", "delta"),
+        ("alpha", "beta"),  # duplicate to confirm set dedup
+    ]
+    session.execute = AsyncMock(return_value=result_mock)
+
+    repo = ProposalRepository(session)
+
+    statuses = [MagicMock(value="pending"), MagicMock(value="in_review")]
+
+    out = await repo.flow_targets(
+        flow_id="flow-123",
+        statuses=statuses,
+        param_keys=("source", "target"),
+    )
+
+    assert out == {("alpha", "beta"), ("gamma", "delta")}
+    session.execute.assert_awaited_once()
+    result_mock.all.assert_called_once()
