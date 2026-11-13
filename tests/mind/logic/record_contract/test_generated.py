@@ -288,8 +288,6 @@ def test_RecordRule():
     assert rule_with_params.blocking is False
 
 
-
-
 # ID: 705df778-1f92-4770-81e1-c8c8a61b6399
 def test_RecordVerdict_rule_ids():
     from mind.logic.record_contract import RecordVerdict
@@ -308,3 +306,27 @@ def test_RecordVerdict_rule_ids():
 
     assert result == ("RULE_A", "RULE_B", "RULE_C")
     assert isinstance(result, tuple)
+
+
+
+from mind.logic.record_contract import RecordVerdict
+
+
+# ID: 75026a87-8dea-4212-bbe2-113c5bf514ad
+def test_RecordVerdict() -> None:
+    part_a = MagicMock()
+    part_a.rule_id = "rule-alpha"
+    part_b = MagicMock()
+    part_b.rule_id = "rule-beta"
+
+    verdict = RecordVerdict(
+        outcome="pass",
+        evidence_class=MagicMock(),
+        record_sha256="a" * 64,
+        parts=(part_a, part_b),
+    )
+
+    assert verdict.outcome == "pass"
+    assert verdict.record_sha256 == "a" * 64
+    assert verdict.parts == (part_a, part_b)
+    assert verdict.rule_ids == ("rule-alpha", "rule-beta")
