@@ -185,9 +185,6 @@ def test_EngineRegistry_record_engine():
     assert result.initialized is True
 
 
-
-
-
 # ID: 03abc70e-4f84-470f-b939-13b00a49750f
 def test_EngineRegistry_record_catalogs() -> None:
     engine_a = MagicMock()
@@ -212,3 +209,40 @@ def test_EngineRegistry_record_catalogs() -> None:
 
     mock_discover.assert_called_once_with()
     assert result == {"cat_a": {"id": "cat_a"}, "cat_b": {"id": "cat_b"}}
+
+
+
+
+# ID: ab1b97a9-cd0f-4d3d-89e4-97c83a57e87c
+def test_EngineRegistry_known_engine_ids():
+    from mind.logic.engines.registry import PASSIVE_ALIASES, EngineRegistry
+
+    original_engine_classes = getattr(EngineRegistry, "_engine_classes", None)
+    had_engine_classes = "_engine_classes" in EngineRegistry.__dict__
+
+    # Arrange: pretend discovery already found two engines.
+    EngineRegistry._engine_classes = {
+        "alpha_engine": MagicMock(),
+        "beta_engine": MagicMock(),
+    }
+
+    with patch.object(EngineRegistry, "_discover_engines") as mock_discover:
+        try:
+            # Act
+            result = EngineRegistry.known_engine_ids()
+
+            # Assert
+            mock_discover.assert_called_once_with()
+            assert isinstance(result, frozenset)
+            assert result == frozenset({"alpha_engine", "beta_engine"}) | frozenset(
+                PASSIVE_ALIASES
+            )
+            assert "alpha_engine" in result
+            assert "beta_engine" in result
+            for alias in PASSIVE_ALIASES:
+                assert alias in result
+        finally:
+            if had_engine_classes:
+                EngineRegistry._engine_classes = original_engine_classes
+            elif "_engine_classes" in EngineRegistry.__dict__:
+                del EngineRegistry._engine_classes

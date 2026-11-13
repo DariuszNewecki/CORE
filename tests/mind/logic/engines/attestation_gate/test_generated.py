@@ -71,3 +71,40 @@ def test_AttestationGateEngine():
     assert result.ok is True
     assert result.engine_id == engine.engine_id
     assert result.violations == []
+
+
+from unittest.mock import patch
+
+
+# ID: e778189f-71ac-4cb8-9260-f303134f67aa
+def test_attestation_gate_engine_evaluate_record():
+    from mind.logic.engines.attestation_gate import AttestationGateEngine
+
+    engine = AttestationGateEngine.__new__(AttestationGateEngine)
+
+    record = {"some": "record"}
+    rule = "rule-1"
+    params = {"prompt": "Please attest to the build.", "reference": "ref-123"}
+
+    mock_part = MagicMock(name="engine_part_result")
+    with patch(
+        "mind.logic.engines.attestation_gate.engine_part",
+        return_value=mock_part,
+    ) as mock_engine_part:
+        result = asyncio.run(engine.evaluate_record(record, rule, params))
+
+    assert result is mock_part
+    mock_engine_part.assert_called_once()
+    args = mock_engine_part.call_args.args
+    assert args[0] is engine
+    assert args[1] == rule
+    findings = args[2]
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.rule == rule
+    assert finding.blocking is False
+    assert "HUMAN ATTESTATION REQUIRED" in finding.message
+    assert params["prompt"] in finding.message
+    assert finding.details["finding_type"] == "REQUIRES_ATTESTATION"
+    assert finding.details["attestation_prompt"] == params["prompt"]
+    assert finding.details["reference"] == params["reference"]
