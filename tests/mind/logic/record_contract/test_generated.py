@@ -245,3 +245,21 @@ def test_record_scope():
     # Scope with mixed int/str items -> coerced to str
     coerced = record_scope({"scope": [1, 2, "x"]})
     assert coerced == frozenset({"1", "2", "x"})
+
+
+# ID: 495daec2-f30d-4cc5-b625-85ffc3190478
+def test_part_result():
+    from unittest.mock import MagicMock
+
+    from mind.logic.record_contract import part_result
+
+    blocking = MagicMock()
+    blocking.blocking = True
+    non_blocking = MagicMock()
+    non_blocking.blocking = False
+
+    assert part_result([]) == "pass"
+    assert part_result([non_blocking]) == "undecided"
+    assert part_result([non_blocking, non_blocking]) == "undecided"
+    assert part_result([blocking]) == "fail"
+    assert part_result([non_blocking, blocking]) == "fail"
