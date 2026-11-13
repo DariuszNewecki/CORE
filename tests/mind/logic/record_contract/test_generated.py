@@ -286,3 +286,25 @@ def test_RecordRule():
 
     assert rule_with_params.params == {"threshold": 5}
     assert rule_with_params.blocking is False
+
+
+
+
+# ID: 705df778-1f92-4770-81e1-c8c8a61b6399
+def test_RecordVerdict_rule_ids():
+    from mind.logic.record_contract import RecordVerdict
+
+    part_a = MagicMock()
+    part_a.rule_id = "RULE_A"
+    part_b = MagicMock()
+    part_b.rule_id = "RULE_B"
+    part_c = MagicMock()
+    part_c.rule_id = "RULE_C"
+
+    verdict = MagicMock(spec=RecordVerdict)
+    verdict.parts = (part_a, part_b, part_c)
+
+    result = RecordVerdict.rule_ids.fget(verdict)
+
+    assert result == ("RULE_A", "RULE_B", "RULE_C")
+    assert isinstance(result, tuple)
