@@ -160,7 +160,6 @@ def test_record_items():
     assert record_items({}) == []
 
 
-
 from mind.logic.record_contract import engine_part
 
 
@@ -180,3 +179,26 @@ def test_engine_part():
     assert result.evidence_class == "test-evidence"
     assert result.findings == (finding_one, finding_two)
     assert result.result is not None
+
+
+from mind.logic.record_contract import aggregate
+
+
+# ID: 4bb15e5c-6532-439c-8de1-d103c7a18cac
+def test_aggregate():
+    class _Part:
+        def __init__(self, result, evidence_class):
+            self.result = result
+            self.evidence_class = evidence_class
+
+    from mind.logic.record_contract import EvidenceClass
+
+    parts = [
+        _Part("pass", EvidenceClass.ATTESTED),
+        _Part("pass", EvidenceClass.PROVEN),
+    ]
+
+    result, evidence_class = aggregate(parts)
+
+    assert result == "pass"
+    assert evidence_class == EvidenceClass.ATTESTED
