@@ -97,3 +97,34 @@ def test_declaration_problems():
 
     problems = declaration_problems(ValidEngine)
     assert problems == []
+
+
+import inspect
+
+
+# ID: 7be49978-8c50-4f1a-b556-6cf525fcbe34
+def test_required_constructor_params():
+    # ID: 7e1e10bb-0f52-4284-9f4c-d4d1255e82c8
+    def required_constructor_params(engine_cls: type) -> frozenset[str]:
+        try:
+            params = list(inspect.signature(engine_cls.__init__).parameters.items())
+        except (TypeError, ValueError):
+            return frozenset()
+        return frozenset(
+            name
+            for name, param in params
+            if name != "self"
+            and param.kind
+            not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+            and param.default is inspect.Parameter.empty
+        )
+
+    # ID: cd60a029-ff94-4df2-91db-9455d38e8461
+    class Engine:
+        def __init__(self, name: str, count: int = 3, *args, **kwargs):
+            self.name = name
+            self.count = count
+
+    result = required_constructor_params(Engine)
+
+    assert result == frozenset({"name"})
