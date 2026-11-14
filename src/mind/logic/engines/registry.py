@@ -35,6 +35,12 @@ PASSIVE_ALIASES: set[str] = {
 }
 
 
+# ID: 5e62aff7-edfd-4808-8833-9dd9ebc63757
+class DuplicateEngineIdError(RuntimeError):
+    """Two different engine classes declare the same engine_id (ADR-176 D5a).
+    CORE refuses to start rather than let one replace the other silently."""
+
+
 # ID: f80b6018-9642-4f69-bfcb-d5ab35f7b1d1
 class EngineRegistry:
     """
@@ -92,14 +98,40 @@ class EngineRegistry:
                 module = importlib.import_module(
                     f".{name}", package="mind.logic.engines"
                 )
-                for _, obj in inspect.getmembers(module, inspect.isclass):
-                    if issubclass(obj, BaseEngine) and obj is not BaseEngine:
-                        eid = getattr(obj, "engine_id", name)
-                        cls._engine_classes[eid] = obj
+                found = [
+                    obj
+                    for _, obj in inspect.getmembers(module, inspect.isclass)
+                    if issubclass(obj, BaseEngine) and obj is not BaseEngine
+                ]
             except Exception as e:
+                # ADR-176 D7: a module that fails to import stays a warning.
                 logger.warning("Failed to load engine module %s: %s", name, e)
+                continue
+            # Outside the try: a refusal (ADR-176 D5a) is not an import failure.
+            for obj in found:
+                cls._register(obj, default_id=name)
 
         cls._discovered = True
+
+    @classmethod
+    def _register(cls, engine_cls: type, *, default_id: str) -> None:
+        """The one registration point (ADR-176 D4): every engine class enters
+        the registry here, whatever source found it.
+
+        D5(a): a different class with an id already held refuses the start
+        and names both; the same class met twice (re-exported by another
+        module) is not a duplicate.
+        """
+        engine_id = getattr(engine_cls, "engine_id", default_id)
+        held = cls._engine_classes.get(engine_id)
+        if held is not None and held is not engine_cls:
+            raise DuplicateEngineIdError(
+                f"Two engines declare engine_id {engine_id!r}: "
+                f"{held.__module__}.{held.__qualname__} and "
+                f"{engine_cls.__module__}.{engine_cls.__qualname__} "
+                "(ADR-176 D5(a))"
+            )
+        cls._engine_classes[engine_id] = engine_cls
 
     @classmethod
     def _load_passive_aliases_from_taxonomy(cls) -> None:
@@ -219,7 +251,10 @@ class EngineRegistry:
             raise ValueError(f"Unsupported Governance Engine: {engine_id}")
         if not getattr(klass, "supports_records", False):
             raise ValueError(f"Engine {engine_id} does not judge records")
-        return klass()
+        # ADR-176 D3: built at most once per registry initialization, like get().
+        if engine_id not in cls._instances:
+            cls._instances[engine_id] = klass()
+        return cls._instances[engine_id]
 
     @classmethod
     # ID: 69a7916b-b8f4-4509-bb2c-897eec528adf

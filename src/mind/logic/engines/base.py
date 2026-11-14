@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Final
 
 from shared.models.audit_models import EvidenceClass
 
@@ -29,6 +29,10 @@ if TYPE_CHECKING:
 # the common pre-#548 shape (e.g. f"Line {node.lineno}: Forbidden primitive...").
 # Used by extract_line_number as the regex fallback when no structured
 # line key is present in the violation's details.
+# ADR-176 D3: the major version of the engine interface this CORE implements.
+# A breaking change to the interface is version "2", announced in the CHANGELOG.
+CORE_ENGINE_API: Final[str] = "1"
+
 _EMBEDDED_LINE_RE = re.compile(r"\b[Ll]ine\s+(\d+)\b")
 
 
@@ -153,6 +157,11 @@ class BaseEngine(ABC):
     # class degrades to the weakest, never to a false PROVEN (ADR-113 D3).
     # Deterministic gates override to PROVEN; llm_gate to JUDGED.
     evidence_class: ClassVar[EvidenceClass] = EvidenceClass.ATTESTED
+
+    # ADR-176 D2: the major version of the engine interface this engine was
+    # written for. A literal "1", not CORE_ENGINE_API: when CORE moves to "2",
+    # an engine that never declared a version must still say "1".
+    api_version: ClassVar[str] = "1"
 
     # Engines that handle a fixed set of named check_types at context-level
     # declare those names here. is_context_level_for (below) dispatches against
