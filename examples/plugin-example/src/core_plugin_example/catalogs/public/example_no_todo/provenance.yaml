@@ -1,0 +1,9 @@
+format_version: 1
+
+framework: "Example: documents carry no TODO marker"
+tier: public
+catalog: catalog.yaml
+
+source:
+  publisher: "CORE example plug-in"
+  document: "Written for this example; derived from no external source."

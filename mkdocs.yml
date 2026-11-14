@@ -37,6 +37,7 @@ nav:
               - Run the full runtime: getting-started.md
               - Run a GRC gap analysis: grc-gap-analysis.md
               - Check a record against a catalog: record-check.md
+              - Write a CORE plug-in: write-a-plugin.md
               - Upgrade a CORE database: upgrading.md
               - Recover a CORE install: recovery.md
       - Reference:

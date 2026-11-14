@@ -19,8 +19,24 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
   requires a parameter CORE does not inject produces a warning in 3.x and becomes a refusal in 4.0.
   `EngineRegistry.engine_class(engine_id)` returns an engine's class without building it.
 
+- **Plug-ins (#1339, #1327, ADR-177):** an installed package with an entry point in the group `core.plugins`
+  brings engines, catalogs and governance packs. CORE finds every installed plug-in by itself, checks its
+  manifest (`plugin_manifest.schema.json`) and its `core_engine_api`, and takes its engines, catalogs and packs
+  through the same checks as its own. A broken plug-in is skipped with a warning; an engine, catalog or pack id
+  shared with CORE or another plug-in stops CORE. The log has one line per plug-in with its version and a
+  fingerprint, and `code audit --format json` lists the plug-ins a run used. `mind.engine_api` is the one public
+  import path for engines; `core-admin plugin list` and `core-admin plugin check <name>` (a report to keep as
+  validation evidence) are new. Example in `examples/plugin-example/`; guide in "Write a CORE plug-in".
+
 ### Fixed
 
+- **`knowledge_gate.verify` was not async (ADR-176 D2):** every caller awaits it; found by the new conformance
+  check.
+- **`artifact_gate` crashed on a `model.yaml` whose top level is not a mapping:** it now reports a violation;
+  found by the plug-in run check.
+- **Full audit passed an llm_gate rule silently with no LLM (#1454):** it now gives the "no LLM client" warning.
+- **Unknown engine id (#1458):** the full audit and gap analysis now give the engine-missing finding (the full
+  audit reported a crash; gap analysis stopped).
 - **Record engines built once (#1459):** the record path built a new engine for every rule; it now builds each
   engine once per registry initialization, as file audits do.
 

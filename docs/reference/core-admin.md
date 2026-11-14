@@ -4,7 +4,7 @@
 
 The operator CLI, shipped in `core-runtime`. Generated from the command tree in this repository; see the [CLI overview](../cli-reference.md) for which binary does what.
 
-116 commands.
+118 commands.
 
 | Group | Commands | Purpose |
 |---|---|---|
@@ -27,6 +27,7 @@ The operator CLI, shipped in `core-runtime`. Generated from the command tree in 
 | [`law`](#law) | 10 | Grounded answers about this repository's law, with sources. |
 | [`llm-resources`](#llm-resources) | 4 | core.llm_resources authoring/validation surface. |
 | [`mcp`](#mcp) | 1 | The assistant surface over MCP: law, decisions and verdict for any AI assistant. |
+| [`plugin`](#plugin) | 2 | List installed plug-ins and check one against the plug-in contract. |
 | [`project`](#project) | 3 | Operations for project lifecycle: scaffolding. |
 | [`promote`](#promote) | 1 | Promotions: main's commits the governor approves to run live. |
 | [`record`](#record) | 1 | Judge a resolved record (library-snapshot/1) against a record catalog. |
@@ -1475,6 +1476,53 @@ Example: claude mcp add --scope project core -- core-admin mcp run
 | Argument / option | Default | Description |
 |---|---|---|
 | `--repo` |  | The project to serve (it, or a parent, must hold .intent/). Default: the working directory. Assistants that do not promise a working directory pass the project root here. |
+
+---
+
+## `core-admin plugin` {#plugin}
+
+List installed plug-ins and check one against the plug-in contract.
+
+### `core-admin plugin check` {#plugin-check}
+
+```
+core-admin plugin check NAME [OPTIONS]
+```
+
+Check an installed plug-in against the plug-in contract (ADR-177).
+
+Checks the manifest, each engine (declarations, a run on a minimal
+input), id collisions with CORE and other plug-ins, and the plug-in's
+catalogs and packs. Exit codes: 0 conforms, 1 problems found, 3 the
+command could not run (no such plug-in, bad option). Stores nothing.
+
+Examples:
+    core-admin plugin check my-plugin
+    core-admin plugin check my-plugin --format json > plugin-check.json
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `NAME` | required | The plug-in's package name, as installed. |
+| `--format` | `text` | `text` (default) or `json` (format plugin-check/1). |
+
+### `core-admin plugin list` {#plugin-list}
+
+```
+core-admin plugin list [OPTIONS]
+```
+
+List the installed plug-ins CORE loads, with version and fingerprint.
+
+A plug-in that fails its manifest checks is not listed; run
+`core-admin plugin check <name>` to see why.
+
+Examples:
+    core-admin plugin list
+    core-admin plugin list --format json
+
+| Argument / option | Default | Description |
+|---|---|---|
+| `--format` | `text` | `text` (default) or `json`. |
 
 ---
 

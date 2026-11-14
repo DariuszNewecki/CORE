@@ -94,8 +94,46 @@ def installed_plugins(
     return plugins
 
 
+@dataclass(frozen=True)
+# ID: 4a3628df-77a4-4a3e-99b3-e46fc38f60c9
+class PluginInspection:
+    """What loading one installed plug-in found: the plug-in when it loads,
+    and every reason it would be skipped or lose an engine."""
+
+    name: str
+    version: str
+    plugin: InstalledPlugin | None
+    problems: tuple[str, ...]
+
+
+# ID: 17d0e20f-6e04-4887-99eb-9af20882d77b
+def inspect_plugin(
+    name: str, core_engine_api: str = CORE_ENGINE_API
+) -> PluginInspection | None:
+    """Load the installed plug-in ``name`` without logging and return what
+    was found, or None when no installed package declares a ``core.plugins``
+    entry point under that name."""
+    for entry_point in importlib.metadata.entry_points(group=ENTRY_POINT_GROUP):
+        if _dist_name(entry_point) != name:
+            continue
+        dist = entry_point.dist
+        problems: list[str] = []
+        plugin = _load(entry_point, core_engine_api, log=False, problems=problems)
+        return PluginInspection(
+            name=name,
+            version=dist.version if dist is not None else "unknown",
+            plugin=plugin,
+            problems=tuple(problems),
+        )
+    return None
+
+
 def _load(
-    entry_point: importlib.metadata.EntryPoint, core_engine_api: str, *, log: bool
+    entry_point: importlib.metadata.EntryPoint,
+    core_engine_api: str,
+    *,
+    log: bool,
+    problems: list[str] | None = None,
 ) -> InstalledPlugin | None:
     dist = entry_point.dist
     name = _dist_name(entry_point)
@@ -104,15 +142,23 @@ def _load(
     try:
         manifest = entry_point.load()
     except Exception as exc:
-        _skip(log, label, f"its manifest {entry_point.value!r} cannot be loaded: {exc}")
+        _skip(
+            log,
+            problems,
+            label,
+            f"its manifest {entry_point.value!r} cannot be loaded: {exc}",
+        )
         return None
     if not isinstance(manifest, Mapping):
-        _skip(log, label, f"its manifest {entry_point.value!r} is not a mapping")
+        _skip(
+            log, problems, label, f"its manifest {entry_point.value!r} is not a mapping"
+        )
         return None
     errors = _schema_errors(dict(manifest))
     if errors:
         _skip(
             log,
+            problems,
             label,
             "its manifest fails plugin_manifest.schema.json: " + "; ".join(errors),
         )
@@ -120,6 +166,7 @@ def _load(
     if manifest["core_engine_api"] != core_engine_api:
         _skip(
             log,
+            problems,
             label,
             f"it was built for core_engine_api {manifest['core_engine_api']!r}; "
             f"this CORE supports {core_engine_api!r}",
@@ -131,14 +178,20 @@ def _load(
         version=version,
         core_engine_api=manifest["core_engine_api"],
         root=root,
-        engines=tuple(_import_engines(label, manifest.get("engines") or [], log=log)),
+        engines=tuple(
+            _import_engines(
+                label, manifest.get("engines") or [], log=log, problems=problems
+            )
+        ),
         catalogs=root / manifest["catalogs"] if manifest.get("catalogs") else None,
         packs=root / manifest["packs"] if manifest.get("packs") else None,
         fingerprint=fingerprint(dist),
     )
 
 
-def _skip(log: bool, label: str, why: str) -> None:
+def _skip(log: bool, problems: list[str] | None, label: str, why: str) -> None:
+    if problems is not None:
+        problems.append(why)
     if not log:
         return
     logger.warning(
@@ -161,13 +214,17 @@ def _package_root(entry_point: importlib.metadata.EntryPoint) -> Path:
     return Path(str(importlib.resources.files(top)))
 
 
-def _import_engines(label: str, names: list[str], *, log: bool) -> list[type]:
+def _import_engines(
+    label: str, names: list[str], *, log: bool, problems: list[str] | None = None
+) -> list[type]:
     engines: list[type] = []
     for target in names:
         module_name, _, class_name = target.partition(":")
         try:
             engines.append(getattr(importlib.import_module(module_name), class_name))
         except Exception as exc:
+            if problems is not None:
+                problems.append(f"engine {target} failed to import: {exc}")
             if not log:
                 continue
             logger.warning(
@@ -259,7 +316,9 @@ __all__ = [
     "CORE_ENGINE_API",
     "ENTRY_POINT_GROUP",
     "InstalledPlugin",
+    "PluginInspection",
     "fingerprint",
+    "inspect_plugin",
     "installed_plugins",
     "load_meta_schema",
 ]

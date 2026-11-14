@@ -53,4 +53,21 @@ def check_engine(engine_cls: type) -> list[ConformanceProblem]:
     return problems
 
 
-__all__ = ["ConformanceProblem", "check_engine"]
+# ID: 82cf6e51-dfe1-40a0-a3f6-02fd3cf1c6a4
+def engine_id_collisions() -> list[str]:
+    """Run engine discovery, built-ins and installed plug-ins, and return the
+    ADR-176 D5(a) / ADR-177 D5 refusal it raises, if any, as messages instead
+    of stopping."""
+    from mind.logic.engines.registry import DuplicateEngineIdError, EngineRegistry
+
+    EngineRegistry._engine_classes.clear()
+    EngineRegistry._engine_sources.clear()
+    EngineRegistry._discovered = False
+    try:
+        EngineRegistry._discover_engines()
+    except DuplicateEngineIdError as exc:
+        return [str(exc)]
+    return []
+
+
+__all__ = ["ConformanceProblem", "check_engine", "engine_id_collisions"]

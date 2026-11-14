@@ -340,6 +340,10 @@ async def _run_offline_audit(
         raise typer.Exit(EXIT_CONFIG_ERROR)
 
     if output_format == "json":
+        # ADR-177 D8: the plug-ins (and their fingerprints) this run used.
+        from body.services.plugin_check import plugin_summaries
+
+        result.setdefault("plugins", plugin_summaries())
         sys.stdout.write(json.dumps(result, indent=2, default=str) + "\n")
     elif output_format == "github-annotations":
         sys.stdout.write(format_github_payload(result))
