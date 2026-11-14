@@ -1735,11 +1735,12 @@ engine's module. That made CORE the home of an engine that judges records rather
   is not part of CORE: it is an external plug-in, connected to CORE through the extension
   manifest (#1339, phase 3).
 - **D2 — What shipped stays as shipped.** The publication engine and its catalog, released in
-  3.2.0, stay as they are. CORE gets no further work on them. They move out of CORE once the
-  extension manifest exists.
+  3.2.0, stay as they are. CORE gets no further work on them. They move out of CORE at 4.0,
+  with the other engines that do not audit code (ADR-178).
 - **D3 — Supersedes ADR-173 D15.**
 
-Enforced by: not enforced (the move waits for the extension manifest, #1339).
+Enforced by: not enforced (the move happens at 4.0, ADR-178).  
+Amended: ADR-178 (2026-11-14) — D2: the move happens at 4.0.
 
 ## ADR-176 — Engine contract: what an engine declares, what CORE guarantees; one registration point
 
@@ -1861,6 +1862,31 @@ Enforced by: `src/shared/infrastructure/plugins.py` (D1, D2, D4, D8), `EngineReg
 engines), `src/body/services/grc/catalog_resolver.py` and `pack_loader.py` (D3, D5 for content),
 `src/mind/engine_api/` (D6, D7) and `core-admin plugin check` (D7); schema
 `.intent/META/plugin_manifest.schema.json`; tests `tests/**/test_*plugin*.py`.
+
+## ADR-178 — The engines that do not audit code leave CORE at 4.0
+
+2026-11-14 · accepted: maintainer decision 2026-11-14  
+**Why.** ADR-175 D1 limits CORE to code auditing. An inventory of the 18 built-in engines on
+main 77ce39e8 found 14 that audit code and 4 that judge documents or records. No rule in
+CORE's own law uses those 4; two commands use them.  
+**Decision.**
+- **D1 — Code auditing stays.** These 14 engines stay in CORE: `ast_gate`, `regex_gate`,
+  `artifact_gate`, `cli_gate`, `passive_gate`, `workflow_gate`, `taxonomy_gate`,
+  `contracts_gate`, `glob_gate`, `knowledge_gate`, `reference_gate`, `exclusion_gate`,
+  `llm_gate` and `llm_gate_stub`.
+- **D2 — Four engines leave at 4.0.** `grc_judge`, `attestation_gate`, `schema_gate` and
+  `publication_gate` (with its catalog) leave CORE in 4.0, together with the commands that
+  use them: `core-admin grc gap-analysis` and `core-admin record check`.
+- **D3 — Frozen until then.** Until 4.0 the four engines and the two commands stay as shipped.
+  CORE gets no new work on them.
+- **D4 — Same engine ids.** At 4.0 they come back as external plug-ins (ADR-177) under the
+  same engine ids, so a catalog that names one of them needs no change: installing the plug-in
+  is enough. Without it, such a rule gives the engine-missing finding (ADR-177 D4), never a
+  silent pass.
+- **D5 — Refines ADR-175 D2.** The publication engine's move happens at 4.0, not as soon as
+  the extension manifest exists.
+
+Enforced by: not enforced (the move happens at 4.0).
 
 ## Governor rulings
 
