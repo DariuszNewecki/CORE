@@ -51,7 +51,7 @@ async def test_KnowledgeGateEngine() -> None:
     assert "capability_assignment" in engine.supported_check_types()
 
     # verify() without AuditorContext returns a failure EngineResult.
-    result = engine.verify("some/file.py", {})
+    result = await engine.verify("some/file.py", {})
     assert result.ok is False
     assert result.engine_id == "knowledge_gate"
 
@@ -79,11 +79,11 @@ async def test_KnowledgeGateEngine() -> None:
 
 
 # ID: 522643cc-1278-4c47-a1d7-0e6bdb6792ce
-def test_KnowledgeGateEngine_verify():
+async def test_KnowledgeGateEngine_verify():
     engine = KnowledgeGateEngine.__new__(KnowledgeGateEngine)
     engine.engine_id = "knowledge_gate"
 
-    result = KnowledgeGateEngine.verify(engine, "some/file.py", {})
+    result = await KnowledgeGateEngine.verify(engine, "some/file.py", {})
 
     assert result.ok is False
     assert result.engine_id == "knowledge_gate"
