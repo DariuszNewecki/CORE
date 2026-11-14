@@ -260,3 +260,36 @@ def test_DuplicateEngineIdError():
     assert str(error) == message
     with pytest.raises(RuntimeError):
         raise error
+
+
+
+
+# ID: 623428e5-9154-4606-afc4-452f638652c3
+def test_EngineRegistry_engine_class():
+    from mind.logic.engines.registry import EngineRegistry
+
+    fake_engine_cls = type("FakeEngine", (), {})
+    fake_passive_gate = type("PassiveGate", (), {})
+
+    engine_classes = {
+        "my_engine": fake_engine_cls,
+        "passive_gate": fake_passive_gate,
+    }
+
+    with (
+        patch.object(EngineRegistry, "_engine_classes", engine_classes),
+        patch.object(
+            EngineRegistry, "_discover_engines", return_value=None
+        ) as mock_discover,
+    ):
+        result = EngineRegistry.engine_class("my_engine")
+        alias_result = EngineRegistry.engine_class("python_runtime")
+
+    assert mock_discover.called
+    assert result is fake_engine_cls
+    assert alias_result is fake_passive_gate
+    assert (
+        EngineRegistry.engine_class.__func__
+        if hasattr(EngineRegistry.engine_class, "__func__")
+        else True
+    )
