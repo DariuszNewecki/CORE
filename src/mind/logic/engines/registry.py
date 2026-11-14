@@ -50,6 +50,10 @@ class EngineRegistry:
 
     _instances: ClassVar[dict[str, Any]] = {}
     _engine_classes: ClassVar[dict[str, type]] = {}
+    # Where each registered class came from: "built-in" or "plug-in <name> <version>".
+    _engine_sources: ClassVar[dict[str, str]] = {}
+    # The plug-ins loaded by the last discovery (ADR-177).
+    _plugins: ClassVar[list[Any]] = []
     _path_resolver: ClassVar[PathResolver | None] = None
     _llm_client: ClassVar[LLMClient | None] = None
     _embedding_client: ClassVar[Any | None] = None
@@ -78,6 +82,8 @@ class EngineRegistry:
         cls._embedding_client = embedding_client
         cls._instances.clear()
         cls._engine_classes.clear()
+        cls._engine_sources.clear()
+        cls._plugins = []
         cls._discovered = False
         # Aliases first: registration checks ids against them (ADR-176 D6).
         cls._load_passive_aliases_from_taxonomy()
@@ -112,10 +118,30 @@ class EngineRegistry:
             for obj in found:
                 cls._register(obj, default_id=name)
 
+        cls._discover_plugins()
         cls._discovered = True
 
     @classmethod
-    def _register(cls, engine_cls: type, *, default_id: str) -> None:
+    def _discover_plugins(cls) -> None:
+        """ADR-177 D2/D3: every installed plug-in, after the built-ins, its
+        engines through the same registration point."""
+        from shared.infrastructure.plugins import installed_plugins
+
+        from .base import CORE_ENGINE_API
+
+        cls._plugins = installed_plugins(CORE_ENGINE_API)
+        for plugin in cls._plugins:
+            for engine_cls in plugin.engines:
+                cls._register(
+                    engine_cls,
+                    default_id=engine_cls.__module__.rsplit(".", 1)[-1],
+                    source=f"plug-in {plugin.label}",
+                )
+
+    @classmethod
+    def _register(
+        cls, engine_cls: type, *, default_id: str, source: str = "built-in"
+    ) -> None:
         """The one registration point (ADR-176 D4): every engine class enters
         the registry here, whatever source found it.
 
@@ -142,11 +168,12 @@ class EngineRegistry:
             return
         held = cls._engine_classes.get(engine_id)
         if held is not None and held is not engine_cls:
+            held_source = cls._engine_sources.get(engine_id, "built-in")
             raise DuplicateEngineIdError(
                 f"Two engines declare engine_id {engine_id!r}: "
-                f"{held.__module__}.{held.__qualname__} and "
-                f"{engine_cls.__module__}.{engine_cls.__qualname__} "
-                "(ADR-176 D5(a))"
+                f"{held.__module__}.{held.__qualname__} ({held_source}) and "
+                f"{engine_cls.__module__}.{engine_cls.__qualname__} ({source}) "
+                "(ADR-176 D5(a), ADR-177 D5)"
             )
         for problem in d6_problems(engine_cls, engine_id, PASSIVE_ALIASES):
             logger.warning(
@@ -156,6 +183,7 @@ class EngineRegistry:
                 problem,
             )
         cls._engine_classes[engine_id] = engine_cls
+        cls._engine_sources[engine_id] = source
 
     @classmethod
     def _load_passive_aliases_from_taxonomy(cls) -> None:
