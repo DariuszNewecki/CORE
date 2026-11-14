@@ -211,8 +211,6 @@ def test_EngineRegistry_record_catalogs() -> None:
     assert result == {"cat_a": {"id": "cat_a"}, "cat_b": {"id": "cat_b"}}
 
 
-
-
 # ID: ab1b97a9-cd0f-4d3d-89e4-97c83a57e87c
 def test_EngineRegistry_known_engine_ids():
     from mind.logic.engines.registry import PASSIVE_ALIASES, EngineRegistry
@@ -246,3 +244,19 @@ def test_EngineRegistry_known_engine_ids():
                 EngineRegistry._engine_classes = original_engine_classes
             elif "_engine_classes" in EngineRegistry.__dict__:
                 del EngineRegistry._engine_classes
+
+
+import pytest
+
+from mind.logic.engines.registry import DuplicateEngineIdError
+
+
+# ID: 9c2fd249-32f2-4fb8-9832-41a26e5da3b9
+def test_DuplicateEngineIdError():
+    message = "engine_id 'foo' declared by both A and B"
+    error = DuplicateEngineIdError(message)
+
+    assert isinstance(error, RuntimeError)
+    assert str(error) == message
+    with pytest.raises(RuntimeError):
+        raise error
