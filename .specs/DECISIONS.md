@@ -1649,7 +1649,7 @@ shape (#1328, prototype findings 1–5).
   engine (ADR-174 D8) and carries its parameters; the catalog is checked at load like any other.
 - **D10 — First engines.** `attestation_gate`, `regex_gate` (over a string field) and a schema
   engine (JSON Schema over a field), plus the publication engine of D13. `grc_judge` comes later.
-- **D11 — Built-in engines only.** No plugin loading for record engines; #1327 stays open.
+- **D11 — Superseded by ADR-177.** Was: built-in engines only; no plugin loading for record engines.
 - **D12 — CORE judges a resolved record.** The record holds one version per item, on one date,
   with version pins applied. Resolving it and checking each item against its type schema stay
   with the caller. The caller's earlier findings (`load_findings`, `pre_findings`: lists of
@@ -1690,7 +1690,7 @@ Record example (format `library-snapshot/1`):
  "pre_findings": [{"item": "M-4", "rule": "role", "message": "…", "blocking": false}]}
 ```
 
-Amended: ADR-175 (2026-11-12) — D15 superseded.  
+Amended: ADR-175 (2026-11-12) — D15 superseded; ADR-177 (2026-11-14) — D11 superseded.  
 Enforced by: not enforced (nothing built yet; the contract lands with #1328).
 
 ## ADR-174 — Catalog contract: format schemas, checked at load; warnings in 3.x, refusals in 4.0
@@ -1805,9 +1805,59 @@ for. An engine outside CORE (ADR-175) needs a stated contract before it can be c
   (context-level, shadow, stateless, cache) stays as it is; an engine not on a list gets the
   default.
 
+Amended: ADR-177 (2026-11-14) — D9 decided.  
 Enforced by: `src/mind/logic/engines/registry.py` (`EngineRegistry._register`: D4, D5 refusals,
 D6 warnings) and `CORE_ENGINE_API` in `src/mind/logic/engines/base.py`; tests
 `tests/mind/logic/engines/test_engine_contract__*.py` (the PR B baseline pins D2 and D3).
+
+## ADR-177 — Plug-ins: installed packages that bring engines and content
+
+2026-11-14 · accepted: maintainer decision 2026-11-14; design on #1339 (phase 3)  
+**Why.** ADR-175 puts every engine that does not audit code outside CORE, and ADR-176 D9 left
+open how such an engine is connected. Engines are found only by scanning CORE's own package,
+and catalogs and packs only in the repository or the wheel.  
+**Decision.**
+- **D1 — A plug-in is one installable package.** It brings engines, content (catalogs,
+  governance packs) or both. Its name and version are its package metadata. It declares one
+  entry point in the group `core.plugins`, naming a manifest: `format_version` (now `1`),
+  `core_engine_api` (the ADR-176 version it was built for), and optionally `engines`
+  (`module:Class` names), `catalogs` and `packs` (directories inside the package). The manifest
+  format is self-law: `plugin_manifest.schema.json` in `.intent/META/` (as ADR-174 D1). Record
+  catalogs travel with their engine (ADR-173 D1).
+- **D2 — CORE finds plug-ins itself.** It reads the `core.plugins` entry points of the installed
+  packages; there are no folder settings and no allow list. Every installed plug-in is loaded:
+  built-in engines first, then plug-ins in name order. Which tenant sees which module is the
+  job of the platform that runs CORE, not CORE's. Installing a package is the act of trusting
+  it, because its code runs at load.
+- **D3 — The same doors as CORE's own content.** Plug-in engines enter through the ADR-176 D4
+  registration point and meet ADR-176 in full; catalogs go through the ADR-174 checks, packs
+  through the ADR-149 pack schema.
+- **D4 — A broken plug-in is never a silent pass.** A manifest that fails its schema, or a
+  `core_engine_api` this CORE does not support, skips the whole plug-in with a load warning
+  that names it and "ADR-177 D4"; rules that name its engines give the engine-missing finding.
+  An engine module that fails to import stays a warning (ADR-176 D7).
+- **D5 — No overriding.** An engine id or catalog id that a plug-in shares with CORE or with
+  another plug-in refuses the start and names both sides, with plug-in name and version
+  (ADR-176 D5(a), confirmed for plug-ins and extended to catalogs). ADR-116 tier precedence
+  stays inside one catalog root.
+- **D6 — One public import path.** `mind.engine_api` re-exports what an engine needs:
+  `BaseEngine`, `EngineResult`, `normalize_violation`, `CONTENT_NOT_EVALUATED`, `EvidenceClass`,
+  `CORE_ENGINE_API`, `RulePart`, `RecordFinding`. Only this module is promised (decides ADR-176
+  D1); the rest of `mind.logic` stays internal.
+- **D7 — A public conformance suite.** It ships in `core-runtime`:
+  `mind.engine_api.conformance` checks an engine class and an installed plug-in against
+  ADR-176, this ADR, ADR-174 and ADR-149, and `core-admin plugin check <name>` prints the
+  report, also as JSON, to be kept as validation evidence for the plug-in. CORE's built-in
+  engines pass the same checks.
+- **D8 — CORE says what it loaded.** At load, one log line per plug-in: name, version,
+  `core_engine_api`, engine ids, catalog and pack counts, and a fingerprint: sha256 over the
+  sorted (path, sha256) pairs of the package's installed files, without `.pyc` and `RECORD`.
+  `core-admin plugin list` shows the same, and an audit result lists the plug-ins and
+  fingerprints it ran with.
+- **D9 — Not in this ADR.** The publication engine and its catalog stay in CORE until 4.0
+  (ADR-175 D2 waits). Supersedes ADR-173 D11; decides ADR-176 D9.
+
+Enforced by: not enforced (nothing built yet; lands with #1339 phase 3).
 
 ## Governor rulings
 
