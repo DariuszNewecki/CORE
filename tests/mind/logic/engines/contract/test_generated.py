@@ -162,3 +162,22 @@ def test_api_version_problem():
     assert problem is not None
     assert "999" in problem
     assert core_api in problem
+
+
+
+contract = pytest.importorskip("mind.logic.engines.contract")
+engine_id_of = contract.engine_id_of
+
+
+# ID: 4726bc18-389e-479b-a59f-ec14c87946bd
+def test_engine_id_of():
+    # ID: d30c6475-85f3-4d85-afd9-f384974e9c68
+    class WithId:
+        engine_id = "custom_engine"
+
+    # ID: 3f158fb3-2157-4f35-838f-d6e74407571f
+    class WithoutId:
+        pass
+
+    assert engine_id_of(WithId, "module_default") == "custom_engine"
+    assert engine_id_of(WithoutId, "module_default") == "module_default"
