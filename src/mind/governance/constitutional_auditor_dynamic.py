@@ -58,6 +58,7 @@ async def run_dynamic_rules(
     """
     # DEFERRED IMPORT: Break circular loop
     from mind.governance.rule_executor import execute_rule
+    from mind.logic.engines.llm_gate_stub import LLMGateStubEngine
     from mind.logic.engines.registry import EngineRegistry
 
     if crashed_rule_ids is None:
@@ -86,13 +87,12 @@ async def run_dynamic_rules(
     for rule in executable_rules:
         try:
             engine = EngineRegistry.get(rule.engine)
-            engine_type_name = type(engine).__name__
 
-            if rule.engine == "llm_gate" and "stub" in engine_type_name.lower():
-                executed_rule_ids.add(rule.rule_id)
-                executed_count += 1
+            # #1454: a rule whose engine fell back to the stand-in (no LLM
+            # client) still goes through execute_rule, which reports it with
+            # the #307 warning instead of counting it as a silent pass.
+            if isinstance(engine, LLMGateStubEngine):
                 skipped_stub_count += 1
-                continue
 
             executed_rule_ids.add(rule.rule_id)
             executed_count += 1
