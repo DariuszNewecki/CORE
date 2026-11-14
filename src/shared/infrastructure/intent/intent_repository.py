@@ -597,11 +597,10 @@ class IntentRepository(RootedRepository):
     # ID: 61c28228-0704-45f7-addd-b81a378d6a42
     def load_pack(self, pack_id: str) -> object | None:
         """Load a governance pack by ID. Returns LoadedPack or None if not found."""
-        from shared.infrastructure.bundled_packs import pack_registry_dir
-        from shared.infrastructure.intent.pack_loader import PackLoader
+        from shared.infrastructure.intent.pack_loader import load_pack_from_sources
 
-        with pack_registry_dir(self._root.parent) as packs_dir:
-            return PackLoader(packs_dir).load_pack(pack_id)
+        # CORE's registry and every installed plug-in's packs (ADR-177 D3).
+        return load_pack_from_sources(pack_id, self._root.parent)
 
     def _ensure_index(self) -> None:
         if (

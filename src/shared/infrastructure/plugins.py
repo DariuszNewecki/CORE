@@ -28,12 +28,18 @@ import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+# ADR-176 D3: the major version of the engine interface this CORE implements.
+# A breaking change to the interface is version "2", announced in the CHANGELOG.
+# Defined here, in shared, so content loading can check plug-ins without
+# importing mind; mind.logic.engines.base and mind.engine_api re-export it.
+CORE_ENGINE_API: Final[str] = "1"
 
 ENTRY_POINT_GROUP = "core.plugins"
 _SCHEMA_FILENAME = "plugin_manifest.schema.json"
@@ -65,11 +71,14 @@ class InstalledPlugin:
 
 
 # ID: 635b1349-17a9-48f8-b26d-cd3e224a978b
-def installed_plugins(core_engine_api: str) -> list[InstalledPlugin]:
+def installed_plugins(
+    core_engine_api: str = CORE_ENGINE_API, *, log: bool = True
+) -> list[InstalledPlugin]:
     """Every installed plug-in that passes its checks, in name order (D2).
 
-    ``core_engine_api`` is the engine interface version this CORE implements
-    (ADR-176 D3); a plug-in built for another is skipped (D4).
+    A plug-in built for another ``core_engine_api`` (default: this CORE's
+    ``CORE_ENGINE_API``) is skipped (D4). ``log`` writes the D8 line per plug-in and the D4
+    warnings; the engine registry logs, content lookups do not repeat it.
     """
     entry_points = sorted(
         importlib.metadata.entry_points(group=ENTRY_POINT_GROUP),
@@ -77,15 +86,16 @@ def installed_plugins(core_engine_api: str) -> list[InstalledPlugin]:
     )
     plugins: list[InstalledPlugin] = []
     for entry_point in entry_points:
-        plugin = _load(entry_point, core_engine_api)
+        plugin = _load(entry_point, core_engine_api, log=log)
         if plugin is not None:
             plugins.append(plugin)
-            _log_loaded(plugin)
+            if log:
+                _log_loaded(plugin)
     return plugins
 
 
 def _load(
-    entry_point: importlib.metadata.EntryPoint, core_engine_api: str
+    entry_point: importlib.metadata.EntryPoint, core_engine_api: str, *, log: bool
 ) -> InstalledPlugin | None:
     dist = entry_point.dist
     name = _dist_name(entry_point)
@@ -94,20 +104,22 @@ def _load(
     try:
         manifest = entry_point.load()
     except Exception as exc:
-        _skip(label, f"its manifest {entry_point.value!r} cannot be loaded: {exc}")
+        _skip(log, label, f"its manifest {entry_point.value!r} cannot be loaded: {exc}")
         return None
     if not isinstance(manifest, Mapping):
-        _skip(label, f"its manifest {entry_point.value!r} is not a mapping")
+        _skip(log, label, f"its manifest {entry_point.value!r} is not a mapping")
         return None
     errors = _schema_errors(dict(manifest))
     if errors:
         _skip(
+            log,
             label,
             "its manifest fails plugin_manifest.schema.json: " + "; ".join(errors),
         )
         return None
     if manifest["core_engine_api"] != core_engine_api:
         _skip(
+            log,
             label,
             f"it was built for core_engine_api {manifest['core_engine_api']!r}; "
             f"this CORE supports {core_engine_api!r}",
@@ -119,14 +131,16 @@ def _load(
         version=version,
         core_engine_api=manifest["core_engine_api"],
         root=root,
-        engines=tuple(_import_engines(label, manifest.get("engines") or [])),
+        engines=tuple(_import_engines(label, manifest.get("engines") or [], log=log)),
         catalogs=root / manifest["catalogs"] if manifest.get("catalogs") else None,
         packs=root / manifest["packs"] if manifest.get("packs") else None,
         fingerprint=fingerprint(dist),
     )
 
 
-def _skip(label: str, why: str) -> None:
+def _skip(log: bool, label: str, why: str) -> None:
+    if not log:
+        return
     logger.warning(
         "Plug-in %s is not loaded: %s. Rules that name its engines give the "
         "engine-missing finding (ADR-177 D4).",
@@ -147,13 +161,15 @@ def _package_root(entry_point: importlib.metadata.EntryPoint) -> Path:
     return Path(str(importlib.resources.files(top)))
 
 
-def _import_engines(label: str, names: list[str]) -> list[type]:
+def _import_engines(label: str, names: list[str], *, log: bool) -> list[type]:
     engines: list[type] = []
     for target in names:
         module_name, _, class_name = target.partition(":")
         try:
             engines.append(getattr(importlib.import_module(module_name), class_name))
         except Exception as exc:
+            if not log:
+                continue
             logger.warning(
                 "Plug-in %s: engine %s failed to import: %s (ADR-176 D7)",
                 label,
@@ -240,6 +256,7 @@ def _count(directory: Path | None, pattern: str) -> int:
 
 
 __all__ = [
+    "CORE_ENGINE_API",
     "ENTRY_POINT_GROUP",
     "InstalledPlugin",
     "fingerprint",
