@@ -16,8 +16,9 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar, Final
+from typing import TYPE_CHECKING, Any, ClassVar
 
+from shared.infrastructure.plugins import CORE_ENGINE_API as CORE_ENGINE_API
 from shared.models.audit_models import EvidenceClass
 
 
@@ -29,9 +30,6 @@ if TYPE_CHECKING:
 # the common pre-#548 shape (e.g. f"Line {node.lineno}: Forbidden primitive...").
 # Used by extract_line_number as the regex fallback when no structured
 # line key is present in the violation's details.
-# ADR-176 D3: the major version of the engine interface this CORE implements.
-# A breaking change to the interface is version "2", announced in the CHANGELOG.
-CORE_ENGINE_API: Final[str] = "1"
 
 _EMBEDDED_LINE_RE = re.compile(r"\b[Ll]ine\s+(\d+)\b")
 

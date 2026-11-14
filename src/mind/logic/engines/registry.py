@@ -127,9 +127,7 @@ class EngineRegistry:
         engines through the same registration point."""
         from shared.infrastructure.plugins import installed_plugins
 
-        from .base import CORE_ENGINE_API
-
-        cls._plugins = installed_plugins(CORE_ENGINE_API)
+        cls._plugins = installed_plugins()
         for plugin in cls._plugins:
             for engine_cls in plugin.engines:
                 cls._register(
