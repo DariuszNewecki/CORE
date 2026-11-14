@@ -56,3 +56,19 @@ def test_clear_eval_cache():
 
     assert _EVAL_CACHE == {}
     assert len(_EVAL_CACHE) == 0
+
+
+
+
+# ID: e17bb028-a899-4d01-aace-2687f9015009
+def test_known_engine_ids():
+    from mind.governance.rule_executor import known_engine_ids
+
+    mock_registry = MagicMock()
+    mock_registry.known_engine_ids.return_value = frozenset({"engine_a", "engine_b"})
+
+    with patch("mind.logic.engines.registry.EngineRegistry", mock_registry):
+        result = known_engine_ids()
+
+    assert result == frozenset({"engine_a", "engine_b"})
+    mock_registry.known_engine_ids.assert_called_once_with()

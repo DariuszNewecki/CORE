@@ -156,3 +156,93 @@ def test_EngineRegistry():
         EngineRegistry._llm_client = saved_llm
         EngineRegistry._embedding_client = saved_emb
         EngineRegistry._discovered = saved_discovered
+
+
+# ID: ef1d5572-6ec7-43d6-b2bc-be7c20711fc1
+def test_EngineRegistry_record_engine():
+    engine_id = "test_engine"
+
+    # ID: e210cacb-a16c-492a-be9d-d22124e010df
+    class FakeRecordEngine:
+        supports_records = True
+
+        def __init__(self):
+            self.initialized = True
+
+    with (
+        patch.object(EngineRegistry, "_discover_engines", MagicMock()) as mock_discover,
+        patch.object(
+            EngineRegistry,
+            "_engine_classes",
+            {engine_id: FakeRecordEngine},
+            create=True,
+        ),
+    ):
+        result = EngineRegistry.record_engine(engine_id)
+
+    mock_discover.assert_called_once()
+    assert isinstance(result, FakeRecordEngine)
+    assert result.initialized is True
+
+
+# ID: 03abc70e-4f84-470f-b939-13b00a49750f
+def test_EngineRegistry_record_catalogs() -> None:
+    engine_a = MagicMock()
+    engine_a.record_catalogs = MagicMock(return_value={"cat_a": {"id": "cat_a"}})
+    engine_b = MagicMock()
+    engine_b.record_catalogs = MagicMock(return_value={"cat_b": {"id": "cat_b"}})
+
+    with (
+        patch.object(
+            EngineRegistry,
+            "_discover_engines",
+            MagicMock(return_value=None),
+        ) as mock_discover,
+        patch.object(
+            EngineRegistry,
+            "_engine_classes",
+            {"engine_a": engine_a, "engine_b": engine_b},
+            create=True,
+        ),
+    ):
+        result = EngineRegistry.record_catalogs()
+
+    mock_discover.assert_called_once_with()
+    assert result == {"cat_a": {"id": "cat_a"}, "cat_b": {"id": "cat_b"}}
+
+
+
+
+# ID: ab1b97a9-cd0f-4d3d-89e4-97c83a57e87c
+def test_EngineRegistry_known_engine_ids():
+    from mind.logic.engines.registry import PASSIVE_ALIASES, EngineRegistry
+
+    original_engine_classes = getattr(EngineRegistry, "_engine_classes", None)
+    had_engine_classes = "_engine_classes" in EngineRegistry.__dict__
+
+    # Arrange: pretend discovery already found two engines.
+    EngineRegistry._engine_classes = {
+        "alpha_engine": MagicMock(),
+        "beta_engine": MagicMock(),
+    }
+
+    with patch.object(EngineRegistry, "_discover_engines") as mock_discover:
+        try:
+            # Act
+            result = EngineRegistry.known_engine_ids()
+
+            # Assert
+            mock_discover.assert_called_once_with()
+            assert isinstance(result, frozenset)
+            assert result == frozenset({"alpha_engine", "beta_engine"}) | frozenset(
+                PASSIVE_ALIASES
+            )
+            assert "alpha_engine" in result
+            assert "beta_engine" in result
+            for alias in PASSIVE_ALIASES:
+                assert alias in result
+        finally:
+            if had_engine_classes:
+                EngineRegistry._engine_classes = original_engine_classes
+            elif "_engine_classes" in EngineRegistry.__dict__:
+                del EngineRegistry._engine_classes
