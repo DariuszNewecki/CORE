@@ -65,3 +65,26 @@ def test_check_engine():
 
     assert len(problems) == 3
     assert all(isinstance(p, ConformanceProblem) for p in problems)
+
+
+import pytest
+
+
+# ID: b2b4da50-41eb-4ce2-9d54-2c954a846645
+def test_engine_id_collisions():
+    conformance = pytest.importorskip("mind.engine_api.conformance")
+    engine_id_collisions = conformance.engine_id_collisions
+    from mind.logic.engines.registry import DuplicateEngineIdError
+
+    # ID: 662d9108-cd8e-4aa4-8ece-ff2d6e27a87c
+    def raise_collision():
+        raise DuplicateEngineIdError("duplicate engine id: foo")
+
+    with patch(
+        "mind.logic.engines.registry.EngineRegistry._discover_engines",
+        side_effect=raise_collision,
+    ) as mock_discover:
+        result = engine_id_collisions()
+
+    assert result == ["duplicate engine id: foo"]
+    mock_discover.assert_called_once()
