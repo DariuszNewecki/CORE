@@ -48,6 +48,12 @@ class CatalogPublicationUnknownError(RuntimeError):
     """
 
 
+# ID: 37493324-c3f6-43ad-b2a3-f2209bc36db1
+class CatalogIdCollisionError(RuntimeError):
+    """One catalog name in two catalog roots, CORE's or plug-ins' (ADR-177 D5).
+    CORE refuses rather than let one silently shadow the other."""
+
+
 # ID: fa063c13-756d-4a3f-9f16-958678d1beca
 def resolve_catalog_root(catalog_root: Path | None = None) -> Path:
     """Resolve the GRC catalog corpus root.
@@ -83,8 +89,45 @@ def discover_catalogs(catalog_root: Path | None = None) -> dict[str, Path]:
     entries, never an error (D3). When a framework is present in both tiers
     ``licensed`` wins, so an entitled catalog overrides a public sample of
     the same name.
+
+    Without an explicit ``catalog_root``, the catalog roots of installed
+    plug-ins are read too (ADR-177 D3). A framework name found in two roots
+    raises ``CatalogIdCollisionError`` naming both (ADR-177 D5): tier
+    precedence holds inside one root only.
     """
-    root = resolve_catalog_root(catalog_root)
+    found: dict[str, Path] = {}
+    owner: dict[str, str] = {}
+    for label, _root, catalogs in _discover_by_source(catalog_root):
+        for name, path in catalogs.items():
+            if name in found:
+                raise CatalogIdCollisionError(
+                    f"Catalog {name!r} is in two places: {owner[name]} "
+                    f"({found[name]}) and {label} ({path}) (ADR-177 D5)"
+                )
+            found[name] = path
+            owner[name] = label
+    return found
+
+
+def _discover_by_source(
+    catalog_root: Path | None,
+) -> list[tuple[str, Path, dict[str, Path]]]:
+    """(label, root, catalogs) for the base root and, without an explicit
+    ``catalog_root``, each installed plug-in's catalog root."""
+    base = resolve_catalog_root(catalog_root)
+    sources: list[tuple[str, Path]] = [(f"catalog root {base}", base)]
+    if catalog_root is None:
+        from shared.infrastructure.plugins import installed_plugins
+
+        sources += [
+            (f"plug-in {plugin.label}", plugin.catalogs)
+            for plugin in installed_plugins(log=False)
+            if plugin.catalogs is not None
+        ]
+    return [(label, root, _discover_in(root)) for label, root in sources]
+
+
+def _discover_in(root: Path) -> dict[str, Path]:
     if not root.is_dir():
         logger.debug("GRC catalog corpus root absent: %s", root)
         return {}
@@ -118,11 +161,18 @@ def discover_published_catalogs(catalog_root: Path | None = None) -> dict[str, P
     this gate entirely (callers apply it against ``discover_catalogs()``
     directly, never through this function).
     """
-    available = discover_catalogs(catalog_root)
+    discover_catalogs(catalog_root)  # ADR-177 D5: refuse a collision first
+    published: dict[str, Path] = {}
+    for _label, root, available in _discover_by_source(catalog_root):
+        published.update(_published_in(root, available))
+    return published
+
+
+def _published_in(root: Path, available: dict[str, Path]) -> dict[str, Path]:
+    """The published subset of one root's catalogs, by its ``inventory.yaml``."""
     if not available:
         return available
 
-    root = resolve_catalog_root(catalog_root)
     inventory_path = root / "inventory.yaml"
     if not inventory_path.is_file():
         raise CatalogPublicationUnknownError(

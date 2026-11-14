@@ -13,6 +13,8 @@ CONSTITUTIONAL:
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -144,3 +146,72 @@ class PackLoader:
             rules=list(data.get("rules") or []),
             enforcement_mappings=dict(data.get("enforcement_mappings") or {}),
         )
+
+
+# ID: 96c8723e-50af-4c78-ae29-126055c7e21b
+class PackIdCollisionError(RuntimeError):
+    """One pack id in two pack registries, CORE's or plug-ins' (ADR-177 D5).
+    CORE refuses rather than let one silently shadow the other."""
+
+
+@contextmanager
+# ID: 0cdf2dd9-b52b-44f3-b563-1985205e94ec
+def pack_sources(repo_root: Path) -> Iterator[list[tuple[str, Path]]]:
+    """(label, directory) for every pack registry: CORE's (repository first,
+    bundle second, ADR-149) and each installed plug-in's ``packs``
+    (ADR-177 D3). The directories are valid inside the ``with`` block."""
+    from shared.infrastructure.bundled_packs import pack_registry_dir
+    from shared.infrastructure.plugins import installed_plugins
+
+    with pack_registry_dir(repo_root) as core_dir:
+        sources = [(f"pack registry {core_dir}", core_dir)]
+        sources += [
+            (f"plug-in {plugin.label}", plugin.packs)
+            for plugin in installed_plugins(log=False)
+            if plugin.packs is not None
+        ]
+        yield sources
+
+
+# ID: 57a655da-6421-4483-a630-be979d171549
+def list_pack_ids_from_sources(repo_root: Path) -> list[str]:
+    """Every pack id across the registries; raises ``PackIdCollisionError``
+    when two registries declare the same id (ADR-177 D5)."""
+    return sorted(_pack_owners(repo_root))
+
+
+# ID: 8f342c60-9347-459d-98cf-9403254dd377
+def load_pack_from_sources(pack_id: str, repo_root: Path) -> LoadedPack | None:
+    """Load ``pack_id`` from whichever registry declares it, or None.
+    Raises ``PackIdCollisionError`` when two registries declare it."""
+    with pack_sources(repo_root) as sources:
+        owners = [
+            (label, directory)
+            for label, directory in sources
+            if pack_id in PackLoader(directory).list_pack_ids()
+        ]
+        if len(owners) > 1:
+            raise PackIdCollisionError(
+                _collision_message(pack_id, [label for label, _ in owners])
+            )
+        if not owners:
+            return None
+        return PackLoader(owners[0][1]).load_pack(pack_id)
+
+
+def _pack_owners(repo_root: Path) -> dict[str, str]:
+    owners: dict[str, str] = {}
+    with pack_sources(repo_root) as sources:
+        for label, directory in sources:
+            for pack_id in PackLoader(directory).list_pack_ids():
+                if pack_id in owners:
+                    raise PackIdCollisionError(
+                        _collision_message(pack_id, [owners[pack_id], label])
+                    )
+                owners[pack_id] = label
+    return owners
+
+
+def _collision_message(pack_id: str, owners: list[str]) -> str:
+    places = " and ".join(owners)
+    return f"Pack {pack_id!r} is declared in two places: {places} (ADR-177 D5)"

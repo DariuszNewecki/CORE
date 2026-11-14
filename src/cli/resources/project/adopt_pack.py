@@ -26,8 +26,10 @@ from rich.table import Table
 
 from cli.utils import core_command
 from shared.config import settings
-from shared.infrastructure.bundled_packs import pack_registry_dir
-from shared.infrastructure.intent.pack_loader import PackLoader
+from shared.infrastructure.intent.pack_loader import (
+    list_pack_ids_from_sources,
+    load_pack_from_sources,
+)
 
 
 if TYPE_CHECKING:
@@ -88,10 +90,9 @@ async def adopt_pack_command(
     to apply. After adoption, run 'core-admin code audit --offline' to see
     findings against the pack's rules.
     """
-    with pack_registry_dir(settings.MIND.parent) as packs_dir:
-        loader = PackLoader(packs_dir)
-        pack = loader.load_pack(pack_id)
-        available = loader.list_pack_ids() if pack is None else []
+    # CORE's registry and every installed plug-in's packs (ADR-177 D3).
+    pack = load_pack_from_sources(pack_id, settings.MIND.parent)
+    available = list_pack_ids_from_sources(settings.MIND.parent) if pack is None else []
     if pack is None:
         console.print(f"[bold red]Pack not found:[/bold red] {pack_id!r}")
         if available:
