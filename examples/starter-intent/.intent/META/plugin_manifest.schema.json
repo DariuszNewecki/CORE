@@ -1,0 +1,43 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.plugin_manifest.schema.json",
+    "title": "CORE plug-in manifest",
+    "description": "What an installed plug-in declares (ADR-177 D1). Named by the package's entry point in the group core.plugins. The plug-in's name and version are its package metadata, not part of the manifest.",
+    "type": "object",
+    "required": [
+        "format_version",
+        "core_engine_api"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "format_version": {
+            "type": "integer",
+            "const": 1,
+            "description": "Format version of this manifest's structure."
+        },
+        "core_engine_api": {
+            "type": "string",
+            "pattern": "^[0-9]+$",
+            "description": "The major version of the engine interface (ADR-176 CORE_ENGINE_API) the plug-in was built for."
+        },
+        "engines": {
+            "type": "array",
+            "description": "Engine classes the plug-in brings, as 'module:ClassName'.",
+            "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_.]*:[A-Za-z_][A-Za-z0-9_]*$"
+            },
+            "uniqueItems": true
+        },
+        "catalogs": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A catalog root inside the package (ADR-174 layout), relative to the package."
+        },
+        "packs": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A directory of governance packs inside the package (ADR-149), relative to the package."
+        }
+    }
+}
