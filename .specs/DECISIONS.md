@@ -1741,6 +1741,72 @@ engine's module. That made CORE the home of an engine that judges records rather
 
 Enforced by: not enforced (the move waits for the extension manifest, #1339).
 
+## ADR-176 — Engine contract: what an engine declares, what CORE guarantees; one registration point
+
+2026-11-14 · accepted: DEC-2026-155 (decision register, 2026-11-08, Product owner); maintainer
+decision 2026-11-14 for D5(b) and D6; plan on #1339  
+**Why.** Engines are found by scanning one directory. What an engine must declare is implied by
+`BaseEngine` and by what the registry happens to read. Two engines with the same id replace each
+other silently, and nothing says which version of the engine interface an engine was written
+for. An engine outside CORE (ADR-175) needs a stated contract before it can be connected.  
+**Decision.**
+- **D1 — The contract is on `BaseEngine`.** No separate protocol (as ADR-173 D1). Today the names an
+  engine uses are in `mind.logic.engines.base` (`BaseEngine`, `EngineResult`, `normalize_violation`,
+  `CONTENT_NOT_EVALUATED`) plus `EvidenceClass`. That import path is provisional: the public import
+  path for engines outside CORE is decided in phase 3 (D9); until then it is not a promise.
+- **D2 — An engine declares:** `engine_id` (explicit class attribute; lowercase letters, digits,
+  underscore; "." separates an engine's own sub-check ids in results, as in
+  `contracts_gate.<check>.error`); `api_version` (a string holding the major version of the
+  engine interface it was written for; `BaseEngine` defaults to "1", so existing engines need no
+  change); `evidence_class` (ADR-113, default unchanged);
+  `async verify(file_path, params) -> EngineResult`. Optional, as today: `is_context_level_for` (ADR-076), `requires_knowledge_graph`
+  (ADR-141), `supports_records` with `evaluate_record` (ADR-173 D1). A constructor may require only
+  `path_resolver`, `llm_client`, `embedding_client`; any other parameter has a default.
+- **D3 — CORE declares the interface version it implements as `CORE_ENGINE_API`, a major version
+  only ("1" now).** CORE guarantees for major version 1: the signatures of `verify` and
+  `evaluate_record` and the fields of `EngineResult` do not change in 3.x; additions inside a major
+  version are optional, with defaults. CORE builds an engine at most once per registry
+  initialization and injects only the three services of D2; the evidence class on a finding is
+  the engine's declaration; a rule that names an engine id the registry does not hold gives the
+  engine-missing finding. A breaking change is major version 2, announced in the CHANGELOG.
+  Not part of the version 1 guarantee: what CORE reports when an engine needs an LLM client and
+  none is configured, and when an engine cannot be built. Today, with no LLM client, CORE
+  substitutes a stand-in engine that passes every file; the stand-in is built on every call and
+  not kept, so the build-once guarantee above does not cover it. Today's behaviour for both
+  cases is pinned by tests and left unchanged by this ADR; it differs between audit paths, and
+  making it one behaviour is separate work (#1454 is one part of it).
+- **D4 — One registration point.** Every engine class enters the registry through one function,
+  which applies this contract, whatever source found the class. In 3.3 the only source is the
+  scan of the built-in engines package.
+- **D5 — Hard in 3.x.** (a) Two different classes with the same `engine_id`: CORE refuses to start
+  and names both (DEC-2026-155). The same class met twice is not a duplicate. (b) An engine
+  whose `api_version` major differs from `CORE_ENGINE_API` is refused: it is not registered, and
+  CORE logs a warning at load that names the engine, its `api_version`, `CORE_ENGINE_API` and
+  "ADR-176 D5(b)"; rules that name the engine then give the engine-missing finding.
+- **D6 — Warning in 3.x, refusal in 4.0** (the pattern of ADR-174): no explicit `engine_id`; an id
+  outside the D2 format; an id equal to a passive alias; a constructor that requires an unknown
+  parameter. Each warning names the engine and "ADR-176 D6".
+- **D7 — Unchanged.** An engine module that fails to import stays a warning; its rules give the
+  engine-missing finding.
+- **D8 — Catalogs.** ADR-174 D8 reads the known ids from the registry. The ids registered under D4,
+  plus the passive aliases, are the ids a catalog may name; there is no second list. A catalog
+  that names an engine that is not installed gets the D8 warning at load (a refusal in 4.0) and
+  the engine-missing finding at evaluation.
+- **D9 — Extension manifest (#1339 phase 3).** The manifest becomes a second source for D4 and
+  replaces ADR-173 D11 when it lands. Not designed here. Phase 3 must decide on purpose:
+  (1) the public import path of D1; (2) what happens when an outside engine has the same id as
+  a built-in one (under D5(a) as written, CORE refuses to start; phase 3 either confirms that or
+  chooses another rule); (3) the loading mechanism: entry points in the group `core.engines`
+  (as #1339 proposed), the manifest, or both; (4) where a public conformance suite lives that an
+  outside engine can run against itself; the contract tests of #1339 PR B are its seed. Phase 3
+  also adds the startup log of every loaded extension with its version and hash, since only
+  outside engines need it.
+- **D10 — Not decided here.** Per-engine behaviour that is today a hard-coded list of ids
+  (context-level, shadow, stateless, cache) stays as it is; an engine not on a list gets the
+  default.
+
+Enforced by: not enforced (nothing built yet; lands with #1339).
+
 ## Governor rulings
 
 One line each; the cause issue carries the detail.
