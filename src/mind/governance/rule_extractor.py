@@ -360,18 +360,16 @@ def _lookup_engine_class(engine_id: str) -> type[BaseEngine] | None:
     ADR-076 D2. The extractor must consult an engine's
     ``is_context_level_for(check_type)`` classmethod, which means we need
     the *class* — not an instance — without forcing the registry to do
-    JIT init (PathResolver, LLM client). ``EngineRegistry._engine_classes``
-    is populated by pkgutil/inspect discovery and is class-only.
+    JIT init (PathResolver, LLM client). ``EngineRegistry.engine_class``
+    reads the discovered classes and builds nothing.
 
     Returns ``None`` for unknown engines (extractor falls back to
     per-file). Passive aliases (``python_runtime``, ``type_system``, ...)
     resolve through PASSIVE_ALIASES to ``PassiveGateEngine``.
     """
-    from mind.logic.engines.registry import PASSIVE_ALIASES, EngineRegistry
+    from mind.logic.engines.registry import EngineRegistry
 
-    EngineRegistry._discover_engines()
-    target_id = "passive_gate" if engine_id in PASSIVE_ALIASES else engine_id
-    return EngineRegistry._engine_classes.get(target_id)
+    return EngineRegistry.engine_class(engine_id)
 
 
 __all__ = ["extract_executable_rules"]

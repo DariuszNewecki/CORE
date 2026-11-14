@@ -8,6 +8,22 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+### Added
+
+- **Engine contract (#1339, ADR-176):** CORE declares the engine interface version it implements as
+  `CORE_ENGINE_API = "1"` (`mind.logic.engines.base`); `BaseEngine.api_version` defaults to `"1"`, so existing
+  engines need no change. Every engine enters the registry through one registration point. Two different engines
+  with the same `engine_id` stop CORE from starting and are both named; an engine whose `api_version` differs is
+  not registered and logs a warning, and its rules give the engine-missing finding. No explicit `engine_id`, an
+  id outside lowercase letters, digits and underscores, an id equal to a passive alias, or a constructor that
+  requires a parameter CORE does not inject produces a warning in 3.x and becomes a refusal in 4.0.
+  `EngineRegistry.engine_class(engine_id)` returns an engine's class without building it.
+
+### Fixed
+
+- **Record engines built once (#1459):** the record path built a new engine for every rule; it now builds each
+  engine once per registry initialization, as file audits do.
+
 ## [3.2.0] — 2026-11-12
 
 Minor release: the catalog contract for GRC requirement catalogs, and the record contract with its first engine and

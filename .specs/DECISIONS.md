@@ -1805,7 +1805,9 @@ for. An engine outside CORE (ADR-175) needs a stated contract before it can be c
   (context-level, shadow, stateless, cache) stays as it is; an engine not on a list gets the
   default.
 
-Enforced by: not enforced (nothing built yet; lands with #1339).
+Enforced by: `src/mind/logic/engines/registry.py` (`EngineRegistry._register`: D4, D5 refusals,
+D6 warnings) and `CORE_ENGINE_API` in `src/mind/logic/engines/base.py`; tests
+`tests/mind/logic/engines/test_engine_contract__*.py` (the PR B baseline pins D2 and D3).
 
 ## Governor rulings
 
