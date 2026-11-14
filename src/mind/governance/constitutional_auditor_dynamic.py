@@ -58,6 +58,7 @@ async def run_dynamic_rules(
     """
     # DEFERRED IMPORT: Break circular loop
     from mind.governance.rule_executor import execute_rule
+    from mind.governance.rule_findings import engine_missing_finding
     from mind.logic.engines.llm_gate_stub import LLMGateStubEngine
     from mind.logic.engines.registry import EngineRegistry
 
@@ -86,7 +87,16 @@ async def run_dynamic_rules(
 
     for rule in executable_rules:
         try:
-            engine = EngineRegistry.get(rule.engine)
+            try:
+                engine = EngineRegistry.get(rule.engine)
+            except ValueError as missing:
+                # #1458, ADR-176 D3: an engine the registry does not hold
+                # gives the engine-missing finding, as on the single-rule
+                # path, not an ENFORCEMENT_FAILURE crash.
+                executed_rule_ids.add(rule.rule_id)
+                executed_count += 1
+                all_findings.append(engine_missing_finding(rule, missing))
+                continue
 
             # #1454: a rule whose engine fell back to the stand-in (no LLM
             # client) still goes through execute_rule, which reports it with

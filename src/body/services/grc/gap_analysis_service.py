@@ -398,9 +398,24 @@ class DocumentCorpusAnalysisService:
         - grc_judge         → three-way per-file signals → corpus verdict (D4)
         - deterministic     → binary gap/satisfied from execute_rule
         """
+        from mind.governance.rule_findings import engine_missing_finding
         from mind.logic.engines.llm_gate_stub import LLMGateStubEngine
 
-        engine = EngineRegistry.get(rule.engine)
+        try:
+            engine = EngineRegistry.get(rule.engine)
+        except ValueError as missing:
+            # #1458, ADR-176 D3: an engine the registry does not hold gives the
+            # engine-missing finding; no verdict can be established from it.
+            finding = engine_missing_finding(rule, missing)
+            return RequirementVerdict(
+                requirement_id=rule.rule_id,
+                applicability=Applicability.IN_SCOPE,
+                status=RequirementStatus.UNAVAILABLE,
+                evidence_class=EvidenceClass.ATTESTED,
+                rationale=f"{finding.check_id}: {finding.message}",
+                statement=rule.statement,
+                evidence=[],
+            )
 
         if rule.is_context_level:
             # attestation_gate: always NEEDS_HUMAN; attestation_prompt → rationale.
