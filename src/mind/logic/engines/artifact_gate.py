@@ -881,6 +881,18 @@ class ArtifactGateEngine(BaseEngine):
                 engine_id=self.engine_id,
             )
 
+        if not isinstance(raw, dict):
+            # A manifest whose top level is not a mapping is a finding, not
+            # a crash (found by the ADR-177 D7 conformance smoke test).
+            return EngineResult(
+                ok=False,
+                message="model.yaml is not a mapping",
+                violations=[
+                    f"{file_path}: top level is {type(raw).__name__}, not a mapping"
+                ],
+                engine_id=self.engine_id,
+            )
+
         if check_type == "required_fields":
             return self._check_required_fields(file_path, raw)
         if check_type == "no_provider_leak":

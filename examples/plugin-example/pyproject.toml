@@ -1,0 +1,23 @@
+# A minimal CORE plug-in (ADR-177): one engine and one catalog.
+# Install it next to core-runtime (pip install -e examples/plugin-example) and
+# CORE finds it by itself; check it with: core-admin plugin check core-plugin-example
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "core-plugin-example"
+version = "0.1.0"
+description = "Example CORE plug-in: an engine that flags TODO markers, and a catalog that uses it."
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = ["core-runtime>=3.3"]
+
+[project.entry-points."core.plugins"]
+core-plugin-example = "core_plugin_example:MANIFEST"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+core_plugin_example = ["catalogs/*.yaml", "catalogs/*/*/*.yaml"]
