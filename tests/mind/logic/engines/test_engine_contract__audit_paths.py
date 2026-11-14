@@ -144,15 +144,18 @@ async def test_no_llm__single_rule_path_gives_one_stub_warning(
     assert finding.context["reason"] == "no_llm_client"
 
 
-async def test_no_llm__full_audit_counts_llm_gate_as_executed_with_no_finding(
+async def test_no_llm__full_audit_gives_llm_gate_the_stub_warning(
     fresh_engine_registry: type[EngineRegistry],
 ) -> None:
-    # Pins the silent pass of #1454 as it is today: the rule is counted as
-    # executed and gives no finding. When #1454 is fixed, this test changes
-    # with that fix.
+    # #1454 fixed: the rule was counted as executed with no finding (a
+    # silent pass); it now gets the same #307 warning as on the single-rule
+    # path.
     rule = _rule("llm_gate")
     findings, executed, crashed = await _full_audit(rule)
-    assert findings == []
+    assert [(f.check_id, f.severity) for f in findings] == [
+        (rule.rule_id, AuditSeverity.HIGH)
+    ]
+    assert findings[0].context["stub"] is True
     assert executed == {rule.rule_id}
     assert crashed == set()
 
