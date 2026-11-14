@@ -237,12 +237,11 @@ async def test_unbuildable__single_rule_path_turns_a_value_error_into_engine_mis
     ]
 
 
-@pytest.mark.parametrize("engine_id", [_RT, _VE])
 async def test_unbuildable__full_audit_gives_an_enforcement_failure(
-    fresh_engine_registry: type[EngineRegistry], engine_id: str
+    fresh_engine_registry: type[EngineRegistry],
 ) -> None:
     fresh_engine_registry._engine_classes.update(_UNBUILDABLE)
-    rule = _rule(engine_id)
+    rule = _rule(_RT)
     findings, executed, crashed = await _full_audit(rule)
     assert [(f.check_id, f.severity) for f in findings] == [
         (rule.rule_id, AuditSeverity.BLOCK)
@@ -252,17 +251,39 @@ async def test_unbuildable__full_audit_gives_an_enforcement_failure(
     assert crashed == {rule.rule_id}
 
 
-@pytest.mark.parametrize(
-    ("engine_id", "error"), [(_RT, RuntimeError), (_VE, ValueError)]
-)
-async def test_unbuildable__gap_analysis_lets_the_error_through(
+async def test_unbuildable__full_audit_turns_a_value_error_into_engine_missing(
     fresh_engine_registry: type[EngineRegistry],
-    tmp_path: Path,
-    engine_id: str,
-    error: type[Exception],
 ) -> None:
-    with pytest.raises(error, match="cannot build"):
-        await _gap_analysis(_rule(engine_id), tmp_path)
+    # #1458: changed on purpose. A ValueError from get() was an
+    # ENFORCEMENT_FAILURE crash here; it is now engine-missing, as on the
+    # single-rule path.
+    fresh_engine_registry._engine_classes.update(_UNBUILDABLE)
+    rule = _rule(_VE)
+    findings, executed, crashed = await _full_audit(rule)
+    assert [(f.check_id, f.severity) for f in findings] == [
+        (f"{rule.rule_id}.engine_missing", AuditSeverity.BLOCK)
+    ]
+    assert executed == {rule.rule_id}
+    assert crashed == set()
+
+
+async def test_unbuildable__gap_analysis_lets_a_runtime_error_through(
+    fresh_engine_registry: type[EngineRegistry], tmp_path: Path
+) -> None:
+    with pytest.raises(RuntimeError, match="cannot build"):
+        await _gap_analysis(_rule(_RT), tmp_path)
+
+
+async def test_unbuildable__gap_analysis_turns_a_value_error_into_unavailable(
+    fresh_engine_registry: type[EngineRegistry], tmp_path: Path
+) -> None:
+    # #1458: changed on purpose. A ValueError from get() ended the run; it is
+    # now the engine-missing finding, reported as UNAVAILABLE.
+    rule = _rule(_VE)
+    (verdict,) = await _gap_analysis(rule, tmp_path)
+    assert verdict.status == RequirementStatus.UNAVAILABLE
+    assert verdict.evidence_class == EvidenceClass.ATTESTED
+    assert verdict.rationale.startswith(f"{rule.rule_id}.engine_missing: ")
 
 
 async def test_unbuildable__record_path_lets_a_runtime_error_through(
@@ -283,3 +304,50 @@ async def test_unbuildable__record_path_turns_a_value_error_into_engine_missing(
     (finding,) = part.findings
     assert finding.details == {"finding_type": "engine_missing"}
     assert "cannot build" in finding.message
+
+
+# --- 3. An engine id the registry does not hold (#1458, ADR-176 D3) ----------
+
+_UNKNOWN = "contract_no_such_gate"
+
+
+async def test_unknown_engine__single_rule_path_gives_engine_missing(
+    fresh_engine_registry: type[EngineRegistry],
+) -> None:
+    rule = _rule(_UNKNOWN)
+    findings = await execute_rule(rule, MagicMock())
+    assert [(f.check_id, f.severity) for f in findings] == [
+        (f"{rule.rule_id}.engine_missing", AuditSeverity.BLOCK)
+    ]
+
+
+async def test_unknown_engine__full_audit_gives_engine_missing(
+    fresh_engine_registry: type[EngineRegistry],
+) -> None:
+    rule = _rule(_UNKNOWN)
+    findings, executed, crashed = await _full_audit(rule)
+    assert [(f.check_id, f.severity) for f in findings] == [
+        (f"{rule.rule_id}.engine_missing", AuditSeverity.BLOCK)
+    ]
+    assert executed == {rule.rule_id}
+    assert crashed == set()
+
+
+async def test_unknown_engine__gap_analysis_gives_engine_missing_as_unavailable(
+    fresh_engine_registry: type[EngineRegistry], tmp_path: Path
+) -> None:
+    rule = _rule(_UNKNOWN)
+    (verdict,) = await _gap_analysis(rule, tmp_path)
+    assert verdict.status == RequirementStatus.UNAVAILABLE
+    assert verdict.evidence_class == EvidenceClass.ATTESTED
+    assert verdict.rationale.startswith(f"{rule.rule_id}.engine_missing: ")
+
+
+async def test_unknown_engine__record_path_gives_engine_missing(
+    fresh_engine_registry: type[EngineRegistry],
+) -> None:
+    verdict = await record_contract.evaluate({}, [_record_rule(_UNKNOWN)])
+    (part,) = verdict.parts
+    assert part.result == "fail"
+    (finding,) = part.findings
+    assert finding.details == {"finding_type": "engine_missing"}
