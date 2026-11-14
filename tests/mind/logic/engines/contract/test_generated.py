@@ -128,3 +128,37 @@ def test_required_constructor_params():
     result = required_constructor_params(Engine)
 
     assert result == frozenset({"name"})
+
+
+import importlib
+
+import pytest
+
+
+# ID: 9cb53806-bbc6-45c2-930b-06d34107d940
+def test_api_version_problem():
+    try:
+        contract = importlib.import_module("mind.logic.engines.contract")
+    except ImportError:
+        pytest.skip("mind.logic.engines.contract is not importable in this environment")
+
+    api_version_problem = getattr(contract, "api_version_problem", None)
+    if api_version_problem is None:
+        pytest.skip("api_version_problem not available")
+
+    core_api = str(getattr(contract, "CORE_ENGINE_API", "1"))
+
+    # ID: 2cbfd350-32e9-4f60-bb53-fecc436bf2cb
+    class SupportedEngine:
+        api_version = core_api
+
+    # ID: 6ff20a4a-56d9-4a09-90e6-6cdfefc58dd8
+    class UnsupportedEngine:
+        api_version = "999"
+
+    assert api_version_problem(SupportedEngine) is None
+
+    problem = api_version_problem(UnsupportedEngine)
+    assert problem is not None
+    assert "999" in problem
+    assert core_api in problem
