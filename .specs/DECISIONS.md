@@ -1857,7 +1857,10 @@ and catalogs and packs only in the repository or the wheel.
 - **D9 — Not in this ADR.** The publication engine and its catalog stay in CORE until 4.0
   (ADR-175 D2 waits). Supersedes ADR-173 D11; decides ADR-176 D9.
 
-Enforced by: not enforced (nothing built yet; lands with #1339 phase 3).
+Enforced by: `src/shared/infrastructure/plugins.py` (D1, D2, D4, D8), `EngineRegistry._register` (D3, D5 for
+engines), `src/body/services/grc/catalog_resolver.py` and `pack_loader.py` (D3, D5 for content),
+`src/mind/engine_api/` (D6, D7) and `core-admin plugin check` (D7); schema
+`.intent/META/plugin_manifest.schema.json`; tests `tests/**/test_*plugin*.py`.
 
 ## Governor rulings
 

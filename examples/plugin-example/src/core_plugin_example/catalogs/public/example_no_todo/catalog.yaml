@@ -1,0 +1,15 @@
+format_version: 1
+
+catalog:
+  id: example_no_todo
+  title: "Example: documents carry no TODO marker"
+  catalog_version: "0.1.0"
+
+requirements:
+  - id: example_no_todo.finished
+    engine: example_no_todo_gate
+    enforcement: blocking
+    scope: ["**/*.md"]
+    statement: "A published document MUST NOT carry a TODO marker."
+    params:
+      marker: "TODO"
