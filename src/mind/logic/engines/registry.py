@@ -10,6 +10,7 @@ from __future__ import annotations
 import importlib
 import inspect
 import pkgutil
+import re
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from shared.logger import getLogger
@@ -33,6 +34,42 @@ PASSIVE_ALIASES: set[str] = {
     "runtime_check",
     "dataclass_validation",
 }
+
+
+# ADR-176 D2: the services CORE injects, and the engine_id format.
+_INJECTED_SERVICES = frozenset({"path_resolver", "llm_client", "embedding_client"})
+_ENGINE_ID_FORMAT = re.compile(r"^[a-z0-9_]+$")
+
+
+def _contract_warnings(engine_cls: type, engine_id: str) -> list[str]:
+    """What an engine does against ADR-176 D2 that 3.x only warns about (D6)."""
+    problems: list[str] = []
+    if "engine_id" not in vars(engine_cls):
+        problems.append("no explicit engine_id on the class")
+    if not _ENGINE_ID_FORMAT.match(engine_id):
+        problems.append(
+            f"engine_id {engine_id!r} is not lowercase letters, digits and underscores"
+        )
+    if engine_id in PASSIVE_ALIASES:
+        problems.append(f"engine_id {engine_id!r} is also a passive alias")
+    try:
+        params = list(inspect.signature(engine_cls.__init__).parameters.items())  # type: ignore[misc]
+    except (TypeError, ValueError):
+        params = []
+    unknown = sorted(
+        pname
+        for pname, param in params
+        if pname != "self"
+        and param.kind
+        not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+        and param.default is inspect.Parameter.empty
+        and pname not in _INJECTED_SERVICES
+    )
+    if unknown:
+        problems.append(
+            f"constructor requires {', '.join(unknown)}, which CORE does not inject"
+        )
+    return problems
 
 
 # ID: 5e62aff7-edfd-4808-8833-9dd9ebc63757
@@ -79,8 +116,9 @@ class EngineRegistry:
         cls._instances.clear()
         cls._engine_classes.clear()
         cls._discovered = False
-        cls._discover_engines()
+        # Aliases first: registration checks ids against them (ADR-176 D6).
         cls._load_passive_aliases_from_taxonomy()
+        cls._discover_engines()
         logger.debug("EngineRegistry primed with dynamic discovery.")
 
     @classmethod
@@ -122,7 +160,22 @@ class EngineRegistry:
         and names both; the same class met twice (re-exported by another
         module) is not a duplicate.
         """
+        from .base import CORE_ENGINE_API
+
         engine_id = getattr(engine_cls, "engine_id", default_id)
+        name = f"{engine_cls.__module__}.{engine_cls.__qualname__}"
+        api_version = str(getattr(engine_cls, "api_version", "1"))
+        if api_version.split(".")[0] != CORE_ENGINE_API:
+            logger.warning(
+                "Engine %s (%s) declares api_version %r; this CORE supports "
+                "%r. Not registered; its rules give the engine-missing "
+                "finding (ADR-176 D5(b)).",
+                engine_id,
+                name,
+                api_version,
+                CORE_ENGINE_API,
+            )
+            return
         held = cls._engine_classes.get(engine_id)
         if held is not None and held is not engine_cls:
             raise DuplicateEngineIdError(
@@ -130,6 +183,13 @@ class EngineRegistry:
                 f"{held.__module__}.{held.__qualname__} and "
                 f"{engine_cls.__module__}.{engine_cls.__qualname__} "
                 "(ADR-176 D5(a))"
+            )
+        for problem in _contract_warnings(engine_cls, engine_id):
+            logger.warning(
+                "Engine %s (%s): %s. A warning in 3.x, a refusal in 4.0 (ADR-176 D6).",
+                engine_id,
+                name,
+                problem,
             )
         cls._engine_classes[engine_id] = engine_cls
 
@@ -209,6 +269,17 @@ class EngineRegistry:
             for klass in cls._engine_classes.values()
             if getattr(klass, "requires_knowledge_graph", False)
         )
+
+    @classmethod
+    # ID: ff3f2570-dd46-46c0-8bcc-f0252015d15a
+    def engine_class(cls, engine_id: str) -> type | None:
+        """The engine class for ``engine_id``, without building it, or None
+        when the registry holds no such engine. A passive alias resolves to
+        ``passive_gate``. Needs no initialization: discovery only imports
+        engine modules."""
+        cls._discover_engines()
+        target_id = "passive_gate" if engine_id in PASSIVE_ALIASES else engine_id
+        return cls._engine_classes.get(target_id)
 
     @classmethod
     # ID: 4b8e2f6a-9c1d-4e7b-a3f5-0d6c8b2e4a91
