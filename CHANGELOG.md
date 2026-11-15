@@ -8,6 +8,11 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ## [Unreleased]
 
+## [3.3.0] — 2026-11-16
+
+Minor release: the engine contract and plug-ins (#1339), and notice that the engines which do not audit code leave
+CORE at 4.0 (ADR-178). Consumer: for external plug-ins. No database migration.
+
 ### Added
 
 - **Engine contract (#1339, ADR-176):** CORE declares the engine interface version it implements as
@@ -28,6 +33,14 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
   import path for engines; `core-admin plugin list` and `core-admin plugin check <name>` (a report to keep as
   validation evidence) are new. Example in `examples/plugin-example/`; guide in "Write a CORE plug-in".
 
+### Deprecated
+
+- **Engines that do not audit code (ADR-175, ADR-178):** CORE's scope is code auditing. `grc_judge`,
+  `attestation_gate`, `schema_gate` and `publication_gate` (with its catalog), and the commands
+  `core-admin grc gap-analysis` and `core-admin record check`, are frozen as shipped and leave CORE in 4.0. They
+  return as external plug-ins under the same engine ids, so a catalog that names one needs no change; without the
+  plug-in installed, such a rule gives the engine-missing finding, never a silent pass. The other 14 engines stay.
+
 ### Fixed
 
 - **`knowledge_gate.verify` was not async (ADR-176 D2):** every caller awaits it; found by the new conformance
@@ -39,6 +52,10 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
   audit reported a crash; gap analysis stopped).
 - **Record engines built once (#1459):** the record path built a new engine for every rule; it now builds each
   engine once per registry initialization, as file audits do.
+
+### Security
+
+- **Dependencies (#1456):** dnspython 2.9.2 and opentelemetry-api 1.45.2 (pip-audit findings).
 
 ## [3.2.0] — 2026-11-12
 
