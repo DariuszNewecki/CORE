@@ -455,7 +455,7 @@ jobs:
 
       # ADR-115 D1: point the test config at the ephemeral localhost services.
       # The committed .env.test targets the dev host's local Docker PG
-      # (127.0.0.1, since the 2026-09-13 rebuild) and the LAN Qdrant; rewrite
+      # (127.0.0.1, since the 2026-09-13 rebuild) and its local Qdrant; rewrite
       # only the runner's copy. shared.config loads .env.test with
       # override=True under pytest, so a job-level env var would not win — the
       # file itself must be rewritten.
@@ -463,7 +463,7 @@ jobs:
         run: |
           sed -i \
             -e 's#@127\.0\.0\.1:5432#@localhost:5432#' \
-            -e 's#http://192\.168\.20\.22:6333#http://localhost:6333#' \
+            -e 's#http://127\.0\.0\.1:6333#http://localhost:6333#' \
             .env.test
 
       # ADR-115 D1: seed the ephemeral DB from the canonical schema-as-truth.
